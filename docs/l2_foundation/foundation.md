@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 ---
 
 # Arcagate システム構成
@@ -64,7 +64,7 @@ status: wip
 - 最大のエコシステム・ドキュメント
 
 **不採用**:
-- plain Svelte + Vite: M2bでルーティング追加作業が発生する
+- plain Svelte + Vite: SPA出力のTauri公式サポート・HMR・ファイルベースルーティングによるM2bページ追加の容易さを欠く
 - Svelte 4: Svelte 5がstable。greenfieldで旧版を選ぶ理由なし
 - Skeleton UI: コマンドパレット向けコンポーネントが弱い
 - Bits UIのみ: 全コンポーネントのスタイリングをゼロから書く必要があり、個人プロジェクトには高コスト
@@ -77,6 +77,8 @@ status: wip
 | SQLiteアクセス | **rusqlite** (`bundled` feature) |
 | マイグレーション | **rusqlite_migration** |
 | ID生成 | **UUID v7** (`uuid` crate) |
+| エラー型導出 | **thiserror** |
+| パスワードハッシュ | **argon2** |
 
 **rusqlite の選定理由**:
 - SQLite専用の軽量ラッパー。マルチDB抽象のオーバーヘッドなし
@@ -105,7 +107,7 @@ status: wip
 | Rust ユニットテスト | `cargo test` | M1（service + repository層） |
 | Svelte コンポーネントテスト | vitest + `@testing-library/svelte` | M1（重要コンポーネントのみ） |
 | Tauri コマンド統合 | `cargo test` + テストヘルパー | M1 |
-| E2E（デスクトップ） | WebdriverIO | M2+（後回し） |
+| E2E（デスクトップ） | WebdriverIO | M2+（後回し。M1完了時に手動E2Eチェックリストを作成） |
 
 **WebdriverIO の選定理由（E2E）**:
 - PlaywrightはTauriのネイティブAPIをサポートしていない
@@ -149,7 +151,7 @@ status: wip
 │                         │                                 │
 │  ┌──────────────────────▼──────────────────────────────┐  │
 │  │           Repository Layer (データアクセス)            │  │
-│  │   ItemRepo, CategoryRepo, LogRepo, ConfigRepo        │  │
+│  │   ItemRepo, CategoryRepo, TagRepo, LogRepo, ConfigRepo│  │
 │  └──────────────────────┬──────────────────────────────┘  │
 │                         │                                 │
 │  ┌──────────────────────▼──────────────────────────────┐  │
@@ -193,12 +195,16 @@ arcagate/
 │   │   │   ├── item/               # アイテム管理
 │   │   │   │   ├── ItemForm.svelte
 │   │   │   │   └── ItemCard.svelte
-│   │   │   └── settings/           # 設定画面
+│   │   │   ├── settings/           # 設定画面
+│   │   │   └── setup/              # セットアップウィザード (REQ-006)
 │   │   ├── ipc/                    # Tauri IPC 型付きラッパー
 │   │   │   ├── items.ts
 │   │   │   ├── categories.ts
+│   │   │   ├── tags.ts
 │   │   │   ├── log.ts
 │   │   │   ├── config.ts
+│   │   │   ├── setup.ts
+│   │   │   ├── visibility.ts
 │   │   │   └── events.ts
 │   │   ├── state/                  # グローバルステート (runes)
 │   │   │   ├── palette.svelte.ts
@@ -207,6 +213,7 @@ arcagate/
 │   │   ├── types/                  # TypeScript 型定義
 │   │   │   ├── item.ts
 │   │   │   ├── category.ts
+│   │   │   ├── tag.ts
 │   │   │   └── config.ts
 │   │   └── utils/                  # ユーティリティ
 │   └── routes/                     # SvelteKit ファイルベースルーティング
@@ -231,19 +238,25 @@ arcagate/
 │       │   ├── mod.rs
 │       │   ├── item.rs
 │       │   ├── category.rs
+│       │   ├── tag.rs
+│       │   ├── visibility.rs
 │       │   ├── log.rs
 │       │   ├── config.rs
+│       │   ├── setup.rs
 │       │   └── data.rs
 │       ├── services/               # ビジネスロジック
 │       │   ├── mod.rs
 │       │   ├── item_service.rs
 │       │   ├── launch_service.rs
 │       │   ├── log_service.rs
-│       │   └── config_service.rs
+│       │   ├── tag_service.rs
+│       │   ├── config_service.rs
+│       │   └── setup_service.rs
 │       ├── repositories/           # データアクセス (rusqlite)
 │       │   ├── mod.rs
 │       │   ├── item_repo.rs
 │       │   ├── category_repo.rs
+│       │   ├── tag_repo.rs
 │       │   ├── log_repo.rs
 │       │   └── config_repo.rs
 │       ├── models/                 # ドメインモデル・DTO
@@ -257,6 +270,9 @@ arcagate/
 │       │   ├── item_provider.rs
 │       │   ├── command_provider.rs
 │       │   └── plugin.rs
+│       ├── watcher/                # ファイル監視抽象化 (M1: trait定義のみ)
+│       │   ├── mod.rs
+│       │   └── traits.rs           # FileWatcher trait (M2パス追跡・M4インデックスで共用)
 │       ├── launcher/               # プロセス起動ロジック
 │       │   ├── mod.rs
 │       │   ├── exe.rs
@@ -288,6 +304,8 @@ arcagate/
 | `src/lib/state/` | `.svelte.ts` 拡張子でコンポーネント外からrunesを使用（Svelte 5推奨パターン） |
 | `src-tauri/migrations/` | SQLファイルを `include_str!` でバイナリに埋め込み。実行時ファイル依存なし |
 | `src-tauri/src/plugin_api/` | M1ではtrait定義のみ。M2でプラグインローディングを追加する際のリファクタを防止 |
+| `src/lib/components/setup/` | セットアップウィザード（REQ-006）。初回起動時のみモーダルダイアログとして表示（独立ルートではない） |
+| `src-tauri/src/watcher/` | ファイル監視の抽象化trait。M1ではtrait定義のみ。M2（パス追跡）・M4（インデックス）で共用 |
 | `src-tauri/src/launcher/` | アイテムタイプ別に分離（exe/url/script/folder）。共通の `Launcher` trait で抽象化 |
 
 ### 2.3 Service Layer 設計
@@ -312,7 +330,11 @@ pub trait ItemService: Send + Sync {
     fn delete_item(&self, id: ItemId) -> Result<()>;
     fn get_item(&self, id: ItemId) -> Result<Option<Item>>;
     fn search_items(&self, query: &str, opts: SearchOptions) -> Result<Vec<ItemSearchResult>>;
+}
+
+pub trait LaunchService: Send + Sync {
     fn launch_item(&self, id: ItemId) -> Result<LaunchResult>;
+    // 内部で ItemService（対象取得）+ LogService（記録）+ item_stats更新 を統合
 }
 
 pub trait LogService: Send + Sync {
@@ -359,28 +381,30 @@ pub trait Plugin: Send + Sync {
 
 #### Commands（Frontend → Backend、request/response）
 
-`namespace::action` 形式で統一。
+論理名は `namespace::action` 形式で設計。Tauri v2の `#[tauri::command]` では関数名がinvoke名になるため、実際のinvoke呼び出しは `namespace_action`（アンダースコア区切り）を使用する。
 
-| コマンド | 引数 | 戻り値 |
-|---|---|---|
-| `item::create` | CreateItemInput | Item |
-| `item::update` | id, UpdateItemInput | Item |
-| `item::delete` | id | () |
-| `item::get` | id | Item \| null |
-| `item::search` | query, SearchOptions | ItemSearchResult[] |
-| `item::launch` | id | LaunchResult |
-| `item::import_icon` | exe_path | string (base64) |
-| `category::list` | - | Category[] |
-| `category::create` | CreateCategoryInput | Category |
-| `tag::list` | - | Tag[] |
-| `tag::create` | CreateTagInput | Tag |
-| `log::recent` | limit | LaunchLogEntry[] |
-| `log::frequent` | limit | LaunchLogEntry[] |
-| `config::get` | key | string \| null |
-| `config::set` | key, value | () |
-| `data::export` | path | () |
-| `data::import` | path | () |
-| `visibility::toggle` | password? | boolean |
+| 論理名 | invoke名 | 引数 | 戻り値 |
+|---|---|---|---|
+| `item::create` | `item_create` | CreateItemInput | Item |
+| `item::update` | `item_update` | id, UpdateItemInput | Item |
+| `item::delete` | `item_delete` | id | () |
+| `item::get` | `item_get` | id | Item \| null |
+| `item::search` | `item_search` | query, SearchOptions | ItemSearchResult[] |
+| `item::launch` | `item_launch` | id | LaunchResult |
+| `item::import_icon` | `item_import_icon` | exe_path | string (icon_path) |
+| `category::list` | `category_list` | - | Category[] |
+| `category::create` | `category_create` | CreateCategoryInput | Category |
+| `tag::list` | `tag_list` | - | Tag[] |
+| `tag::create` | `tag_create` | CreateTagInput | Tag |
+| `log::recent` | `log_recent` | limit | LaunchLogEntry[] |
+| `log::frequent` | `log_frequent` | limit | LaunchLogEntry[] |
+| `config::get` | `config_get` | key | string \| null |
+| `config::set` | `config_set` | key, value | () |
+| `data::export` | `data_export` | path | () |
+| `data::import` | `data_import` | path | () |
+| `setup::get_status` | `setup_get_status` | - | SetupStatus |
+| `setup::complete` | `setup_complete` | SetupInput | () |
+| `visibility::toggle` | `visibility_toggle` | password? | boolean |
 
 #### Events（Backend → Frontend、fire-and-forget）
 
@@ -394,8 +418,9 @@ pub trait Plugin: Send + Sync {
 
 ```typescript
 // src/lib/ipc/items.ts — invoke を直接呼ばず型付きラッパーを使用
+// invoke名はRust側の関数名と一致（アンダースコア区切り）
 import { invoke } from '@tauri-apps/api/core';
-import type { Item, CreateItemInput } from '$lib/types';
+import type { Item, CreateItemInput, AppError } from '$lib/types';
 
 export async function createItem(input: CreateItemInput): Promise<Item> {
   return invoke('item_create', { input });
@@ -403,6 +428,11 @@ export async function createItem(input: CreateItemInput): Promise<Item> {
 
 export async function searchItems(query: string): Promise<Item[]> {
   return invoke('item_search', { query });
+}
+
+// エラーハンドリング: IPCラッパーで catch し、トースト通知で表示
+export async function launchItem(id: string): Promise<void> {
+  return invoke('item_launch', { id });
 }
 ```
 
@@ -429,6 +459,87 @@ export const paletteState = new PaletteState();
 
 **パターン**: クラスの `$state` フィールド + `$derived` ゲッター。シングルトンインスタンスをエクスポート。
 
+### 2.7 rusqlite Connection管理
+
+`rusqlite::Connection` は `Send` だが `Sync` ではないため、スレッド間共有に制約がある。
+
+```rust
+// Tauri managed state として Mutex<Connection> を保持
+use std::sync::Mutex;
+
+pub struct DbState(pub Mutex<rusqlite::Connection>);
+
+// lib.rs での登録
+app.manage(DbState(Mutex::new(connection)));
+
+// Command ハンドラでの使用
+#[tauri::command]
+fn item_search(db: State<DbState>, query: String) -> Result<Vec<Item>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // ...
+}
+```
+
+**方針**: M1のアイテム数（数百件以下）・同時リクエスト数（1ユーザー）では `Mutex<Connection>` で十分。将来的に並行性が問題になった場合は `r2d2-sqlite` コネクションプールへの移行パスがある。
+
+### 2.8 エラーハンドリング戦略
+
+#### エラー型
+
+```rust
+// src-tauri/src/utils/error.rs
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AppError {
+    #[error("Database error: {0}")]
+    Database(#[from] rusqlite::Error),
+
+    #[error("Item not found: {0}")]
+    NotFound(String),
+
+    #[error("Launch failed: {0}")]
+    LaunchFailed(String),
+
+    #[error("Validation error: {0}")]
+    Validation(String),
+
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Database lock error")]
+    DbLock,
+}
+
+// Tauri IPC でフロントエンドに返すための変換
+impl serde::Serialize for AppError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+```
+
+#### エラー伝播パターン
+
+```
+Repository (rusqlite::Error) → Service (AppError) → Command (Result<T, AppError>) → Frontend
+```
+
+- Repository層: `rusqlite::Error` を `AppError::Database` に自動変換（`From` impl）
+- Service層: ビジネスロジック固有のエラー（`NotFound`, `Validation`）を生成
+- Command層: `Result<T, AppError>` をそのまま返す。Tauriが `Serialize` 経由でフロントエンドに伝達
+- Frontend: IPCラッパーで `catch` し、トースト通知（shadcn-svelteの `Sonner` コンポーネント）で表示
+
+### 2.9 パスワード可視性トグル
+
+`visibility::toggle` のパスワードはカジュアルな隠蔽用途（暗号学的保護ではない）。
+
+- パスワードハッシュは `argon2` でハッシュ化し `config` テーブルに保存
+- セッション中はメモリ上のフラグでトグル状態を管理
+- 試行回数制限なし（個人用途のため）
+- パスワード未設定の場合はホットキーのみでトグル可能
+
 ## 3. 非機能要求
 
 | 要求 | 目標値 | 技術的アプローチ |
@@ -437,6 +548,7 @@ export const paletteState = new PaletteState();
 | 起動レイテンシ | ホットキー→UI表示 P95 2秒以内 | Tauri IPC (custom protocol) + SQLite WALモード + インデックス最適化 |
 | バイナリサイズ | 単体exe 20MB以下 | Tauri v2 + bundled SQLite。SvelteKitの小さいバンドルサイズ |
 | データ保存 | ローカル完結 | SQLite（クラウド同期なし） |
+| CSP | Tauri v2デフォルトCSP準拠 | `ipc:` / `asset:` スキームのみ許可。`unsafe-inline` / `unsafe-eval` 禁止。外部通信はM1では不要（発生時に個別ホワイトリスト） |
 
 ### SQLite PRAGMAs
 
@@ -470,7 +582,7 @@ CREATE TABLE items (
     target      TEXT    NOT NULL,     -- 実行パス / URL / フォルダパス / スクリプトパス / コマンド文字列
     args        TEXT,                 -- 起動引数
     working_dir TEXT,                 -- 作業ディレクトリ
-    icon_data   TEXT,                 -- base64エンコード済みアイコン
+    icon_path   TEXT,                 -- アイコンファイルパス (app_data_dir/icons/{id}.png)
     icon_type   TEXT,                 -- 'png' | 'ico' | 'svg'
     aliases     TEXT,                 -- JSON配列: ["blen3", "blender3"]
     sort_order  INTEGER NOT NULL DEFAULT 0,
@@ -540,7 +652,8 @@ CREATE TABLE item_stats (
 |---|---|
 | UUID v7 をIDに使用 | 時刻ソート可能。インポート/エクスポート時のID衝突回避 |
 | ISO 8601テキストでタイムスタンプ | SQLiteにネイティブdatetimeなし。TEXTはソート可能・可読性あり |
-| `aliases` をJSON配列で格納 | 1アイテムあたり1〜5件程度。別テーブルより簡潔。`json_each()` でクエリ可能 |
+| `aliases` をJSON配列で格納 | 1アイテムあたり1〜5件程度。別テーブルより簡潔。`json_each()` でクエリ可能。アイテム数が1000件を超えた場合は `item_aliases` テーブルへの正規化を検討 |
+| アイコンをファイルシステムに格納 | base64 TEXT比で33%の容量削減。検索クエリでアイコンデータをロードしない。`app_data_dir/icons/` に保存しパスのみDBに保持 |
 | `item_stats` テーブルで非正規化 | 検索のたびに `COUNT(*)` を避ける。Service層またはトリガーで更新 |
 | `ON DELETE CASCADE` | 参照整合性を保証。`PRAGMA foreign_keys = ON` で有効化 |
 | M2+テーブルは未作成 | 仕様変更を想定し、必要になった時点でマイグレーションで追加 |

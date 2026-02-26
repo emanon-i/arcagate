@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 ---
 
 # Arcagate ビジョン・要求ドキュメント
