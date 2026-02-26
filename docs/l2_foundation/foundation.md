@@ -278,7 +278,8 @@ arcagate/
 │       │   ├── exe.rs
 │       │   ├── url.rs
 │       │   ├── script.rs
-│       │   └── folder.rs
+│       │   ├── folder.rs
+│       │   └── command.rs          # 内蔵コマンド実行
 │       ├── db/                     # DB初期化・マイグレーション
 │       │   ├── mod.rs
 │       │   └── migrations.rs
@@ -306,7 +307,7 @@ arcagate/
 | `src-tauri/src/plugin_api/` | M1ではtrait定義のみ。M2でプラグインローディングを追加する際のリファクタを防止 |
 | `src/lib/components/setup/` | セットアップウィザード（REQ-006）。初回起動時のみモーダルダイアログとして表示（独立ルートではない） |
 | `src-tauri/src/watcher/` | ファイル監視の抽象化trait。M1ではtrait定義のみ。M2（パス追跡）・M4（インデックス）で共用 |
-| `src-tauri/src/launcher/` | アイテムタイプ別に分離（exe/url/script/folder）。共通の `Launcher` trait で抽象化 |
+| `src-tauri/src/launcher/` | アイテムタイプ別に分離（exe/url/script/folder/command）。共通の `Launcher` trait で抽象化 |
 
 ### 2.3 Service Layer 設計
 
@@ -396,6 +397,7 @@ pub trait Plugin: Send + Sync {
 | `category::create` | `category_create` | CreateCategoryInput | Category |
 | `tag::list` | `tag_list` | - | Tag[] |
 | `tag::create` | `tag_create` | CreateTagInput | Tag |
+| `tag::update` | `tag_update` | id, UpdateTagInput | Tag |
 | `log::recent` | `log_recent` | limit | LaunchLogEntry[] |
 | `log::frequent` | `log_frequent` | limit | LaunchLogEntry[] |
 | `config::get` | `config_get` | key | string \| null |
@@ -426,12 +428,12 @@ export async function createItem(input: CreateItemInput): Promise<Item> {
   return invoke('item_create', { input });
 }
 
-export async function searchItems(query: string): Promise<Item[]> {
+export async function searchItems(query: string): Promise<ItemSearchResult[]> {
   return invoke('item_search', { query });
 }
 
 // エラーハンドリング: IPCラッパーで catch し、トースト通知で表示
-export async function launchItem(id: string): Promise<void> {
+export async function launchItem(id: string): Promise<LaunchResult> {
   return invoke('item_launch', { id });
 }
 ```
@@ -481,6 +483,8 @@ fn item_search(db: State<DbState>, query: String) -> Result<Vec<Item>, AppError>
 ```
 
 **方針**: M1のアイテム数（数百件以下）・同時リクエスト数（1ユーザー）では `Mutex<Connection>` で十分。将来的に並行性が問題になった場合は `r2d2-sqlite` コネクションプールへの移行パスがある。
+
+**トランザクション方針**: `launch_item` はアイテム取得→ログ記録→統計更新を単一SQLiteトランザクションで実行する。プロセス起動自体はトランザクション外（起動成功後にコミット）。
 
 ### 2.8 エラーハンドリング戦略
 
