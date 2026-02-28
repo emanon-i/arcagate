@@ -10,6 +10,13 @@ pub fn launch_item(db: &DbState, item_id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let item = item_repository::find_by_id(&conn, item_id)?;
 
+    log::info!(
+        "launching item: id={} type={:?} label={}",
+        item_id,
+        item.item_type,
+        item.label
+    );
+
     let result = match item.item_type {
         ItemType::Exe => launcher::launch_exe(
             &item.target,
@@ -26,9 +33,14 @@ pub fn launch_item(db: &DbState, item_id: &str) -> Result<(), AppError> {
         ItemType::Command => launcher::launch_command(&item.target, item.working_dir.as_deref()),
     };
 
-    // 起動後にログ記録（失敗しても起動成功を優先）
-    if result.is_ok() {
-        let _ = launch_repository::record_launch_and_update_stats(&conn, item_id, "palette");
+    match &result {
+        Ok(_) => {
+            log::info!("launch success: id={}", item_id);
+            let _ = launch_repository::record_launch_and_update_stats(&conn, item_id, "palette");
+        }
+        Err(e) => {
+            log::error!("launch failed: id={} error={}", item_id, e);
+        }
     }
 
     result

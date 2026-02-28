@@ -37,6 +37,7 @@ struct ExportData {
 
 /// アイテム・設定を JSON でエクスポート（起動ログは含まない）
 pub fn export_json(db: &DbState, output_path: &str) -> Result<(), AppError> {
+    log::info!("exporting data to: {}", output_path);
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
 
     let items = item_repository::find_all(&conn)?;
@@ -87,12 +88,19 @@ pub fn export_json(db: &DbState, output_path: &str) -> Result<(), AppError> {
     let json =
         serde_json::to_string_pretty(&data).map_err(|e| AppError::InvalidInput(e.to_string()))?;
     fs::write(output_path, json)?;
+    log::info!(
+        "export complete: {} items, {} categories, {} tags",
+        data.items.len(),
+        data.categories.len(),
+        data.tags.len()
+    );
 
     Ok(())
 }
 
 /// JSON からアイテム・設定をインポート（マージ方式、再起動不要）
 pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
+    log::info!("importing data from: {}", input_path);
     let json = fs::read_to_string(input_path)?;
     let data: ExportData = serde_json::from_str(&json)
         .map_err(|e| AppError::InvalidInput(format!("JSONの解析に失敗しました: {}", e)))?;
@@ -157,6 +165,12 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
     }
 
     conn.execute_batch("COMMIT")?;
+    log::info!(
+        "import complete: {} items, {} categories, {} tags",
+        data.items.len(),
+        data.categories.len(),
+        data.tags.len()
+    );
 
     Ok(())
 }

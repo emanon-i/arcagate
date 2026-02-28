@@ -38,6 +38,7 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
     item_repository::insert(&conn, &item)?;
     item_repository::set_categories(&conn, &id, &input.category_ids)?;
     item_repository::set_tags(&conn, &id, &input.tag_ids)?;
+    log::info!("item created: id={} label={}", id, item.label);
     item_repository::find_by_id(&conn, &id)
 }
 
@@ -76,7 +77,9 @@ pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Ite
 
 pub fn delete_item(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    item_repository::delete(&conn, id)
+    item_repository::delete(&conn, id)?;
+    log::info!("item deleted: id={}", id);
+    Ok(())
 }
 
 pub fn get_categories(db: &DbState) -> Result<Vec<Category>, AppError> {
