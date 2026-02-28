@@ -1,0 +1,41 @@
+export type ItemType = 'exe' | 'url' | 'folder' | 'script' | 'command';
+
+export interface Item {
+	id: string;
+	item_type: ItemType;
+	label: string;
+	target: string;
+	args: string | null;
+	working_dir: string | null;
+	icon_path: string | null;
+	icon_type: string | null;
+	aliases: string[];
+	sort_order: number;
+	is_enabled: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateItemInput {
+	item_type: ItemType;
+	label: string;
+	target: string;
+	args: string | null;
+	working_dir: string | null;
+	icon_path: string | null;
+	aliases: string[];
+	category_ids: string[];
+	tag_ids: string[];
+}
+
+export interface UpdateItemInput {
+	label?: string;
+	target?: string;
+	args?: string | null;
+	working_dir?: string | null;
+	icon_path?: string | null;
+	aliases?: string[];
+	is_enabled?: boolean;
+	category_ids?: string[];
+	tag_ids?: string[];
+}

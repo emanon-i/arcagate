@@ -20,6 +20,15 @@ pub enum AppError {
 
     #[error("Database lock error")]
     DbLock,
+
+    #[error("Zip error: {0}")]
+    Zip(String),
+
+    #[error("Permission error: {0}")]
+    Permission(String),
+
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
 }
 
 impl serde::Serialize for AppError {
