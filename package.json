@@ -1,0 +1,47 @@
+{
+	"name": "arcagate",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "vitest run",
+		"tauri": "tauri",
+		"verify": "pnpm biome check && pnpm dprint check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm test && pnpm tauri build"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"dprint",
+			"esbuild",
+			"lefthook"
+		]
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.4",
+		"@lucide/svelte": "^0.575.0",
+		"@sveltejs/adapter-static": "^3.0.0",
+		"@sveltejs/kit": "^2.50.2",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@tailwindcss/vite": "^4.2.1",
+		"@tauri-apps/cli": "^2.10.0",
+		"@testing-library/svelte": "^5.3.1",
+		"clsx": "2.1.1",
+		"dprint": "^0.52.0",
+		"jsdom": "^28.1.0",
+		"lefthook": "^2.1.1",
+		"svelte": "^5.51.0",
+		"svelte-check": "^4.3.6",
+		"tailwind-merge": "3.4.0",
+		"tailwind-variants": "^3.2.2",
+		"tailwindcss": "^4.2.1",
+		"tw-animate-css": "^1.4.0",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1",
+		"vitest": "^4.0.18"
+	}
+}

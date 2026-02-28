@@ -1,0 +1,32 @@
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+#[allow(dead_code)]
+pub enum AppError {
+    #[error("Database error: {0}")]
+    Database(#[from] rusqlite::Error),
+
+    #[error("Item not found: {0}")]
+    NotFound(String),
+
+    #[error("Launch failed: {0}")]
+    LaunchFailed(String),
+
+    #[error("Validation error: {0}")]
+    Validation(String),
+
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Database lock error")]
+    DbLock,
+}
+
+impl serde::Serialize for AppError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
