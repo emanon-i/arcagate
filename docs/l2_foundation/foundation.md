@@ -8,11 +8,12 @@ status: done
 
 ### 1.1 デスクトップフレームワーク
 
-| 項目 | 選定 |
-|---|---|
+| 項目           | 選定                         |
+| -------------- | ---------------------------- |
 | フレームワーク | **Tauri v2** (latest stable) |
 
 **選定理由**:
+
 - v1はメンテナンスモード（セキュリティ修正のみ）。新規プロジェクトでv1を選ぶ理由がない
 - プラグインAPI: コア機能自体がプラグインとして実装されており、Arcagateの「全機能はプラグイン」思想と合致
 - IPC: カスタムプロトコル（HTTP-like）でv1より高速。バイナリペイロード対応
@@ -23,47 +24,52 @@ status: done
 
 #### Tauri v2 プラグイン一覧（M1で使用）
 
-| プラグイン | 用途 |
-|---|---|
-| `tauri-plugin-global-shortcut` | グローバルホットキー |
-| tray-icon (built-in feature) | システムトレイ常駐 |
-| `tauri-plugin-dialog` | ファイル選択ダイアログ（アイテム登録時） |
-| `tauri-plugin-shell` | 外部プロセス起動 |
-| `tauri-plugin-autostart` | Windows起動時の自動起動 |
-| `tauri-plugin-fs` | ファイルシステムアクセス（D&D等） |
+| プラグイン                     | 用途                                     |
+| ------------------------------ | ---------------------------------------- |
+| `tauri-plugin-global-shortcut` | グローバルホットキー                     |
+| tray-icon (built-in feature)   | システムトレイ常駐                       |
+| `tauri-plugin-dialog`          | ファイル選択ダイアログ（アイテム登録時） |
+| `tauri-plugin-shell`           | 外部プロセス起動                         |
+| `tauri-plugin-autostart`       | Windows起動時の自動起動                  |
+| `tauri-plugin-fs`              | ファイルシステムアクセス（D&D等）        |
 
 ### 1.2 フロントエンド
 
-| 項目 | 選定 |
-|---|---|
-| フレームワーク | **SvelteKit** + `@sveltejs/adapter-static` (**Svelte 5**, runes) |
-| CSS | **Tailwind CSS v4** |
-| UIコンポーネント | **shadcn-svelte** (Svelte 5 + Tailwind v4 対応版) |
-| 状態管理 | Svelte 5 runes ($state, $derived) — 外部ライブラリ不要 |
-| パッケージマネージャ | **pnpm** |
+| 項目                 | 選定                                                             |
+| -------------------- | ---------------------------------------------------------------- |
+| フレームワーク       | **SvelteKit** + `@sveltejs/adapter-static` (**Svelte 5**, runes) |
+| CSS                  | **Tailwind CSS v4**                                              |
+| UIコンポーネント     | **shadcn-svelte** (Svelte 5 + Tailwind v4 対応版)                |
+| 状態管理             | Svelte 5 runes ($state, $derived) — 外部ライブラリ不要           |
+| パッケージマネージャ | **pnpm**                                                         |
 
 **SvelteKit + adapter-static の選定理由**:
+
 - SPA出力（index.html + JS/CSS）。SSRサーバー不要。Tauri v2公式サポート
 - ファイルベースルーティング: M2bのワークスペースページ追加時にルーター手動設定が不要
 - レイアウト・エラーバウンダリ等の開発体験が標準で利用可能
 
 **Svelte 5 の選定理由**:
+
 - runes ($state, $derived, $effect) による明示的なリアクティビティ。Svelte 4の暗黙的リアクティビティより予測しやすい
 - パフォーマンス: ゼロから書き直されたランタイム。バンドルサイズ削減
 - エコシステム全体がSvelte 5に移行済み（shadcn-svelte, Bits UI等）
 
 **shadcn-svelte の選定理由**:
+
 - コード所有型: プロジェクトにコピーされるため、外部ランタイム依存なし。自由に改変可能
 - Bits UIベース: アクセシブルなヘッドレスプリミティブの上にプリスタイルを提供
 - `Command` コンポーネント: cmdk パターンのコマンドパレットが標準提供。Arcagateのコア UI に直結
 - CSS変数ベースのテーマ: M2bのカスタムテーマ機能への拡張パスがある
 
 **Tailwind CSS v4 の選定理由**:
+
 - shadcn-svelte がネイティブサポート
 - CSS-first config（tailwind.config.js 不要）、Lightning CSSエンジン
 - 最大のエコシステム・ドキュメント
 
 **不採用**:
+
 - plain Svelte + Vite: SPA出力のTauri公式サポート・HMR・ファイルベースルーティングによるM2bページ追加の容易さを欠く
 - Svelte 4: Svelte 5がstable。greenfieldで旧版を選ぶ理由なし
 - Skeleton UI: コマンドパレット向けコンポーネントが弱い
@@ -71,45 +77,50 @@ status: done
 
 ### 1.3 バックエンド
 
-| 項目 | 選定 |
-|---|---|
-| 言語 | **Rust** (stable toolchain) |
-| SQLiteアクセス | **rusqlite** (`bundled` feature) |
-| マイグレーション | **rusqlite_migration** |
-| ID生成 | **UUID v7** (`uuid` crate) |
-| エラー型導出 | **thiserror** |
-| パスワードハッシュ | **argon2** |
+| 項目               | 選定                             |
+| ------------------ | -------------------------------- |
+| 言語               | **Rust** (stable toolchain)      |
+| SQLiteアクセス     | **rusqlite** (`bundled` feature) |
+| マイグレーション   | **rusqlite_migration**           |
+| ID生成             | **UUID v7** (`uuid` crate)       |
+| エラー型導出       | **thiserror**                    |
+| パスワードハッシュ | **argon2**                       |
 
 **rusqlite の選定理由**:
+
 - SQLite専用の軽量ラッパー。マルチDB抽象のオーバーヘッドなし
 - sync API: Tauriのコマンドはスレッドプールで実行されるため、blocking SQLite呼び出しでUIをブロックしない
 - `bundled` feature: SQLiteをバイナリに直接コンパイル。システム依存ゼロ、一貫した動作を保証
 - 個人プロジェクトの単純なクエリに対して、生SQLが最も透明でデバッグしやすい
 
 **rusqlite_migration の選定理由**:
+
 - SQLiteの `user_version` pragma を利用（追加テーブル不要）
 - SQLファイルを `include_str!` でバイナリに埋め込み。外部ファイル依存なし、CLI不要
 
 **UUID v7 の選定理由**:
+
 - 時刻ソート可能（タイムスタンプベース）
 - グローバルに一意（エクスポート/インポート時の衝突回避）
 - auto-increment と異なり、外部からIDを推測しにくい
 
 **不採用**:
+
 - sqlx: マルチDB抽象がSQLite専用プロジェクトに過剰。async不要。コンパイル時SQLチェックにはDB接続かsqlx-data.json管理が必要
 - diesel: マクロシステムが重い、diesel CLI必要、スキーマDSLの学習コスト。個人ランチャーには過剰
 - sea-orm: sqlx上のORM。asyncレイヤー＋ORMレイヤーの二重オーバーヘッド
 
 ### 1.4 テスト
 
-| レイヤー | ツール | タイミング |
-|---|---|---|
-| Rust ユニットテスト | `cargo test` | M1（service + repository層） |
-| Svelte コンポーネントテスト | vitest + `@testing-library/svelte` | M1（重要コンポーネントのみ） |
-| Tauri コマンド統合 | `cargo test` + テストヘルパー | M1 |
-| E2E（デスクトップ） | WebdriverIO | M2+（後回し。M1完了時に手動E2Eチェックリストを作成） |
+| レイヤー                    | ツール                             | タイミング                                           |
+| --------------------------- | ---------------------------------- | ---------------------------------------------------- |
+| Rust ユニットテスト         | `cargo test`                       | M1（service + repository層）                         |
+| Svelte コンポーネントテスト | vitest + `@testing-library/svelte` | M1（重要コンポーネントのみ）                         |
+| Tauri コマンド統合          | `cargo test` + テストヘルパー      | M1                                                   |
+| E2E（デスクトップ）         | WebdriverIO                        | M2+（後回し。M1完了時に手動E2Eチェックリストを作成） |
 
 **WebdriverIO の選定理由（E2E）**:
+
 - PlaywrightはTauriのネイティブAPIをサポートしていない
 - WebdriverIOはTauriデスクトップアプリの公式推奨E2Eツール
 
@@ -299,15 +310,15 @@ arcagate/
 
 **ディレクトリ設計の要点**:
 
-| ディレクトリ | 設計意図 |
-|---|---|
-| `src/lib/ipc/` | フロントエンドは `invoke` を直接呼ばない。型付きラッパー経由でTypeScript型安全性を確保 |
-| `src/lib/state/` | `.svelte.ts` 拡張子でコンポーネント外からrunesを使用（Svelte 5推奨パターン） |
-| `src-tauri/migrations/` | SQLファイルを `include_str!` でバイナリに埋め込み。実行時ファイル依存なし |
-| `src-tauri/src/plugin_api/` | M1ではtrait定義のみ。M2でプラグインローディングを追加する際のリファクタを防止 |
+| ディレクトリ                | 設計意図                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `src/lib/ipc/`              | フロントエンドは `invoke` を直接呼ばない。型付きラッパー経由でTypeScript型安全性を確保              |
+| `src/lib/state/`            | `.svelte.ts` 拡張子でコンポーネント外からrunesを使用（Svelte 5推奨パターン）                        |
+| `src-tauri/migrations/`     | SQLファイルを `include_str!` でバイナリに埋め込み。実行時ファイル依存なし                           |
+| `src-tauri/src/plugin_api/` | M1ではtrait定義のみ。M2でプラグインローディングを追加する際のリファクタを防止                       |
 | `src/lib/components/setup/` | セットアップウィザード（REQ-006）。初回起動時のみモーダルダイアログとして表示（独立ルートではない） |
-| `src-tauri/src/watcher/` | ファイル監視の抽象化trait。M1ではtrait定義のみ。M2（パス追跡）・M4（インデックス）で共用 |
-| `src-tauri/src/launcher/` | アイテムタイプ別に分離（exe/url/script/folder/command）。共通の `Launcher` trait で抽象化 |
+| `src-tauri/src/watcher/`    | ファイル監視の抽象化trait。M1ではtrait定義のみ。M2（パス追跡）・M4（インデックス）で共用            |
+| `src-tauri/src/launcher/`   | アイテムタイプ別に分離（exe/url/script/folder/command）。共通の `Launcher` trait で抽象化           |
 
 ### 2.3 Service Layer 設計
 
@@ -384,37 +395,37 @@ pub trait Plugin: Send + Sync {
 
 論理名は `namespace::action` 形式で設計。Tauri v2の `#[tauri::command]` では関数名がinvoke名になるため、実際のinvoke呼び出しは `namespace_action`（アンダースコア区切り）を使用する。
 
-| 論理名 | invoke名 | 引数 | 戻り値 |
-|---|---|---|---|
-| `item::create` | `item_create` | CreateItemInput | Item |
-| `item::update` | `item_update` | id, UpdateItemInput | Item |
-| `item::delete` | `item_delete` | id | () |
-| `item::get` | `item_get` | id | Item \| null |
-| `item::search` | `item_search` | query, SearchOptions | ItemSearchResult[] |
-| `item::launch` | `item_launch` | id | LaunchResult |
-| `item::import_icon` | `item_import_icon` | exe_path | string (icon_path) |
-| `category::list` | `category_list` | - | Category[] |
-| `category::create` | `category_create` | CreateCategoryInput | Category |
-| `tag::list` | `tag_list` | - | Tag[] |
-| `tag::create` | `tag_create` | CreateTagInput | Tag |
-| `tag::update` | `tag_update` | id, UpdateTagInput | Tag |
-| `log::recent` | `log_recent` | limit | LaunchLogEntry[] |
-| `log::frequent` | `log_frequent` | limit | LaunchLogEntry[] |
-| `config::get` | `config_get` | key | string \| null |
-| `config::set` | `config_set` | key, value | () |
-| `data::export` | `data_export` | path | () |
-| `data::import` | `data_import` | path | () |
-| `setup::get_status` | `setup_get_status` | - | SetupStatus |
-| `setup::complete` | `setup_complete` | SetupInput | () |
-| `visibility::toggle` | `visibility_toggle` | password? | boolean |
+| 論理名               | invoke名            | 引数                 | 戻り値             |
+| -------------------- | ------------------- | -------------------- | ------------------ |
+| `item::create`       | `item_create`       | CreateItemInput      | Item               |
+| `item::update`       | `item_update`       | id, UpdateItemInput  | Item               |
+| `item::delete`       | `item_delete`       | id                   | ()                 |
+| `item::get`          | `item_get`          | id                   | Item \| null       |
+| `item::search`       | `item_search`       | query, SearchOptions | ItemSearchResult[] |
+| `item::launch`       | `item_launch`       | id                   | LaunchResult       |
+| `item::import_icon`  | `item_import_icon`  | exe_path             | string (icon_path) |
+| `category::list`     | `category_list`     | -                    | Category[]         |
+| `category::create`   | `category_create`   | CreateCategoryInput  | Category           |
+| `tag::list`          | `tag_list`          | -                    | Tag[]              |
+| `tag::create`        | `tag_create`        | CreateTagInput       | Tag                |
+| `tag::update`        | `tag_update`        | id, UpdateTagInput   | Tag                |
+| `log::recent`        | `log_recent`        | limit                | LaunchLogEntry[]   |
+| `log::frequent`      | `log_frequent`      | limit                | LaunchLogEntry[]   |
+| `config::get`        | `config_get`        | key                  | string \| null     |
+| `config::set`        | `config_set`        | key, value           | ()                 |
+| `data::export`       | `data_export`       | path                 | ()                 |
+| `data::import`       | `data_import`       | path                 | ()                 |
+| `setup::get_status`  | `setup_get_status`  | -                    | SetupStatus        |
+| `setup::complete`    | `setup_complete`    | SetupInput           | ()                 |
+| `visibility::toggle` | `visibility_toggle` | password?            | boolean            |
 
 #### Events（Backend → Frontend、fire-and-forget）
 
-| イベント | ペイロード | 用途 |
-|---|---|---|
-| `hotkey-triggered` | - | グローバルホットキー押下 |
-| `item-launched` | item_id, timestamp | 起動通知 |
-| `tray-action` | action | トレイメニュー操作 |
+| イベント           | ペイロード         | 用途                     |
+| ------------------ | ------------------ | ------------------------ |
+| `hotkey-triggered` | -                  | グローバルホットキー押下 |
+| `item-launched`    | item_id, timestamp | 起動通知                 |
+| `tray-action`      | action             | トレイメニュー操作       |
 
 #### Frontend IPC ラッパー
 
@@ -546,13 +557,13 @@ Repository (rusqlite::Error) → Service (AppError) → Command (Result<T, AppEr
 
 ## 3. 非機能要求
 
-| 要求 | 目標値 | 技術的アプローチ |
-|---|---|---|
-| 常駐メモリ | Idle時 Working Set 100MB以下 | Tauri v2（Electron比で大幅に軽量）+ rusqlite bundled |
-| 起動レイテンシ | ホットキー→UI表示 P95 2秒以内 | Tauri IPC (custom protocol) + SQLite WALモード + インデックス最適化 |
-| バイナリサイズ | 単体exe 20MB以下 | Tauri v2 + bundled SQLite。SvelteKitの小さいバンドルサイズ |
-| データ保存 | ローカル完結 | SQLite（クラウド同期なし） |
-| CSP | Tauri v2デフォルトCSP準拠 | `ipc:` / `asset:` スキームのみ許可。`unsafe-inline` / `unsafe-eval` 禁止。外部通信はM1では不要（発生時に個別ホワイトリスト） |
+| 要求           | 目標値                        | 技術的アプローチ                                                                                                             |
+| -------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 常駐メモリ     | Idle時 Working Set 100MB以下  | Tauri v2（Electron比で大幅に軽量）+ rusqlite bundled                                                                         |
+| 起動レイテンシ | ホットキー→UI表示 P95 2秒以内 | Tauri IPC (custom protocol) + SQLite WALモード + インデックス最適化                                                          |
+| バイナリサイズ | 単体exe 20MB以下              | Tauri v2 + bundled SQLite。SvelteKitの小さいバンドルサイズ                                                                   |
+| データ保存     | ローカル完結                  | SQLite（クラウド同期なし）                                                                                                   |
+| CSP            | Tauri v2デフォルトCSP準拠     | `ipc:` / `asset:` スキームのみ許可。`unsafe-inline` / `unsafe-eval` 禁止。外部通信はM1では不要（発生時に個別ホワイトリスト） |
 
 ### SQLite PRAGMAs
 
@@ -652,24 +663,24 @@ CREATE TABLE item_stats (
 
 ### スキーマ設計方針
 
-| 決定 | 理由 |
-|---|---|
-| UUID v7 をIDに使用 | 時刻ソート可能。インポート/エクスポート時のID衝突回避 |
-| ISO 8601テキストでタイムスタンプ | SQLiteにネイティブdatetimeなし。TEXTはソート可能・可読性あり |
-| `aliases` をJSON配列で格納 | 1アイテムあたり1〜5件程度。別テーブルより簡潔。`json_each()` でクエリ可能。アイテム数が1000件を超えた場合は `item_aliases` テーブルへの正規化を検討 |
-| アイコンをファイルシステムに格納 | base64 TEXT比で33%の容量削減。検索クエリでアイコンデータをロードしない。`app_data_dir/icons/` に保存しパスのみDBに保持 |
-| `item_stats` テーブルで非正規化 | 検索のたびに `COUNT(*)` を避ける。Service層またはトリガーで更新 |
-| `ON DELETE CASCADE` | 参照整合性を保証。`PRAGMA foreign_keys = ON` で有効化 |
-| M2+テーブルは未作成 | 仕様変更を想定し、必要になった時点でマイグレーションで追加 |
+| 決定                             | 理由                                                                                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UUID v7 をIDに使用               | 時刻ソート可能。インポート/エクスポート時のID衝突回避                                                                                               |
+| ISO 8601テキストでタイムスタンプ | SQLiteにネイティブdatetimeなし。TEXTはソート可能・可読性あり                                                                                        |
+| `aliases` をJSON配列で格納       | 1アイテムあたり1〜5件程度。別テーブルより簡潔。`json_each()` でクエリ可能。アイテム数が1000件を超えた場合は `item_aliases` テーブルへの正規化を検討 |
+| アイコンをファイルシステムに格納 | base64 TEXT比で33%の容量削減。検索クエリでアイコンデータをロードしない。`app_data_dir/icons/` に保存しパスのみDBに保持                              |
+| `item_stats` テーブルで非正規化  | 検索のたびに `COUNT(*)` を避ける。Service層またはトリガーで更新                                                                                     |
+| `ON DELETE CASCADE`              | 参照整合性を保証。`PRAGMA foreign_keys = ON` で有効化                                                                                               |
+| M2+テーブルは未作成              | 仕様変更を想定し、必要になった時点でマイグレーションで追加                                                                                          |
 
 ## 5. 用語集
 
-| 用語 | 定義 |
-|---|---|
-| アイテム (Item) | Arcagateに登録された起動対象。exe / URL / フォルダ / スクリプト / コマンドの5種類 |
-| コマンドパレット | キーボード中心の検索・起動UI。Arcagateのコアインターフェース |
-| ワークスペース | ウィジェットを自由配置できるカスタムページ（M2b） |
-| Service Layer | ビジネスロジックの集約層。UI / CLI / MCP すべてがここを経由 |
-| Plugin Interface | M2以降でプラグインが実装するtrait群。M1では定義のみ |
-| ItemProvider | アイテムを外部ソースから提供するプラグインtrait（例: Steamライブラリ） |
-| CommandProvider | コマンドパレットに独自コマンドを追加するプラグインtrait |
+| 用語             | 定義                                                                              |
+| ---------------- | --------------------------------------------------------------------------------- |
+| アイテム (Item)  | Arcagateに登録された起動対象。exe / URL / フォルダ / スクリプト / コマンドの5種類 |
+| コマンドパレット | キーボード中心の検索・起動UI。Arcagateのコアインターフェース                      |
+| ワークスペース   | ウィジェットを自由配置できるカスタムページ（M2b）                                 |
+| Service Layer    | ビジネスロジックの集約層。UI / CLI / MCP すべてがここを経由                       |
+| Plugin Interface | M2以降でプラグインが実装するtrait群。M1では定義のみ                               |
+| ItemProvider     | アイテムを外部ソースから提供するプラグインtrait（例: Steamライブラリ）            |
+| CommandProvider  | コマンドパレットに独自コマンドを追加するプラグインtrait                           |
