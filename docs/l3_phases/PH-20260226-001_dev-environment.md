@@ -19,6 +19,7 @@ depends_on: []
 | F-20260226-002 | リンター・フォーマッター整備 | — |
 | F-20260226-003 | CI/CD パイプライン構築 | — |
 | F-20260226-004 | SQLite スキーマ・マイグレーション基盤 | — |
+| F-20260226-005 | 自律検証環境の整備 | — |
 
 ## 機能詳細
 
@@ -90,6 +91,40 @@ L2で定義された初期スキーマ（`001_initial.sql`）を `rusqlite_migra
 - [ ] `plugin_api/` に `ItemProvider`, `CommandProvider`, `Plugin` trait が定義され、コンパイルが通る（実装なし）
 - [ ] `watcher/` に `FileWatcher` trait が定義され、コンパイルが通る（実装なし）
 
+### F-20260226-005: 自律検証環境の整備
+
+コーディングエージェントが Phase 2 以降で人間の判断を仰がず、単一コマンドで変更の正しさを自己検証できるようにする。
+
+**技術要素**:
+- **vitest** + `@testing-library/svelte` の設定（`vitest.config.ts`, テストヘルパー）
+  - `@tauri-apps/api/mocks` による IPC モック
+  - jsdom 環境で完全ヘッドレス実行
+- **cargo test** のテストヘルパー
+  - Service/Repository 層を直接テスト（`tauri::test` は Windows バグのため不使用）
+  - in-memory SQLite + マイグレーション適用ユーティリティ
+- **svelte-check** — TypeScript 型チェック
+- **統一検証スクリプト `pnpm verify`** — 以下を順次実行:
+  1. `biome check` (フロントエンド lint + format)
+  2. `biome format docs/` (Markdown format)
+  3. `cargo clippy -- -D warnings`
+  4. `cargo fmt --check`
+  5. `pnpm check` (svelte-check)
+  6. `cargo test`
+  7. `pnpm test` (vitest)
+  8. `pnpm tauri build` (ビルド検証)
+
+**受け入れ条件**:
+- [ ] `pnpm test` で vitest が実行され、サンプルテストが通る
+- [ ] `cargo test` で Rust テストが実行され、in-memory SQLite ヘルパーを使ったサンプルテストが通る
+- [ ] `pnpm check` で svelte-check が実行され、型エラーがない
+- [ ] `pnpm verify` で上記8ステップが順次実行され、全ステップが成功する
+- [ ] CLAUDE.md に `pnpm verify` の用途・実行タイミング・各ステップの説明が記載されている
+
+**注記（GUI検証について）**:
+- E2E テスト（WebdriverIO + tauri-driver）は L2 §1.4 に従い M2+ で導入する
+- `tauri::test::mock_builder` は Windows での未解決バグ ([tauri#14723](https://github.com/tauri-apps/tauri/issues/14723)) のため Phase 1 では不使用。Service/Repository 層を Tauri ランタイム非依存でテストする
+- 視覚回帰テストは UI デザインが安定した段階で別途検討する
+
 ## Exit Criteria
 
 - `pnpm tauri dev` でアプリが正常に起動する
@@ -97,6 +132,7 @@ L2で定義された初期スキーマ（`001_initial.sql`）を `rusqlite_migra
 - GitHub Actionsで lint + test + build が自動実行され、全ステップがグリーンである
 - SQLiteの初期スキーマが起動時に自動適用される
 - プラグインtrait・ファイル監視traitがコンパイル通る状態で定義されている
+- `pnpm verify` で全検証（lint → format → type-check → test → build）が一括実行でき、全ステップがグリーンである
 
 ## 依存関係
 

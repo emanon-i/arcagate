@@ -12,6 +12,16 @@ depends_on:
 
 CLI・ワークスペース・MCP連携により、単なるランチャーから「コントロールパネル」へ進化させる。パワーユーザー向けの操作強化と、AIからの操作インターフェースを確立する。
 
+## Phase 1 からの引き継ぎ事項
+
+本フェーズ着手時に以下を対応すること:
+
+| 項目 | 備考 |
+|---|---|
+| E2E テスト導入（WebdriverIO + tauri-driver） | L2 §1.4 で定義済み。Phase 1 では GUI E2E を行わず Service/Repository 層テスト + コンポーネントテストで代替した |
+| `tauri::test::mock_builder` の再評価 | Windows バグ ([tauri#14723](https://github.com/tauri-apps/tauri/issues/14723)) の解消状況を確認し、採用可否を判断する |
+| 視覚回帰テスト（screenshot diff）の検討 | UI デザインが安定していれば導入を検討する |
+
 ## 機能一覧
 
 | 機能ID | 機能名 | 対応REQ |
