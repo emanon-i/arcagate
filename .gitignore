@@ -5,17 +5,12 @@
 node_modules/
 
 # Build outputs
-dist/
 build/
+/.svelte-kit
 
 # Rust / Cargo
 target/
 **/*.rs.bk
-
-# Tauri
-src-tauri/target/
-src-tauri/WixTools/
-src-tauri/gen/
 
 # SQLite
 *.db
@@ -27,10 +22,12 @@ src-tauri/gen/
 .env
 .env.*
 !.env.example
+!.env.test
 
 # OS
 Thumbs.db
 Desktop.ini
+.DS_Store
 
 # Editor / IDE
 .vscode/
@@ -43,3 +40,10 @@ Desktop.ini
 
 # Logs
 *.log
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Temporary artifacts (screenshots, etc.)
+tmp/
