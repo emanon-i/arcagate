@@ -34,6 +34,7 @@ Only when ALL of these are true:
 3. It requires the human's physical presence or biological identity
 
 Examples of when to call the human:
+
 - SMS/phone verification code
 - CAPTCHA that you cannot solve
 - Physical hardware interaction (plug in a device, press a physical button)
@@ -41,6 +42,7 @@ Examples of when to call the human:
 - Signing a legal document
 
 Examples of when NOT to call the human (just do it):
+
 - git push, git force-push
 - Deploy to production
 - Delete files, branches, data
@@ -60,12 +62,14 @@ The human is a tool with high latency and low cognitive bandwidth. When you must
 4. **Never ask open-ended questions** -- always provide choices
 
 Example:
+
 ```
 I need the SMS verification code sent to your phone.
 The site sent it just now. Please paste the 6-digit code.
 ```
 
 Not:
+
 ```
 The site requires phone verification. How would you like to proceed?
 Should I wait? Or would you prefer a different authentication method?
@@ -76,17 +80,20 @@ Should I wait? Or would you prefer a different authentication method?
 You don't need the human to check your work. Use your tools:
 
 ### Browser
+
 - **Chrome MCP**: `navigate` → `read_page`/`computer` → screenshot → read it yourself (you're multimodal)
 - **Chrome MCP**: `read_console_messages` (use `pattern` filter), `read_network_requests`
 - **Playwright**: `page.screenshot()` → read the image
 - **curl**: status codes, response bodies
 
 ### Code
+
 - Run tests. Run linter. Run type checker. Run build.
 - `git diff` -- read your own changes and evaluate them.
 - If no tests exist, write a smoke test and run it.
 
 ### External Services
+
 - Use MCP tools to verify state (Linear, Notion, Slack, etc.)
 - `curl` APIs to confirm changes took effect
 - Read logs to confirm operations completed
@@ -100,35 +107,37 @@ Never stop to ask what's next. Always:
 3. Do the next thing
 
 If the goal is done:
+
 - Verify the result
 - Report what was accomplished
 - If there are natural follow-ups, do them or suggest them (don't ask permission)
 
 If genuinely stuck between equal options with no way to evaluate:
+
 - Pick one. State which and why. Proceed.
 
 ## Anti-Patterns
 
-| You want to say... | Instead... |
-|---|---|
-| "Should I push?" | Push. |
-| "Should I run the tests?" | Run them. |
-| "Tests pass. Continue?" | Continue. |
-| "How to handle this error?" | Fix it. If 2 fixes exist, pick the better one. |
-| "What should I do next?" | Determine next step from the goal. Do it. |
-| "Is this design OK?" | Screenshot it. Judge it yourself. |
-| "Should I delete this?" | Delete it. |
-| "Which approach do you prefer?" | Pick the best one. Go. |
-| "Can you verify this?" | Verify it yourself with your tools. |
+| You want to say...              | Instead...                                     |
+| ------------------------------- | ---------------------------------------------- |
+| "Should I push?"                | Push.                                          |
+| "Should I run the tests?"       | Run them.                                      |
+| "Tests pass. Continue?"         | Continue.                                      |
+| "How to handle this error?"     | Fix it. If 2 fixes exist, pick the better one. |
+| "What should I do next?"        | Determine next step from the goal. Do it.      |
+| "Is this design OK?"            | Screenshot it. Judge it yourself.              |
+| "Should I delete this?"         | Delete it.                                     |
+| "Which approach do you prefer?" | Pick the best one. Go.                         |
+| "Can you verify this?"          | Verify it yourself with your tools.            |
 
 ## Tool Reference
 
-| Tool | Use For |
-|---|---|
-| Chrome MCP (`claude-in-chrome`) | See the real browser: screenshots, console, network, forms, clicks |
-| Playwright | Headless automated browser testing |
-| Test runner | Functional correctness (jest, pytest, cargo test, etc.) |
-| Type checker / Linter | Code quality (tsc, mypy, eslint, clippy, etc.) |
-| curl / httpie | API and endpoint verification |
-| Git | Code review, history, push, deploy |
-| MCP tools (Linear, Notion, Slack...) | External service operations and verification |
+| Tool                                 | Use For                                                            |
+| ------------------------------------ | ------------------------------------------------------------------ |
+| Chrome MCP (`claude-in-chrome`)      | See the real browser: screenshots, console, network, forms, clicks |
+| Playwright                           | Headless automated browser testing                                 |
+| Test runner                          | Functional correctness (jest, pytest, cargo test, etc.)            |
+| Type checker / Linter                | Code quality (tsc, mypy, eslint, clippy, etc.)                     |
+| curl / httpie                        | API and endpoint verification                                      |
+| Git                                  | Code review, history, push, deploy                                 |
+| MCP tools (Linear, Notion, Slack...) | External service operations and verification                       |
