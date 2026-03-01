@@ -2,9 +2,10 @@ use rusqlite::Connection;
 use rusqlite_migration::{Migrations, M};
 
 const MIGRATION_001: &str = include_str!("../../migrations/001_initial.sql");
+const MIGRATION_002: &str = include_str!("../../migrations/002_mcp_permissions.sql");
 
 pub fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(MIGRATION_001)])
+    Migrations::new(vec![M::up(MIGRATION_001), M::up(MIGRATION_002)])
 }
 
 pub fn apply_pragmas(conn: &Connection) -> Result<(), rusqlite::Error> {
@@ -44,6 +45,7 @@ mod tests {
         assert!(tables.contains(&"config".to_string()));
         assert!(tables.contains(&"item_categories".to_string()));
         assert!(tables.contains(&"item_tags".to_string()));
+        assert!(tables.contains(&"mcp_permissions".to_string()));
     }
 
     #[test]

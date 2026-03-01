@@ -1,7 +1,7 @@
 use arcagate_lib::{
-    db,
+    db, mcp,
     models::item::Item,
-    services::{item_service, launch_service},
+    services::{item_service, launch_service, mcp_service},
     utils::error::AppError,
 };
 use clap::{Parser, Subcommand};
@@ -36,6 +36,20 @@ enum Commands {
         /// Item name (exact match preferred, falls back to partial match)
         name: String,
     },
+    /// Start the MCP server (stdio JSON-RPC 2.0)
+    Mcp {
+        /// Configure Claude Desktop and Claude Code to use this MCP server
+        #[arg(long)]
+        setup: bool,
+
+        /// Grant write permission for a tool (e.g. arcagate_launch, arcagate_create)
+        #[arg(long, value_name = "TOOL")]
+        allow_write: Option<String>,
+
+        /// Revoke write permission for a tool
+        #[arg(long, value_name = "TOOL")]
+        deny_write: Option<String>,
+    },
 }
 
 fn main() {
@@ -58,6 +72,11 @@ fn main() {
         Commands::List => cmd_list(&db, cli.json),
         Commands::Search { query } => cmd_search(&db, query, cli.json),
         Commands::Run { name } => cmd_run(&db, name),
+        Commands::Mcp {
+            setup,
+            allow_write,
+            deny_write,
+        } => cmd_mcp(&db, *setup, allow_write.as_deref(), deny_write.as_deref()),
     };
 
     if let Err(e) = result {
@@ -73,6 +92,35 @@ fn default_db_path() -> String {
         .join("arcagate.db")
         .to_string_lossy()
         .to_string()
+}
+
+fn cmd_mcp(
+    db: &db::DbState,
+    setup: bool,
+    allow_write: Option<&str>,
+    deny_write: Option<&str>,
+) -> Result<(), AppError> {
+    if setup {
+        mcp::setup_config()?;
+        eprintln!("MCP server configuration updated.");
+        return Ok(());
+    }
+
+    if let Some(tool) = allow_write {
+        mcp_service::set_tool_allowed(db, tool, true)?;
+        eprintln!("Granted write permission for: {}", tool);
+        return Ok(());
+    }
+
+    if let Some(tool) = deny_write {
+        mcp_service::set_tool_allowed(db, tool, false)?;
+        eprintln!("Revoked write permission for: {}", tool);
+        return Ok(());
+    }
+
+    // フラグなし: MCP サーバーを起動
+    mcp::run_mcp_server(db);
+    Ok(())
 }
 
 fn cmd_list(db: &db::DbState, json: bool) -> Result<(), AppError> {

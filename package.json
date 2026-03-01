@@ -13,7 +13,8 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
 		"tauri": "tauri",
-		"verify": "pnpm biome check && pnpm dprint check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm test && pnpm tauri build"
+		"verify:smoke": "bash scripts/smoke-test.sh",
+		"verify": "pnpm biome check && pnpm dprint check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm verify:smoke && pnpm test && pnpm tauri build"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
