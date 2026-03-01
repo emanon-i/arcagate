@@ -6,15 +6,18 @@ use crate::repositories::{item_repository, launch_repository};
 use crate::utils::error::AppError;
 
 /// アイテム ID に基づいてアイテムを起動する
-pub fn launch_item(db: &DbState, item_id: &str) -> Result<(), AppError> {
+///
+/// `source`: 起動元を示す文字列。"palette" | "tray" | "cli" | "mcp"
+pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let item = item_repository::find_by_id(&conn, item_id)?;
 
     log::info!(
-        "launching item: id={} type={:?} label={}",
+        "launching item: id={} type={:?} label={} source={}",
         item_id,
         item.item_type,
-        item.label
+        item.label,
+        source
     );
 
     let result = match item.item_type {
@@ -36,7 +39,7 @@ pub fn launch_item(db: &DbState, item_id: &str) -> Result<(), AppError> {
     match &result {
         Ok(_) => {
             log::info!("launch success: id={}", item_id);
-            let _ = launch_repository::record_launch_and_update_stats(&conn, item_id, "palette");
+            let _ = launch_repository::record_launch_and_update_stats(&conn, item_id, source);
         }
         Err(e) => {
             log::error!("launch failed: id={} error={}", item_id, e);

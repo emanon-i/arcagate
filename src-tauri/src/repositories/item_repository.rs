@@ -92,6 +92,27 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
     Ok(items)
 }
 
+pub fn search_in_category(
+    conn: &Connection,
+    category_id: &str,
+    query: &str,
+) -> Result<Vec<Item>, AppError> {
+    let pattern = format!("%{}%", query);
+    let mut stmt = conn.prepare(
+        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.created_at, i.updated_at
+         FROM items i
+         INNER JOIN item_categories ic ON ic.item_id = i.id
+         WHERE ic.category_id = ?1
+           AND i.is_enabled = 1
+           AND (i.label LIKE ?2 OR i.aliases LIKE ?2)
+         ORDER BY i.sort_order, i.label",
+    )?;
+    let items = stmt
+        .query_map(params![category_id, pattern], row_to_item)?
+        .collect::<rusqlite::Result<Vec<Item>>>()?;
+    Ok(items)
+}
+
 pub fn update(conn: &Connection, id: &str, input: &UpdateItemInput) -> Result<(), AppError> {
     let mut sets: Vec<String> =
         vec!["updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')".to_string()];
@@ -318,6 +339,50 @@ mod tests {
             .unwrap();
         assert_eq!(cat_count_after, 0);
         assert_eq!(tag_count_after, 0);
+    }
+
+    #[test]
+    fn test_search_in_category() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let cat1 = Category {
+            id: "cat-001".to_string(),
+            name: "Games".to_string(),
+            prefix: Some("gm".to_string()),
+            icon: None,
+            sort_order: 0,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        let cat2 = Category {
+            id: "cat-002".to_string(),
+            name: "Work".to_string(),
+            prefix: None,
+            icon: None,
+            sort_order: 1,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        category_repository::insert(&conn, &cat1).unwrap();
+        category_repository::insert(&conn, &cat2).unwrap();
+
+        insert(&conn, &make_item("id-001", "Blender", ItemType::Exe)).unwrap();
+        insert(&conn, &make_item("id-002", "Unity", ItemType::Exe)).unwrap();
+        insert(&conn, &make_item("id-003", "VS Code", ItemType::Exe)).unwrap();
+
+        set_categories(&conn, "id-001", &["cat-001".to_string()]).unwrap();
+        set_categories(&conn, "id-002", &["cat-001".to_string()]).unwrap();
+        set_categories(&conn, "id-003", &["cat-002".to_string()]).unwrap();
+
+        let results = search_in_category(&conn, "cat-001", "").unwrap();
+        assert_eq!(results.len(), 2);
+
+        let filtered = search_in_category(&conn, "cat-001", "Blend").unwrap();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].label, "Blender");
+
+        let other = search_in_category(&conn, "cat-002", "").unwrap();
+        assert_eq!(other.len(), 1);
+        assert_eq!(other[0].label, "VS Code");
     }
 
     #[test]

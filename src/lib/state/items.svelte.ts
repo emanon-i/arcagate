@@ -85,6 +85,32 @@ async function createCategory(input: CreateCategoryInput): Promise<void> {
 	}
 }
 
+async function updateCategory(id: string, name: string, prefix: string | null): Promise<void> {
+	loading = true;
+	error = null;
+	try {
+		await itemsIpc.updateCategory(id, name, prefix);
+		categories = categories.map((c) => (c.id === id ? { ...c, name, prefix } : c));
+	} catch (e) {
+		error = String(e);
+	} finally {
+		loading = false;
+	}
+}
+
+async function deleteCategory(id: string): Promise<void> {
+	loading = true;
+	error = null;
+	try {
+		await itemsIpc.deleteCategory(id);
+		categories = categories.filter((c) => c.id !== id);
+	} catch (e) {
+		error = String(e);
+	} finally {
+		loading = false;
+	}
+}
+
 async function loadTags(): Promise<void> {
 	loading = true;
 	error = null;
@@ -132,6 +158,8 @@ export const itemStore = {
 	deleteItem,
 	loadCategories,
 	createCategory,
+	updateCategory,
+	deleteCategory,
 	loadTags,
 	createTag,
 };

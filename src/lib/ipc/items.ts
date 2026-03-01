@@ -27,6 +27,22 @@ export async function createCategory(input: CreateCategoryInput): Promise<Catego
 	return invoke<Category>('cmd_create_category', { input });
 }
 
+export async function updateCategory(
+	id: string,
+	name: string,
+	prefix: string | null,
+): Promise<void> {
+	return invoke<void>('cmd_update_category', { id, name, prefix });
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+	return invoke<void>('cmd_delete_category', { id });
+}
+
+export async function searchItemsInCategory(categoryId: string, query: string): Promise<Item[]> {
+	return invoke<Item[]>('cmd_search_items_in_category', { categoryId, query });
+}
+
 export async function getTags(): Promise<Tag[]> {
 	return invoke<Tag[]>('cmd_get_tags');
 }

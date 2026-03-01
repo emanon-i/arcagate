@@ -41,10 +41,15 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Category>, AppError> {
     Ok(categories)
 }
 
-pub fn update(conn: &Connection, id: &str, name: &str) -> Result<(), AppError> {
+pub fn update(
+    conn: &Connection,
+    id: &str,
+    name: &str,
+    prefix: Option<&str>,
+) -> Result<(), AppError> {
     conn.execute(
-        "UPDATE categories SET name = ?1 WHERE id = ?2",
-        params![name, id],
+        "UPDATE categories SET name = ?1, prefix = ?2 WHERE id = ?3",
+        params![name, prefix, id],
     )?;
     Ok(())
 }
@@ -88,10 +93,23 @@ mod tests {
         let conn = db.0.lock().unwrap();
 
         insert(&conn, &make_category("cat-001", "Games")).unwrap();
-        update(&conn, "cat-001", "Entertainment").unwrap();
+        update(&conn, "cat-001", "Entertainment", None).unwrap();
 
         let cats = find_all(&conn).unwrap();
         assert_eq!(cats[0].name, "Entertainment");
+        assert_eq!(cats[0].prefix, None);
+    }
+
+    #[test]
+    fn test_update_with_prefix() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        insert(&conn, &make_category("cat-001", "Games")).unwrap();
+        update(&conn, "cat-001", "Games", Some("gm")).unwrap();
+
+        let cats = find_all(&conn).unwrap();
+        assert_eq!(cats[0].prefix, Some("gm".to_string()));
     }
 
     #[test]

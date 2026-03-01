@@ -1,12 +1,12 @@
 mod commands;
-mod db;
+pub mod db;
 mod launcher;
-mod models;
+pub mod models;
 #[allow(dead_code)]
 mod plugin_api;
 mod repositories;
-mod services;
-mod utils;
+pub mod services;
+pub mod utils;
 #[allow(dead_code)]
 mod watcher;
 
@@ -19,7 +19,8 @@ use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::item_commands::{
     cmd_create_category, cmd_create_item, cmd_create_tag, cmd_delete_category, cmd_delete_item,
     cmd_delete_tag, cmd_extract_item_icon, cmd_get_categories, cmd_get_tags, cmd_list_items,
-    cmd_search_items, cmd_update_category, cmd_update_item, cmd_update_tag,
+    cmd_search_items, cmd_search_items_in_category, cmd_update_category, cmd_update_item,
+    cmd_update_tag,
 };
 use commands::launch_commands::{cmd_launch_item, cmd_list_frequent, cmd_list_recent};
 use tauri::{
@@ -52,6 +53,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             let mut log_targets = vec![tauri_plugin_log::Target::new(
                 tauri_plugin_log::TargetKind::LogDir {
@@ -140,6 +142,7 @@ pub fn run() {
             cmd_create_item,
             cmd_list_items,
             cmd_search_items,
+            cmd_search_items_in_category,
             cmd_update_item,
             cmd_delete_item,
             cmd_get_categories,

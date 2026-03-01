@@ -1,6 +1,7 @@
 <script lang="ts">
 import { listen } from '@tauri-apps/api/event';
 import { onDestroy } from 'svelte';
+import CategoryManager from '$lib/components/item/CategoryManager.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import ItemList from '$lib/components/item/ItemList.svelte';
 import CommandPalette from '$lib/components/palette/CommandPalette.svelte';
@@ -12,7 +13,7 @@ import { itemStore } from '$lib/state/items.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
-type Tab = 'items' | 'settings';
+type Tab = 'items' | 'categories' | 'settings';
 
 let activeTab = $state<Tab>('items');
 let editingItem = $state<Item | null>(null);
@@ -92,6 +93,13 @@ function handleFormClose() {
 				アイテム
 			</Button>
 			<Button
+				variant={activeTab === 'categories' ? 'default' : 'ghost'}
+				size="sm"
+				onclick={() => (activeTab = 'categories')}
+			>
+				カテゴリ
+			</Button>
+			<Button
 				variant={activeTab === 'settings' ? 'default' : 'ghost'}
 				size="sm"
 				onclick={() => (activeTab = 'settings')}
@@ -115,6 +123,13 @@ function handleFormClose() {
 			{:else}
 				<ItemList items={itemStore.items} onEdit={handleEdit} onDelete={handleDelete} />
 			{/if}
+		{:else if activeTab === 'categories'}
+			<CategoryManager
+				categories={itemStore.categories}
+				onCreateCategory={(input) => itemStore.createCategory(input)}
+				onUpdateCategory={(id, name, prefix) => itemStore.updateCategory(id, name, prefix)}
+				onDeleteCategory={(id) => itemStore.deleteCategory(id)}
+			/>
 		{:else}
 			<SettingsPanel />
 		{/if}

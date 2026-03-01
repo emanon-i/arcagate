@@ -50,8 +50,22 @@ pub fn cmd_create_category(
 }
 
 #[tauri::command]
-pub fn cmd_update_category(db: State<DbState>, id: String, name: String) -> Result<(), AppError> {
-    item_service::update_category(&db, &id, &name)
+pub fn cmd_update_category(
+    db: State<DbState>,
+    id: String,
+    name: String,
+    prefix: Option<String>,
+) -> Result<(), AppError> {
+    item_service::update_category(&db, &id, &name, prefix.as_deref())
+}
+
+#[tauri::command]
+pub fn cmd_search_items_in_category(
+    db: State<DbState>,
+    category_id: String,
+    query: String,
+) -> Result<Vec<Item>, AppError> {
+    item_service::search_items_in_category(&db, &category_id, &query)
 }
 
 #[tauri::command]

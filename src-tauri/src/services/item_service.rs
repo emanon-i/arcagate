@@ -111,9 +111,23 @@ pub fn create_category(db: &DbState, input: CreateCategoryInput) -> Result<Categ
         .ok_or_else(|| AppError::NotFound(id))
 }
 
-pub fn update_category(db: &DbState, id: &str, name: &str) -> Result<(), AppError> {
+pub fn update_category(
+    db: &DbState,
+    id: &str,
+    name: &str,
+    prefix: Option<&str>,
+) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::update(&conn, id, name)
+    category_repository::update(&conn, id, name, prefix)
+}
+
+pub fn search_items_in_category(
+    db: &DbState,
+    category_id: &str,
+    query: &str,
+) -> Result<Vec<Item>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    item_repository::search_in_category(&conn, category_id, query)
 }
 
 pub fn delete_category(db: &DbState, id: &str) -> Result<(), AppError> {

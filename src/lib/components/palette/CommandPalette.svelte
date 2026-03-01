@@ -13,8 +13,8 @@ function handleKeyDown(e: KeyboardEvent) {
 		paletteStore.selectPrev();
 	}
 	if (e.key === 'Enter') {
-		const item = paletteStore.results[paletteStore.selectedIndex];
-		if (item) paletteStore.launch(item);
+		const entry = paletteStore.results[paletteStore.selectedIndex];
+		if (entry) void paletteStore.launch(entry);
 	}
 	if (e.key === 'Escape') paletteStore.close();
 }
@@ -39,12 +39,12 @@ function handleBackdropClick(e: MouseEvent) {
         value={paletteStore.query}
         onInput={(v) => paletteStore.search(v)}
         onKeyDown={handleKeyDown}
-        placeholder="アプリ、URL、フォルダーを検索..."
+        placeholder="アプリ、URL、フォルダーを検索...  |  = 1+2*3  |  cb:  |  prefix:"
       />
       <ResultList
         items={paletteStore.results}
         selectedIndex={paletteStore.selectedIndex}
-        onSelect={(item) => paletteStore.launch(item)}
+        onSelect={(entry) => paletteStore.launch(entry)}
       />
       {#if paletteStore.lastError}
         <p class="border-t px-3 py-2 text-xs text-destructive">{paletteStore.lastError}</p>
