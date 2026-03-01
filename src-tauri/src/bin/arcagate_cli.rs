@@ -153,7 +153,8 @@ fn print_items(items: &[Item], json: bool) {
 }
 
 fn truncate(s: &str, max_len: usize) -> String {
-    if s.chars().count() <= max_len {
+    let char_count = s.chars().count();
+    if char_count <= max_len {
         s.to_string()
     } else {
         let truncated: String = s.chars().take(max_len - 3).collect();

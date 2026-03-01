@@ -2,6 +2,7 @@ import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { searchItemsInCategory } from '$lib/ipc/items';
 import { launchItem, searchItems } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
+import type { Item } from '$lib/types/item';
 import type { PaletteEntry } from '$lib/types/palette';
 
 let query = $state('');
@@ -13,7 +14,6 @@ let lastError = $state<string | null>(null);
 
 // クリップボード履歴（パレット open 中のみポーリング）
 let clipboardHistory = $state<string[]>([]);
-let _lastClipboard = '';
 let _pollingTimer: ReturnType<typeof setInterval> | null = null;
 
 const CALC_SAFE_PATTERN = /^[0-9+\-*/(). ]+$/;
@@ -51,8 +51,7 @@ function stopClipboardPolling(): void {
 async function pollClipboard(): Promise<void> {
 	try {
 		const text = await readText();
-		if (text && text !== _lastClipboard) {
-			_lastClipboard = text;
+		if (text && text !== clipboardHistory[0]) {
 			// 重複を除去してから先頭に追加
 			clipboardHistory = [text, ...clipboardHistory.filter((t) => t !== text)].slice(
 				0,
@@ -65,6 +64,19 @@ async function pollClipboard(): Promise<void> {
 		}
 	} catch {
 		// クリップボードアクセス失敗は無視
+	}
+}
+
+async function fetchItems(fetcher: () => Promise<Item[]>): Promise<void> {
+	loading = true;
+	try {
+		const items = await fetcher();
+		results = items.map((item) => ({ kind: 'item', item }));
+	} catch (e) {
+		lastError = String(e);
+		results = [];
+	} finally {
+		loading = false;
 	}
 }
 
@@ -109,31 +121,13 @@ async function search(q: string): Promise<void> {
 			(c) => c.prefix && c.prefix.toLowerCase() === prefix.toLowerCase(),
 		);
 		if (matched) {
-			loading = true;
-			try {
-				const items = await searchItemsInCategory(matched.id, subQuery);
-				results = items.map((item) => ({ kind: 'item', item }));
-			} catch (e) {
-				lastError = String(e);
-				results = [];
-			} finally {
-				loading = false;
-			}
+			await fetchItems(() => searchItemsInCategory(matched.id, subQuery));
 			return;
 		}
 	}
 
 	// 通常検索
-	loading = true;
-	try {
-		const items = await searchItems(q);
-		results = items.map((item) => ({ kind: 'item', item }));
-	} catch (e) {
-		lastError = String(e);
-		results = [];
-	} finally {
-		loading = false;
-	}
+	await fetchItems(() => searchItems(q));
 }
 
 async function launch(entry: PaletteEntry): Promise<void> {
@@ -169,6 +163,7 @@ function close(): void {
 	results = [];
 	selectedIndex = 0;
 	lastError = null;
+	clipboardHistory = [];
 	stopClipboardPolling();
 }
 

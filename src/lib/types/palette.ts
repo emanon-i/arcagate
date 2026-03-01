@@ -15,14 +15,3 @@ export function entryKey(entry: PaletteEntry): string {
 			return `cb:${entry.index}`;
 	}
 }
-
-export function entryLabel(entry: PaletteEntry): string {
-	switch (entry.kind) {
-		case 'item':
-			return entry.item.label;
-		case 'calc':
-			return entry.result;
-		case 'clipboard':
-			return entry.text;
-	}
-}

@@ -32,8 +32,8 @@ fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
 pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
     let aliases_json = serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
     conn.execute(
-        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             item.id,
             item.item_type.as_str(),
@@ -46,8 +46,6 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
             aliases_json,
             item.sort_order,
             item.is_enabled as i64,
-            item.created_at,
-            item.updated_at,
         ],
     )?;
     Ok(())

@@ -15,10 +15,23 @@ fn row_to_tag(row: &rusqlite::Row) -> rusqlite::Result<Tag> {
 
 pub fn insert(conn: &Connection, tag: &Tag) -> Result<(), AppError> {
     conn.execute(
-        "INSERT INTO tags (id, name, is_hidden, created_at) VALUES (?1, ?2, ?3, ?4)",
-        params![tag.id, tag.name, tag.is_hidden as i64, tag.created_at],
+        "INSERT INTO tags (id, name, is_hidden) VALUES (?1, ?2, ?3)",
+        params![tag.id, tag.name, tag.is_hidden as i64],
     )?;
     Ok(())
+}
+
+pub fn find_by_id(conn: &Connection, id: &str) -> Result<Tag, AppError> {
+    let result = conn.query_row(
+        "SELECT id, name, is_hidden, created_at FROM tags WHERE id = ?1",
+        params![id],
+        row_to_tag,
+    );
+    match result {
+        Ok(tag) => Ok(tag),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
+        Err(e) => Err(AppError::Database(e)),
+    }
 }
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Tag>, AppError> {
