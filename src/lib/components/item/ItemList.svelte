@@ -6,10 +6,12 @@ let {
 	items,
 	onEdit,
 	onDelete,
+	missingPaths = new Set(),
 }: {
 	items: Item[];
 	onEdit: (item: Item) => void;
 	onDelete: (id: string) => void;
+	missingPaths?: Set<string>;
 } = $props();
 </script>
 
@@ -27,7 +29,12 @@ let {
     <tbody>
       {#each items as item (item.id)}
         <tr class="border-b hover:bg-muted/50 transition-colors">
-          <td class="px-4 py-2">{item.label}</td>
+          <td class="px-4 py-2">
+            {item.label}
+            {#if missingPaths.has(item.target)}
+              <span class="ml-1 text-amber-500" title="パスが見つかりません">⚠</span>
+            {/if}
+          </td>
           <td class="px-4 py-2">
             <span class="rounded bg-secondary px-2 py-0.5 text-xs font-medium">
               {item.item_type}

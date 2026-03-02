@@ -164,6 +164,21 @@ pub fn delete(conn: &Connection, id: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+pub fn update_target_by_path(
+    conn: &Connection,
+    old_path: &std::path::Path,
+    new_path: &std::path::Path,
+) -> Result<usize, AppError> {
+    let old = old_path.to_string_lossy();
+    let new = new_path.to_string_lossy();
+    let rows = conn.execute(
+        "UPDATE items SET target = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE target = ?2",
+        params![new.as_ref(), old.as_ref()],
+    )?;
+    Ok(rows)
+}
+
 pub fn set_categories(
     conn: &Connection,
     item_id: &str,
@@ -439,5 +454,59 @@ mod tests {
             )
             .unwrap();
         assert_eq!(cat_id, "cat-002");
+    }
+
+    #[test]
+    fn test_update_target_by_path_updates_matching() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut item = make_item("id-001", "App", ItemType::Exe);
+        item.target = "C:/old/app.exe".to_string();
+        insert(&conn, &item).unwrap();
+
+        let old = std::path::Path::new("C:/old/app.exe");
+        let new = std::path::Path::new("C:/new/app.exe");
+        let count = update_target_by_path(&conn, old, new).unwrap();
+        assert_eq!(count, 1);
+
+        let updated = find_by_id(&conn, "id-001").unwrap();
+        assert_eq!(updated.target, "C:/new/app.exe");
+    }
+
+    #[test]
+    fn test_update_target_by_path_ignores_others() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut item = make_item("id-001", "App", ItemType::Exe);
+        item.target = "C:/other/app.exe".to_string();
+        insert(&conn, &item).unwrap();
+
+        let old = std::path::Path::new("C:/old/app.exe");
+        let new = std::path::Path::new("C:/new/app.exe");
+        let count = update_target_by_path(&conn, old, new).unwrap();
+        assert_eq!(count, 0);
+
+        let unchanged = find_by_id(&conn, "id-001").unwrap();
+        assert_eq!(unchanged.target, "C:/other/app.exe");
+    }
+
+    #[test]
+    fn test_update_target_by_path_returns_count() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut item1 = make_item("id-001", "App1", ItemType::Exe);
+        item1.target = "C:/shared/app.exe".to_string();
+        let mut item2 = make_item("id-002", "App2", ItemType::Exe);
+        item2.target = "C:/shared/app.exe".to_string();
+        insert(&conn, &item1).unwrap();
+        insert(&conn, &item2).unwrap();
+
+        let old = std::path::Path::new("C:/shared/app.exe");
+        let new = std::path::Path::new("C:/moved/app.exe");
+        let count = update_target_by_path(&conn, old, new).unwrap();
+        assert_eq!(count, 2);
     }
 }

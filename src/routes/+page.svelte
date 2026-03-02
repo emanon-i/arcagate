@@ -18,6 +18,9 @@ type Tab = 'items' | 'categories' | 'settings';
 let activeTab = $state<Tab>('items');
 let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
+let missingPaths = $state(new Set<string>());
+let toasts = $state<{ id: number; path: string }[]>([]);
+let nextToastId = 0;
 
 // 初期化
 $effect(() => {
@@ -32,7 +35,24 @@ let unlisten: (() => void) | null = null;
 listen('hotkey-triggered', () => paletteStore.open()).then((fn) => {
 	unlisten = fn;
 });
-onDestroy(() => unlisten?.());
+
+// パス消失イベントリスナー
+let unlistenPathNotFound: (() => void) | null = null;
+listen<string>('item://path-not-found', (e) => {
+	missingPaths = new Set([...missingPaths, e.payload]);
+	const id = nextToastId++;
+	toasts = [...toasts, { id, path: e.payload }];
+	setTimeout(() => {
+		toasts = toasts.filter((t) => t.id !== id);
+	}, 5000);
+}).then((fn) => {
+	unlistenPathNotFound = fn;
+});
+
+onDestroy(() => {
+	unlisten?.();
+	unlistenPathNotFound?.();
+});
 
 function handleEdit(item: Item) {
 	editingItem = item;
@@ -75,6 +95,20 @@ function handleFormClose() {
 	onSubmit={handleFormSubmit}
 	onClose={handleFormClose}
 />
+
+<!-- トースト通知 -->
+{#if toasts.length > 0}
+	<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+		{#each toasts as toast (toast.id)}
+			<div
+				class="max-w-sm rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-md"
+			>
+				<span class="font-medium">⚠ パスが見つかりません</span>
+				<p class="mt-1 truncate text-xs opacity-80">{toast.path}</p>
+			</div>
+		{/each}
+	</div>
+{/if}
 
 <!-- メインレイアウト -->
 <div class="flex h-screen flex-col">
@@ -121,7 +155,12 @@ function handleFormClose() {
 			{:else if itemStore.error}
 				<p class="text-sm text-destructive">{itemStore.error}</p>
 			{:else}
-				<ItemList items={itemStore.items} onEdit={handleEdit} onDelete={handleDelete} />
+				<ItemList
+				items={itemStore.items}
+				onEdit={handleEdit}
+				onDelete={handleDelete}
+				{missingPaths}
+			/>
 			{/if}
 		{:else if activeTab === 'categories'}
 			<CategoryManager

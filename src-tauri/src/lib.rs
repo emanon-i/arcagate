@@ -8,8 +8,7 @@ mod plugin_api;
 mod repositories;
 pub mod services;
 pub mod utils;
-#[allow(dead_code)]
-mod watcher;
+pub mod watcher;
 
 use commands::config_commands::{
     cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_setup_complete,
@@ -24,6 +23,9 @@ use commands::item_commands::{
     cmd_update_tag,
 };
 use commands::launch_commands::{cmd_launch_item, cmd_list_frequent, cmd_list_recent};
+use commands::watched_path_commands::{
+    cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
+};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -85,6 +87,10 @@ pub fn run() {
             let db_state =
                 db::initialize(db_path.to_str().unwrap()).expect("failed to initialize database");
             app.manage(db_state);
+
+            // ファイルシステム監視 (DB manage 後に起動)
+            let watcher_state = watcher::start_watcher(app.handle());
+            app.manage(watcher_state);
 
             // グローバルショートカット登録
             let hotkey_str = {
@@ -170,6 +176,9 @@ pub fn run() {
             cmd_verify_hidden_password,
             cmd_export_json,
             cmd_import_json,
+            cmd_add_watched_path,
+            cmd_get_watched_paths,
+            cmd_remove_watched_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

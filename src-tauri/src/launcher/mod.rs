@@ -11,6 +11,16 @@ pub fn launch_exe(
     args: Option<&str>,
     working_dir: Option<&str>,
 ) -> Result<(), AppError> {
+    // .bat / .cmd は cmd.exe 経由が必須
+    let ext = Path::new(target)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if ext == "bat" || ext == "cmd" {
+        return launch_script(target, args, working_dir);
+    }
+
     let mut cmd = Command::new(target);
     if let Some(a) = args {
         cmd.args(a.split_whitespace());

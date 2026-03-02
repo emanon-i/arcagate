@@ -3,6 +3,7 @@ import { configStore } from '$lib/state/config.svelte';
 import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
+import WatchedPathsManager from './WatchedPathsManager.svelte';
 
 $effect(() => {
 	configStore.loadConfig();
@@ -37,6 +38,10 @@ $effect(() => {
 
       <div class="space-y-2">
         <ExportImport />
+      </div>
+
+      <div class="space-y-2">
+        <WatchedPathsManager />
       </div>
     </div>
   {/if}
