@@ -88,7 +88,10 @@ pub fn run() {
                 .expect("failed to resolve app data dir");
             std::fs::create_dir_all(&app_data_dir)?;
 
-            let db_path = app_data_dir.join("arcagate.db");
+            // E2E テスト時は ARCAGATE_DB_PATH 環境変数で DB パスを上書きできる
+            let db_path = std::env::var("ARCAGATE_DB_PATH")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| app_data_dir.join("arcagate.db"));
             let db_state =
                 db::initialize(db_path.to_str().unwrap()).expect("failed to initialize database");
             app.manage(db_state);

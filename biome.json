@@ -27,7 +27,7 @@
 		}
 	},
 	"files": {
-		"includes": ["src/**/*.ts", "src/**/*.svelte"],
+		"includes": ["src/**/*.ts", "src/**/*.svelte", "tests/**/*.ts"],
 		"ignoreUnknown": true
 	},
 	"css": {
