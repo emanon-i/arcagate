@@ -51,17 +51,6 @@ pub fn search_items(db: &DbState, query: &str) -> Result<Vec<Item>, AppError> {
     item_repository::search(&conn, query)
 }
 
-/// `exclude_hidden` が true のとき is_hidden タグを持つアイテムを除外する。
-/// 現時点では find_tags_for_item が未実装のため、フィルタリングは行わず search_items に委譲する。
-#[allow(dead_code)]
-pub fn search_items_filtered(
-    db: &DbState,
-    query: &str,
-    _exclude_hidden: bool,
-) -> Result<Vec<Item>, AppError> {
-    search_items(db, query)
-}
-
 pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Item, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     item_repository::update(&conn, id, &input)?;

@@ -61,7 +61,10 @@ pub fn find_active(conn: &Connection) -> Result<Vec<WatchedPath>, AppError> {
 }
 
 pub fn delete(conn: &Connection, id: &str) -> Result<(), AppError> {
-    conn.execute("DELETE FROM watched_paths WHERE id = ?1", params![id])?;
+    let n = conn.execute("DELETE FROM watched_paths WHERE id = ?1", params![id])?;
+    if n == 0 {
+        return Err(AppError::NotFound(id.to_string()));
+    }
     Ok(())
 }
 

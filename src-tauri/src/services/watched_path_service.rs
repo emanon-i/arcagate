@@ -30,10 +30,12 @@ pub fn add_watched_path(
         watched_path_repository::insert(&conn, &wp)?;
     }
     if let Ok(mut w) = watcher.0.lock() {
-        let _ = w.watch(
+        if let Err(e) = w.watch(
             std::path::Path::new(&path_str),
             notify::RecursiveMode::NonRecursive,
-        );
+        ) {
+            log::warn!("watcher: failed to watch '{}': {}", path_str, e);
+        }
     }
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     watched_path_repository::find_by_id(&conn, &id)

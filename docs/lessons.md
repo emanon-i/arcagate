@@ -4,6 +4,40 @@
 
 ---
 
+## コードレビュー改善パターン（PH-003 コードレビュー）
+
+### `pub(crate)` で helper を crate 内共有する
+
+- Repository 内の private helper を別 Repository から再利用したい場合は `pub(crate)` に昇格させる
+- `workspace_repository.rs` の `row_to_item` 重複は `item_repository::row_to_item` を `pub(crate)` にして解消
+- テストモジュールで `use super::*` しても `ItemType` 等が不足する場合は test 側の `use` に追記が必要
+
+### Clippy: `manual_clamp` 警告
+
+- `limit.max(1).min(500)` は clippy `-D warnings` で `manual_clamp` エラーになる
+- → `limit.clamp(1, 500)` を使うこと
+
+### Delete の行数チェックで NotFound を返す
+
+- `conn.execute("DELETE ...")` は影響行数 `usize` を返す。`== 0` なら `AppError::NotFound` を返すべき
+- 存在しない ID を渡しても `Ok(())` になるのはバグの温床
+
+### watcher エラーは `let _` で握り潰さない
+
+- `let _ = w.watch(...)` ではなく `if let Err(e) = w.watch(...) { log::warn!(...) }` でログに残す
+
+### Svelte state: `createItem` 後の全件再取得は不要
+
+- IPC が `Promise<Item>` を返す場合は `items = [...items, created]` でローカル追加
+- `createCategory` / `createTag` が正しいパターン
+
+### 共有定数は types ファイルに置く
+
+- `widgetLabels` を複数コンポーネントで重複定義しない
+- `src/lib/types/workspace.ts` に `WIDGET_LABELS: Record<WidgetType, string>` を export して各コンポーネントで import する
+
+---
+
 ## Playwright E2E（Tauri v2 + WebView2 CDP）
 
 ### セットアップ

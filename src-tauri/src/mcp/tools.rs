@@ -137,6 +137,11 @@ pub fn tools_to_json(tools: &[ToolDef]) -> Value {
         .collect::<Vec<_>>())
 }
 
+fn to_text_result<T: serde::Serialize>(value: &T) -> Value {
+    let text = serde_json::to_string_pretty(value).unwrap_or_else(|_| "null".to_string());
+    json!([{"type": "text", "text": text}])
+}
+
 /// JSON 引数から文字列フィールドを取り出す。存在しない場合は -32602 (Invalid params) を返す。
 fn get_str_arg<'a>(arguments: &'a Value, key: &str) -> Result<&'a str, (i64, String)> {
     arguments[key]
@@ -151,16 +156,14 @@ pub fn call_tool(db: &DbState, name: &str, arguments: &Value) -> Result<Value, (
         TOOL_LIST => {
             check_permission(db, name)?;
             let items = item_service::list_items(db).map_err(|e| (-32000i64, e.to_string()))?;
-            let text = serde_json::to_string_pretty(&items).unwrap_or_else(|_| "[]".to_string());
-            Ok(json!([{"type": "text", "text": text}]))
+            Ok(to_text_result(&items))
         }
         TOOL_SEARCH => {
             check_permission(db, name)?;
             let query = get_str_arg(arguments, "query")?;
             let items =
                 item_service::search_items(db, query).map_err(|e| (-32000i64, e.to_string()))?;
-            let text = serde_json::to_string_pretty(&items).unwrap_or_else(|_| "[]".to_string());
-            Ok(json!([{"type": "text", "text": text}]))
+            Ok(to_text_result(&items))
         }
         TOOL_LAUNCH => {
             check_permission(db, name)?;
@@ -188,16 +191,13 @@ pub fn call_tool(db: &DbState, name: &str, arguments: &Value) -> Result<Value, (
             };
             let item =
                 item_service::create_item(db, input).map_err(|e| (-32000i64, e.to_string()))?;
-            let text = serde_json::to_string_pretty(&item).unwrap_or_else(|_| "{}".to_string());
-            Ok(json!([{"type": "text", "text": text}]))
+            Ok(to_text_result(&item))
         }
         TOOL_WS_LIST => {
             check_permission(db, name)?;
             let workspaces =
                 workspace_service::list_workspaces(db).map_err(|e| (-32000i64, e.to_string()))?;
-            let text =
-                serde_json::to_string_pretty(&workspaces).unwrap_or_else(|_| "[]".to_string());
-            Ok(json!([{"type": "text", "text": text}]))
+            Ok(to_text_result(&workspaces))
         }
         TOOL_WS_CREATE => {
             check_permission(db, name)?;
@@ -207,8 +207,7 @@ pub fn call_tool(db: &DbState, name: &str, arguments: &Value) -> Result<Value, (
             };
             let ws = workspace_service::create_workspace(db, input)
                 .map_err(|e| (-32000i64, e.to_string()))?;
-            let text = serde_json::to_string_pretty(&ws).unwrap_or_else(|_| "{}".to_string());
-            Ok(json!([{"type": "text", "text": text}]))
+            Ok(to_text_result(&ws))
         }
         TOOL_WS_ADD_WIDGET => {
             check_permission(db, name)?;
@@ -226,8 +225,7 @@ pub fn call_tool(db: &DbState, name: &str, arguments: &Value) -> Result<Value, (
             };
             let widget =
                 workspace_service::add_widget(db, input).map_err(|e| (-32000i64, e.to_string()))?;
-            let text = serde_json::to_string_pretty(&widget).unwrap_or_else(|_| "{}".to_string());
-            Ok(json!([{"type": "text", "text": text}]))
+            Ok(to_text_result(&widget))
         }
         _ => Err((-32601i64, format!("unknown tool: {}", name))),
     }

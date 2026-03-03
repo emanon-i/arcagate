@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 use crate::models::item::{Item, ItemType, UpdateItemInput};
 use crate::utils::error::AppError;
 
-fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
+pub(crate) fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
     let item_type_str: String = row.get(1)?;
     let item_type = ItemType::from_str(&item_type_str).unwrap_or(ItemType::Command);
     let aliases_json: Option<String> = row.get(8)?;

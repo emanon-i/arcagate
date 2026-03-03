@@ -25,8 +25,8 @@ async function createItem(input: CreateItemInput): Promise<void> {
 	loading = true;
 	error = null;
 	try {
-		await itemsIpc.createItem(input);
-		await loadItems();
+		const created = await itemsIpc.createItem(input);
+		items = [...items, created];
 	} catch (e) {
 		error = String(e);
 	} finally {

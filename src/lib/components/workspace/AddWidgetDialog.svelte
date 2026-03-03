@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { WidgetType } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WidgetType } from '$lib/types/workspace';
 
 interface Props {
 	open: boolean;
@@ -9,11 +9,11 @@ interface Props {
 
 let { open, onAdd, onClose }: Props = $props();
 
-const widgets: { type: WidgetType; label: string; description: string }[] = [
-	{ type: 'favorites', label: 'よく使うもの', description: '起動頻度の高いアイテムを表示' },
-	{ type: 'recent', label: '最近使ったもの', description: '最近起動したアイテムを表示' },
-	{ type: 'projects', label: 'プロジェクト', description: 'フォルダ型アイテムを表示' },
-	{ type: 'watched_folders', label: '監視フォルダ', description: '監視中のフォルダを表示' },
+const widgets: { type: WidgetType; description: string }[] = [
+	{ type: 'favorites', description: '起動頻度の高いアイテムを表示' },
+	{ type: 'recent', description: '最近起動したアイテムを表示' },
+	{ type: 'projects', description: 'フォルダ型アイテムを表示' },
+	{ type: 'watched_folders', description: '監視中のフォルダを表示' },
 ];
 </script>
 
@@ -31,7 +31,7 @@ const widgets: { type: WidgetType; label: string; description: string }[] = [
 							onClose();
 						}}
 					>
-						<span class="font-medium">{w.label}</span>
+						<span class="font-medium">{WIDGET_LABELS[w.type]}</span>
 						<span class="text-sm text-muted-foreground">{w.description}</span>
 					</button>
 				{/each}

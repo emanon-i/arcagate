@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
-import type { WorkspaceWidget } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 
 interface Props {
 	widget: WorkspaceWidget;
@@ -10,13 +10,6 @@ interface Props {
 }
 
 let { widget, onRemove, onResize, children }: Props = $props();
-
-const widgetLabels: Record<string, string> = {
-	favorites: 'よく使うもの',
-	recent: '最近使ったもの',
-	projects: 'プロジェクト',
-	watched_folders: '監視フォルダ',
-};
 
 let cardEl: HTMLDivElement;
 let tempWidth = $state(widget.width);
@@ -70,7 +63,7 @@ function onMouseUp(e: MouseEvent) {
 >
 	<!-- ヘッダー (drag-handle) -->
 	<div class="drag-handle flex cursor-grab items-center justify-between border-b px-3 py-2 active:cursor-grabbing">
-		<span class="text-sm font-medium">{widgetLabels[widget.widget_type] ?? widget.widget_type}</span>
+		<span class="text-sm font-medium">{WIDGET_LABELS[widget.widget_type] ?? widget.widget_type}</span>
 		<button
 			class="rounded p-0.5 text-xs text-muted-foreground hover:text-destructive"
 			onclick={() => onRemove(widget.id)}

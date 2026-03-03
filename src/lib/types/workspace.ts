@@ -1,5 +1,12 @@
 export type WidgetType = 'favorites' | 'recent' | 'projects' | 'watched_folders';
 
+export const WIDGET_LABELS: Record<WidgetType, string> = {
+	favorites: 'よく使うもの',
+	recent: '最近使ったもの',
+	projects: 'プロジェクト',
+	watched_folders: '監視フォルダ',
+};
+
 export interface Workspace {
 	id: string;
 	name: string;

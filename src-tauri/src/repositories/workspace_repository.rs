@@ -1,7 +1,8 @@
 use rusqlite::{params, Connection};
 
-use crate::models::item::{Item, ItemType};
+use crate::models::item::Item;
 use crate::models::workspace::{UpdateWidgetPositionInput, WidgetType, Workspace, WorkspaceWidget};
+use crate::repositories::item_repository::row_to_item;
 use crate::utils::error::AppError;
 
 fn row_to_workspace(row: &rusqlite::Row) -> rusqlite::Result<Workspace> {
@@ -28,32 +29,6 @@ fn row_to_widget(row: &rusqlite::Row) -> rusqlite::Result<WorkspaceWidget> {
         config: row.get(7)?,
         created_at: row.get(8)?,
         updated_at: row.get(9)?,
-    })
-}
-
-fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
-    let item_type_str: String = row.get(1)?;
-    let item_type = ItemType::from_str(&item_type_str).unwrap_or(ItemType::Command);
-    let aliases_json: Option<String> = row.get(8)?;
-    let aliases: Vec<String> = aliases_json
-        .as_deref()
-        .and_then(|s| serde_json::from_str(s).ok())
-        .unwrap_or_default();
-    let is_enabled_int: i64 = row.get(10)?;
-    Ok(Item {
-        id: row.get(0)?,
-        item_type,
-        label: row.get(2)?,
-        target: row.get(3)?,
-        args: row.get(4)?,
-        working_dir: row.get(5)?,
-        icon_path: row.get(6)?,
-        icon_type: row.get(7)?,
-        aliases,
-        sort_order: row.get(9)?,
-        is_enabled: is_enabled_int != 0,
-        created_at: row.get(11)?,
-        updated_at: row.get(12)?,
     })
 }
 
@@ -99,7 +74,10 @@ pub fn update_workspace(conn: &Connection, id: &str, name: &str) -> Result<Works
 }
 
 pub fn delete_workspace(conn: &Connection, id: &str) -> Result<(), AppError> {
-    conn.execute("DELETE FROM workspaces WHERE id = ?1", params![id])?;
+    let n = conn.execute("DELETE FROM workspaces WHERE id = ?1", params![id])?;
+    if n == 0 {
+        return Err(AppError::NotFound(id.to_string()));
+    }
     Ok(())
 }
 
@@ -174,7 +152,10 @@ pub fn update_widget_position(
 }
 
 pub fn delete_widget(conn: &Connection, id: &str) -> Result<(), AppError> {
-    conn.execute("DELETE FROM workspace_widgets WHERE id = ?1", params![id])?;
+    let n = conn.execute("DELETE FROM workspace_widgets WHERE id = ?1", params![id])?;
+    if n == 0 {
+        return Err(AppError::NotFound(id.to_string()));
+    }
     Ok(())
 }
 
@@ -236,7 +217,7 @@ pub fn list_folder_items(conn: &Connection) -> Result<Vec<Item>, AppError> {
 mod tests {
     use super::*;
     use crate::db::initialize_in_memory;
-    use crate::models::item::Item;
+    use crate::models::item::{Item, ItemType};
     use crate::repositories::item_repository;
 
     fn make_workspace(id: &str, name: &str, sort_order: i64) -> Workspace {

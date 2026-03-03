@@ -89,7 +89,6 @@ pub fn add_widget(db: &DbState, input: AddWidgetInput) -> Result<WorkspaceWidget
 
 pub fn list_widgets(db: &DbState, workspace_id: &str) -> Result<Vec<WorkspaceWidget>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    workspace_repository::find_workspace_by_id(&conn, workspace_id)?;
     workspace_repository::find_widgets_by_workspace(&conn, workspace_id)
 }
 
@@ -108,11 +107,13 @@ pub fn remove_widget(db: &DbState, id: &str) -> Result<(), AppError> {
 }
 
 pub fn get_frequent_items(db: &DbState, limit: i64) -> Result<Vec<Item>, AppError> {
+    let limit = limit.clamp(1, 500);
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::list_frequent_items(&conn, limit)
 }
 
 pub fn get_recent_items(db: &DbState, limit: i64) -> Result<Vec<Item>, AppError> {
+    let limit = limit.clamp(1, 500);
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::list_recent_items(&conn, limit)
 }
