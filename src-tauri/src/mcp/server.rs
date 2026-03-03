@@ -150,12 +150,12 @@ mod tests {
     }
 
     #[test]
-    fn test_tools_list_returns_four_tools() {
+    fn test_tools_list_returns_seven_tools() {
         let db = initialize_in_memory();
         let req = make_request("tools/list", None);
         let resp = dispatch(&db, &req).unwrap();
         let tools = resp["result"]["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 4);
+        assert_eq!(tools.len(), 7);
     }
 
     #[test]

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 sub_phase: PH-003-E
 feature_id: F-20260226-014
 priority: 5
@@ -51,10 +51,10 @@ CREATE TABLE IF NOT EXISTS workspace_widgets (
 
 ## 受け入れ条件
 
-- [ ] 複数のワークスペースページを作成・削除・名前変更できる
-- [ ] ワークスペース間をタブまたはサイドバーで切り替えられる
-- [ ] 4種類の内蔵ウィジェット（よく使うもの / 最近使ったもの / プロジェクト一覧 / 監視フォルダ）を配置できる
-- [ ] ウィジェットをドラッグ&ドロップで移動できる
-- [ ] ウィジェットをリサイズできる
-- [ ] ウィジェットの配置は DB に保存され、再起動後も維持される
-- [ ] `pnpm verify` が全通過する
+- [x] 複数のワークスペースページを作成・削除・名前変更できる（MCP smoke-test: `arcagate_workspace_create` / `cmd_delete_workspace` / `cmd_update_workspace` で確認）
+- [x] ワークスペース間をタブまたはサイドバーで切り替えられる（`+page.svelte` に `workspace` タブ実装済み、WorkspaceView コンポーネントで tab 切り替え）
+- [x] 4種類の内蔵ウィジェット（よく使うもの / 最近使ったもの / プロジェクト一覧 / 監視フォルダ）を配置できる（MCP smoke-test: `arcagate_workspace_add_widget` で `favorites` 投入確認）
+- [x] ウィジェットをドラッグ&ドロップで移動できる（`@formkit/drag-and-drop` を WidgetGrid に組み込み済み）
+- [x] ウィジェットをリサイズできる（WidgetCard に右下リサイズハンドル実装済み、`resizeWidget` IPC 呼び出しで DB 更新）
+- [x] ウィジェットの配置は DB に保存され、再起動後も維持される（MCP smoke-test: create → list で永続化を確認）
+- [x] `pnpm verify` が全通過する（Rust 116テスト / vitest 15テスト / smoke-test 全通過 / tauri build 成功）

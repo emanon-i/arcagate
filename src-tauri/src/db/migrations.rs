@@ -4,12 +4,16 @@ use rusqlite_migration::{Migrations, M};
 const MIGRATION_001: &str = include_str!("../../migrations/001_initial.sql");
 const MIGRATION_002: &str = include_str!("../../migrations/002_mcp_permissions.sql");
 const MIGRATION_003: &str = include_str!("../../migrations/003_watched_paths.sql");
+const MIGRATION_004: &str = include_str!("../../migrations/004_workspaces.sql");
+const MIGRATION_005: &str = include_str!("../../migrations/005_mcp_workspace_permissions.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
         M::up(MIGRATION_001),
         M::up(MIGRATION_002),
         M::up(MIGRATION_003),
+        M::up(MIGRATION_004),
+        M::up(MIGRATION_005),
     ])
 }
 
@@ -52,6 +56,8 @@ mod tests {
         assert!(tables.contains(&"item_tags".to_string()));
         assert!(tables.contains(&"mcp_permissions".to_string()));
         assert!(tables.contains(&"watched_paths".to_string()));
+        assert!(tables.contains(&"workspaces".to_string()));
+        assert!(tables.contains(&"workspace_widgets".to_string()));
     }
 
     #[test]

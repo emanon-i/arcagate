@@ -8,12 +8,13 @@ import CommandPalette from '$lib/components/palette/CommandPalette.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { Button } from '$lib/components/ui/button';
+import WorkspaceView from '$lib/components/workspace/WorkspaceView.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
-type Tab = 'items' | 'categories' | 'settings';
+type Tab = 'items' | 'categories' | 'settings' | 'workspace';
 
 let activeTab = $state<Tab>('items');
 let editingItem = $state<Item | null>(null);
@@ -134,6 +135,13 @@ function handleFormClose() {
 				カテゴリ
 			</Button>
 			<Button
+				variant={activeTab === 'workspace' ? 'default' : 'ghost'}
+				size="sm"
+				onclick={() => (activeTab = 'workspace')}
+			>
+				ワークスペース
+			</Button>
+			<Button
 				variant={activeTab === 'settings' ? 'default' : 'ghost'}
 				size="sm"
 				onclick={() => (activeTab = 'settings')}
@@ -162,6 +170,8 @@ function handleFormClose() {
 				{missingPaths}
 			/>
 			{/if}
+		{:else if activeTab === 'workspace'}
+			<WorkspaceView />
 		{:else if activeTab === 'categories'}
 			<CategoryManager
 				categories={itemStore.categories}

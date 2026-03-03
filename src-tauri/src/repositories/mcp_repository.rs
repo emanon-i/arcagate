@@ -91,6 +91,24 @@ mod tests {
             .find(|p| p.tool_name == "arcagate_create")
             .unwrap();
         assert!(!create.is_allowed);
+
+        let ws_list = perms
+            .iter()
+            .find(|p| p.tool_name == "arcagate_workspace_list")
+            .unwrap();
+        assert!(ws_list.is_allowed);
+
+        let ws_create = perms
+            .iter()
+            .find(|p| p.tool_name == "arcagate_workspace_create")
+            .unwrap();
+        assert!(!ws_create.is_allowed);
+
+        let ws_add_widget = perms
+            .iter()
+            .find(|p| p.tool_name == "arcagate_workspace_add_widget")
+            .unwrap();
+        assert!(!ws_add_widget.is_allowed);
     }
 
     #[test]
@@ -113,11 +131,11 @@ mod tests {
     }
 
     #[test]
-    fn test_find_all_returns_four_entries() {
+    fn test_find_all_returns_seven_entries() {
         let db = initialize_in_memory();
         let conn = db.0.lock().unwrap();
         let perms = find_all(&conn).unwrap();
-        assert_eq!(perms.len(), 4);
+        assert_eq!(perms.len(), 7);
     }
 
     #[test]

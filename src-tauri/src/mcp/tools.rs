@@ -2,12 +2,16 @@ use serde_json::{json, Value};
 
 use crate::db::DbState;
 use crate::models::item::{CreateItemInput, ItemType};
-use crate::services::{item_service, launch_service, mcp_service};
+use crate::models::workspace::{AddWidgetInput, CreateWorkspaceInput, WidgetType};
+use crate::services::{item_service, launch_service, mcp_service, workspace_service};
 
 const TOOL_LIST: &str = "arcagate_list";
 const TOOL_SEARCH: &str = "arcagate_search";
 const TOOL_LAUNCH: &str = "arcagate_launch";
 const TOOL_CREATE: &str = "arcagate_create";
+const TOOL_WS_LIST: &str = "arcagate_workspace_list";
+const TOOL_WS_CREATE: &str = "arcagate_workspace_create";
+const TOOL_WS_ADD_WIDGET: &str = "arcagate_workspace_add_widget";
 
 pub struct ToolDef {
     pub name: &'static str,
@@ -77,6 +81,48 @@ pub fn list_tools() -> Vec<ToolDef> {
                 "required": ["item_type", "label", "target"]
             }),
         },
+        ToolDef {
+            name: TOOL_WS_LIST,
+            description: "List all workspaces in Arcagate.",
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        ToolDef {
+            name: TOOL_WS_CREATE,
+            description: "Create a new workspace (requires write permission).",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Workspace name"
+                    }
+                },
+                "required": ["name"]
+            }),
+        },
+        ToolDef {
+            name: TOOL_WS_ADD_WIDGET,
+            description: "Add a widget to a workspace (requires write permission).",
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "workspace_id": {
+                        "type": "string",
+                        "description": "Workspace UUID"
+                    },
+                    "widget_type": {
+                        "type": "string",
+                        "enum": ["favorites", "recent", "projects", "watched_folders"],
+                        "description": "Type of widget"
+                    }
+                },
+                "required": ["workspace_id", "widget_type"]
+            }),
+        },
     ]
 }
 
@@ -143,6 +189,44 @@ pub fn call_tool(db: &DbState, name: &str, arguments: &Value) -> Result<Value, (
             let item =
                 item_service::create_item(db, input).map_err(|e| (-32000i64, e.to_string()))?;
             let text = serde_json::to_string_pretty(&item).unwrap_or_else(|_| "{}".to_string());
+            Ok(json!([{"type": "text", "text": text}]))
+        }
+        TOOL_WS_LIST => {
+            check_permission(db, name)?;
+            let workspaces =
+                workspace_service::list_workspaces(db).map_err(|e| (-32000i64, e.to_string()))?;
+            let text =
+                serde_json::to_string_pretty(&workspaces).unwrap_or_else(|_| "[]".to_string());
+            Ok(json!([{"type": "text", "text": text}]))
+        }
+        TOOL_WS_CREATE => {
+            check_permission(db, name)?;
+            let name_val = get_str_arg(arguments, "name")?;
+            let input = CreateWorkspaceInput {
+                name: name_val.to_string(),
+            };
+            let ws = workspace_service::create_workspace(db, input)
+                .map_err(|e| (-32000i64, e.to_string()))?;
+            let text = serde_json::to_string_pretty(&ws).unwrap_or_else(|_| "{}".to_string());
+            Ok(json!([{"type": "text", "text": text}]))
+        }
+        TOOL_WS_ADD_WIDGET => {
+            check_permission(db, name)?;
+            let workspace_id = get_str_arg(arguments, "workspace_id")?;
+            let widget_type_str = get_str_arg(arguments, "widget_type")?;
+            let widget_type = WidgetType::from_str(widget_type_str).ok_or_else(|| {
+                (
+                    -32602i64,
+                    format!("invalid widget_type: {}", widget_type_str),
+                )
+            })?;
+            let input = AddWidgetInput {
+                workspace_id: workspace_id.to_string(),
+                widget_type,
+            };
+            let widget =
+                workspace_service::add_widget(db, input).map_err(|e| (-32000i64, e.to_string()))?;
+            let text = serde_json::to_string_pretty(&widget).unwrap_or_else(|_| "{}".to_string());
             Ok(json!([{"type": "text", "text": text}]))
         }
         _ => Err((-32601i64, format!("unknown tool: {}", name))),
@@ -229,5 +313,60 @@ mod tests {
             &json!({"item_type": "url", "label": "Test Site", "target": "https://example.com"}),
         );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_arcagate_workspace_list_default_allowed() {
+        let db = initialize_in_memory();
+        let result = call_tool(&db, "arcagate_workspace_list", &json!({}));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_arcagate_workspace_create_default_denied() {
+        let db = initialize_in_memory();
+        let result = call_tool(&db, "arcagate_workspace_create", &json!({"name": "Test"}));
+        assert!(result.is_err());
+        let (code, msg) = result.unwrap_err();
+        assert_eq!(code, -32000);
+        assert!(msg.contains("Permission denied"));
+    }
+
+    #[test]
+    fn test_arcagate_workspace_create_after_grant() {
+        let db = initialize_in_memory();
+        mcp_service::set_tool_allowed(&db, "arcagate_workspace_create", true).unwrap();
+        let result = call_tool(&db, "arcagate_workspace_create", &json!({"name": "MyWS"}));
+        assert!(result.is_ok());
+        let content = result.unwrap();
+        assert!(content[0]["text"].as_str().unwrap().contains("MyWS"));
+    }
+
+    #[test]
+    fn test_arcagate_workspace_add_widget_default_denied() {
+        let db = initialize_in_memory();
+        let result = call_tool(
+            &db,
+            "arcagate_workspace_add_widget",
+            &json!({"workspace_id": "some-id", "widget_type": "favorites"}),
+        );
+        assert!(result.is_err());
+        let (code, msg) = result.unwrap_err();
+        assert_eq!(code, -32000);
+        assert!(msg.contains("Permission denied"));
+    }
+
+    #[test]
+    fn test_arcagate_workspace_add_widget_invalid_type() {
+        let db = initialize_in_memory();
+        mcp_service::set_tool_allowed(&db, "arcagate_workspace_add_widget", true).unwrap();
+        let result = call_tool(
+            &db,
+            "arcagate_workspace_add_widget",
+            &json!({"workspace_id": "some-id", "widget_type": "invalid"}),
+        );
+        assert!(result.is_err());
+        let (code, _) = result.unwrap_err();
+        assert_eq!(code, -32602);
     }
 }

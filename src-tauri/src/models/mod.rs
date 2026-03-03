@@ -6,3 +6,4 @@ pub mod launch;
 pub mod mcp;
 pub mod tag;
 pub mod watched_path;
+pub mod workspace;
