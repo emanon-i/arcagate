@@ -18,7 +18,7 @@ test.describe('コマンドパレット', () => {
 		await expect(input).not.toBeVisible();
 	});
 
-	test('パレットでアイテムを検索できること', async ({ page }) => {
+	test('パレットでアイテムを検索できること', async ({ page }, testInfo) => {
 		// テスト用アイテムを IPC で作成
 		const item = await createItem(page, {
 			item_type: 'url',
@@ -36,6 +36,13 @@ test.describe('コマンドパレット', () => {
 			// 検索結果に表示されることを確認
 			// getByText は input.value にもマッチするため、ResultList の .max-h-80 コンテナに限定
 			await expect(page.locator('.max-h-80').getByText('パレット検索テスト')).toBeVisible();
+
+			// 成功証跡を HTML report に添付
+			const screenshot = await page.screenshot({ fullPage: true });
+			await testInfo.attach('success-palette-search', {
+				body: screenshot,
+				contentType: 'image/png',
+			});
 		} finally {
 			// クリーンアップ
 			await page.keyboard.press('Escape');

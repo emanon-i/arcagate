@@ -26,7 +26,7 @@ test.describe('ワークスペース', () => {
 		}
 	});
 
-	test('ウィジェットを追加できること', async ({ page }) => {
+	test('ウィジェットを追加できること', async ({ page }, testInfo) => {
 		// ワークスペースを作成
 		const workspace = await createWorkspace(page, 'ウィジェットテストワークスペース');
 
@@ -53,6 +53,13 @@ test.describe('ワークスペース', () => {
 
 			// ウィジェットが追加されたことを確認（WidgetCard に表示される）
 			await expect(page.getByText('よく使うもの')).toBeVisible();
+
+			// 成功証跡を HTML report に添付
+			const screenshot = await page.screenshot({ fullPage: true });
+			await testInfo.attach('success-workspace-widget', {
+				body: screenshot,
+				contentType: 'image/png',
+			});
 		} finally {
 			// クリーンアップ
 			await deleteWorkspace(page, workspace.id);

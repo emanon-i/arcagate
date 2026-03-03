@@ -80,7 +80,7 @@ GitHub Actions の `E2E` ワークフロー（`.github/workflows/e2e.yml`）が
 `windows-latest` 上で自動実行される。
 
 - `playwright-report` Artifact（30日保持）: HTML レポートをダウンロードして確認
-- `playwright-traces` Artifact（7日保持）: 失敗時の trace ファイル。Playwright Trace Viewer で解析
+- `test-results` Artifact（7日保持）: trace・動画・失敗時スクリーンショット。キャンセル以外で常時回収（`!cancelled()`）
 
 ---
 

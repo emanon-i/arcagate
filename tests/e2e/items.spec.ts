@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures/tauri.js';
 import { createItem, deleteItem, listItems } from '../helpers/ipc.js';
 
 test.describe('アイテム管理', () => {
-	test('IPC 経由でアイテムを作成すると一覧に反映されること', async ({ page }) => {
+	test('IPC 経由でアイテムを作成すると一覧に反映されること', async ({ page }, testInfo) => {
 		// IPC で直接アイテム作成
 		const item = await createItem(page, {
 			item_type: 'url',
@@ -19,14 +19,20 @@ test.describe('アイテム管理', () => {
 		expect(found).toBeDefined();
 		expect(found?.label).toBe('E2E テスト URL');
 
-		// UI に反映させるためリロード（IPC 変更は Svelte ストアに通知されないため）
-		await page.reload();
-		await page.waitForLoadState('domcontentloaded');
-		// UI に反映されていることを確認（「アイテム」タブが表示中）
-		await expect(page.getByText('E2E テスト URL')).toBeVisible();
+		try {
+			// UI に反映させるためリロード（IPC 変更は Svelte ストアに通知されないため）
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			// UI に反映されていることを確認（「アイテム」タブが表示中）
+			await expect(page.getByText('E2E テスト URL')).toBeVisible();
 
-		// クリーンアップ
-		await deleteItem(page, item.id);
+			// 成功証跡を HTML report に添付
+			const screenshot = await page.screenshot({ fullPage: true });
+			await testInfo.attach('success-items-create', { body: screenshot, contentType: 'image/png' });
+		} finally {
+			// クリーンアップ
+			await deleteItem(page, item.id);
+		}
 	});
 
 	test('UI フォームからアイテムを追加できること', async ({ page }) => {
