@@ -1,14 +1,14 @@
 mod commands;
-mod db;
+pub mod db;
 mod launcher;
-mod models;
+pub mod mcp;
+pub mod models;
 #[allow(dead_code)]
 mod plugin_api;
 mod repositories;
-mod services;
-mod utils;
-#[allow(dead_code)]
-mod watcher;
+pub mod services;
+pub mod utils;
+pub mod watcher;
 
 use commands::config_commands::{
     cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_setup_complete,
@@ -19,9 +19,18 @@ use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::item_commands::{
     cmd_create_category, cmd_create_item, cmd_create_tag, cmd_delete_category, cmd_delete_item,
     cmd_delete_tag, cmd_extract_item_icon, cmd_get_categories, cmd_get_tags, cmd_list_items,
-    cmd_search_items, cmd_update_category, cmd_update_item, cmd_update_tag,
+    cmd_search_items, cmd_search_items_in_category, cmd_update_category, cmd_update_item,
+    cmd_update_tag,
 };
 use commands::launch_commands::{cmd_launch_item, cmd_list_frequent, cmd_list_recent};
+use commands::watched_path_commands::{
+    cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
+};
+use commands::workspace_commands::{
+    cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
+    cmd_get_frequent_items, cmd_get_recent_items, cmd_list_widgets, cmd_list_workspaces,
+    cmd_remove_widget, cmd_update_widget_position, cmd_update_workspace,
+};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -52,6 +61,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             let mut log_targets = vec![tauri_plugin_log::Target::new(
                 tauri_plugin_log::TargetKind::LogDir {
@@ -78,10 +88,17 @@ pub fn run() {
                 .expect("failed to resolve app data dir");
             std::fs::create_dir_all(&app_data_dir)?;
 
-            let db_path = app_data_dir.join("arcagate.db");
+            // E2E テスト時は ARCAGATE_DB_PATH 環境変数で DB パスを上書きできる
+            let db_path = std::env::var("ARCAGATE_DB_PATH")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| app_data_dir.join("arcagate.db"));
             let db_state =
                 db::initialize(db_path.to_str().unwrap()).expect("failed to initialize database");
             app.manage(db_state);
+
+            // ファイルシステム監視 (DB manage 後に起動)
+            let watcher_state = watcher::start_watcher(app.handle());
+            app.manage(watcher_state);
 
             // グローバルショートカット登録
             let hotkey_str = {
@@ -140,6 +157,7 @@ pub fn run() {
             cmd_create_item,
             cmd_list_items,
             cmd_search_items,
+            cmd_search_items_in_category,
             cmd_update_item,
             cmd_delete_item,
             cmd_get_categories,
@@ -166,6 +184,20 @@ pub fn run() {
             cmd_verify_hidden_password,
             cmd_export_json,
             cmd_import_json,
+            cmd_add_watched_path,
+            cmd_get_watched_paths,
+            cmd_remove_watched_path,
+            cmd_create_workspace,
+            cmd_list_workspaces,
+            cmd_update_workspace,
+            cmd_delete_workspace,
+            cmd_add_widget,
+            cmd_list_widgets,
+            cmd_update_widget_position,
+            cmd_remove_widget,
+            cmd_get_frequent_items,
+            cmd_get_recent_items,
+            cmd_get_folder_items,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

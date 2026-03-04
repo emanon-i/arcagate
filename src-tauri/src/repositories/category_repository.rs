@@ -16,18 +16,24 @@ fn row_to_category(row: &rusqlite::Row) -> rusqlite::Result<Category> {
 
 pub fn insert(conn: &Connection, cat: &Category) -> Result<(), AppError> {
     conn.execute(
-        "INSERT INTO categories (id, name, prefix, icon, sort_order, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![
-            cat.id,
-            cat.name,
-            cat.prefix,
-            cat.icon,
-            cat.sort_order,
-            cat.created_at
-        ],
+        "INSERT INTO categories (id, name, prefix, icon, sort_order)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![cat.id, cat.name, cat.prefix, cat.icon, cat.sort_order],
     )?;
     Ok(())
+}
+
+pub fn find_by_id(conn: &Connection, id: &str) -> Result<Category, AppError> {
+    let result = conn.query_row(
+        "SELECT id, name, prefix, icon, sort_order, created_at FROM categories WHERE id = ?1",
+        params![id],
+        row_to_category,
+    );
+    match result {
+        Ok(cat) => Ok(cat),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
+        Err(e) => Err(AppError::Database(e)),
+    }
 }
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Category>, AppError> {
@@ -41,10 +47,15 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Category>, AppError> {
     Ok(categories)
 }
 
-pub fn update(conn: &Connection, id: &str, name: &str) -> Result<(), AppError> {
+pub fn update(
+    conn: &Connection,
+    id: &str,
+    name: &str,
+    prefix: Option<&str>,
+) -> Result<(), AppError> {
     conn.execute(
-        "UPDATE categories SET name = ?1 WHERE id = ?2",
-        params![name, id],
+        "UPDATE categories SET name = ?1, prefix = ?2 WHERE id = ?3",
+        params![name, prefix, id],
     )?;
     Ok(())
 }
@@ -88,10 +99,23 @@ mod tests {
         let conn = db.0.lock().unwrap();
 
         insert(&conn, &make_category("cat-001", "Games")).unwrap();
-        update(&conn, "cat-001", "Entertainment").unwrap();
+        update(&conn, "cat-001", "Entertainment", None).unwrap();
 
         let cats = find_all(&conn).unwrap();
         assert_eq!(cats[0].name, "Entertainment");
+        assert_eq!(cats[0].prefix, None);
+    }
+
+    #[test]
+    fn test_update_with_prefix() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        insert(&conn, &make_category("cat-001", "Games")).unwrap();
+        update(&conn, "cat-001", "Games", Some("gm")).unwrap();
+
+        let cats = find_all(&conn).unwrap();
+        assert_eq!(cats[0].prefix, Some("gm".to_string()));
     }
 
     #[test]

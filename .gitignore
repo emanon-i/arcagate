@@ -47,3 +47,6 @@ vite.config.ts.timestamp-*
 
 # Temporary artifacts (screenshots, etc.)
 tmp/
+
+# Playwright test artifacts (locally generated)
+test-results/

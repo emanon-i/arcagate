@@ -11,10 +11,19 @@ pub fn launch_exe(
     args: Option<&str>,
     working_dir: Option<&str>,
 ) -> Result<(), AppError> {
+    // .bat / .cmd は cmd.exe 経由が必須
+    let ext = Path::new(target)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if ext == "bat" || ext == "cmd" {
+        return launch_script(target, args, working_dir);
+    }
+
     let mut cmd = Command::new(target);
     if let Some(a) = args {
-        let parsed: Vec<&str> = a.split_whitespace().collect();
-        cmd.args(parsed);
+        cmd.args(a.split_whitespace());
     }
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
@@ -59,8 +68,7 @@ pub fn launch_script(
             let mut c = Command::new("powershell");
             c.args(["-ExecutionPolicy", "Bypass", "-File", path]);
             if let Some(a) = args {
-                let parsed: Vec<&str> = a.split_whitespace().collect();
-                c.args(parsed);
+                c.args(a.split_whitespace());
             }
             c
         }
@@ -68,8 +76,7 @@ pub fn launch_script(
             let mut c = Command::new("cmd");
             c.args(["/c", path]);
             if let Some(a) = args {
-                let parsed: Vec<&str> = a.split_whitespace().collect();
-                c.args(parsed);
+                c.args(a.split_whitespace());
             }
             c
         }
@@ -77,8 +84,7 @@ pub fn launch_script(
             let mut c = Command::new("cmd");
             c.args(["/c", path]);
             if let Some(a) = args {
-                let parsed: Vec<&str> = a.split_whitespace().collect();
-                c.args(parsed);
+                c.args(a.split_whitespace());
             }
             c
         }
@@ -98,12 +104,9 @@ pub fn launch_command(command: &str, working_dir: Option<&str>) -> Result<(), Ap
     let program = tokens
         .next()
         .ok_or_else(|| AppError::LaunchFailed("empty command string".to_string()))?;
-    let rest: Vec<&str> = tokens.collect();
 
     let mut cmd = Command::new(program);
-    if !rest.is_empty() {
-        cmd.args(&rest);
-    }
+    cmd.args(tokens);
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }

@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 use crate::models::item::{Item, ItemType, UpdateItemInput};
 use crate::utils::error::AppError;
 
-fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
+pub(crate) fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
     let item_type_str: String = row.get(1)?;
     let item_type = ItemType::from_str(&item_type_str).unwrap_or(ItemType::Command);
     let aliases_json: Option<String> = row.get(8)?;
@@ -32,8 +32,8 @@ fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
 pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
     let aliases_json = serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
     conn.execute(
-        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             item.id,
             item.item_type.as_str(),
@@ -46,8 +46,6 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
             aliases_json,
             item.sort_order,
             item.is_enabled as i64,
-            item.created_at,
-            item.updated_at,
         ],
     )?;
     Ok(())
@@ -88,6 +86,27 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
     )?;
     let items = stmt
         .query_map(params![pattern], row_to_item)?
+        .collect::<rusqlite::Result<Vec<Item>>>()?;
+    Ok(items)
+}
+
+pub fn search_in_category(
+    conn: &Connection,
+    category_id: &str,
+    query: &str,
+) -> Result<Vec<Item>, AppError> {
+    let pattern = format!("%{}%", query);
+    let mut stmt = conn.prepare(
+        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.created_at, i.updated_at
+         FROM items i
+         INNER JOIN item_categories ic ON ic.item_id = i.id
+         WHERE ic.category_id = ?1
+           AND i.is_enabled = 1
+           AND (i.label LIKE ?2 OR i.aliases LIKE ?2)
+         ORDER BY i.sort_order, i.label",
+    )?;
+    let items = stmt
+        .query_map(params![category_id, pattern], row_to_item)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -143,6 +162,21 @@ pub fn update(conn: &Connection, id: &str, input: &UpdateItemInput) -> Result<()
 pub fn delete(conn: &Connection, id: &str) -> Result<(), AppError> {
     conn.execute("DELETE FROM items WHERE id = ?1", params![id])?;
     Ok(())
+}
+
+pub fn update_target_by_path(
+    conn: &Connection,
+    old_path: &std::path::Path,
+    new_path: &std::path::Path,
+) -> Result<usize, AppError> {
+    let old = old_path.to_string_lossy();
+    let new = new_path.to_string_lossy();
+    let rows = conn.execute(
+        "UPDATE items SET target = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE target = ?2",
+        params![new.as_ref(), old.as_ref()],
+    )?;
+    Ok(rows)
 }
 
 pub fn set_categories(
@@ -321,6 +355,50 @@ mod tests {
     }
 
     #[test]
+    fn test_search_in_category() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let cat1 = Category {
+            id: "cat-001".to_string(),
+            name: "Games".to_string(),
+            prefix: Some("gm".to_string()),
+            icon: None,
+            sort_order: 0,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        let cat2 = Category {
+            id: "cat-002".to_string(),
+            name: "Work".to_string(),
+            prefix: None,
+            icon: None,
+            sort_order: 1,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        category_repository::insert(&conn, &cat1).unwrap();
+        category_repository::insert(&conn, &cat2).unwrap();
+
+        insert(&conn, &make_item("id-001", "Blender", ItemType::Exe)).unwrap();
+        insert(&conn, &make_item("id-002", "Unity", ItemType::Exe)).unwrap();
+        insert(&conn, &make_item("id-003", "VS Code", ItemType::Exe)).unwrap();
+
+        set_categories(&conn, "id-001", &["cat-001".to_string()]).unwrap();
+        set_categories(&conn, "id-002", &["cat-001".to_string()]).unwrap();
+        set_categories(&conn, "id-003", &["cat-002".to_string()]).unwrap();
+
+        let results = search_in_category(&conn, "cat-001", "").unwrap();
+        assert_eq!(results.len(), 2);
+
+        let filtered = search_in_category(&conn, "cat-001", "Blend").unwrap();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].label, "Blender");
+
+        let other = search_in_category(&conn, "cat-002", "").unwrap();
+        assert_eq!(other.len(), 1);
+        assert_eq!(other[0].label, "VS Code");
+    }
+
+    #[test]
     fn test_set_categories_replaces_existing() {
         let db = initialize_in_memory();
         let conn = db.0.lock().unwrap();
@@ -376,5 +454,59 @@ mod tests {
             )
             .unwrap();
         assert_eq!(cat_id, "cat-002");
+    }
+
+    #[test]
+    fn test_update_target_by_path_updates_matching() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut item = make_item("id-001", "App", ItemType::Exe);
+        item.target = "C:/old/app.exe".to_string();
+        insert(&conn, &item).unwrap();
+
+        let old = std::path::Path::new("C:/old/app.exe");
+        let new = std::path::Path::new("C:/new/app.exe");
+        let count = update_target_by_path(&conn, old, new).unwrap();
+        assert_eq!(count, 1);
+
+        let updated = find_by_id(&conn, "id-001").unwrap();
+        assert_eq!(updated.target, "C:/new/app.exe");
+    }
+
+    #[test]
+    fn test_update_target_by_path_ignores_others() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut item = make_item("id-001", "App", ItemType::Exe);
+        item.target = "C:/other/app.exe".to_string();
+        insert(&conn, &item).unwrap();
+
+        let old = std::path::Path::new("C:/old/app.exe");
+        let new = std::path::Path::new("C:/new/app.exe");
+        let count = update_target_by_path(&conn, old, new).unwrap();
+        assert_eq!(count, 0);
+
+        let unchanged = find_by_id(&conn, "id-001").unwrap();
+        assert_eq!(unchanged.target, "C:/other/app.exe");
+    }
+
+    #[test]
+    fn test_update_target_by_path_returns_count() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut item1 = make_item("id-001", "App1", ItemType::Exe);
+        item1.target = "C:/shared/app.exe".to_string();
+        let mut item2 = make_item("id-002", "App2", ItemType::Exe);
+        item2.target = "C:/shared/app.exe".to_string();
+        insert(&conn, &item1).unwrap();
+        insert(&conn, &item2).unwrap();
+
+        let old = std::path::Path::new("C:/shared/app.exe");
+        let new = std::path::Path::new("C:/moved/app.exe");
+        let count = update_target_by_path(&conn, old, new).unwrap();
+        assert_eq!(count, 2);
     }
 }

@@ -12,8 +12,10 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
+		"test:e2e": "playwright test",
 		"tauri": "tauri",
-		"verify": "pnpm biome check && pnpm dprint check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm test && pnpm tauri build"
+		"verify:smoke": "bash scripts/smoke-test.sh",
+		"verify": "pnpm biome check && pnpm dprint check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm verify:smoke && pnpm test && pnpm tauri build"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
@@ -25,14 +27,17 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
 		"@lucide/svelte": "^0.575.0",
+		"@playwright/test": "^1.52.0",
 		"@sveltejs/adapter-static": "^3.0.0",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/vite": "^4.2.1",
 		"@tauri-apps/api": "^2.10.1",
 		"@tauri-apps/cli": "^2.10.0",
+		"@tauri-apps/plugin-clipboard-manager": "^2.3.2",
 		"@tauri-apps/plugin-dialog": "^2.6.0",
 		"@testing-library/svelte": "^5.3.1",
+		"@types/node": "^25.3.3",
 		"clsx": "2.1.1",
 		"dprint": "^0.52.0",
 		"jsdom": "^28.1.0",
@@ -46,5 +51,8 @@
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1",
 		"vitest": "^4.0.18"
+	},
+	"dependencies": {
+		"@formkit/drag-and-drop": "^0.5.3"
 	}
 }

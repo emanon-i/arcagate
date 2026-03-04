@@ -19,7 +19,7 @@ PC上に散在する起動元を一箇所に集約する個人用コマンドパ
 
 ### 自己改善
 
-- ユーザーから修正を受けたら必ず `MEMORY.md` にそのパターンを記録する
+- ユーザーから修正を受けたら必ず `docs/lessons.md` にそのパターンを記録する
 - 同じミスを繰り返さないよう自分へのルールを書き、ミス率が下がるまで改善し続ける
 - セッション開始時に関連する lessons をレビューする
 
@@ -70,13 +70,11 @@ PC上に散在する起動元を一箇所に集約する個人用コマンドパ
 
 ### コマンド
 
-- `pnpm verify` — 全検証（lint, clippy, fmt, svelte-check, test, build）
+- `pnpm verify` — 全検証（biome lint, dprint fmt, clippy, rustfmt, svelte-check, cargo test, smoke-test, vitest, tauri build）
 - `pnpm tauri dev` — 開発起動（verify に含まれない。動作確認時に使用）
-- GUI 検証時は `pnpm tauri dev` を起動した状態で Playwright MCP ツールを使用する
-  - `http://localhost:5173` にアクセスしてスクリーンショット・DOM 検査が可能
-  - Tauri IPC を伴う検証は対象外（M2+ の E2E テストで対応）
+- `pnpm test:e2e` — Playwright E2E テスト（Tauri 統合・CDP 経由）
 
 ### CIとローカルの差
 
-- `lefthook`（pre-commit）: ステージングファイルのみ対象（biome, clippy, rustfmt）
+- `lefthook`（pre-commit）: ステージングファイルのみ対象（biome, dprint, clippy, rustfmt）
 - CI（GitHub Actions）: 全ファイル対象 + svelte-check + cargo test + tauri build。CIが真の品質ゲート

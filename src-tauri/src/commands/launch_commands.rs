@@ -7,7 +7,7 @@ use crate::utils::error::AppError;
 
 #[tauri::command]
 pub fn cmd_launch_item(db: State<DbState>, item_id: String) -> Result<(), AppError> {
-    launch_service::launch_item(&db, &item_id)
+    launch_service::launch_item(&db, &item_id, "palette")
 }
 
 #[tauri::command]

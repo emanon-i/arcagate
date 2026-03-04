@@ -16,7 +16,6 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
     }
 
     let id = Uuid::now_v7().to_string();
-    let now = chrono_now();
 
     let item = Item {
         id: id.clone(),
@@ -30,8 +29,8 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
         aliases: input.aliases,
         sort_order: 0,
         is_enabled: true,
-        created_at: now.clone(),
-        updated_at: now,
+        created_at: String::new(), // set by DB DEFAULT on insert
+        updated_at: String::new(),
     };
 
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
@@ -50,17 +49,6 @@ pub fn list_items(db: &DbState) -> Result<Vec<Item>, AppError> {
 pub fn search_items(db: &DbState, query: &str) -> Result<Vec<Item>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     item_repository::search(&conn, query)
-}
-
-/// `exclude_hidden` が true のとき is_hidden タグを持つアイテムを除外する。
-/// 現時点では find_tags_for_item が未実装のため、フィルタリングは行わず search_items に委譲する。
-#[allow(dead_code)]
-pub fn search_items_filtered(
-    db: &DbState,
-    query: &str,
-    _exclude_hidden: bool,
-) -> Result<Vec<Item>, AppError> {
-    search_items(db, query)
 }
 
 pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Item, AppError> {
@@ -94,26 +82,36 @@ pub fn create_category(db: &DbState, input: CreateCategoryInput) -> Result<Categ
         ));
     }
     let id = Uuid::now_v7().to_string();
-    let now = chrono_now();
     let cat = Category {
         id: id.clone(),
         name: input.name,
         prefix: input.prefix,
         icon: input.icon,
         sort_order: 0,
-        created_at: now,
+        created_at: String::new(), // set by DB DEFAULT on insert
     };
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     category_repository::insert(&conn, &cat)?;
-    let cats = category_repository::find_all(&conn)?;
-    cats.into_iter()
-        .find(|c| c.id == id)
-        .ok_or_else(|| AppError::NotFound(id))
+    category_repository::find_by_id(&conn, &id)
 }
 
-pub fn update_category(db: &DbState, id: &str, name: &str) -> Result<(), AppError> {
+pub fn update_category(
+    db: &DbState,
+    id: &str,
+    name: &str,
+    prefix: Option<&str>,
+) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::update(&conn, id, name)
+    category_repository::update(&conn, id, name, prefix)
+}
+
+pub fn search_items_in_category(
+    db: &DbState,
+    category_id: &str,
+    query: &str,
+) -> Result<Vec<Item>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    item_repository::search_in_category(&conn, category_id, query)
 }
 
 pub fn delete_category(db: &DbState, id: &str) -> Result<(), AppError> {
@@ -133,19 +131,15 @@ pub fn create_tag(db: &DbState, input: CreateTagInput) -> Result<Tag, AppError> 
         ));
     }
     let id = Uuid::now_v7().to_string();
-    let now = chrono_now();
     let tag = Tag {
         id: id.clone(),
         name: input.name,
         is_hidden: input.is_hidden,
-        created_at: now,
+        created_at: String::new(), // set by DB DEFAULT on insert
     };
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     tag_repository::insert(&conn, &tag)?;
-    let tags = tag_repository::find_all(&conn)?;
-    tags.into_iter()
-        .find(|t| t.id == id)
-        .ok_or_else(|| AppError::NotFound(id))
+    tag_repository::find_by_id(&conn, &id)
 }
 
 pub fn update_tag(db: &DbState, id: &str, name: &str, is_hidden: bool) -> Result<(), AppError> {
@@ -160,13 +154,6 @@ pub fn delete_tag(db: &DbState, id: &str) -> Result<(), AppError> {
 
 pub fn extract_item_icon(exe_path: &str, output_path: &str) -> Result<(), AppError> {
     icon::extract_icon_from_exe(exe_path, output_path)
-}
-
-fn chrono_now() -> String {
-    // Use SQLite-compatible UTC timestamp format.
-    // In production the DB DEFAULT strftime handles the actual timestamp;
-    // this value is stored as-is for in-memory / test rows.
-    "1970-01-01T00:00:00Z".to_string()
 }
 
 #[cfg(test)]
