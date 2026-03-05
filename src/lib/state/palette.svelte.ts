@@ -1,6 +1,7 @@
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { searchItemsInCategory } from '$lib/ipc/items';
 import { launchItem, searchItems } from '$lib/ipc/launch';
+import { getFrequentItems, getRecentItems } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
 import type { PaletteEntry } from '$lib/types/palette';
@@ -91,6 +92,29 @@ async function search(q: string): Promise<void> {
 	query = q;
 	selectedIndex = 0;
 	lastError = null;
+
+	// 空検索: recent + frequent を表示
+	if (!q.trim()) {
+		loading = true;
+		try {
+			const [recent, frequent] = await Promise.all([getRecentItems(5), getFrequentItems(5)]);
+			const seen = new Set<string>();
+			const merged: Item[] = [];
+			for (const item of [...recent, ...frequent]) {
+				if (!seen.has(item.id)) {
+					seen.add(item.id);
+					merged.push(item);
+				}
+			}
+			results = merged.map((item) => ({ kind: 'item', item }));
+		} catch (e) {
+			lastError = String(e);
+			results = [];
+		} finally {
+			loading = false;
+		}
+		return;
+	}
 
 	// 電卓モード: "= <expr>"
 	if (q.startsWith('= ')) {

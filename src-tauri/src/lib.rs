@@ -17,12 +17,15 @@ use commands::config_commands::{
 };
 use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::item_commands::{
-    cmd_create_category, cmd_create_item, cmd_create_tag, cmd_delete_category, cmd_delete_item,
-    cmd_delete_tag, cmd_extract_item_icon, cmd_get_categories, cmd_get_tags, cmd_list_items,
-    cmd_search_items, cmd_search_items_in_category, cmd_update_category, cmd_update_item,
-    cmd_update_tag,
+    cmd_count_hidden_items, cmd_create_category, cmd_create_item, cmd_create_tag,
+    cmd_delete_category, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon,
+    cmd_get_categories, cmd_get_category_counts, cmd_get_item_categories, cmd_get_library_stats,
+    cmd_get_tags, cmd_list_items, cmd_search_items, cmd_search_items_in_category,
+    cmd_update_category, cmd_update_item, cmd_update_tag,
 };
-use commands::launch_commands::{cmd_launch_item, cmd_list_frequent, cmd_list_recent};
+use commands::launch_commands::{
+    cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
+};
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
@@ -198,6 +201,11 @@ pub fn run() {
             cmd_get_frequent_items,
             cmd_get_recent_items,
             cmd_get_folder_items,
+            cmd_get_library_stats,
+            cmd_get_category_counts,
+            cmd_count_hidden_items,
+            cmd_get_item_categories,
+            cmd_get_item_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

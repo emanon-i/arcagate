@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Category, CreateCategoryInput } from '$lib/types/category';
-import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
+import type { Category, CategoryWithCount, CreateCategoryInput } from '$lib/types/category';
+import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
 import type { CreateTagInput, Tag } from '$lib/types/tag';
 
 export async function createItem(input: CreateItemInput): Promise<Item> {
@@ -53,4 +53,20 @@ export async function createTag(input: CreateTagInput): Promise<Tag> {
 
 export async function extractItemIcon(exePath: string): Promise<string | null> {
 	return invoke<string | null>('cmd_extract_item_icon', { exePath });
+}
+
+export async function countHiddenItems(): Promise<number> {
+	return invoke<number>('cmd_count_hidden_items');
+}
+
+export async function getItemCategories(itemId: string): Promise<Category[]> {
+	return invoke<Category[]>('cmd_get_item_categories', { itemId });
+}
+
+export async function getLibraryStats(): Promise<LibraryStats> {
+	return invoke<LibraryStats>('cmd_get_library_stats');
+}
+
+export async function getCategoryWithCounts(): Promise<CategoryWithCount[]> {
+	return invoke<CategoryWithCount[]>('cmd_get_category_counts');
 }

@@ -1,15 +1,7 @@
 <script lang="ts">
 import { Palette } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
-
-interface Props {
-	currentTheme: 'dark' | 'light';
-	onToggleTheme?: () => void;
-}
-
-let { currentTheme, onToggleTheme }: Props = $props();
-
-// TODO: テーマ設定をバックエンドで永続化する (cmd_set_theme)
+import { configStore } from '$lib/state/config.svelte';
 </script>
 
 <WidgetShell title="Theme controls" icon={Palette} badge="Light / Dark" source="Workspace appearance">
@@ -17,10 +9,10 @@ let { currentTheme, onToggleTheme }: Props = $props();
 		<div class="grid grid-cols-2 gap-3">
 			<button
 				type="button"
-				class="rounded-[var(--ag-radius-card)] border p-3 text-left {currentTheme === 'dark'
+				class="rounded-[var(--ag-radius-card)] border p-3 text-left {configStore.themeMode === 'dark'
 					? 'border-[var(--ag-accent-active-border)] bg-[var(--ag-accent-bg)]'
 					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)]'}"
-				onclick={onToggleTheme}
+				onclick={() => void configStore.setTheme('dark')}
 			>
 				<div class="text-sm font-medium text-[var(--ag-text-primary)]">Dark theme</div>
 				<div class="mt-1 text-xs leading-5 text-[var(--ag-text-muted)]">
@@ -29,10 +21,10 @@ let { currentTheme, onToggleTheme }: Props = $props();
 			</button>
 			<button
 				type="button"
-				class="rounded-[var(--ag-radius-card)] border p-3 text-left {currentTheme === 'light'
+				class="rounded-[var(--ag-radius-card)] border p-3 text-left {configStore.themeMode === 'light'
 					? 'border-[var(--ag-accent-active-border)] bg-[var(--ag-accent-bg)]'
 					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)]'}"
-				onclick={onToggleTheme}
+				onclick={() => void configStore.setTheme('light')}
 			>
 				<div class="text-sm font-medium text-[var(--ag-text-primary)]">Light theme</div>
 				<div class="mt-1 text-xs leading-5 text-[var(--ag-text-muted)]">

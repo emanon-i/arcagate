@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
 use crate::db::DbState;
-use crate::models::category::{Category, CreateCategoryInput};
-use crate::models::item::{CreateItemInput, Item, UpdateItemInput};
+use crate::models::category::{Category, CategoryWithCount, CreateCategoryInput};
+use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
 use crate::models::tag::{CreateTagInput, Tag};
 use crate::repositories::{category_repository, item_repository, tag_repository};
 use crate::utils::error::AppError;
@@ -152,6 +152,26 @@ pub fn delete_tag(db: &DbState, id: &str) -> Result<(), AppError> {
     tag_repository::delete(&conn, id)
 }
 
+pub fn get_library_stats(db: &DbState) -> Result<LibraryStats, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    item_repository::get_library_stats(&conn)
+}
+
+pub fn get_category_counts(db: &DbState) -> Result<Vec<CategoryWithCount>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    category_repository::find_all_with_counts(&conn)
+}
+
+pub fn get_item_categories(db: &DbState, item_id: &str) -> Result<Vec<Category>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    category_repository::find_by_item_id(&conn, item_id)
+}
+
+pub fn count_hidden_items(db: &DbState) -> Result<i64, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    item_repository::count_hidden_items(&conn)
+}
+
 pub fn extract_item_icon(exe_path: &str, output_path: &str) -> Result<(), AppError> {
     icon::extract_icon_from_exe(exe_path, output_path)
 }
@@ -219,6 +239,41 @@ mod tests {
 
         let items = list_items(&db).unwrap();
         assert_eq!(items.len(), 2);
+    }
+
+    #[test]
+    fn test_get_library_stats() {
+        let db = initialize_in_memory();
+        create_item(&db, make_input(ItemType::Exe, "App1")).unwrap();
+        create_item(&db, make_input(ItemType::Url, "Site")).unwrap();
+
+        let stats = get_library_stats(&db).unwrap();
+        assert_eq!(stats.total_items, 2);
+        assert_eq!(stats.recent_launch_count, 0);
+    }
+
+    #[test]
+    fn test_get_category_counts() {
+        let db = initialize_in_memory();
+
+        let cat = create_category(
+            &db,
+            CreateCategoryInput {
+                name: "Games".to_string(),
+                prefix: None,
+                icon: None,
+            },
+        )
+        .unwrap();
+
+        let mut input = make_input(ItemType::Exe, "Game");
+        input.category_ids = vec![cat.id.clone()];
+        create_item(&db, input).unwrap();
+
+        let counts = get_category_counts(&db).unwrap();
+        assert_eq!(counts.len(), 1);
+        assert_eq!(counts[0].name, "Games");
+        assert_eq!(counts[0].item_count, 1);
     }
 
     #[test]

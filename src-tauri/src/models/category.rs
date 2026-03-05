@@ -16,3 +16,11 @@ pub struct CreateCategoryInput {
     pub prefix: Option<String>,
     pub icon: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CategoryWithCount {
+    pub id: String,
+    pub name: String,
+    pub prefix: Option<String>,
+    pub item_count: i64,
+}

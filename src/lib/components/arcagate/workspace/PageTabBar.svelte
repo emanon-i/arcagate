@@ -1,26 +1,29 @@
 <script lang="ts">
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
-import { mockWorkspaces } from '$lib/mock/arcagate/workspace';
+import { configStore } from '$lib/state/config.svelte';
+import { workspaceStore } from '$lib/state/workspace.svelte';
 
 interface Props {
-	activeWorkspace: string;
-	currentTheme: 'dark' | 'light';
-	onSelectWorkspace?: (name: string) => void;
-	onToggleTheme?: () => void;
+	onSelectWorkspace?: (id: string) => void;
 }
 
-let { activeWorkspace, currentTheme, onSelectWorkspace, onToggleTheme }: Props = $props();
+let { onSelectWorkspace }: Props = $props();
 
-// TODO: ワークスペース一覧をバックエンド (cmd_list_workspaces) から取得する
-// TODO: ページ追加ボタンに cmd_create_workspace を接続する
+function handleAddPage() {
+	const name = prompt('ワークスペース名を入力:');
+	if (name?.trim()) {
+		void workspaceStore.createWorkspace(name.trim());
+	}
+}
 </script>
 
 <div class="flex flex-wrap items-center justify-between gap-3">
 	<div class="flex flex-wrap items-center gap-2">
-		{#each mockWorkspaces as ws}
+		{#each workspaceStore.workspaces as ws (ws.id)}
 			<Chip
-				tone={ws.name === activeWorkspace ? "accent" : "default"}
-				onclick={() => onSelectWorkspace?.(ws.name)}
+				tone={ws.id === workspaceStore.activeWorkspaceId ? "accent" : "default"}
+				onclick={() => onSelectWorkspace?.(ws.id)}
+				data-testid="workspace-tab-{ws.id}"
 			>
 				{ws.name}
 			</Chip>
@@ -28,15 +31,16 @@ let { activeWorkspace, currentTheme, onSelectWorkspace, onToggleTheme }: Props =
 		<button
 			type="button"
 			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)]"
+			onclick={handleAddPage}
 		>
 			+ Add page
 		</button>
 	</div>
 	<div class="flex flex-wrap gap-2">
-		<Chip tone={currentTheme === "dark" ? "accent" : "default"} onclick={onToggleTheme}>
+		<Chip tone={configStore.themeMode === "dark" ? "accent" : "default"} onclick={() => void configStore.setTheme('dark')}>
 			Dark
 		</Chip>
-		<Chip tone={currentTheme === "light" ? "accent" : "default"} onclick={onToggleTheme}>
+		<Chip tone={configStore.themeMode === "light" ? "accent" : "default"} onclick={() => void configStore.setTheme('light')}>
 			Light
 		</Chip>
 		<Chip>Theme settings</Chip>

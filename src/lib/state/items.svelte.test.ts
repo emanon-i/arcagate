@@ -126,4 +126,47 @@ describe('itemStore', () => {
 		expect(itemStore.items).toHaveLength(2);
 		expect(itemStore.items[1].id).toBe('item-2');
 	});
+
+	it('loadLibraryStats() fetches and stores library stats', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const mockStats = {
+			total_items: 42,
+			total_categories: 5,
+			recent_launch_count: 12,
+		};
+
+		mockInvoke.mockResolvedValueOnce(mockStats);
+
+		const { itemStore } = await import('./items.svelte');
+
+		expect(itemStore.libraryStats).toBeNull();
+
+		await itemStore.loadLibraryStats();
+
+		expect(itemStore.libraryStats).toEqual(mockStats);
+		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_library_stats');
+	});
+
+	it('loadCategoryWithCounts() fetches and stores categories with counts', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const mockCategories = [
+			{ id: 'cat-1', name: 'ゲーム', prefix: 'game', item_count: 10 },
+			{ id: 'cat-2', name: '開発ツール', prefix: 'dev', item_count: 5 },
+		];
+
+		mockInvoke.mockResolvedValueOnce(mockCategories);
+
+		const { itemStore } = await import('./items.svelte');
+
+		expect(itemStore.categoryWithCounts).toEqual([]);
+
+		await itemStore.loadCategoryWithCounts();
+
+		expect(itemStore.categoryWithCounts).toEqual(mockCategories);
+		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_category_counts');
+	});
 });

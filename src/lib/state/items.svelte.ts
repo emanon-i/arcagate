@@ -1,11 +1,14 @@
 import * as itemsIpc from '$lib/ipc/items';
-import type { Category, CreateCategoryInput } from '$lib/types/category';
-import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
+import type { Category, CategoryWithCount, CreateCategoryInput } from '$lib/types/category';
+import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
 import type { CreateTagInput, Tag } from '$lib/types/tag';
 
 let items = $state<Item[]>([]);
 let categories = $state<Category[]>([]);
 let tags = $state<Tag[]>([]);
+let libraryStats = $state<LibraryStats | null>(null);
+let categoryWithCounts = $state<CategoryWithCount[]>([]);
+let categoryItems = $state<Item[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 
@@ -53,6 +56,18 @@ async function deleteItem(id: string): Promise<void> {
 	try {
 		await itemsIpc.deleteItem(id);
 		items = items.filter((item) => item.id !== id);
+	} catch (e) {
+		error = String(e);
+	} finally {
+		loading = false;
+	}
+}
+
+async function loadItemsByCategory(categoryId: string, query: string): Promise<void> {
+	loading = true;
+	error = null;
+	try {
+		categoryItems = await itemsIpc.searchItemsInCategory(categoryId, query);
 	} catch (e) {
 		error = String(e);
 	} finally {
@@ -123,6 +138,22 @@ async function loadTags(): Promise<void> {
 	}
 }
 
+async function loadLibraryStats(): Promise<void> {
+	try {
+		libraryStats = await itemsIpc.getLibraryStats();
+	} catch (e) {
+		error = String(e);
+	}
+}
+
+async function loadCategoryWithCounts(): Promise<void> {
+	try {
+		categoryWithCounts = await itemsIpc.getCategoryWithCounts();
+	} catch (e) {
+		error = String(e);
+	}
+}
+
 async function createTag(input: CreateTagInput): Promise<void> {
 	loading = true;
 	error = null;
@@ -140,11 +171,20 @@ export const itemStore = {
 	get items() {
 		return items;
 	},
+	get categoryItems() {
+		return categoryItems;
+	},
 	get categories() {
 		return categories;
 	},
 	get tags() {
 		return tags;
+	},
+	get libraryStats() {
+		return libraryStats;
+	},
+	get categoryWithCounts() {
+		return categoryWithCounts;
 	},
 	get loading() {
 		return loading;
@@ -153,6 +193,7 @@ export const itemStore = {
 		return error;
 	},
 	loadItems,
+	loadItemsByCategory,
 	createItem,
 	updateItem,
 	deleteItem,
@@ -162,4 +203,6 @@ export const itemStore = {
 	deleteCategory,
 	loadTags,
 	createTag,
+	loadLibraryStats,
+	loadCategoryWithCounts,
 };

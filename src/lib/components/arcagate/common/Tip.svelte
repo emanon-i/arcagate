@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Info, X } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
+import { onMount } from 'svelte';
 
 type TipTone = 'default' | 'accent' | 'success';
 
@@ -18,8 +19,18 @@ const toneClasses: Record<TipTone, string> = {
 
 let { tone = 'default', tipId, children }: Props = $props();
 
-// TODO: tipId で localStorage 永続化
 let visible = $state(true);
+
+onMount(() => {
+	if (localStorage.getItem(`tip-dismissed-${tipId}`)) {
+		visible = false;
+	}
+});
+
+function dismiss() {
+	visible = false;
+	localStorage.setItem(`tip-dismissed-${tipId}`, '1');
+}
 </script>
 
 {#if visible}
@@ -35,7 +46,7 @@ let visible = $state(true);
 				type="button"
 				aria-label="閉じる"
 				class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-1.5 text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
-				onclick={() => (visible = false)}
+				onclick={dismiss}
 			>
 				<X class="h-4 w-4" />
 			</button>

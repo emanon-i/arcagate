@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Command } from '@lucide/svelte';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
-import { paletteResults } from '$lib/mock/arcagate/items';
+import { paletteStore } from '$lib/state/palette.svelte';
 import PaletteKeyGuide from './PaletteKeyGuide.svelte';
 import PaletteQuickContext from './PaletteQuickContext.svelte';
 import PaletteResultRow from './PaletteResultRow.svelte';
@@ -13,18 +13,47 @@ interface Props {
 
 let { open = $bindable() }: Props = $props();
 
+let searchQuery = $state('');
+
+// Sync open state with paletteStore
+$effect(() => {
+	if (open && !paletteStore.isOpen) {
+		paletteStore.open();
+		void paletteStore.search('');
+	} else if (!open && paletteStore.isOpen) {
+		paletteStore.close();
+	}
+});
+
 function close() {
 	open = false;
+	searchQuery = '';
+	paletteStore.close();
+}
+
+function handleSearch(q: string) {
+	void paletteStore.search(q);
 }
 
 function handleKeydown(e: KeyboardEvent) {
 	if (e.key === 'Escape') {
 		close();
+	} else if (e.key === 'ArrowDown') {
+		e.preventDefault();
+		paletteStore.selectNext();
+	} else if (e.key === 'ArrowUp') {
+		e.preventDefault();
+		paletteStore.selectPrev();
+	} else if (e.key === 'Enter') {
+		e.preventDefault();
+		const selected = paletteStore.results[paletteStore.selectedIndex];
+		if (selected) {
+			void paletteStore.launch(selected);
+			open = false;
+			searchQuery = '';
+		}
 	}
 }
-
-// TODO: implement arrow-key navigation for active result index
-// TODO: wire Enter key to launch selected item
 </script>
 
 {#if open}
@@ -74,15 +103,29 @@ function handleKeydown(e: KeyboardEvent) {
 					class="relative mx-auto max-w-4xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl"
 				>
 					<!-- Search bar -->
-					<PaletteSearchBar />
+					<PaletteSearchBar bind:query={searchQuery} onSearch={handleSearch} />
 
 					<!-- 2-column grid: results + context -->
 					<div class="mt-5 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
 						<!-- Left: results + guide chips -->
-						<div class="space-y-2">
-							{#each paletteResults as result, index}
-								<PaletteResultRow {result} active={index === 0} />
+						<div class="space-y-2" data-testid="palette-results">
+							{#each paletteStore.results as entry, index (index)}
+								<PaletteResultRow
+									{entry}
+									{index}
+									active={index === paletteStore.selectedIndex}
+									onclick={() => {
+										void paletteStore.launch(entry);
+										open = false;
+										searchQuery = '';
+									}}
+								/>
 							{/each}
+							{#if paletteStore.results.length === 0}
+								<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">
+									{searchQuery ? '一致する結果がありません' : '最近の起動履歴がありません'}
+								</div>
+							{/if}
 
 							<PaletteKeyGuide variant="chips" />
 						</div>

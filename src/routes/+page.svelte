@@ -31,9 +31,9 @@ $effect(() => {
 	void itemStore.loadTags();
 });
 
-// Dark テーマをデフォルトに設定
+// テーマ初期化（configStore から読み込み）
 $effect(() => {
-	document.documentElement.classList.add('dark');
+	void configStore.loadTheme();
 });
 
 // ホットキーイベントリスナー
@@ -144,7 +144,16 @@ function handleFormClose() {
 	<!-- メインコンテンツ -->
 	<main class="flex-1 overflow-auto">
 		{#if activeView === "library"}
-			<LibraryLayout />
+			<LibraryLayout
+				onEditItem={(id) => {
+					editingItem = itemStore.items.find((i) => i.id === id) ?? null;
+					showItemForm = true;
+				}}
+				onAddItem={() => {
+					editingItem = null;
+					showItemForm = true;
+				}}
+			/>
 		{:else}
 			<WorkspaceLayout />
 		{/if}

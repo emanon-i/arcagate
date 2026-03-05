@@ -23,7 +23,7 @@ test.describe('アイテム管理', () => {
 			// UI に反映させるためリロード（IPC 変更は Svelte ストアに通知されないため）
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
-			// UI に反映されていることを確認（「アイテム」タブが表示中）
+			// Library はデフォルトタブ — カードにテキスト表示確認
 			await expect(page.getByText('E2E テスト URL')).toBeVisible();
 
 			// 成功証跡を HTML report に添付
@@ -36,11 +36,8 @@ test.describe('アイテム管理', () => {
 	});
 
 	test('UI フォームからアイテムを追加できること', async ({ page }) => {
-		// 「アイテム」タブが表示中であることを確認
-		await expect(page.getByRole('button', { name: 'アイテム' })).toBeVisible();
-
-		// フォームを開く（「追加」ボタンをクリック）
-		await page.getByRole('button', { name: '追加' }).click();
+		// Library はデフォルトタブ — "Add item" ボタンをクリック
+		await page.getByTestId('add-item-button').click();
 
 		// フォームが表示されたことを確認
 		await expect(page.locator('input#item-label')).toBeVisible();
@@ -75,18 +72,20 @@ test.describe('アイテム管理', () => {
 			target: 'https://delete-test.example.com',
 		});
 
-		// UI に反映させるためリロード（IPC 変更は Svelte ストアに通知されないため）
+		// UI に反映させるためリロード
 		await page.reload();
 		await page.waitForLoadState('domcontentloaded');
-		// UI に表示されていることを確認
+		// Library はデフォルトタブ — カードに表示されていることを確認
 		await expect(page.getByText('削除テストアイテム')).toBeVisible();
 
-		// 削除ボタンをクリック（該当行の削除ボタン）
-		const row = page.getByText('削除テストアイテム').locator('../..');
-		await row.getByRole('button', { name: '削除' }).click();
+		// カードをクリックして DetailPanel を開く
+		await page.getByTestId(`library-card-${item.id}`).click();
 
-		// 一覧から消えていることを確認
-		await expect(page.getByText('削除テストアイテム')).not.toBeVisible();
+		// DetailPanel の削除ボタンをクリック
+		await page.getByTestId('delete-item-button').click();
+
+		// カードが一覧から消えていることを確認
+		await expect(page.getByTestId(`library-card-${item.id}`)).not.toBeVisible();
 
 		// IPC でも確認
 		const items = await listItems(page);

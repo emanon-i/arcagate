@@ -12,3 +12,10 @@ export interface CreateCategoryInput {
 	prefix: string | null;
 	icon: string | null;
 }
+
+export interface CategoryWithCount {
+	id: string;
+	name: string;
+	prefix: string | null;
+	item_count: number;
+}

@@ -1,8 +1,8 @@
 use tauri::State;
 
 use crate::db::DbState;
-use crate::models::category::{Category, CreateCategoryInput};
-use crate::models::item::{CreateItemInput, Item, UpdateItemInput};
+use crate::models::category::{Category, CategoryWithCount, CreateCategoryInput};
+use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
 use crate::models::tag::{CreateTagInput, Tag};
 use crate::services::item_service;
 use crate::utils::error::AppError;
@@ -96,6 +96,29 @@ pub fn cmd_update_tag(
 #[tauri::command]
 pub fn cmd_delete_tag(db: State<DbState>, id: String) -> Result<(), AppError> {
     item_service::delete_tag(&db, &id)
+}
+
+#[tauri::command]
+pub fn cmd_get_library_stats(db: State<DbState>) -> Result<LibraryStats, AppError> {
+    item_service::get_library_stats(&db)
+}
+
+#[tauri::command]
+pub fn cmd_get_category_counts(db: State<DbState>) -> Result<Vec<CategoryWithCount>, AppError> {
+    item_service::get_category_counts(&db)
+}
+
+#[tauri::command]
+pub fn cmd_get_item_categories(
+    db: State<DbState>,
+    item_id: String,
+) -> Result<Vec<Category>, AppError> {
+    item_service::get_item_categories(&db, &item_id)
+}
+
+#[tauri::command]
+pub fn cmd_count_hidden_items(db: State<DbState>) -> Result<i64, AppError> {
+    item_service::count_hidden_items(&db)
 }
 
 #[tauri::command]

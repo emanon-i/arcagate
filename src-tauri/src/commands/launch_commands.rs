@@ -11,6 +11,14 @@ pub fn cmd_launch_item(db: State<DbState>, item_id: String) -> Result<(), AppErr
 }
 
 #[tauri::command]
+pub fn cmd_get_item_stats(
+    db: State<DbState>,
+    item_id: String,
+) -> Result<Option<ItemStats>, AppError> {
+    launch_service::get_item_stats(&db, &item_id)
+}
+
+#[tauri::command]
 pub fn cmd_list_recent(db: State<DbState>, limit: Option<i64>) -> Result<Vec<LaunchLog>, AppError> {
     launch_service::list_recent(&db, limit.unwrap_or(20))
 }

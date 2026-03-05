@@ -1,5 +1,6 @@
 ---
-status: draft
+status: merged_into
+merged_into: PH-003-F
 phase_id: PH-20260301-001
 title: UI/DX改善
 depends_on:
@@ -7,6 +8,10 @@ depends_on:
 ---
 
 # PH-20260301-001: UI/DX改善
+
+> **注記**: 本フェーズは PH-003-F（UI リデザイン + テーマ + Git ステータス）に吸収されました。
+> F-2 完了後の統合計画により、PH-003-F の F-3〜F-9 として再編成されています。
+> 詳細は `docs/l3_phases/PH-20260226-003_power-user-expansion/PH-003-F_workspace-theme-git.md` を参照してください。
 
 ## 目的
 

@@ -1,6 +1,6 @@
 use rusqlite::{params, Connection};
 
-use crate::models::item::{Item, ItemType, UpdateItemInput};
+use crate::models::item::{Item, ItemType, LibraryStats, UpdateItemInput};
 use crate::utils::error::AppError;
 
 pub(crate) fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
@@ -195,6 +195,37 @@ pub fn set_categories(
         )?;
     }
     Ok(())
+}
+
+pub fn get_library_stats(conn: &Connection) -> Result<LibraryStats, AppError> {
+    conn.query_row(
+        "SELECT
+            (SELECT COUNT(*) FROM items WHERE is_enabled = 1) AS total_items,
+            (SELECT COUNT(*) FROM categories) AS total_categories,
+            (SELECT COUNT(*) FROM launch_log WHERE launched_at >= datetime('now', '-7 days')) AS recent_launch_count",
+        [],
+        |row| {
+            Ok(LibraryStats {
+                total_items: row.get(0)?,
+                total_categories: row.get(1)?,
+                recent_launch_count: row.get(2)?,
+            })
+        },
+    )
+    .map_err(AppError::Database)
+}
+
+pub fn count_hidden_items(conn: &Connection) -> Result<i64, AppError> {
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(DISTINCT it.item_id)
+         FROM item_tags it
+         INNER JOIN tags t ON t.id = it.tag_id
+         INNER JOIN items i ON i.id = it.item_id
+         WHERE t.is_hidden = 1 AND i.is_enabled = 1",
+        [],
+        |row| row.get(0),
+    )?;
+    Ok(count)
 }
 
 pub fn set_tags(conn: &Connection, item_id: &str, tag_ids: &[String]) -> Result<(), AppError> {
@@ -490,6 +521,97 @@ mod tests {
 
         let unchanged = find_by_id(&conn, "id-001").unwrap();
         assert_eq!(unchanged.target, "C:/other/app.exe");
+    }
+
+    #[test]
+    fn test_get_library_stats_empty() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let stats = get_library_stats(&conn).unwrap();
+        assert_eq!(stats.total_items, 0);
+        assert_eq!(stats.total_categories, 0);
+        assert_eq!(stats.recent_launch_count, 0);
+    }
+
+    #[test]
+    fn test_get_library_stats_with_data() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        insert(&conn, &make_item("id-001", "App1", ItemType::Exe)).unwrap();
+        insert(&conn, &make_item("id-002", "App2", ItemType::Url)).unwrap();
+
+        let mut disabled = make_item("id-003", "Disabled", ItemType::Exe);
+        disabled.is_enabled = false;
+        insert(&conn, &disabled).unwrap();
+
+        let cat = Category {
+            id: "cat-001".to_string(),
+            name: "Test".to_string(),
+            prefix: None,
+            icon: None,
+            sort_order: 0,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        category_repository::insert(&conn, &cat).unwrap();
+
+        let stats = get_library_stats(&conn).unwrap();
+        assert_eq!(stats.total_items, 2); // disabled excluded
+        assert_eq!(stats.total_categories, 1);
+        assert_eq!(stats.recent_launch_count, 0);
+    }
+
+    #[test]
+    fn test_count_hidden_items_zero() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let count = count_hidden_items(&conn).unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_count_hidden_items_with_hidden_tag() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let hidden_tag = Tag {
+            id: "tag-hidden".to_string(),
+            name: "sensitive".to_string(),
+            is_hidden: true,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        tag_repository::insert(&conn, &hidden_tag).unwrap();
+
+        let item = make_item("id-001", "Secret App", ItemType::Exe);
+        insert(&conn, &item).unwrap();
+        set_tags(&conn, "id-001", &["tag-hidden".to_string()]).unwrap();
+
+        let count = count_hidden_items(&conn).unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_count_hidden_items_excludes_disabled() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let hidden_tag = Tag {
+            id: "tag-hidden".to_string(),
+            name: "sensitive".to_string(),
+            is_hidden: true,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        tag_repository::insert(&conn, &hidden_tag).unwrap();
+
+        let mut item = make_item("id-001", "Disabled Secret", ItemType::Exe);
+        item.is_enabled = false;
+        insert(&conn, &item).unwrap();
+        set_tags(&conn, "id-001", &["tag-hidden".to_string()]).unwrap();
+
+        let count = count_hidden_items(&conn).unwrap();
+        assert_eq!(count, 0);
     }
 
     #[test]

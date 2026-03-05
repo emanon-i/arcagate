@@ -1,6 +1,6 @@
 <script lang="ts">
 import { MoreHorizontal } from '@lucide/svelte';
-import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+import { DropdownMenu } from 'bits-ui';
 
 interface MenuItem {
 	label: string;
@@ -22,9 +22,16 @@ let { items, ariaLabel }: Props = $props();
 	>
 		<MoreHorizontal class="h-4 w-4" />
 	</DropdownMenu.Trigger>
-	<DropdownMenu.Content>
+	<DropdownMenu.Content
+		class="z-50 min-w-[8rem] rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-1 shadow-md"
+	>
 		{#each items as item}
-			<DropdownMenu.Item onclick={item.onclick}>{item.label}</DropdownMenu.Item>
+			<DropdownMenu.Item
+				class="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-[var(--ag-text-secondary)] outline-none hover:bg-[var(--ag-surface-4)] data-[highlighted]:bg-[var(--ag-surface-4)]"
+				onSelect={item.onclick}
+			>
+				{item.label}
+			</DropdownMenu.Item>
 		{/each}
 	</DropdownMenu.Content>
 </DropdownMenu.Root>

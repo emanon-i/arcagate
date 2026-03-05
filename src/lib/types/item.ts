@@ -28,6 +28,18 @@ export interface CreateItemInput {
 	tag_ids: string[];
 }
 
+export interface LibraryStats {
+	total_items: number;
+	total_categories: number;
+	recent_launch_count: number;
+}
+
+export interface ItemStats {
+	item_id: string;
+	launch_count: number;
+	last_launched_at: string | null;
+}
+
 export interface UpdateItemInput {
 	label?: string;
 	target?: string;

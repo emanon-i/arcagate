@@ -7,6 +7,7 @@ interface Props {
 	tone?: Tone;
 	children: Snippet;
 	onclick?: () => void;
+	[key: string]: unknown;
 }
 
 const toneClasses: Record<Tone, string> = {
@@ -17,7 +18,7 @@ const toneClasses: Record<Tone, string> = {
 		'border-[var(--ag-success-border)] bg-[var(--ag-success-bg)] text-[var(--ag-success-text)]',
 };
 
-let { tone = 'default', children, onclick }: Props = $props();
+let { tone = 'default', children, onclick, ...restProps }: Props = $props();
 </script>
 
 {#if onclick}
@@ -25,11 +26,12 @@ let { tone = 'default', children, onclick }: Props = $props();
 		type="button"
 		class="rounded-full border px-2.5 py-1 text-[11px] transition {toneClasses[tone]}"
 		{onclick}
+		{...restProps}
 	>
 		{@render children()}
 	</button>
 {:else}
-	<span class="rounded-full border px-2.5 py-1 text-[11px] {toneClasses[tone]}">
+	<span class="rounded-full border px-2.5 py-1 text-[11px] {toneClasses[tone]}" {...restProps}>
 		{@render children()}
 	</span>
 {/if}

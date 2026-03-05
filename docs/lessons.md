@@ -4,6 +4,22 @@
 
 ---
 
+## 技術的負債（F-3b コードレビューで検出）
+
+### `category_repository::find_all_with_counts()` の相関サブクエリ
+
+- 現状: カテゴリごとに `(SELECT COUNT(*) ...)` の相関サブクエリで件数取得（O(N)）
+- 改善案: `LEFT JOIN item_categories ... GROUP BY c.id` に書き換えれば O(1)
+- 判断: カテゴリ50未満では問題なし。100+ で要対応
+
+### `LibraryMainArea.svelte` の $effect race condition
+
+- 現状: `$effect` で `activeCategory` / `searchQuery` 変更時に `loadItemsByCategory()` を呼ぶ
+- リスク: 高速切替時に stale response が後着して上書きする可能性
+- 判断: IPC <10ms のため実用上は顕在化しにくい。AbortController or request ID で将来対策可能
+
+---
+
 ## コードレビュー改善パターン（PH-003 コードレビュー）
 
 ### `pub(crate)` で helper を crate 内共有する

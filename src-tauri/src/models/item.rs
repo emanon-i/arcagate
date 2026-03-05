@@ -76,3 +76,10 @@ pub struct UpdateItemInput {
     pub category_ids: Option<Vec<String>>,
     pub tag_ids: Option<Vec<String>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LibraryStats {
+    pub total_items: i64,
+    pub total_categories: i64,
+    pub recent_launch_count: i64,
+}

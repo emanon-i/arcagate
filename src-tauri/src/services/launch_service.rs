@@ -49,6 +49,11 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
     result
 }
 
+pub fn get_item_stats(db: &DbState, item_id: &str) -> Result<Option<ItemStats>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    launch_repository::find_stats_by_item(&conn, item_id)
+}
+
 pub fn list_recent(db: &DbState, limit: i64) -> Result<Vec<LaunchLog>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     launch_repository::list_recent(&conn, limit)
