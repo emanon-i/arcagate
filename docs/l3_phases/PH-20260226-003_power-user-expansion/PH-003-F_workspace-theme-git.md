@@ -416,7 +416,7 @@ INSERT INTO themes (id, name, base_theme, css_vars, is_builtin) VALUES
 
 ---
 
-## F-6: D&D 登録 + 自動タイプ判定（pending）
+## F-6: D&D 登録 + 自動タイプ判定（done）
 
 ### 目的
 
@@ -432,9 +432,9 @@ INSERT INTO themes (id, name, base_theme, css_vars, is_builtin) VALUES
 
 ### 受け入れ条件
 
-- [ ] アイテム一覧にファイルをドロップするとダイアログが開く
-- [ ] ターゲット欄入力で自動タイプ判定される
-- [ ] 手動でタイプ変更後は自動判定が上書きしない
+- [x] アイテム一覧にファイルをドロップするとダイアログが開く
+- [x] ターゲット欄入力で自動タイプ判定される
+- [x] 手動でタイプ変更後は自動判定が上書きしない
 
 ---
 

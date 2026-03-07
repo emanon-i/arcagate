@@ -17,8 +17,7 @@ status: done
 - v1はメンテナンスモード（セキュリティ修正のみ）。新規プロジェクトでv1を選ぶ理由がない
 - プラグインAPI: コア機能自体がプラグインとして実装されており、Arcagateの「全機能はプラグイン」思想と合致
 - IPC: カスタムプロトコル（HTTP-like）でv1より高速。バイナリペイロード対応
-- パーミッションモデル: 細粒度のcapabilities/scopes（M2c MCP連携時に必要）
-- ネイティブコンテキストメニューAPI（M3で必要）
+- パーミッションモデル: 細粒度のcapabilities/scopes
 
 **不採用**: Tauri v1（メンテナンスモード、技術的負債になる）
 
@@ -174,12 +173,12 @@ status: done
 │                                                           │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │       将来のエントリーポイント（同じService Layer）     │  │
-│  │       CLI (M2a) | MCP Server (M2c)                   │  │
+│  │       CLI (M2a)                                      │  │
 │  └──────────────────────────────────────────────────────┘  │
 └───────────────────────────────────────────────────────────┘
 ```
 
-**設計原則**: MCP・UI・CLIは同一のService Layerを経由する。どのエントリーポイントからでも同じ操作結果を保証する。
+**設計原則**: UI・CLIは同一のService Layerを経由する。どのエントリーポイントからでも同じ操作結果を保証する。
 
 ### 2.2 ディレクトリ構成
 
@@ -259,16 +258,12 @@ arcagate/
 │   │   ├── 002_mcp_permissions.sql
 │   │   ├── 003_watched_paths.sql
 │   │   ├── 004_workspaces.sql
-│   │   └── 005_mcp_workspace_permissions.sql
+│   │   └── 005_mcp_workspace_permissions.sql  # （PH-003-H で MCP 除去。マイグレーションファイルは残存）
 │   └── src/
 │       ├── main.rs                 # エントリーポイント (Windows: コンソール非表示)
 │       ├── lib.rs                  # Tauri app setup, コマンド登録
 │       ├── bin/
 │       │   └── arcagate_cli.rs     # CLI エントリーポイント (PH-003-A)
-│       ├── mcp/                    # stdio JSON-RPC 2.0 MCP サーバー (PH-003-C)
-│       │   ├── mod.rs
-│       │   ├── server.rs
-│       │   └── tools.rs
 │       ├── commands/               # Tauri コマンドハンドラ (thin layer)
 │       │   ├── mod.rs
 │       │   ├── item_commands.rs
@@ -284,7 +279,6 @@ arcagate/
 │       │   ├── config_service.rs
 │       │   ├── export_service.rs
 │       │   ├── watched_path_service.rs   # PH-003-D
-│       │   ├── mcp_service.rs            # PH-003-C
 │       │   └── workspace_service.rs      # PH-003-E
 │       ├── repositories/           # データアクセス (rusqlite)
 │       │   ├── mod.rs
@@ -294,7 +288,6 @@ arcagate/
 │       │   ├── launch_repository.rs
 │       │   ├── config_repository.rs
 │       │   ├── watched_path_repository.rs  # PH-003-D
-│       │   ├── mcp_repository.rs           # PH-003-C
 │       │   └── workspace_repository.rs     # PH-003-E
 │       ├── models/                 # ドメインモデル・DTO
 │       │   ├── mod.rs
@@ -304,7 +297,6 @@ arcagate/
 │       │   ├── launch.rs
 │       │   ├── config.rs
 │       │   ├── watched_path.rs     # PH-003-D
-│       │   ├── mcp.rs              # PH-003-C
 │       │   └── workspace.rs        # PH-003-E
 │       ├── plugin_api/             # プラグイン trait 定義 (M1: traitのみ)
 │       │   ├── mod.rs
@@ -365,19 +357,17 @@ arcagate/
 | `src-tauri/src/plugin_api/` | M1ではtrait定義のみ。M2でプラグインローディングを追加する際のリファクタを防止                             |
 | `src/lib/components/setup/` | セットアップウィザード（REQ-006）。初回起動時のみモーダルダイアログとして表示（独立ルートではない）       |
 | `src-tauri/src/watcher/`    | `notify` クレートによる FS 監視（PH-003-D）。バックグラウンドスレッドが変更を検知しフロントへイベント送信 |
-| `src-tauri/src/mcp/`        | stdio JSON-RPC 2.0 MCP サーバー（PH-003-C）。`stdout` は JSON-RPC 専用。ログは `eprintln!` のみ           |
 | `src-tauri/src/bin/`        | `arcagate_cli.rs`（PH-003-A）。`default-run = "arcagate"` で Tauri build との競合を回避                   |
 | `src-tauri/src/launcher/`   | プロセス起動ロジックを集約。アイテムタイプ別の起動処理を `mod.rs` で一元管理                              |
 | `tests/`                    | Playwright E2E テスト（PH-003-F）。CDP 経由で WebView2 に接続。グローバルセットアップで Tauri 起動        |
 
 ### 2.3 Service Layer 設計
 
-Service LayerはArcagateの中核。全エントリーポイント（UI, CLI, MCP）がここを経由する。
+Service LayerはArcagateの中核。全エントリーポイント（UI, CLI）がここを経由する。
 
 ```
 UI (Tauri commands)  ─┐
-CLI (M2a)            ─┼─→  Service Layer  →  Repository Layer  →  SQLite
-MCP Server (M2c)     ─┘
+CLI (M2a)            ─┴─→  Service Layer  →  Repository Layer  →  SQLite
 ```
 
 #### Service traits（プラグイン境界）
@@ -838,7 +828,7 @@ INSERT OR IGNORE INTO mcp_permissions (id, tool_name, is_allowed) VALUES
 | アイテム (Item)  | Arcagateに登録された起動対象。exe / URL / フォルダ / スクリプト / コマンドの5種類 |
 | コマンドパレット | キーボード中心の検索・起動UI。Arcagateのコアインターフェース                      |
 | ワークスペース   | ウィジェットを自由配置できるカスタムページ（M2b）                                 |
-| Service Layer    | ビジネスロジックの集約層。UI / CLI / MCP すべてがここを経由                       |
+| Service Layer    | ビジネスロジックの集約層。UI / CLI すべてがここを経由                             |
 | Plugin Interface | M2以降でプラグインが実装するtrait群。M1では定義のみ                               |
 | ItemProvider     | アイテムを外部ソースから提供するプラグインtrait（例: Steamライブラリ）            |
 | CommandProvider  | コマンドパレットに独自コマンドを追加するプラグインtrait                           |

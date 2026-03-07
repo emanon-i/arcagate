@@ -58,6 +58,7 @@ let display = $derived(getDisplay(entry));
 		: 'border-[var(--ag-border)] bg-white/[0.03]'}"
 	role="option"
 	aria-selected={active}
+	tabindex={active ? 0 : -1}
 	data-testid="palette-result-{index}"
 	onclick={onclick}
 >

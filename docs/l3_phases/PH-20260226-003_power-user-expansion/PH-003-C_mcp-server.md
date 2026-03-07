@@ -1,5 +1,5 @@
 ---
-status: done
+status: removed
 sub_phase: PH-003-C
 feature_id: F-20260226-015
 priority: 3
@@ -7,12 +7,16 @@ priority: 3
 
 # PH-003-C: MCP サーバー
 
-**対応REQ**: REQ-20260226-011
+> **⚠️ 除去済み**: PH-003-H で MCP サーバーを除去し、Agent-first CLI + Skill に移行済み。
+> 本ドキュメントは履歴として残す。コード・テスト・マイグレーションファイルからは MCP 関連実装を削除済み。
+> 後継: `arcagate_cli` を Claude Code の Agent tool / Skill から直接呼び出す方式。
+
+**対応REQ**: ~~REQ-20260226-011~~ （対象外に変更済み）
 **元機能**: F-20260226-015
 **前提**: PH-003-A 完了（arcagate_cli バイナリが存在すること）
 
-`arcagate_cli mcp` サブコマンドで起動する stdio JSON-RPC 2.0 MCP サーバーを実装する。
-Claude Code から Arcagate のアイテムを自然言語で操作できるようにする。
+~~`arcagate_cli mcp` サブコマンドで起動する stdio JSON-RPC 2.0 MCP サーバーを実装する。~~
+~~Claude Code から Arcagate のアイテムを自然言語で操作できるようにする。~~
 
 ## 技術要素
 
