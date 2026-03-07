@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 use crate::db::DbState;
 use crate::models::category::{Category, CategoryWithCount, CreateCategoryInput};
@@ -127,6 +127,10 @@ pub fn cmd_check_is_directory(path: String) -> bool {
 }
 
 #[tauri::command]
-pub fn cmd_extract_item_icon(exe_path: String, output_path: String) -> Result<(), AppError> {
-    item_service::extract_item_icon(&exe_path, &output_path)
+pub fn cmd_extract_item_icon(app: AppHandle, exe_path: String) -> Result<String, AppError> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
+    item_service::extract_item_icon(&app_data_dir, &exe_path)
 }

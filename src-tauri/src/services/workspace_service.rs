@@ -1,6 +1,7 @@
 use uuid::Uuid;
 
 use crate::db::DbState;
+use crate::models::git::GitStatus;
 use crate::models::item::Item;
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
@@ -8,6 +9,7 @@ use crate::models::workspace::{
 };
 use crate::repositories::workspace_repository;
 use crate::utils::error::AppError;
+use crate::utils::git;
 
 pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Workspace, AppError> {
     if input.name.trim().is_empty() {
@@ -121,6 +123,10 @@ pub fn get_recent_items(db: &DbState, limit: i64) -> Result<Vec<Item>, AppError>
 pub fn get_folder_items(db: &DbState) -> Result<Vec<Item>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::list_folder_items(&conn)
+}
+
+pub fn git_status(path: &str) -> Result<GitStatus, AppError> {
+    git::git_status(path)
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 
@@ -59,4 +60,8 @@ export async function getRecentItems(limit: number): Promise<Item[]> {
 
 export async function getFolderItems(): Promise<Item[]> {
 	return invoke<Item[]>('cmd_get_folder_items');
+}
+
+export async function getGitStatus(path: string): Promise<GitStatus> {
+	return invoke<GitStatus>('cmd_git_status', { path });
 }

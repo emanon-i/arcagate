@@ -1,5 +1,6 @@
 <script lang="ts">
 import { MoreHorizontal } from '@lucide/svelte';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
 import type { Item } from '$lib/types/item';
 
@@ -19,7 +20,8 @@ let { item, onclick, ondblclick }: Props = $props();
 	{onclick}
 	{ondblclick}
 >
-	<div class="relative h-28 bg-gradient-to-br {artMap[item.item_type]}">
+	<div class="relative flex h-28 items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
+		<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-14 w-14 object-contain drop-shadow-lg" />
 		<div
 			class="absolute right-3 top-3 rounded-xl border border-white/15 bg-black/20 p-1.5 text-white/70"
 		>

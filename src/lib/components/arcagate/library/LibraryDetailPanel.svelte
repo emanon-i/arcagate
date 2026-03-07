@@ -1,7 +1,9 @@
 <script lang="ts">
 import { Play, Settings2, Trash2, X } from '@lucide/svelte';
+import { ask } from '@tauri-apps/plugin-dialog';
 import ActionButton from '$lib/components/arcagate/common/ActionButton.svelte';
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
 import { launchItem } from '$lib/ipc/launch';
@@ -24,8 +26,13 @@ function handleLaunch() {
 	}
 }
 
-function handleDelete() {
-	if (selectedItem) {
+async function handleDelete() {
+	if (!selectedItem) return;
+	const confirmed = await ask(`「${selectedItem.label}」を削除しますか？`, {
+		title: '削除の確認',
+		kind: 'warning',
+	});
+	if (confirmed) {
 		void itemStore.deleteItem(selectedItem.id);
 	}
 }
@@ -97,7 +104,9 @@ let moreMenuItems = $derived.by(() => {
 		</div>
 
 		<!-- Gradient preview -->
-		<div class="h-40 rounded-[var(--ag-radius-widget)] bg-gradient-to-br {artMap[selectedItem.item_type]}"></div>
+		<div class="flex h-40 items-center justify-center rounded-[var(--ag-radius-widget)] bg-gradient-to-br {artMap[selectedItem.item_type]}">
+			<ItemIcon iconPath={selectedItem.icon_path} alt="{selectedItem.label} icon" class="h-20 w-20 object-contain drop-shadow-lg" />
+		</div>
 
 		<!-- Detail rows -->
 		<div class="mt-4 space-y-2 text-sm">

@@ -1,6 +1,7 @@
 use tauri::State;
 
 use crate::db::DbState;
+use crate::models::git::GitStatus;
 use crate::models::item::Item;
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
@@ -98,4 +99,9 @@ pub fn cmd_get_recent_items(db: State<DbState>, limit: i64) -> Result<Vec<Item>,
 #[tauri::command]
 pub fn cmd_get_folder_items(db: State<DbState>) -> Result<Vec<Item>, AppError> {
     workspace_service::get_folder_items(&db)
+}
+
+#[tauri::command]
+pub fn cmd_git_status(path: String) -> Result<GitStatus, AppError> {
+    workspace_service::git_status(&path)
 }

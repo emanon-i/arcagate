@@ -172,8 +172,14 @@ pub fn count_hidden_items(db: &DbState) -> Result<i64, AppError> {
     item_repository::count_hidden_items(&conn)
 }
 
-pub fn extract_item_icon(exe_path: &str, output_path: &str) -> Result<(), AppError> {
-    icon::extract_icon_from_exe(exe_path, output_path)
+pub fn extract_item_icon(
+    app_data_dir: &std::path::Path,
+    exe_path: &str,
+) -> Result<String, AppError> {
+    let icons_dir = app_data_dir.join("icons");
+    std::fs::create_dir_all(&icons_dir)?;
+    let output_path = icon::build_icon_output_path(&icons_dir);
+    icon::extract_icon_from_exe(exe_path, &output_path)
 }
 
 #[cfg(test)]
@@ -181,6 +187,7 @@ mod tests {
     use super::*;
     use crate::db::initialize_in_memory;
     use crate::models::item::ItemType;
+    use crate::utils::icon::build_icon_output_path;
 
     fn make_input(item_type: ItemType, label: &str) -> CreateItemInput {
         CreateItemInput {
@@ -284,5 +291,44 @@ mod tests {
 
         let items = list_items(&db).unwrap();
         assert_eq!(items.len(), 0);
+    }
+
+    #[test]
+    fn test_build_icon_output_path_has_png_extension() {
+        let dir = std::path::Path::new("C:/data/icons");
+        let path = build_icon_output_path(dir);
+        assert!(
+            path.ends_with(".png"),
+            "path should end with .png: {}",
+            path
+        );
+        assert!(
+            path.starts_with("C:") || path.starts_with("C:\\"),
+            "path should start with icons dir: {}",
+            path
+        );
+    }
+
+    #[test]
+    fn test_build_icon_output_path_unique() {
+        let dir = std::path::Path::new("/tmp/icons");
+        let path1 = build_icon_output_path(dir);
+        let path2 = build_icon_output_path(dir);
+        assert_ne!(path1, path2, "each call should produce unique filename");
+    }
+
+    #[test]
+    fn test_extract_item_icon_creates_icons_dir() {
+        let tmp = std::env::temp_dir().join(format!("arcagate_test_{}", uuid::Uuid::now_v7()));
+        let icons_dir = tmp.join("icons");
+        assert!(!icons_dir.exists());
+
+        // extract_item_icon will create icons/ dir even if PowerShell fails
+        // (because dir creation happens before PowerShell call)
+        let _ = extract_item_icon(&tmp, "nonexistent.exe");
+        assert!(icons_dir.exists(), "icons dir should be created");
+
+        // cleanup
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }

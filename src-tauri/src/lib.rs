@@ -35,13 +35,13 @@ use commands::watched_path_commands::{
 };
 use commands::workspace_commands::{
     cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
-    cmd_get_frequent_items, cmd_get_recent_items, cmd_list_widgets, cmd_list_workspaces,
-    cmd_remove_widget, cmd_update_widget_position, cmd_update_workspace,
+    cmd_get_frequent_items, cmd_get_recent_items, cmd_git_status, cmd_list_widgets,
+    cmd_list_workspaces, cmd_remove_widget, cmd_update_widget_position, cmd_update_workspace,
 };
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, WindowEvent,
+    Emitter, Listener, Manager, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
@@ -52,11 +52,25 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
                     if event.state() == ShortcutState::Pressed {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                        let main_visible = app
+                            .get_webview_window("main")
+                            .and_then(|w| w.is_visible().ok())
+                            .unwrap_or(false);
+
+                        if main_visible {
+                            // メインウィンドウ表示中 → インラインパレットを開く
+                            app.emit("hotkey-triggered", ()).ok();
+                        } else if let Some(palette) = app.get_webview_window("palette") {
+                            // メインウィンドウ非表示 → フローティングパレット
+                            let is_visible = palette.is_visible().unwrap_or(false);
+                            if is_visible {
+                                let _ = palette.hide();
+                            } else {
+                                let _ = palette.show();
+                                let _ = palette.set_focus();
+                                palette.emit("palette-open", ()).ok();
+                            }
                         }
-                        app.emit("hotkey-triggered", ()).ok();
                     }
                 })
                 .build(),
@@ -151,13 +165,29 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // palette-close イベント: フロントエンドから palette ウィンドウを非表示にする
+            let app_handle = app.handle().clone();
+            app.listen("palette-close", move |_| {
+                if let Some(palette) = app_handle.get_webview_window("palette") {
+                    let _ = palette.hide();
+                }
+            });
+
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                // ウィンドウを閉じる代わりに非表示にしてトレイに残す
-                api.prevent_close();
-                let _ = window.hide();
+            let label = window.label();
+            match event {
+                WindowEvent::CloseRequested { api, .. } => {
+                    // ウィンドウを閉じる代わりに非表示にしてトレイに残す
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+                WindowEvent::Focused(false) if label == "palette" => {
+                    // パレットウィンドウのフォーカスアウト → 非表示
+                    let _ = window.hide();
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -206,6 +236,7 @@ pub fn run() {
             cmd_get_frequent_items,
             cmd_get_recent_items,
             cmd_get_folder_items,
+            cmd_git_status,
             cmd_get_library_stats,
             cmd_get_category_counts,
             cmd_count_hidden_items,

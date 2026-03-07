@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Calculator, Clipboard } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { typeAccentMap, typeIconMap } from '$lib/constants/item-type';
 import type { PaletteEntry } from '$lib/types/palette';
 
@@ -66,7 +67,11 @@ let display = $derived(getDisplay(entry));
 		<div
 			class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br {display.accent} ring-1 ring-white/10"
 		>
-			<display.icon class="h-5 w-5 text-white" />
+			{#if entry.kind === 'item' && entry.item.icon_path}
+				<ItemIcon iconPath={entry.item.icon_path} alt="" class="h-6 w-6 object-contain" />
+			{:else}
+				<display.icon class="h-5 w-5 text-white" />
+			{/if}
 		</div>
 		<div class="min-w-0">
 			<div class="truncate text-sm font-semibold text-[var(--ag-text-primary)]">{display.title}</div>

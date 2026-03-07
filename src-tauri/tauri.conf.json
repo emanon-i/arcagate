@@ -21,10 +21,29 @@
         "minHeight": 480,
         "decorations": false,
         "shadow": true
+      },
+      {
+        "label": "palette",
+        "title": "Arcagate Palette",
+        "url": "/palette",
+        "width": 900,
+        "height": 620,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "resizable": false,
+        "center": true,
+        "shadow": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/icons/**"]
+      }
     }
   },
   "bundle": {

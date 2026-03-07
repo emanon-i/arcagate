@@ -9,9 +9,11 @@ import PaletteSearchBar from './PaletteSearchBar.svelte';
 
 interface Props {
 	open: boolean;
+	mode?: 'inline' | 'floating';
+	onClose?: () => void;
 }
 
-let { open = $bindable() }: Props = $props();
+let { open = $bindable(), mode = 'inline', onClose }: Props = $props();
 
 let searchQuery = $state('');
 
@@ -26,9 +28,13 @@ $effect(() => {
 });
 
 function close() {
-	open = false;
 	searchQuery = '';
 	paletteStore.close();
+	if (mode === 'floating') {
+		onClose?.();
+	} else {
+		open = false;
+	}
 }
 
 function handleSearch(q: string) {
@@ -49,8 +55,7 @@ function handleKeydown(e: KeyboardEvent) {
 		const selected = paletteStore.results[paletteStore.selectedIndex];
 		if (selected) {
 			void paletteStore.launch(selected);
-			open = false;
-			searchQuery = '';
+			close();
 		}
 	}
 }
@@ -59,14 +64,16 @@ function handleKeydown(e: KeyboardEvent) {
 {#if open}
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div class="fixed inset-0 z-50" role="dialog" tabindex="-1" onkeydown={handleKeydown}>
-		<!-- Backdrop -->
-		<button
-			type="button"
-			class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-			aria-label="パレットを閉じる"
-			onclick={close}
-			tabindex="-1"
-		></button>
+		{#if mode === 'inline'}
+			<!-- Backdrop (inline only) -->
+			<button
+				type="button"
+				class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+				aria-label="パレットを閉じる"
+				onclick={close}
+				tabindex="-1"
+			></button>
+		{/if}
 
 		<!-- Palette card -->
 		<div
@@ -116,8 +123,7 @@ function handleKeydown(e: KeyboardEvent) {
 									active={index === paletteStore.selectedIndex}
 									onclick={() => {
 										void paletteStore.launch(entry);
-										open = false;
-										searchQuery = '';
+										close();
 									}}
 								/>
 							{/each}

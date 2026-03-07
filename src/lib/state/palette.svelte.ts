@@ -3,6 +3,7 @@ import { searchItemsInCategory } from '$lib/ipc/items';
 import { launchItem, searchItems } from '$lib/ipc/launch';
 import { getFrequentItems, getRecentItems } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import type { PaletteEntry } from '$lib/types/palette';
 
@@ -160,19 +161,23 @@ async function launch(entry: PaletteEntry): Promise<void> {
 		switch (entry.kind) {
 			case 'item':
 				await launchItem(entry.item.id);
+				toastStore.add(`${entry.item.label} を起動しました`, 'success');
 				close();
 				break;
 			case 'calc':
 				await writeText(entry.result);
+				toastStore.add('計算結果をクリップボードにコピーしました', 'success');
 				close();
 				break;
 			case 'clipboard':
 				await writeText(entry.text);
+				toastStore.add('クリップボードにコピーしました', 'success');
 				close();
 				break;
 		}
 	} catch (e) {
 		lastError = String(e);
+		toastStore.add(`起動に失敗しました: ${String(e)}`, 'error');
 	}
 }
 

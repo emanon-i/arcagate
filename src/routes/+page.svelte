@@ -6,6 +6,7 @@ import AppHeader from '$lib/components/arcagate/common/AppHeader.svelte';
 import TitleAction from '$lib/components/arcagate/common/TitleAction.svelte';
 import TitleBar from '$lib/components/arcagate/common/TitleBar.svelte';
 import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
+import ToastContainer from '$lib/components/arcagate/common/ToastContainer.svelte';
 import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte';
 import PaletteOverlay from '$lib/components/arcagate/palette/PaletteOverlay.svelte';
 import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.svelte';
@@ -14,6 +15,7 @@ import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
 type ActiveView = 'library' | 'workspace';
@@ -24,8 +26,6 @@ let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
 let droppedPaths = $state<string[] | undefined>(undefined);
 let isDraggingOver = $state(false);
-let toasts = $state<{ id: number; path: string }[]>([]);
-let nextToastId = 0;
 
 // 初期化
 $effect(() => {
@@ -79,11 +79,7 @@ listen('tauri://drag-leave', () => {
 // パス消失イベントリスナー
 let unlistenPathNotFound: (() => void) | null = null;
 listen<string>('item://path-not-found', (e) => {
-	const id = nextToastId++;
-	toasts = [...toasts, { id, path: e.payload }];
-	setTimeout(() => {
-		toasts = toasts.filter((t) => t.id !== id);
-	}, 5000);
+	toastStore.add(`パスが見つかりません: ${e.payload}`, 'error');
 }).then((fn) => {
 	unlistenPathNotFound = fn;
 });
@@ -128,18 +124,7 @@ function handleFormClose() {
 />
 
 <!-- トースト通知 -->
-{#if toasts.length > 0}
-	<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-		{#each toasts as toast (toast.id)}
-			<div
-				class="max-w-sm rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-md"
-			>
-				<span class="font-medium">パスが見つかりません</span>
-				<p class="mt-1 truncate text-xs opacity-80">{toast.path}</p>
-			</div>
-		{/each}
-	</div>
-{/if}
+<ToastContainer />
 
 <!-- D&D オーバーレイ -->
 {#if isDraggingOver}
