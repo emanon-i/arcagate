@@ -160,7 +160,10 @@ pub fn update(conn: &Connection, id: &str, input: &UpdateItemInput) -> Result<()
 }
 
 pub fn delete(conn: &Connection, id: &str) -> Result<(), AppError> {
-    conn.execute("DELETE FROM items WHERE id = ?1", params![id])?;
+    let n = conn.execute("DELETE FROM items WHERE id = ?1", params![id])?;
+    if n == 0 {
+        return Err(AppError::NotFound(id.to_string()));
+    }
     Ok(())
 }
 
