@@ -112,6 +112,8 @@ mod tests {
             aliases: vec![],
             sort_order: 0,
             is_enabled: true,
+            is_tracked: true,
+            default_app: None,
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-01T00:00:00Z".to_string(),
         }

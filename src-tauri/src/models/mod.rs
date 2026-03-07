@@ -1,5 +1,4 @@
 // Domain models and DTOs
-pub mod category;
 pub mod config;
 pub mod git;
 pub mod item;

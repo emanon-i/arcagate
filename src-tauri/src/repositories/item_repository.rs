@@ -12,6 +12,7 @@ pub(crate) fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or_default();
     let is_enabled_int: i64 = row.get(10)?;
+    let is_tracked_int: i64 = row.get(11)?;
     Ok(Item {
         id: row.get(0)?,
         item_type,
@@ -24,16 +25,18 @@ pub(crate) fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
         aliases,
         sort_order: row.get(9)?,
         is_enabled: is_enabled_int != 0,
-        created_at: row.get(11)?,
-        updated_at: row.get(12)?,
+        is_tracked: is_tracked_int != 0,
+        default_app: row.get(12)?,
+        created_at: row.get(13)?,
+        updated_at: row.get(14)?,
     })
 }
 
 pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
     let aliases_json = serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
     conn.execute(
-        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
         params![
             item.id,
             item.item_type.as_str(),
@@ -46,6 +49,8 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
             aliases_json,
             item.sort_order,
             item.is_enabled as i64,
+            item.is_tracked as i64,
+            item.default_app,
         ],
     )?;
     Ok(())
@@ -53,7 +58,7 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
 
 pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
     let result = conn.query_row(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
          FROM items WHERE id = ?1",
         params![id],
         row_to_item,
@@ -67,7 +72,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {
     let mut stmt = conn.prepare(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
          FROM items ORDER BY sort_order, label",
     )?;
     let items = stmt
@@ -79,7 +84,7 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {
 pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
     let pattern = format!("%{}%", query);
     let mut stmt = conn.prepare(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
          FROM items
          WHERE is_enabled = 1 AND (label LIKE ?1 OR aliases LIKE ?1)
          ORDER BY sort_order, label",
@@ -90,23 +95,19 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
     Ok(items)
 }
 
-pub fn search_in_category(
-    conn: &Connection,
-    category_id: &str,
-    query: &str,
-) -> Result<Vec<Item>, AppError> {
+pub fn search_in_tag(conn: &Connection, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
     let pattern = format!("%{}%", query);
     let mut stmt = conn.prepare(
-        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.created_at, i.updated_at
+        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.created_at, i.updated_at
          FROM items i
-         INNER JOIN item_categories ic ON ic.item_id = i.id
-         WHERE ic.category_id = ?1
+         INNER JOIN item_tags it ON it.item_id = i.id
+         WHERE it.tag_id = ?1
            AND i.is_enabled = 1
            AND (i.label LIKE ?2 OR i.aliases LIKE ?2)
          ORDER BY i.sort_order, i.label",
     )?;
     let items = stmt
-        .query_map(params![category_id, pattern], row_to_item)?
+        .query_map(params![tag_id, pattern], row_to_item)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -145,6 +146,14 @@ pub fn update(conn: &Connection, id: &str, input: &UpdateItemInput) -> Result<()
         sets.push(format!("is_enabled = ?{}", values.len() + 1));
         values.push(Box::new(is_enabled as i64));
     }
+    if let Some(is_tracked) = input.is_tracked {
+        sets.push(format!("is_tracked = ?{}", values.len() + 1));
+        values.push(Box::new(is_tracked as i64));
+    }
+    if let Some(default_app) = &input.default_app {
+        sets.push(format!("default_app = ?{}", values.len() + 1));
+        values.push(Box::new(default_app.clone()));
+    }
 
     let id_param_idx = values.len() + 1;
     let sql = format!(
@@ -182,35 +191,17 @@ pub fn update_target_by_path(
     Ok(rows)
 }
 
-pub fn set_categories(
-    conn: &Connection,
-    item_id: &str,
-    category_ids: &[String],
-) -> Result<(), AppError> {
-    conn.execute(
-        "DELETE FROM item_categories WHERE item_id = ?1",
-        params![item_id],
-    )?;
-    for cat_id in category_ids {
-        conn.execute(
-            "INSERT INTO item_categories (item_id, category_id) VALUES (?1, ?2)",
-            params![item_id, cat_id],
-        )?;
-    }
-    Ok(())
-}
-
 pub fn get_library_stats(conn: &Connection) -> Result<LibraryStats, AppError> {
     conn.query_row(
         "SELECT
             (SELECT COUNT(*) FROM items WHERE is_enabled = 1) AS total_items,
-            (SELECT COUNT(*) FROM categories) AS total_categories,
+            (SELECT COUNT(*) FROM tags WHERE is_system = 0) AS total_tags,
             (SELECT COUNT(*) FROM launch_log WHERE launched_at >= datetime('now', '-7 days')) AS recent_launch_count",
         [],
         |row| {
             Ok(LibraryStats {
                 total_items: row.get(0)?,
-                total_categories: row.get(1)?,
+                total_tags: row.get(1)?,
                 recent_launch_count: row.get(2)?,
             })
         },
@@ -231,14 +222,29 @@ pub fn count_hidden_items(conn: &Connection) -> Result<i64, AppError> {
     Ok(count)
 }
 
+/// ユーザー指定タグをセット（システムタグリンクは保護）
 pub fn set_tags(conn: &Connection, item_id: &str, tag_ids: &[String]) -> Result<(), AppError> {
-    conn.execute("DELETE FROM item_tags WHERE item_id = ?1", params![item_id])?;
+    // 非システムタグのリンクのみ削除（システムタグリンクは保持）
+    conn.execute(
+        "DELETE FROM item_tags WHERE item_id = ?1
+         AND tag_id NOT IN (SELECT id FROM tags WHERE is_system = 1)",
+        params![item_id],
+    )?;
     for tag_id in tag_ids {
         conn.execute(
-            "INSERT INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
+            "INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
             params![item_id, tag_id],
         )?;
     }
+    Ok(())
+}
+
+/// システムタグリンクを追加（アイテム作成時の自動付与用）
+pub fn add_system_tag(conn: &Connection, item_id: &str, tag_id: &str) -> Result<(), AppError> {
+    conn.execute(
+        "INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
+        params![item_id, tag_id],
+    )?;
     Ok(())
 }
 
@@ -246,10 +252,8 @@ pub fn set_tags(conn: &Connection, item_id: &str, tag_ids: &[String]) -> Result<
 mod tests {
     use super::*;
     use crate::db::initialize_in_memory;
-    use crate::models::category::Category;
     use crate::models::item::ItemType;
     use crate::models::tag::Tag;
-    use crate::repositories::category_repository;
     use crate::repositories::tag_repository;
 
     fn make_item(id: &str, label: &str, item_type: ItemType) -> Item {
@@ -265,6 +269,8 @@ mod tests {
             aliases: vec![],
             sort_order: 0,
             is_enabled: true,
+            is_tracked: true,
+            default_app: None,
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-01T00:00:00Z".to_string(),
         }
@@ -330,53 +336,28 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_cascades() {
+    fn test_delete_cascades_tags() {
         let db = initialize_in_memory();
         let conn = db.0.lock().unwrap();
-
-        let cat = Category {
-            id: "cat-001".to_string(),
-            name: "Games".to_string(),
-            prefix: None,
-            icon: None,
-            sort_order: 0,
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-        };
-        category_repository::insert(&conn, &cat).unwrap();
 
         let tag = Tag {
             id: "tag-001".to_string(),
             name: "favorite".to_string(),
             is_hidden: false,
+            is_system: false,
+            prefix: None,
+            icon: None,
+            sort_order: 0,
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
         tag_repository::insert(&conn, &tag).unwrap();
 
         let item = make_item("id-001", "Game", ItemType::Exe);
         insert(&conn, &item).unwrap();
-        set_categories(&conn, "id-001", &["cat-001".to_string()]).unwrap();
         set_tags(&conn, "id-001", &["tag-001".to_string()]).unwrap();
-
-        // Verify associations exist
-        let cat_count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM item_categories WHERE item_id = 'id-001'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(cat_count, 1);
 
         delete(&conn, "id-001").unwrap();
 
-        // Verify CASCADE deleted associations
-        let cat_count_after: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM item_categories WHERE item_id = 'id-001'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
         let tag_count_after: i64 = conn
             .query_row(
                 "SELECT COUNT(*) FROM item_tags WHERE item_id = 'id-001'",
@@ -384,110 +365,112 @@ mod tests {
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(cat_count_after, 0);
         assert_eq!(tag_count_after, 0);
     }
 
     #[test]
-    fn test_search_in_category() {
+    fn test_search_in_tag() {
         let db = initialize_in_memory();
         let conn = db.0.lock().unwrap();
 
-        let cat1 = Category {
-            id: "cat-001".to_string(),
-            name: "Games".to_string(),
+        let tag1 = Tag {
+            id: "tag-games".to_string(),
+            name: "games_test".to_string(),
+            is_hidden: false,
+            is_system: false,
             prefix: Some("gm".to_string()),
             icon: None,
             sort_order: 0,
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
-        let cat2 = Category {
-            id: "cat-002".to_string(),
-            name: "Work".to_string(),
+        let tag2 = Tag {
+            id: "tag-work".to_string(),
+            name: "work_test".to_string(),
+            is_hidden: false,
+            is_system: false,
             prefix: None,
             icon: None,
             sort_order: 1,
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
-        category_repository::insert(&conn, &cat1).unwrap();
-        category_repository::insert(&conn, &cat2).unwrap();
+        tag_repository::insert(&conn, &tag1).unwrap();
+        tag_repository::insert(&conn, &tag2).unwrap();
 
         insert(&conn, &make_item("id-001", "Blender", ItemType::Exe)).unwrap();
         insert(&conn, &make_item("id-002", "Unity", ItemType::Exe)).unwrap();
         insert(&conn, &make_item("id-003", "VS Code", ItemType::Exe)).unwrap();
 
-        set_categories(&conn, "id-001", &["cat-001".to_string()]).unwrap();
-        set_categories(&conn, "id-002", &["cat-001".to_string()]).unwrap();
-        set_categories(&conn, "id-003", &["cat-002".to_string()]).unwrap();
+        set_tags(&conn, "id-001", &["tag-games".to_string()]).unwrap();
+        set_tags(&conn, "id-002", &["tag-games".to_string()]).unwrap();
+        set_tags(&conn, "id-003", &["tag-work".to_string()]).unwrap();
 
-        let results = search_in_category(&conn, "cat-001", "").unwrap();
+        let results = search_in_tag(&conn, "tag-games", "").unwrap();
         assert_eq!(results.len(), 2);
 
-        let filtered = search_in_category(&conn, "cat-001", "Blend").unwrap();
+        let filtered = search_in_tag(&conn, "tag-games", "Blend").unwrap();
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].label, "Blender");
 
-        let other = search_in_category(&conn, "cat-002", "").unwrap();
+        let other = search_in_tag(&conn, "tag-work", "").unwrap();
         assert_eq!(other.len(), 1);
         assert_eq!(other[0].label, "VS Code");
     }
 
     #[test]
-    fn test_set_categories_replaces_existing() {
+    fn test_set_tags_preserves_system_tags() {
         let db = initialize_in_memory();
         let conn = db.0.lock().unwrap();
 
-        let cat1 = Category {
-            id: "cat-001".to_string(),
-            name: "Work".to_string(),
+        let item = make_item("id-001", "App", ItemType::Exe);
+        insert(&conn, &item).unwrap();
+
+        // Add system tag link
+        add_system_tag(&conn, "id-001", "sys-type-exe").unwrap();
+
+        // Add user tag
+        let user_tag = Tag {
+            id: "tag-user".to_string(),
+            name: "user_tag".to_string(),
+            is_hidden: false,
+            is_system: false,
             prefix: None,
             icon: None,
             sort_order: 0,
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
-        let cat2 = Category {
-            id: "cat-002".to_string(),
-            name: "Personal".to_string(),
-            prefix: None,
-            icon: None,
-            sort_order: 1,
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-        };
-        category_repository::insert(&conn, &cat1).unwrap();
-        category_repository::insert(&conn, &cat2).unwrap();
+        tag_repository::insert(&conn, &user_tag).unwrap();
+        set_tags(&conn, "id-001", &["tag-user".to_string()]).unwrap();
 
-        let item = make_item("id-001", "App", ItemType::Exe);
-        insert(&conn, &item).unwrap();
-
-        set_categories(&conn, "id-001", &["cat-001".to_string()]).unwrap();
-        let count1: i64 = conn
+        // System tag should still be linked
+        let sys_count: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM item_categories WHERE item_id = 'id-001'",
+                "SELECT COUNT(*) FROM item_tags WHERE item_id = 'id-001' AND tag_id = 'sys-type-exe'",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(count1, 1);
+        assert_eq!(sys_count, 1);
 
-        // Replace with different category
-        set_categories(&conn, "id-001", &["cat-002".to_string()]).unwrap();
-        let count2: i64 = conn
+        // User tag should also be linked
+        let user_count: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM item_categories WHERE item_id = 'id-001'",
+                "SELECT COUNT(*) FROM item_tags WHERE item_id = 'id-001' AND tag_id = 'tag-user'",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(count2, 1);
+        assert_eq!(user_count, 1);
 
-        let cat_id: String = conn
+        // Replace user tags with empty set — system tag should survive
+        set_tags(&conn, "id-001", &[]).unwrap();
+        let total: i64 = conn
             .query_row(
-                "SELECT category_id FROM item_categories WHERE item_id = 'id-001'",
+                "SELECT COUNT(*) FROM item_tags WHERE item_id = 'id-001'",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(cat_id, "cat-002");
+        assert_eq!(total, 1); // only system tag remains
     }
 
     #[test]
@@ -533,7 +516,7 @@ mod tests {
 
         let stats = get_library_stats(&conn).unwrap();
         assert_eq!(stats.total_items, 0);
-        assert_eq!(stats.total_categories, 0);
+        assert_eq!(stats.total_tags, 0); // no user tags (system tags excluded)
         assert_eq!(stats.recent_launch_count, 0);
     }
 
@@ -549,19 +532,21 @@ mod tests {
         disabled.is_enabled = false;
         insert(&conn, &disabled).unwrap();
 
-        let cat = Category {
-            id: "cat-001".to_string(),
-            name: "Test".to_string(),
+        let user_tag = Tag {
+            id: "tag-test".to_string(),
+            name: "test_tag".to_string(),
+            is_hidden: false,
+            is_system: false,
             prefix: None,
             icon: None,
             sort_order: 0,
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
-        category_repository::insert(&conn, &cat).unwrap();
+        tag_repository::insert(&conn, &user_tag).unwrap();
 
         let stats = get_library_stats(&conn).unwrap();
         assert_eq!(stats.total_items, 2); // disabled excluded
-        assert_eq!(stats.total_categories, 1);
+        assert_eq!(stats.total_tags, 1); // only user tags counted
         assert_eq!(stats.recent_launch_count, 0);
     }
 
@@ -583,6 +568,10 @@ mod tests {
             id: "tag-hidden".to_string(),
             name: "sensitive".to_string(),
             is_hidden: true,
+            is_system: false,
+            prefix: None,
+            icon: None,
+            sort_order: 0,
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
         tag_repository::insert(&conn, &hidden_tag).unwrap();
@@ -604,6 +593,10 @@ mod tests {
             id: "tag-hidden".to_string(),
             name: "sensitive".to_string(),
             is_hidden: true,
+            is_system: false,
+            prefix: None,
+            icon: None,
+            sort_order: 0,
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
         tag_repository::insert(&conn, &hidden_tag).unwrap();

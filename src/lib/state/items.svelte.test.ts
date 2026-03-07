@@ -26,6 +26,8 @@ describe('itemStore', () => {
 				aliases: [],
 				sort_order: 0,
 				is_enabled: true,
+				is_tracked: true,
+				default_app: null,
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T00:00:00Z',
 			},
@@ -41,6 +43,8 @@ describe('itemStore', () => {
 				aliases: [],
 				sort_order: 1,
 				is_enabled: true,
+				is_tracked: false,
+				default_app: null,
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T00:00:00Z',
 			},
@@ -78,6 +82,8 @@ describe('itemStore', () => {
 				aliases: [],
 				sort_order: 0,
 				is_enabled: true,
+				is_tracked: true,
+				default_app: null,
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T00:00:00Z',
 			},
@@ -95,6 +101,8 @@ describe('itemStore', () => {
 			aliases: [],
 			sort_order: 1,
 			is_enabled: true,
+			is_tracked: false,
+			default_app: null,
 			created_at: '2024-01-01T00:00:00Z',
 			updated_at: '2024-01-01T00:00:00Z',
 		};
@@ -119,8 +127,8 @@ describe('itemStore', () => {
 			working_dir: null,
 			icon_path: null,
 			aliases: [],
-			category_ids: [],
 			tag_ids: [],
+			is_tracked: false,
 		});
 
 		expect(itemStore.items).toHaveLength(2);
@@ -133,7 +141,7 @@ describe('itemStore', () => {
 
 		const mockStats = {
 			total_items: 42,
-			total_categories: 5,
+			total_tags: 5,
 			recent_launch_count: 12,
 		};
 
@@ -149,24 +157,31 @@ describe('itemStore', () => {
 		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_library_stats');
 	});
 
-	it('loadCategoryWithCounts() fetches and stores categories with counts', async () => {
+	it('loadTagWithCounts() fetches and stores tags with counts', async () => {
 		const { invoke } = await import('@tauri-apps/api/core');
 		const mockInvoke = vi.mocked(invoke);
 
-		const mockCategories = [
-			{ id: 'cat-1', name: 'ゲーム', prefix: 'game', item_count: 10 },
-			{ id: 'cat-2', name: '開発ツール', prefix: 'dev', item_count: 5 },
+		const mockTags = [
+			{ id: 'tag-1', name: 'ゲーム', is_system: false, prefix: 'game', icon: null, item_count: 10 },
+			{
+				id: 'tag-2',
+				name: '開発ツール',
+				is_system: false,
+				prefix: 'dev',
+				icon: null,
+				item_count: 5,
+			},
 		];
 
-		mockInvoke.mockResolvedValueOnce(mockCategories);
+		mockInvoke.mockResolvedValueOnce(mockTags);
 
 		const { itemStore } = await import('./items.svelte');
 
-		expect(itemStore.categoryWithCounts).toEqual([]);
+		expect(itemStore.tagWithCounts).toEqual([]);
 
-		await itemStore.loadCategoryWithCounts();
+		await itemStore.loadTagWithCounts();
 
-		expect(itemStore.categoryWithCounts).toEqual(mockCategories);
-		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_category_counts');
+		expect(itemStore.tagWithCounts).toEqual(mockTags);
+		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_tag_counts');
 	});
 });

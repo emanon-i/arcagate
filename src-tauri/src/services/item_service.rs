@@ -1,10 +1,9 @@
 use uuid::Uuid;
 
 use crate::db::DbState;
-use crate::models::category::{Category, CategoryWithCount, CreateCategoryInput};
 use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
-use crate::models::tag::{CreateTagInput, Tag};
-use crate::repositories::{category_repository, item_repository, tag_repository};
+use crate::models::tag::{self, CreateTagInput, Tag, TagWithCount};
+use crate::repositories::{item_repository, tag_repository};
 use crate::utils::error::AppError;
 use crate::utils::icon;
 
@@ -19,7 +18,7 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
 
     let item = Item {
         id: id.clone(),
-        item_type: input.item_type,
+        item_type: input.item_type.clone(),
         label: input.label,
         target: input.target,
         args: input.args,
@@ -29,16 +28,39 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
         aliases: input.aliases,
         sort_order: 0,
         is_enabled: true,
+        is_tracked: input.is_tracked,
+        default_app: None,
         created_at: String::new(), // set by DB DEFAULT on insert
         updated_at: String::new(),
     };
 
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    item_repository::insert(&conn, &item)?;
-    item_repository::set_categories(&conn, &id, &input.category_ids)?;
-    item_repository::set_tags(&conn, &id, &input.tag_ids)?;
-    log::info!("item created: id={} label={}", id, item.label);
-    item_repository::find_by_id(&conn, &id)
+
+    conn.execute_batch("BEGIN")?;
+    let result = (|| -> Result<Item, AppError> {
+        item_repository::insert(&conn, &item)?;
+
+        // システムタグ自動付与（item_type別）
+        let sys_tag_id = tag::sys_type_tag_id(&input.item_type);
+        item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+
+        // ユーザー指定タグ
+        item_repository::set_tags(&conn, &id, &input.tag_ids)?;
+
+        item_repository::find_by_id(&conn, &id)
+    })();
+
+    match &result {
+        Ok(_) => {
+            conn.execute_batch("COMMIT")?;
+            log::info!("item created: id={} label={}", id, item.label);
+        }
+        Err(_) => {
+            let _ = conn.execute_batch("ROLLBACK");
+        }
+    }
+
+    result
 }
 
 pub fn list_items(db: &DbState) -> Result<Vec<Item>, AppError> {
@@ -54,9 +76,6 @@ pub fn search_items(db: &DbState, query: &str) -> Result<Vec<Item>, AppError> {
 pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Item, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     item_repository::update(&conn, id, &input)?;
-    if let Some(category_ids) = &input.category_ids {
-        item_repository::set_categories(&conn, id, category_ids)?;
-    }
     if let Some(tag_ids) = &input.tag_ids {
         item_repository::set_tags(&conn, id, tag_ids)?;
     }
@@ -68,55 +87,6 @@ pub fn delete_item(db: &DbState, id: &str) -> Result<(), AppError> {
     item_repository::delete(&conn, id)?;
     log::info!("item deleted: id={}", id);
     Ok(())
-}
-
-pub fn get_categories(db: &DbState) -> Result<Vec<Category>, AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::find_all(&conn)
-}
-
-pub fn create_category(db: &DbState, input: CreateCategoryInput) -> Result<Category, AppError> {
-    if input.name.trim().is_empty() {
-        return Err(AppError::InvalidInput(
-            "category name must not be empty".to_string(),
-        ));
-    }
-    let id = Uuid::now_v7().to_string();
-    let cat = Category {
-        id: id.clone(),
-        name: input.name,
-        prefix: input.prefix,
-        icon: input.icon,
-        sort_order: 0,
-        created_at: String::new(), // set by DB DEFAULT on insert
-    };
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::insert(&conn, &cat)?;
-    category_repository::find_by_id(&conn, &id)
-}
-
-pub fn update_category(
-    db: &DbState,
-    id: &str,
-    name: &str,
-    prefix: Option<&str>,
-) -> Result<(), AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::update(&conn, id, name, prefix)
-}
-
-pub fn search_items_in_category(
-    db: &DbState,
-    category_id: &str,
-    query: &str,
-) -> Result<Vec<Item>, AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    item_repository::search_in_category(&conn, category_id, query)
-}
-
-pub fn delete_category(db: &DbState, id: &str) -> Result<(), AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::delete(&conn, id)
 }
 
 pub fn get_tags(db: &DbState) -> Result<Vec<Tag>, AppError> {
@@ -135,6 +105,10 @@ pub fn create_tag(db: &DbState, input: CreateTagInput) -> Result<Tag, AppError> 
         id: id.clone(),
         name: input.name,
         is_hidden: input.is_hidden,
+        is_system: false,
+        prefix: None,
+        icon: None,
+        sort_order: 0,
         created_at: String::new(), // set by DB DEFAULT on insert
     };
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
@@ -147,6 +121,11 @@ pub fn update_tag(db: &DbState, id: &str, name: &str, is_hidden: bool) -> Result
     tag_repository::update(&conn, id, name, is_hidden)
 }
 
+pub fn update_tag_prefix(db: &DbState, id: &str, prefix: Option<&str>) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    tag_repository::update_prefix(&conn, id, prefix)
+}
+
 pub fn delete_tag(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     tag_repository::delete(&conn, id)
@@ -157,14 +136,19 @@ pub fn get_library_stats(db: &DbState) -> Result<LibraryStats, AppError> {
     item_repository::get_library_stats(&conn)
 }
 
-pub fn get_category_counts(db: &DbState) -> Result<Vec<CategoryWithCount>, AppError> {
+pub fn get_tag_counts(db: &DbState) -> Result<Vec<TagWithCount>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::find_all_with_counts(&conn)
+    tag_repository::find_all_with_counts(&conn)
 }
 
-pub fn get_item_categories(db: &DbState, item_id: &str) -> Result<Vec<Category>, AppError> {
+pub fn get_item_tags(db: &DbState, item_id: &str) -> Result<Vec<Tag>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    category_repository::find_by_item_id(&conn, item_id)
+    tag_repository::find_by_item_id(&conn, item_id)
+}
+
+pub fn search_items_in_tag(db: &DbState, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    item_repository::search_in_tag(&conn, tag_id, query)
 }
 
 pub fn count_hidden_items(db: &DbState) -> Result<i64, AppError> {
@@ -198,8 +182,8 @@ mod tests {
             working_dir: None,
             icon_path: None,
             aliases: vec![],
-            category_ids: vec![],
             tag_ids: vec![],
+            is_tracked: true,
         }
     }
 
@@ -222,6 +206,18 @@ mod tests {
             assert_eq!(item.item_type, item_type);
             assert_eq!(item.label, label);
         }
+    }
+
+    #[test]
+    fn test_create_item_assigns_system_tag() {
+        let db = initialize_in_memory();
+        let item = create_item(&db, make_input(ItemType::Exe, "TestApp")).unwrap();
+
+        let tags = get_item_tags(&db, &item.id).unwrap();
+        assert!(
+            tags.iter().any(|t| t.id == "sys-type-exe"),
+            "system tag sys-type-exe should be assigned"
+        );
     }
 
     #[test]
@@ -260,27 +256,39 @@ mod tests {
     }
 
     #[test]
-    fn test_get_category_counts() {
+    fn test_get_tag_counts() {
         let db = initialize_in_memory();
 
-        let cat = create_category(
+        let tag = create_tag(
             &db,
-            CreateCategoryInput {
-                name: "Games".to_string(),
-                prefix: None,
-                icon: None,
+            CreateTagInput {
+                name: "games".to_string(),
+                is_hidden: false,
             },
         )
         .unwrap();
 
         let mut input = make_input(ItemType::Exe, "Game");
-        input.category_ids = vec![cat.id.clone()];
+        input.tag_ids = vec![tag.id.clone()];
         create_item(&db, input).unwrap();
 
-        let counts = get_category_counts(&db).unwrap();
-        assert_eq!(counts.len(), 1);
-        assert_eq!(counts[0].name, "Games");
-        assert_eq!(counts[0].item_count, 1);
+        let counts = get_tag_counts(&db).unwrap();
+        let games = counts.iter().find(|t| t.name == "games");
+        assert!(games.is_some());
+        assert_eq!(games.unwrap().item_count, 1);
+    }
+
+    #[test]
+    fn test_search_items_in_tag() {
+        let db = initialize_in_memory();
+
+        // Search by system tag
+        create_item(&db, make_input(ItemType::Exe, "App1")).unwrap();
+        create_item(&db, make_input(ItemType::Url, "Site1")).unwrap();
+
+        let exe_items = search_items_in_tag(&db, "sys-type-exe", "").unwrap();
+        assert_eq!(exe_items.len(), 1);
+        assert_eq!(exe_items[0].label, "App1");
     }
 
     #[test]
@@ -315,6 +323,48 @@ mod tests {
         let path1 = build_icon_output_path(dir);
         let path2 = build_icon_output_path(dir);
         assert_ne!(path1, path2, "each call should produce unique filename");
+    }
+
+    #[test]
+    fn test_create_item_transaction_commits_item_and_tags() {
+        let db = initialize_in_memory();
+
+        // ユーザータグを先に作成
+        let tag = create_tag(
+            &db,
+            CreateTagInput {
+                name: "dev-tools".to_string(),
+                is_hidden: false,
+            },
+        )
+        .unwrap();
+
+        let mut input = make_input(ItemType::Exe, "Transactional App");
+        input.tag_ids = vec![tag.id.clone()];
+        let item = create_item(&db, input).unwrap();
+
+        // トランザクション内でアイテムとタグの両方がコミットされていること
+        let tags = get_item_tags(&db, &item.id).unwrap();
+        let has_user_tag = tags.iter().any(|t| t.id == tag.id);
+        let has_sys_tag = tags.iter().any(|t| t.id == "sys-type-exe");
+        assert!(has_user_tag, "user tag should be committed");
+        assert!(has_sys_tag, "system tag should be committed");
+    }
+
+    #[test]
+    fn test_create_item_invalid_tag_rolls_back() {
+        let db = initialize_in_memory();
+
+        // 存在しない tag_id を指定 → FK制約違反でトランザクションがロールバックされる
+        let mut input = make_input(ItemType::Exe, "Ghost Tag App");
+        input.tag_ids = vec!["nonexistent-tag-id".to_string()];
+        let result = create_item(&db, input);
+
+        assert!(result.is_err(), "should fail with FK constraint");
+
+        // ロールバックにより items テーブルにレコードが残っていないこと
+        let items = list_items(&db).unwrap();
+        assert_eq!(items.len(), 0, "item should be rolled back");
     }
 
     #[test]

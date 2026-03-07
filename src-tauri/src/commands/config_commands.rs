@@ -43,16 +43,3 @@ pub fn cmd_is_setup_complete(db: State<DbState>) -> Result<bool, AppError> {
 pub fn cmd_mark_setup_complete(db: State<DbState>) -> Result<(), AppError> {
     config_service::mark_setup_complete(&db)
 }
-
-#[tauri::command]
-pub fn cmd_set_hidden_password(db: State<DbState>, password: String) -> Result<(), AppError> {
-    config_service::set_hidden_password(&db, &password)
-}
-
-#[tauri::command]
-pub fn cmd_verify_hidden_password(
-    db: State<DbState>,
-    password: String,
-) -> Result<Option<bool>, AppError> {
-    config_service::verify_hidden_password(&db, &password)
-}

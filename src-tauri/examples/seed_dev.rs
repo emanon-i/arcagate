@@ -29,8 +29,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["vscode".into(), "code".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Exe,
@@ -40,8 +41,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["terminal".into(), "wt".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Exe,
@@ -51,8 +53,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["explorer".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Url,
@@ -62,8 +65,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["gh".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Url,
@@ -73,8 +77,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["ai".into(), "anthropic".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Url,
@@ -84,8 +89,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["search".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Folder,
@@ -95,8 +101,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["project".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Folder,
@@ -106,8 +113,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["dl".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Script,
@@ -117,8 +125,9 @@ fn main() {
             working_dir: Some("E:/Cella/Projects".into()),
             icon_path: None,
             aliases: vec!["gs".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Command,
@@ -128,8 +137,9 @@ fn main() {
             working_dir: None,
             icon_path: None,
             aliases: vec!["calc".into()],
-            category_ids: vec![],
+
             tag_ids: vec![],
+            is_tracked: true,
         },
     ];
 

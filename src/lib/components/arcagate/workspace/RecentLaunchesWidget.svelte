@@ -4,17 +4,37 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
 import type { Item } from '$lib/types/item';
+import type { WorkspaceWidget } from '$lib/types/workspace';
+import { parseWidgetConfig } from '$lib/utils/widget-config';
+import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
+
+let { widget }: { widget?: WorkspaceWidget } = $props();
 
 let recentItems = $state<Item[]>([]);
+let settingsOpen = $state(false);
 
 $effect(() => {
-	void getRecentItems(10).then((items) => {
+	const { max_items: limit } = parseWidgetConfig(widget?.config, { max_items: 10 });
+	void getRecentItems(limit).then((items) => {
 		recentItems = items;
 	});
 });
+
+let menuItems = $derived(
+	widget
+		? [
+				{
+					label: '設定',
+					onclick: () => {
+						settingsOpen = true;
+					},
+				},
+			]
+		: [],
+);
 </script>
 
-<WidgetShell title="Recent launches" icon={Clock3}>
+<WidgetShell title="Recent launches" icon={Clock3} {menuItems}>
 	<div class="space-y-2">
 		{#each recentItems as item (item.id)}
 			<button
@@ -36,3 +56,7 @@ $effect(() => {
 		{/if}
 	</div>
 </WidgetShell>
+
+{#if widget}
+	<WidgetSettingsDialog {widget} open={settingsOpen} onClose={() => { settingsOpen = false; }} />
+{/if}

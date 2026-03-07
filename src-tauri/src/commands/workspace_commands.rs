@@ -82,6 +82,15 @@ pub fn cmd_update_widget_position(
 }
 
 #[tauri::command]
+pub fn cmd_update_widget_config(
+    db: State<DbState>,
+    id: String,
+    config: Option<String>,
+) -> Result<WorkspaceWidget, AppError> {
+    workspace_service::update_widget_config(&db, &id, config.as_deref())
+}
+
+#[tauri::command]
 pub fn cmd_remove_widget(db: State<DbState>, id: String) -> Result<(), AppError> {
     workspace_service::remove_widget(&db, &id)
 }

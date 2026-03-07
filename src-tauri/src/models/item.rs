@@ -47,6 +47,8 @@ pub struct Item {
     pub aliases: Vec<String>,
     pub sort_order: i64,
     pub is_enabled: bool,
+    pub is_tracked: bool,
+    pub default_app: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -60,8 +62,13 @@ pub struct CreateItemInput {
     pub working_dir: Option<String>,
     pub icon_path: Option<String>,
     pub aliases: Vec<String>,
-    pub category_ids: Vec<String>,
     pub tag_ids: Vec<String>,
+    #[serde(default = "default_true")]
+    pub is_tracked: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,13 +80,14 @@ pub struct UpdateItemInput {
     pub icon_path: Option<String>,
     pub aliases: Option<Vec<String>>,
     pub is_enabled: Option<bool>,
-    pub category_ids: Option<Vec<String>>,
+    pub is_tracked: Option<bool>,
+    pub default_app: Option<String>,
     pub tag_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LibraryStats {
     pub total_items: i64,
-    pub total_categories: i64,
+    pub total_tags: i64,
     pub recent_launch_count: i64,
 }

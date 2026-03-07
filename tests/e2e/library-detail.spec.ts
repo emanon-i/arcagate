@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/tauri.js';
-import { createItem, deleteItem } from '../helpers/ipc.js';
+import { createItem, deleteItem, invoke } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('ライブラリ詳細パネル', () => {
@@ -21,14 +21,16 @@ test.describe('ライブラリ詳細パネル', () => {
 			await page.getByTestId(`library-card-${item.id}`).click();
 
 			// DetailPanel にアイテム名が表示される
+			const detailWrapper = page.getByTestId('library-detail-wrapper');
+			await expect(detailWrapper).toBeVisible();
 			const detailPanel = page.getByTestId('library-detail-panel');
 			await expect(detailPanel.getByText('パネル閉じテスト')).toBeVisible();
 
 			// 閉じるボタンをクリック
 			await detailPanel.getByRole('button', { name: 'パネルを閉じる' }).click();
 
-			// プレースホルダーが表示される
-			await expect(detailPanel.getByText('アイテムを選択してください')).toBeVisible();
+			// detail-wrapper ごと非表示になる（selectedItemId = null で条件レンダリングが消える）
+			await expect(detailWrapper).not.toBeVisible();
 		} finally {
 			await deleteItem(page, item.id);
 		}
@@ -105,6 +107,55 @@ test.describe('ライブラリ詳細パネル', () => {
 			expect(count).toBe(1);
 		} finally {
 			await deleteItem(page, item.id);
+		}
+	});
+
+	test('タグフィルタ + 検索入力で結果が絞り込まれること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		// 異なるタイプのアイテムを作成
+		const exeItem = await createItem(page, {
+			item_type: 'exe',
+			label: 'タグフィルタExe',
+			target: 'C:\\test\\filter.exe',
+		});
+		const urlItem = await createItem(page, {
+			item_type: 'url',
+			label: 'タグフィルタUrl',
+			target: 'https://tag-filter-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+
+			// サイドバーの exe タグをクリック（title属性で特定）
+			const sidebar = page.getByTestId('library-sidebar');
+			await expect(sidebar).toBeVisible();
+
+			// exe タグボタンをクリック（SidebarRow は button role）
+			const exeTag = sidebar.getByRole('button', { name: /exe/i });
+			await exeTag.click();
+			await page.waitForTimeout(500);
+
+			// exe アイテムが表示される
+			const exeCard = page.getByTestId(`library-card-${exeItem.id}`);
+			await expect(exeCard).toBeVisible();
+
+			// url アイテムは非表示（フィルタにより）
+			const urlCard = page.getByTestId(`library-card-${urlItem.id}`);
+			await expect(urlCard).not.toBeVisible();
+
+			// 検索入力で更に絞り込み
+			const searchInput = page.getByPlaceholder('ライブラリを検索');
+			await searchInput.fill('タグフィルタ');
+			await page.waitForTimeout(300);
+
+			// exe アイテムが引き続き表示される
+			await expect(exeCard).toBeVisible();
+		} finally {
+			await deleteItem(page, exeItem.id);
+			await deleteItem(page, urlItem.id);
 		}
 	});
 });

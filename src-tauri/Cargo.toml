@@ -36,8 +36,6 @@ zip = "2"
 rusqlite_migration = "2"
 uuid = { version = "1", features = ["v7"] }
 thiserror = "2"
-argon2 = { version = "0.5", features = ["password-hash", "std"] }
-rand_core = { version = "0.6", features = ["getrandom"] }
 clap = { version = "4", features = ["derive"] }
 tauri-plugin-clipboard-manager = "2"
 notify = { version = "7", features = ["macos_fsevent"] }

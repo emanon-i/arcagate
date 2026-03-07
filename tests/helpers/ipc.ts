@@ -28,7 +28,7 @@ export interface Widget {
 }
 
 // Rust の CreateItemInput に合わせた型定義
-// aliases / category_ids / tag_ids は Vec<String> のため必須（空配列でも可）
+// aliases / tag_ids は Vec<String> のため必須（空配列でも可）
 export interface CreateItemInput {
 	item_type: string;
 	label: string;
@@ -37,7 +37,6 @@ export interface CreateItemInput {
 	working_dir?: string;
 	icon_path?: string;
 	aliases: string[];
-	category_ids: string[];
 	tag_ids: string[];
 }
 
@@ -63,7 +62,6 @@ export async function createItem(
 ): Promise<Item> {
 	const fullInput: CreateItemInput = {
 		aliases: [],
-		category_ids: [],
 		tag_ids: [],
 		...input,
 	};

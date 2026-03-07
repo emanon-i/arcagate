@@ -1,5 +1,6 @@
 <script lang="ts">
 import { listen } from '@tauri-apps/api/event';
+import { open } from '@tauri-apps/plugin-dialog';
 import { onDestroy } from 'svelte';
 
 let {
@@ -30,10 +31,36 @@ onDestroy(() => {
 	unlistenOver.then((fn) => fn());
 	unlistenLeave.then((fn) => fn());
 });
+
+async function handleClickFile() {
+	const selected = await open({
+		multiple: false,
+		filters: [
+			{
+				name: '実行ファイル',
+				extensions: ['exe', 'msi', 'com', 'ps1', 'bat', 'cmd', 'sh', 'py', 'js'],
+			},
+			{ name: 'すべて', extensions: ['*'] },
+		],
+	});
+	if (selected) {
+		onDrop([selected]);
+	}
+}
+
+async function handleClickFolder() {
+	const selected = await open({
+		directory: true,
+		multiple: false,
+	});
+	if (selected) {
+		onDrop([selected]);
+	}
+}
 </script>
 
 <div
-  class="flex min-h-32 w-full cursor-default flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors {isDragging
+  class="flex min-h-32 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors {isDragging
     ? 'border-primary bg-primary/5'
     : 'border-muted-foreground/30 hover:border-muted-foreground/50'}"
 >
@@ -41,7 +68,23 @@ onDestroy(() => {
     {#if isDragging}
       ここにドロップ
     {:else}
-      ここにファイルをドロップ
+      ここにファイルをドロップ、またはクリックして選択
     {/if}
   </p>
+  <div class="flex gap-2">
+    <button
+      type="button"
+      class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+      onclick={handleClickFile}
+    >
+      ファイルを選択
+    </button>
+    <button
+      type="button"
+      class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+      onclick={handleClickFolder}
+    >
+      フォルダを選択
+    </button>
+  </div>
 </div>

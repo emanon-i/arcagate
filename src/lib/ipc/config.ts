@@ -31,11 +31,3 @@ export async function isSetupComplete(): Promise<boolean> {
 export async function markSetupComplete(): Promise<void> {
 	return invoke<void>('cmd_mark_setup_complete');
 }
-
-export async function setHiddenPassword(password: string): Promise<void> {
-	return invoke<void>('cmd_set_hidden_password', { password });
-}
-
-export async function verifyHiddenPassword(password: string): Promise<boolean | null> {
-	return invoke<boolean | null>('cmd_verify_hidden_password', { password });
-}

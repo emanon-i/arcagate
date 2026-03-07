@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-003-K
 depends_on: []
 ---
@@ -21,12 +21,12 @@ depends_on: []
 
 ### 受け入れ条件
 
-- [ ] `ThemeControlsWidget.svelte` が削除される
-- [ ] `WorkspaceLayout` からの参照が削除される
-- [ ] `AddWidgetDialog` のウィジェットリストから除外される
-- [ ] DB の `widget_type = 'theme_controls'` データが存在する場合のハンドリング（表示スキップ or マイグレーションで削除）
-- [ ] テーマ切替機能は `PageTabBar` のトグルで引き続き利用可能
-- [ ] `pnpm verify` が通過する
+- [x] `ThemeControlsWidget.svelte` が削除される
+- [x] `WorkspaceLayout` からの参照が削除される
+- [x] `AddWidgetDialog` のウィジェットリストから除外される
+- [x] DB の `widget_type = 'theme_controls'` データが存在する場合のハンドリング（表示スキップ or マイグレーションで削除）
+- [x] テーマ切替機能は `PageTabBar` のトグルで引き続き利用可能
+- [x] `pnpm verify` が通過する
 
 ### 変更対象ファイル
 
@@ -46,10 +46,10 @@ depends_on: []
 
 ### 受け入れ条件
 
-- [ ] `VisibilityWidget.svelte` が削除される
-- [ ] `WorkspaceLayout` からの参照が削除される
-- [ ] `AddWidgetDialog` のウィジェットリストから除外される
-- [ ] `pnpm verify` が通過する
+- [x] `VisibilityWidget.svelte` が削除される
+- [x] `WorkspaceLayout` からの参照が削除される
+- [x] `AddWidgetDialog` のウィジェットリストから除外される
+- [x] `pnpm verify` が通過する
 
 ### 変更対象ファイル
 
@@ -69,10 +69,10 @@ depends_on: []
 
 ### 受け入れ条件
 
-- [ ] `QuickActionsWidget.svelte` が削除される
-- [ ] `WorkspaceLayout` からの参照が削除される
-- [ ] Quick actions 内の個別機能（パレット起動、DB import/export、テーマトグル、電卓）は他の導線で利用可能であることを確認
-- [ ] `pnpm verify` が通過する
+- [x] `QuickActionsWidget.svelte` が削除される
+- [x] `WorkspaceLayout` からの参照が削除される
+- [x] Quick actions 内の個別機能（パレット起動、DB import/export、テーマトグル、電卓）は他の導線で利用可能であることを確認
+- [x] `pnpm verify` が通過する
 
 ### 変更対象ファイル
 
@@ -91,11 +91,11 @@ depends_on: []
 
 ### 受け入れ条件
 
-- [ ] `WatchFoldersWidget.svelte` が削除される
-- [ ] `WorkspaceLayout` からの参照が削除される
-- [ ] `AddWidgetDialog` のウィジェットリストから除外される
-- [ ] バックエンドのフォルダ監視機能（`watched_paths` テーブル、watcher service）はそのまま維持
-- [ ] `pnpm verify` が通過する
+- [x] `WatchFoldersWidget.svelte` が削除される
+- [x] `WorkspaceLayout` からの参照が削除される
+- [x] `AddWidgetDialog` のウィジェットリストから除外される
+- [x] バックエンドのフォルダ監視機能（`watched_paths` テーブル、watcher service）はそのまま維持
+- [x] `pnpm verify` が通過する
 
 ### 変更対象ファイル
 
@@ -115,10 +115,10 @@ depends_on: []
 
 ### 受け入れ条件
 
-- [ ] MoreMenu ボタンがウィジェットタイトルと重ならない
-- [ ] ウィジェットヘッダーのレイアウトが `justify-between` で適切に配置される
-- [ ] 全ウィジェットで統一的な見た目になる
-- [ ] `pnpm verify` が通過する
+- [x] MoreMenu ボタンがウィジェットタイトルと重ならない
+- [x] ウィジェットヘッダーのレイアウトが `justify-between` で適切に配置される
+- [x] 全ウィジェットで統一的な見た目になる
+- [x] `pnpm verify` が通過する
 
 ### 変更対象ファイル
 
@@ -130,9 +130,9 @@ depends_on: []
 
 ## Exit Criteria
 
-- [ ] 4つの不要ウィジェットが完全に削除される
-- [ ] WorkspaceLayout のデフォルト構成が更新される
-- [ ] ウィジェットヘッダーの重なり問題が解消される
-- [ ] 削除したウィジェットの機能が他の導線で利用可能であることを確認
-- [ ] E2E テストが通過する
-- [ ] `pnpm verify` が全通過
+- [x] 4つの不要ウィジェットが完全に削除される
+- [x] WorkspaceLayout のデフォルト構成が更新される
+- [x] ウィジェットヘッダーの重なり問題が解消される
+- [x] 削除したウィジェットの機能が他の導線で利用可能であることを確認
+- [x] E2E テストが通過する
+- [x] `pnpm verify` が全通過

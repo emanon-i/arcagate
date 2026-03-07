@@ -3,19 +3,10 @@ use std::fs;
 use serde::{Deserialize, Serialize};
 
 use crate::db::DbState;
-use crate::models::category::Category;
 use crate::models::item::Item;
 use crate::models::tag::Tag;
-use crate::repositories::{
-    category_repository, config_repository, item_repository, tag_repository,
-};
+use crate::repositories::{config_repository, item_repository, tag_repository};
 use crate::utils::error::AppError;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ItemCategoryLink {
-    item_id: String,
-    category_id: String,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ItemTagLink {
@@ -28,9 +19,7 @@ struct ExportData {
     version: u32,
     exported_at: String,
     items: Vec<Item>,
-    categories: Vec<Category>,
     tags: Vec<Tag>,
-    item_categories: Vec<ItemCategoryLink>,
     item_tags: Vec<ItemTagLink>,
     config: Vec<(String, String)>,
 }
@@ -41,21 +30,8 @@ pub fn export_json(db: &DbState, output_path: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
 
     let items = item_repository::find_all(&conn)?;
-    let categories = category_repository::find_all(&conn)?;
     let tags = tag_repository::find_all(&conn)?;
     let config = config_repository::find_all(&conn)?;
-
-    let item_categories = {
-        let mut stmt = conn.prepare("SELECT item_id, category_id FROM item_categories")?;
-        let rows = stmt.query_map([], |row| {
-            Ok(ItemCategoryLink {
-                item_id: row.get(0)?,
-                category_id: row.get(1)?,
-            })
-        })?;
-        rows.collect::<Result<Vec<_>, _>>()
-            .map_err(AppError::Database)?
-    };
 
     let item_tags = {
         let mut stmt = conn.prepare("SELECT item_id, tag_id FROM item_tags")?;
@@ -75,12 +51,10 @@ pub fn export_json(db: &DbState, output_path: &str) -> Result<(), AppError> {
         })
         .unwrap_or_else(|_| "unknown".to_string());
     let data = ExportData {
-        version: 1,
+        version: 2,
         exported_at,
         items,
-        categories,
         tags,
-        item_categories,
         item_tags,
         config,
     };
@@ -89,9 +63,8 @@ pub fn export_json(db: &DbState, output_path: &str) -> Result<(), AppError> {
         serde_json::to_string_pretty(&data).map_err(|e| AppError::InvalidInput(e.to_string()))?;
     fs::write(output_path, json)?;
     log::info!(
-        "export complete: {} items, {} categories, {} tags",
+        "export complete: {} items, {} tags",
         data.items.len(),
-        data.categories.len(),
         data.tags.len()
     );
 
@@ -109,17 +82,10 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
 
     conn.execute_batch("BEGIN")?;
 
-    for cat in &data.categories {
-        conn.execute(
-            "INSERT OR REPLACE INTO categories (id, name, prefix, icon, sort_order, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            rusqlite::params![cat.id, cat.name, cat.prefix, cat.icon, cat.sort_order, cat.created_at],
-        )?;
-    }
-
     for tag in &data.tags {
         conn.execute(
-            "INSERT OR REPLACE INTO tags (id, name, is_hidden, created_at) VALUES (?1, ?2, ?3, ?4)",
-            rusqlite::params![tag.id, tag.name, tag.is_hidden as i64, tag.created_at],
+            "INSERT OR REPLACE INTO tags (id, name, is_hidden, is_system, prefix, icon, sort_order, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![tag.id, tag.name, tag.is_hidden as i64, tag.is_system as i64, tag.prefix, tag.icon, tag.sort_order, tag.created_at],
         )?;
     }
 
@@ -146,13 +112,6 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
         )?;
     }
 
-    for link in &data.item_categories {
-        conn.execute(
-            "INSERT OR REPLACE INTO item_categories (item_id, category_id) VALUES (?1, ?2)",
-            rusqlite::params![link.item_id, link.category_id],
-        )?;
-    }
-
     for link in &data.item_tags {
         conn.execute(
             "INSERT OR REPLACE INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
@@ -166,9 +125,8 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
 
     conn.execute_batch("COMMIT")?;
     log::info!(
-        "import complete: {} items, {} categories, {} tags",
+        "import complete: {} items, {} tags",
         data.items.len(),
-        data.categories.len(),
         data.tags.len()
     );
 
@@ -188,7 +146,7 @@ mod tests {
         assert!(output.exists());
         let content = fs::read_to_string(&output).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
-        assert_eq!(parsed["version"], 1);
+        assert_eq!(parsed["version"], 2);
         let _ = fs::remove_file(&output);
     }
 

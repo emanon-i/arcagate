@@ -6,24 +6,34 @@ import { itemStore } from '$lib/state/items.svelte';
 import LibraryCard from './LibraryCard.svelte';
 
 interface Props {
-	activeCategory: string | null;
-	onSelectItem?: (id: string) => void;
+	activeTag: string | null;
+	onSelectItem?: (id: string | null) => void;
 	onAddItem?: () => void;
 }
 
-let { activeCategory, onSelectItem, onAddItem }: Props = $props();
+let { activeTag, onSelectItem, onAddItem }: Props = $props();
 
 let searchQuery = $state('');
+let debouncedQuery = $state('');
+
+// 150ms デバウンス: キーストロークごとの IPC を抑制
+$effect(() => {
+	const q = searchQuery;
+	const timer = setTimeout(() => {
+		debouncedQuery = q;
+	}, 150);
+	return () => clearTimeout(timer);
+});
 
 $effect(() => {
-	if (activeCategory) {
-		void itemStore.loadItemsByCategory(activeCategory, searchQuery);
+	if (activeTag) {
+		void itemStore.loadItemsByTag(activeTag, debouncedQuery);
 	}
 });
 
 let filteredItems = $derived.by(() => {
-	if (activeCategory) {
-		return itemStore.categoryItems;
+	if (activeTag) {
+		return itemStore.tagItems;
 	}
 	if (searchQuery) {
 		const q = searchQuery.toLowerCase();
@@ -33,7 +43,14 @@ let filteredItems = $derived.by(() => {
 });
 </script>
 
-<main class="p-5">
+<main
+	class="min-h-full p-5"
+	onclick={(e: MouseEvent) => {
+		if (!(e.target as HTMLElement).closest('[data-testid^="library-card-"]')) {
+			onSelectItem?.(null);
+		}
+	}}
+>
 	<!-- Search bar + sort chips -->
 	<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
 		<div
@@ -63,7 +80,7 @@ let filteredItems = $derived.by(() => {
 	{#if itemStore.libraryStats}
 		<div class="mb-4 grid grid-cols-2 lg:grid-cols-3 gap-3">
 			<StatCard label="総アイテム" value={itemStore.libraryStats.total_items} />
-			<StatCard label="カテゴリ" value={itemStore.libraryStats.total_categories} />
+			<StatCard label="タグ" value={itemStore.libraryStats.total_tags} />
 			<StatCard label="今週の起動" value={itemStore.libraryStats.recent_launch_count} />
 		</div>
 	{/if}

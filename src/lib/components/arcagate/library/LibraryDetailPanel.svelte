@@ -47,14 +47,9 @@ function handleDuplicate() {
 		working_dir: selectedItem.working_dir,
 		icon_path: selectedItem.icon_path,
 		aliases: [],
-		category_ids: [],
 		tag_ids: [],
+		is_tracked: selectedItem.is_tracked,
 	});
-}
-
-function handleToggleEnabled() {
-	if (!selectedItem) return;
-	void itemStore.updateItem(selectedItem.id, { is_enabled: !selectedItem.is_enabled });
 }
 
 function handleExportItem() {
@@ -68,10 +63,6 @@ let moreMenuItems = $derived.by(() => {
 	return [
 		{ label: '複製', onclick: handleDuplicate },
 		{ label: 'JSONコピー', onclick: handleExportItem },
-		{
-			label: selectedItem.is_enabled ? '無効化' : '有効化',
-			onclick: handleToggleEnabled,
-		},
 	];
 });
 </script>
@@ -118,19 +109,27 @@ let moreMenuItems = $derived.by(() => {
 			{#if selectedItem.args}
 				<DetailRow label="引数" value={selectedItem.args} />
 			{/if}
-			<div class="flex items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5">
-				<span class="text-[var(--ag-text-muted)]">状態</span>
-				<button
-					type="button"
-					class="rounded-full border px-2 py-1 text-[11px] transition-colors {selectedItem.is_enabled
-						? 'border-[var(--ag-success-border)] bg-[var(--ag-success-bg)] text-[var(--ag-success-text)]'
-						: 'border-[var(--ag-warm-border)] bg-[var(--ag-warm-bg)] text-[var(--ag-warm-text)]'}"
-					onclick={handleToggleEnabled}
-				>
-					{selectedItem.is_enabled ? '有効' : '無効'}
-				</button>
-			</div>
 		</div>
+
+		<!-- Default app for folders (M-3) -->
+		{#if selectedItem.item_type === 'folder'}
+			<div class="mt-4 space-y-1">
+				<label class="text-xs font-medium text-[var(--ag-text-muted)]" for="default-app">デフォルトアプリ</label>
+				<select
+					id="default-app"
+					class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-1.5 text-sm text-[var(--ag-text-primary)]"
+					value={selectedItem.default_app ?? ''}
+					onchange={(e) => {
+						const val = (e.target as HTMLSelectElement).value || null;
+						void itemStore.updateItem(selectedItem!.id, { default_app: val });
+					}}
+				>
+					<option value="">Explorer（既定）</option>
+					<option value="vscode">VS Code</option>
+					<option value="terminal">Terminal</option>
+				</select>
+			</div>
+		{/if}
 
 		<!-- Action buttons -->
 		<div class="mt-4 grid grid-cols-3 gap-2">

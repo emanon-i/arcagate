@@ -3,11 +3,12 @@ use uuid::Uuid;
 use crate::db::DbState;
 use crate::models::git::GitStatus;
 use crate::models::item::Item;
+use crate::models::tag::{self, Tag};
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
     Workspace, WorkspaceWidget,
 };
-use crate::repositories::workspace_repository;
+use crate::repositories::{tag_repository, workspace_repository};
 use crate::utils::error::AppError;
 use crate::utils::git;
 
@@ -21,15 +22,30 @@ pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Wor
     let sort_order = all.len() as i64;
     let id = Uuid::now_v7().to_string();
 
+    let ws_name = input.name;
     let ws = Workspace {
         id: id.clone(),
-        name: input.name,
+        name: ws_name.clone(),
         sort_order,
         created_at: String::new(),
         updated_at: String::new(),
     };
 
     workspace_repository::insert_workspace(&conn, &ws)?;
+
+    // ワークスペース名のシステムタグ作成
+    let sys_tag = Tag {
+        id: tag::sys_ws_tag_id(&id),
+        name: ws_name,
+        is_hidden: false,
+        is_system: true,
+        prefix: None,
+        icon: None,
+        sort_order: -50,
+        created_at: String::new(),
+    };
+    tag_repository::upsert_system_tag(&conn, &sys_tag)?;
+
     workspace_repository::find_workspace_by_id(&conn, &id)
 }
 
@@ -56,12 +72,33 @@ pub fn update_workspace(
         None => existing.name,
     };
 
-    workspace_repository::update_workspace(&conn, id, &name)
+    let result = workspace_repository::update_workspace(&conn, id, &name)?;
+
+    // ワークスペースのシステムタグ名も更新
+    let sys_tag = Tag {
+        id: tag::sys_ws_tag_id(id),
+        name: name.clone(),
+        is_hidden: false,
+        is_system: true,
+        prefix: None,
+        icon: None,
+        sort_order: -50,
+        created_at: String::new(),
+    };
+    tag_repository::upsert_system_tag(&conn, &sys_tag)?;
+
+    Ok(result)
 }
 
 pub fn delete_workspace(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    workspace_repository::delete_workspace(&conn, id)
+    workspace_repository::delete_workspace(&conn, id)?;
+
+    // ワークスペースのシステムタグも削除
+    let sys_tag_id = tag::sys_ws_tag_id(id);
+    tag_repository::delete_system_tag_by_id(&conn, &sys_tag_id)?;
+
+    Ok(())
 }
 
 pub fn add_widget(db: &DbState, input: AddWidgetInput) -> Result<WorkspaceWidget, AppError> {
@@ -101,6 +138,15 @@ pub fn update_widget_position(
 ) -> Result<WorkspaceWidget, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::update_widget_position(&conn, id, &input)
+}
+
+pub fn update_widget_config(
+    db: &DbState,
+    id: &str,
+    config: Option<&str>,
+) -> Result<WorkspaceWidget, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    workspace_repository::update_widget_config(&conn, id, config)
 }
 
 pub fn remove_widget(db: &DbState, id: &str) -> Result<(), AppError> {

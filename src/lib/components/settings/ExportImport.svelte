@@ -37,12 +37,7 @@ async function handleImport() {
 	message = null;
 	try {
 		await exportIpc.importJson(path);
-		await Promise.all([
-			itemStore.loadItems(),
-			itemStore.loadCategories(),
-			itemStore.loadTags(),
-			configStore.loadConfig(),
-		]);
+		await Promise.all([itemStore.loadItems(), itemStore.loadTags(), configStore.loadConfig()]);
 		message = 'インポート完了';
 	} catch (e) {
 		message = `インポートエラー: ${e}`;

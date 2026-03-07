@@ -1,53 +1,52 @@
 <script lang="ts">
-import { Cpu, FolderOpen, Gamepad2, Globe, LayoutDashboard, TerminalSquare } from '@lucide/svelte';
+import { AppWindow, Cpu, FolderOpen, Globe, LayoutDashboard, TerminalSquare } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import SidebarRow from '$lib/components/arcagate/common/SidebarRow.svelte';
 import { itemStore } from '$lib/state/items.svelte';
-import QuickRegisterDropZone from './QuickRegisterDropZone.svelte';
 
 interface Props {
-	activeCategory: string | null;
-	onSelectCategory?: (id: string | null) => void;
+	expanded?: boolean;
+	activeTag: string | null;
+	onSelectTag?: (id: string | null) => void;
 }
 
-let { activeCategory, onSelectCategory }: Props = $props();
+let { expanded = false, activeTag, onSelectTag }: Props = $props();
 
-const iconMap: Record<string, Component> = {
-	ゲーム: Gamepad2,
-	開発ツール: Cpu,
-	スクリプト: TerminalSquare,
-	'URL / Web': Globe,
-	フォルダ: FolderOpen,
+const systemIconMap: Record<string, Component> = {
+	exe: AppWindow,
+	url: Globe,
+	folder: FolderOpen,
+	script: TerminalSquare,
+	command: Cpu,
 };
 
 $effect(() => {
-	void itemStore.loadCategoryWithCounts();
+	void itemStore.loadTagWithCounts();
 });
 </script>
 
-<aside class="h-full border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4" data-testid="library-sidebar">
-	<!-- Category list -->
+<aside
+	class="flex h-full flex-col border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] py-3 {expanded ? 'px-3' : 'items-center px-1'}"
+	data-testid="library-sidebar"
+>
 	<div class="space-y-1.5">
 		<SidebarRow
 			icon={LayoutDashboard}
 			label="すべて"
-			meta={String(itemStore.items.length)}
-			active={activeCategory === null}
-			onclick={() => onSelectCategory?.(null)}
+			meta={expanded ? String(itemStore.items.length) : undefined}
+			iconOnly={!expanded}
+			active={activeTag === null}
+			onclick={() => onSelectTag?.(null)}
 		/>
-		{#each itemStore.categoryWithCounts as cat}
+		{#each itemStore.tagWithCounts as tag}
 			<SidebarRow
-				icon={iconMap[cat.name] ?? LayoutDashboard}
-				label={cat.name}
-				meta={String(cat.item_count)}
-				active={activeCategory === cat.id}
-				onclick={() => onSelectCategory?.(cat.id)}
+				icon={systemIconMap[tag.name] ?? LayoutDashboard}
+				label={tag.name}
+				meta={expanded ? String(tag.item_count) : undefined}
+				iconOnly={!expanded}
+				active={activeTag === tag.id}
+				onclick={() => onSelectTag?.(tag.id)}
 			/>
 		{/each}
-	</div>
-
-	<!-- Quick register drop zone -->
-	<div class="mt-6">
-		<QuickRegisterDropZone />
 	</div>
 </aside>

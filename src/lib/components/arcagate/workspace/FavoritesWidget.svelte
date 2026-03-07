@@ -4,17 +4,37 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getFrequentItems } from '$lib/ipc/workspace';
 import type { Item } from '$lib/types/item';
+import type { WorkspaceWidget } from '$lib/types/workspace';
+import { parseWidgetConfig } from '$lib/utils/widget-config';
+import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
+
+let { widget }: { widget?: WorkspaceWidget } = $props();
 
 let favorites = $state<Item[]>([]);
+let settingsOpen = $state(false);
 
 $effect(() => {
-	void getFrequentItems(10).then((items) => {
+	const { max_items: limit } = parseWidgetConfig(widget?.config, { max_items: 10 });
+	void getFrequentItems(limit).then((items) => {
 		favorites = items;
 	});
 });
+
+let menuItems = $derived(
+	widget
+		? [
+				{
+					label: '設定',
+					onclick: () => {
+						settingsOpen = true;
+					},
+				},
+			]
+		: [],
+);
 </script>
 
-<WidgetShell title="Favorites" icon={Star}>
+<WidgetShell title="Favorites" icon={Star} {menuItems}>
 	<div class="space-y-2">
 		{#each favorites as item (item.id)}
 			<button
@@ -33,3 +53,7 @@ $effect(() => {
 		{/if}
 	</div>
 </WidgetShell>
+
+{#if widget}
+	<WidgetSettingsDialog {widget} open={settingsOpen} onClose={() => { settingsOpen = false; }} />
+{/if}

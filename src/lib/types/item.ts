@@ -1,4 +1,5 @@
 export type ItemType = 'exe' | 'url' | 'folder' | 'script' | 'command';
+export type DefaultApp = 'vscode' | 'terminal' | (string & {});
 
 export interface Item {
 	id: string;
@@ -12,6 +13,8 @@ export interface Item {
 	aliases: string[];
 	sort_order: number;
 	is_enabled: boolean;
+	is_tracked: boolean;
+	default_app: DefaultApp | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -24,13 +27,13 @@ export interface CreateItemInput {
 	working_dir: string | null;
 	icon_path: string | null;
 	aliases: string[];
-	category_ids: string[];
 	tag_ids: string[];
+	is_tracked: boolean;
 }
 
 export interface LibraryStats {
 	total_items: number;
-	total_categories: number;
+	total_tags: number;
 	recent_launch_count: number;
 }
 
@@ -48,6 +51,7 @@ export interface UpdateItemInput {
 	icon_path?: string | null;
 	aliases?: string[];
 	is_enabled?: boolean;
-	category_ids?: string[];
+	is_tracked?: boolean;
+	default_app?: DefaultApp | null;
 	tag_ids?: string[];
 }

@@ -1,5 +1,5 @@
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { searchItemsInCategory } from '$lib/ipc/items';
+import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem, searchItems } from '$lib/ipc/launch';
 import { getFrequentItems, getRecentItems } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
@@ -137,16 +137,16 @@ async function search(q: string): Promise<void> {
 		return;
 	}
 
-	// カテゴリプレフィックスモード: "<prefix>:<subquery>"
+	// タグプレフィックスモード: "<prefix>:<subquery>"
 	const colonIdx = q.indexOf(':');
 	if (colonIdx > 0) {
 		const prefix = q.slice(0, colonIdx);
 		const subQuery = q.slice(colonIdx + 1);
-		const matched = itemStore.categories.find(
-			(c) => c.prefix && c.prefix.toLowerCase() === prefix.toLowerCase(),
+		const matched = itemStore.tags.find(
+			(t) => t.prefix && t.prefix.toLowerCase() === prefix.toLowerCase(),
 		);
 		if (matched) {
-			await fetchItems(() => searchItemsInCategory(matched.id, subQuery));
+			await fetchItems(() => searchItemsInTag(matched.id, subQuery));
 			return;
 		}
 	}

@@ -1,9 +1,8 @@
 use tauri::{AppHandle, Manager, State};
 
 use crate::db::DbState;
-use crate::models::category::{Category, CategoryWithCount, CreateCategoryInput};
 use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
-use crate::models::tag::{CreateTagInput, Tag};
+use crate::models::tag::{CreateTagInput, Tag, TagWithCount};
 use crate::services::item_service;
 use crate::utils::error::AppError;
 
@@ -37,43 +36,6 @@ pub fn cmd_delete_item(db: State<DbState>, id: String) -> Result<(), AppError> {
 }
 
 #[tauri::command]
-pub fn cmd_get_categories(db: State<DbState>) -> Result<Vec<Category>, AppError> {
-    item_service::get_categories(&db)
-}
-
-#[tauri::command]
-pub fn cmd_create_category(
-    db: State<DbState>,
-    input: CreateCategoryInput,
-) -> Result<Category, AppError> {
-    item_service::create_category(&db, input)
-}
-
-#[tauri::command]
-pub fn cmd_update_category(
-    db: State<DbState>,
-    id: String,
-    name: String,
-    prefix: Option<String>,
-) -> Result<(), AppError> {
-    item_service::update_category(&db, &id, &name, prefix.as_deref())
-}
-
-#[tauri::command]
-pub fn cmd_search_items_in_category(
-    db: State<DbState>,
-    category_id: String,
-    query: String,
-) -> Result<Vec<Item>, AppError> {
-    item_service::search_items_in_category(&db, &category_id, &query)
-}
-
-#[tauri::command]
-pub fn cmd_delete_category(db: State<DbState>, id: String) -> Result<(), AppError> {
-    item_service::delete_category(&db, &id)
-}
-
-#[tauri::command]
 pub fn cmd_get_tags(db: State<DbState>) -> Result<Vec<Tag>, AppError> {
     item_service::get_tags(&db)
 }
@@ -94,6 +56,15 @@ pub fn cmd_update_tag(
 }
 
 #[tauri::command]
+pub fn cmd_update_tag_prefix(
+    db: State<DbState>,
+    id: String,
+    prefix: Option<String>,
+) -> Result<(), AppError> {
+    item_service::update_tag_prefix(&db, &id, prefix.as_deref())
+}
+
+#[tauri::command]
 pub fn cmd_delete_tag(db: State<DbState>, id: String) -> Result<(), AppError> {
     item_service::delete_tag(&db, &id)
 }
@@ -104,16 +75,22 @@ pub fn cmd_get_library_stats(db: State<DbState>) -> Result<LibraryStats, AppErro
 }
 
 #[tauri::command]
-pub fn cmd_get_category_counts(db: State<DbState>) -> Result<Vec<CategoryWithCount>, AppError> {
-    item_service::get_category_counts(&db)
+pub fn cmd_get_tag_counts(db: State<DbState>) -> Result<Vec<TagWithCount>, AppError> {
+    item_service::get_tag_counts(&db)
 }
 
 #[tauri::command]
-pub fn cmd_get_item_categories(
+pub fn cmd_get_item_tags(db: State<DbState>, item_id: String) -> Result<Vec<Tag>, AppError> {
+    item_service::get_item_tags(&db, &item_id)
+}
+
+#[tauri::command]
+pub fn cmd_search_items_in_tag(
     db: State<DbState>,
-    item_id: String,
-) -> Result<Vec<Category>, AppError> {
-    item_service::get_item_categories(&db, &item_id)
+    tag_id: String,
+    query: String,
+) -> Result<Vec<Item>, AppError> {
+    item_service::search_items_in_tag(&db, &tag_id, &query)
 }
 
 #[tauri::command]

@@ -58,6 +58,7 @@ async function handleRemove(id: string) {
   <div class="flex gap-2">
     <input
       type="text"
+      autocomplete="off"
       bind:value={newLabel}
       placeholder="ラベル（任意）"
       class="h-8 flex-1 rounded-md border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"

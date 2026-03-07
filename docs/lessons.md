@@ -6,15 +6,9 @@
 
 ## 技術的負債（F-3b コードレビューで検出）
 
-### `category_repository::find_all_with_counts()` の相関サブクエリ
-
-- 現状: カテゴリごとに `(SELECT COUNT(*) ...)` の相関サブクエリで件数取得（O(N)）
-- 改善案: `LEFT JOIN item_categories ... GROUP BY c.id` に書き換えれば O(1)
-- 判断: カテゴリ50未満では問題なし。100+ で要対応
-
 ### `LibraryMainArea.svelte` の $effect race condition
 
-- 現状: `$effect` で `activeCategory` / `searchQuery` 変更時に `loadItemsByCategory()` を呼ぶ
+- 現状: `$effect` で `activeTag` / `searchQuery` 変更時に `loadItemsByTag()` を呼ぶ
 - リスク: 高速切替時に stale response が後着して上書きする可能性
 - 判断: IPC <10ms のため実用上は顕在化しにくい。AbortController or request ID で将来対策可能
 
@@ -186,6 +180,7 @@
 - **動作確認の基準**: アプリを実際に起動して操作するまで完了とみなさない。副作用を持つコマンド（`run` など）も必ず実行して確認する
 - **検証アーティファクト**: スクリーンショットは `tmp/screenshots/`（`.gitignore` 済み）に保存
 - **`/simplify` の適用スコープ**: git diff 対象だけでなく全実装ファイルへの適用も有効。発見パターン: デッドコード・N+1・不要 Vec・重複 try-catch・タイムスタンプバグ
+- **E2E テストは `pnpm verify` に含まれない**: `pnpm verify` は lint/fmt/clippy/cargo test/vitest/tauri build のみ。`pnpm test:e2e` は別コマンドで手動実行が必要。実装完了後は `pnpm verify` に加えて **必ず** `pnpm test:e2e` を実行すること。E2E テスト用バイナリは `target/debug/arcagate.exe` なので、`cargo build` で debug ビルドを更新してから実行する
 
 ---
 

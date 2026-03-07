@@ -46,6 +46,13 @@ export async function updateWidgetPosition(
 	});
 }
 
+export async function updateWidgetConfig(
+	id: string,
+	config: string | null,
+): Promise<WorkspaceWidget> {
+	return invoke<WorkspaceWidget>('cmd_update_widget_config', { id, config });
+}
+
 export async function removeWidget(id: string): Promise<void> {
 	return invoke<void>('cmd_remove_widget', { id });
 }

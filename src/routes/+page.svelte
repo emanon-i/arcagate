@@ -1,5 +1,13 @@
 <script lang="ts">
-import { Archive, EyeOff, LayoutDashboard, PanelLeft, Search, Settings2 } from '@lucide/svelte';
+import {
+	Archive,
+	Eye,
+	EyeOff,
+	LayoutDashboard,
+	PanelLeft,
+	Search,
+	Settings2,
+} from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { onDestroy } from 'svelte';
 import AppHeader from '$lib/components/arcagate/common/AppHeader.svelte';
@@ -13,6 +21,7 @@ import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { configStore } from '$lib/state/config.svelte';
+import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -26,12 +35,12 @@ let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
 let droppedPaths = $state<string[] | undefined>(undefined);
 let isDraggingOver = $state(false);
+let sidebarExpanded = $state(false);
 
 // 初期化
 $effect(() => {
 	void configStore.loadConfig();
 	void itemStore.loadItems();
-	void itemStore.loadCategories();
 	void itemStore.loadTags();
 	void itemStore.loadLibraryStats();
 });
@@ -117,7 +126,6 @@ function handleFormClose() {
 	open={showItemForm}
 	item={editingItem ?? undefined}
 	initialPaths={droppedPaths}
-	categories={itemStore.categories}
 	tags={itemStore.tags}
 	onSubmit={handleFormSubmit}
 	onClose={handleFormClose}
@@ -141,6 +149,11 @@ function handleFormClose() {
 	<TitleBar />
 	<!-- カスタムヘッダーバー -->
 	<AppHeader>
+		{#snippet leftSlot()}
+			{#if activeView === "library"}
+				<TitleAction icon={PanelLeft} label="Sidebar" onclick={() => (sidebarExpanded = !sidebarExpanded)} />
+			{/if}
+		{/snippet}
 		{#snippet centerSlot()}
 			<div class="flex items-center gap-2">
 				<TitleTab
@@ -160,8 +173,12 @@ function handleFormClose() {
 		{#snippet rightSlot()}
 			<TitleAction icon={Search} label="Palette" tone="accent" onclick={() => (paletteOpen = true)} />
 			{#if activeView === "library"}
-				<TitleAction icon={PanelLeft} label="Sidebar" />
-				<TitleAction icon={EyeOff} label="Hidden off" tone="warm" />
+				<TitleAction
+					icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
+					label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示中' : '非表示アイテム: 非表示'}
+					tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
+					onclick={() => hiddenStore.toggleDirect()}
+				/>
 			{:else}
 				<TitleAction icon={EyeOff} label="Safe mode" tone="warm" />
 			{/if}
@@ -174,6 +191,7 @@ function handleFormClose() {
 	<main class="min-h-0 flex-1 overflow-hidden">
 		{#if activeView === "library"}
 			<LibraryLayout
+				{sidebarExpanded}
 				onEditItem={(id) => {
 					editingItem = itemStore.items.find((i) => i.id === id) ?? null;
 					showItemForm = true;

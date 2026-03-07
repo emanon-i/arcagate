@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/tauri.js';
+import { createItem, deleteItem } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('レイアウト', () => {
@@ -22,12 +23,27 @@ test.describe('レイアウト', () => {
 
 	test('3カラムレイアウト（lg: 1280px）', async ({ page }) => {
 		await resizeWindow(page, 1280, 800);
-		await page.reload();
-		await page.waitForLoadState('domcontentloaded');
 
-		await expect(page.getByTestId('library-sidebar-wrapper')).toBeVisible();
-		await expect(page.getByTestId('library-main-wrapper')).toBeVisible();
-		await expect(page.getByTestId('library-detail-wrapper')).toBeVisible();
+		// detail-wrapper はアイテム選択時のみ表示されるので、アイテムを作成して選択する
+		const item = await createItem(page, {
+			item_type: 'exe',
+			label: '3カラムテスト',
+			target: 'C:\\test.exe',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+
+			await expect(page.getByTestId('library-sidebar-wrapper')).toBeVisible();
+			await expect(page.getByTestId('library-main-wrapper')).toBeVisible();
+
+			// カードをクリックして detail-wrapper を表示
+			await page.getByTestId(`library-card-${item.id}`).click();
+			await expect(page.getByTestId('library-detail-wrapper')).toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+		}
 	});
 
 	test('2カラムレイアウト（md: 900px）', async ({ page }) => {
@@ -103,5 +119,59 @@ test.describe('レイアウト', () => {
 		const box = await minimizeButton.boundingBox();
 		expect(box).toBeTruthy();
 		expect((box as { y: number }).y).toBeLessThan(28);
+	});
+
+	test('Sidebar ボタンでサイドバーが展開/折り畳みすること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+		await page.reload();
+		await page.waitForLoadState('domcontentloaded');
+
+		const sidebar = page.getByTestId('library-sidebar');
+		const sidebarButton = page.getByRole('button', { name: 'Sidebar' });
+
+		// 初期状態: サイドバーは折り畳み（アイコンのみ）
+		await expect(sidebar).toBeVisible();
+		await expect(sidebarButton).toBeVisible();
+		const collapsedBox = await sidebar.boundingBox();
+		expect(collapsedBox).toBeTruthy();
+		expect(collapsedBox?.width).toBeLessThan(60);
+
+		// クリックで展開（タグ名 + 件数表示）
+		await sidebarButton.click();
+		const expandedBox = await sidebar.boundingBox();
+		expect(expandedBox).toBeTruthy();
+		expect(expandedBox?.width).toBeGreaterThan(100);
+
+		// 再クリックで折り畳み
+		await sidebarButton.click();
+		const reCollapsedBox = await sidebar.boundingBox();
+		expect(reCollapsedBox).toBeTruthy();
+		expect(reCollapsedBox?.width).toBeLessThan(60);
+	});
+
+	test('アイテム作成でサイドバーにシステムタグアイコンが表示されること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		// exe タイプのアイテムを作成 → sys-type-exe タグが自動付与される
+		const item = await createItem(page, {
+			item_type: 'exe',
+			label: 'サイドバータグテスト',
+			target: 'C:\\test.exe',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+
+			const sidebar = page.getByTestId('library-sidebar');
+			await expect(sidebar).toBeVisible();
+
+			// 「すべて」ボタンが常にある
+			await expect(sidebar.getByRole('button', { name: 'すべて' })).toBeVisible();
+			// exe システムタグのボタンがある
+			await expect(sidebar.getByRole('button', { name: 'exe' })).toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+		}
 	});
 });

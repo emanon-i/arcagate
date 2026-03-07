@@ -39,6 +39,7 @@ function handleBlur() {
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <input
     type="text"
+    autocomplete="off"
     class="w-48 rounded-md border bg-background px-3 py-2 text-sm font-mono {recording
       ? 'border-primary ring-1 ring-primary'
       : ''}"

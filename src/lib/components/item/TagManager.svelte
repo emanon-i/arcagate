@@ -58,6 +58,7 @@ function handleCreate(e: Event) {
     <div class="flex gap-2">
       <input
         type="text"
+        autocomplete="off"
         class="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
         bind:value={newName}
         placeholder="タグ名"

@@ -185,7 +185,6 @@ struct UpdateItemJsonInput {
     icon_path: Option<String>,
     aliases: Option<Vec<String>>,
     is_enabled: Option<bool>,
-    category_ids: Option<Vec<String>>,
     tag_ids: Option<Vec<String>>,
 }
 
@@ -433,8 +432,8 @@ fn cmd_create(
         working_dir: None,
         icon_path: None,
         aliases: vec![],
-        category_ids: vec![],
         tag_ids: vec![],
+        is_tracked: true,
     };
 
     let item = item_service::create_item(db, input)?;
@@ -555,7 +554,8 @@ fn cmd_update(
         icon_path: parsed.icon_path,
         aliases: parsed.aliases,
         is_enabled: parsed.is_enabled,
-        category_ids: parsed.category_ids,
+        is_tracked: None,
+        default_app: None,
         tag_ids: parsed.tag_ids,
     };
 
@@ -784,7 +784,7 @@ fn describe_one(name: &str, json: bool) -> bool {
             ],
             "flags": [
                 {"name": "--json-input", "type": "string", "required": true,
-                 "description": "JSON with fields to update: {\"label\",\"target\",\"args\",\"working_dir\",\"icon_path\",\"aliases\",\"is_enabled\",\"category_ids\",\"tag_ids\"} (all optional)"},
+                 "description": "JSON with fields to update: {\"label\",\"target\",\"args\",\"working_dir\",\"icon_path\",\"aliases\",\"is_enabled\",\"tag_ids\"} (all optional)"},
                 {"name": "--dry-run", "description": "Validate only, don't update"},
                 {"name": "--json", "description": "Output as JSON"}
             ]

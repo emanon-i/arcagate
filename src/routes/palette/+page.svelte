@@ -12,7 +12,6 @@ let paletteOpen = $state(true);
 $effect(() => {
 	void themeStore.loadTheme();
 	void itemStore.loadItems();
-	void itemStore.loadCategories();
 	void itemStore.loadTags();
 });
 

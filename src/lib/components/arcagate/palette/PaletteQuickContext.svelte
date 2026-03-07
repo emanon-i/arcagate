@@ -1,14 +1,15 @@
 <script lang="ts">
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
-import { getItemCategories } from '$lib/ipc/items';
+import { getItemTags } from '$lib/ipc/items';
 import { getItemStats } from '$lib/ipc/launch';
 import { paletteStore } from '$lib/state/palette.svelte';
-import type { Category } from '$lib/types/category';
 import type { ItemStats } from '$lib/types/item';
+import type { Tag } from '$lib/types/tag';
 
-let categories = $state<Category[]>([]);
+let itemTags = $state<Tag[]>([]);
 let stats = $state<ItemStats | null>(null);
+let fetchSeq = 0;
 
 let selected = $derived(paletteStore.results[paletteStore.selectedIndex] ?? null);
 
@@ -16,18 +17,20 @@ $effect(() => {
 	const entry = selected;
 	if (entry?.kind === 'item') {
 		const itemId = entry.item.id;
-		categories = [];
+		const seq = ++fetchSeq;
+		itemTags = [];
 		stats = null;
 		void Promise.all([
-			getItemCategories(itemId).then((c) => {
-				categories = c;
+			getItemTags(itemId).then((t) => {
+				if (seq === fetchSeq) itemTags = t;
 			}),
 			getItemStats(itemId).then((s) => {
-				stats = s;
+				if (seq === fetchSeq) stats = s;
 			}),
 		]);
 	} else {
-		categories = [];
+		++fetchSeq;
+		itemTags = [];
 		stats = null;
 	}
 });
@@ -52,8 +55,8 @@ function formatRelativeTime(iso: string): string {
 		</div>
 
 		<div class="space-y-2 text-sm">
-			{#if categories.length > 0}
-				<DetailRow label="カテゴリ" value={categories.map((c) => c.name).join(', ')} />
+			{#if itemTags.length > 0}
+				<DetailRow label="タグ" value={itemTags.map((t) => t.name).join(', ')} />
 			{/if}
 			{#if selected.item.aliases.length > 0}
 				<DetailRow label="別名" value={selected.item.aliases.join(' / ')} />
