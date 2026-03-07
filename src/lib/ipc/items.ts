@@ -51,6 +51,10 @@ export async function createTag(input: CreateTagInput): Promise<Tag> {
 	return invoke<Tag>('cmd_create_tag', { input });
 }
 
+export async function checkIsDirectory(path: string): Promise<boolean> {
+	return invoke<boolean>('cmd_check_is_directory', { path });
+}
+
 export async function extractItemIcon(exePath: string): Promise<string | null> {
 	return invoke<string | null>('cmd_extract_item_icon', { exePath });
 }

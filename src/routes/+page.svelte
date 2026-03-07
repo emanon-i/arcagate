@@ -22,6 +22,8 @@ let activeView = $state<ActiveView>('library');
 let paletteOpen = $state(false);
 let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
+let droppedPaths = $state<string[] | undefined>(undefined);
+let isDraggingOver = $state(false);
 let toasts = $state<{ id: number; path: string }[]>([]);
 let nextToastId = 0;
 
@@ -47,6 +49,33 @@ listen('hotkey-triggered', () => {
 	unlisten = fn;
 });
 
+// D&D: Library タブ & フォーム未表示のときだけ ItemFormDialog を開く
+let unlistenDragDrop: (() => void) | null = null;
+listen<{ paths: string[] }>('tauri://drag-drop', (event) => {
+	isDraggingOver = false;
+	if (activeView === 'library' && !showItemForm && event.payload.paths?.length > 0) {
+		droppedPaths = event.payload.paths;
+		editingItem = null;
+		showItemForm = true;
+	}
+}).then((fn) => {
+	unlistenDragDrop = fn;
+});
+
+let unlistenDragOver: (() => void) | null = null;
+listen('tauri://drag-over', () => {
+	if (activeView === 'library' && !showItemForm) isDraggingOver = true;
+}).then((fn) => {
+	unlistenDragOver = fn;
+});
+
+let unlistenDragLeave: (() => void) | null = null;
+listen('tauri://drag-leave', () => {
+	isDraggingOver = false;
+}).then((fn) => {
+	unlistenDragLeave = fn;
+});
+
 // パス消失イベントリスナー
 let unlistenPathNotFound: (() => void) | null = null;
 listen<string>('item://path-not-found', (e) => {
@@ -61,6 +90,9 @@ listen<string>('item://path-not-found', (e) => {
 
 onDestroy(() => {
 	unlisten?.();
+	unlistenDragDrop?.();
+	unlistenDragOver?.();
+	unlistenDragLeave?.();
 	unlistenPathNotFound?.();
 });
 
@@ -72,11 +104,13 @@ function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
 	}
 	showItemForm = false;
 	editingItem = null;
+	droppedPaths = undefined;
 }
 
 function handleFormClose() {
 	showItemForm = false;
 	editingItem = null;
+	droppedPaths = undefined;
 }
 </script>
 
@@ -86,6 +120,7 @@ function handleFormClose() {
 <ItemFormDialog
 	open={showItemForm}
 	item={editingItem ?? undefined}
+	initialPaths={droppedPaths}
 	categories={itemStore.categories}
 	tags={itemStore.tags}
 	onSubmit={handleFormSubmit}
@@ -103,6 +138,16 @@ function handleFormClose() {
 				<p class="mt-1 truncate text-xs opacity-80">{toast.path}</p>
 			</div>
 		{/each}
+	</div>
+{/if}
+
+<!-- D&D オーバーレイ -->
+{#if isDraggingOver}
+	<div class="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/30">
+		<div class="rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-surface-1)]/90 px-8 py-6 text-center shadow-lg">
+			<p class="text-lg font-medium text-[var(--ag-text-primary)]">ここにドロップして登録</p>
+			<p class="mt-1 text-sm text-[var(--ag-text-muted)]">exe / url / folder / script</p>
+		</div>
 	</div>
 {/if}
 

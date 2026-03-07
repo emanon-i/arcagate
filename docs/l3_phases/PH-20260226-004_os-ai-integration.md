@@ -1,10 +1,19 @@
 ---
-status: draft
+status: frozen
 phase_id: PH-20260226-004
 title: OS統合・AI連携深化
 depends_on:
   - PH-20260226-003
+frozen_reason: >
+  PH-003-H で MCP 除去済みのため F-017 の前提が崩壊。
+  F-016（Shell Extension）は個人アプリに過剰。
+  タブ付きファイルブラウザは Arcagate の本質（ランチャー）から逸脱し画面余地もない。
+  REQ-012/013 は元々優先度「低」。必要性が再確認されるまで凍結。
+frozen_date: 2026-03-07
 ---
+
+> **FROZEN**: このフェーズは凍結されています。以下は凍結時点の記録として残しています。
+> MCP 関連の記述は PH-003-H での MCP 除去により無効です。
 
 # PH-20260226-004: OS統合・AI連携深化（M3/M4相当）
 

@@ -122,6 +122,11 @@ pub fn cmd_count_hidden_items(db: State<DbState>) -> Result<i64, AppError> {
 }
 
 #[tauri::command]
+pub fn cmd_check_is_directory(path: String) -> bool {
+    std::path::Path::new(&path).is_dir()
+}
+
+#[tauri::command]
 pub fn cmd_extract_item_icon(exe_path: String, output_path: String) -> Result<(), AppError> {
     item_service::extract_item_icon(&exe_path, &output_path)
 }

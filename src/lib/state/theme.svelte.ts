@@ -3,7 +3,7 @@ import type { Theme, ThemeMode } from '$lib/types/theme';
 
 let themes = $state<Theme[]>([]);
 let activeMode = $state<ThemeMode>('dark');
-let resolvedMode = $derived(resolveMode(activeMode));
+const resolvedMode = $derived(resolveMode(activeMode));
 let error = $state<string | null>(null);
 
 let systemMediaQuery: MediaQueryList | null = null;

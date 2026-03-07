@@ -7,6 +7,7 @@ import ItemForm from './ItemForm.svelte';
 let {
 	open,
 	item,
+	initialPaths,
 	categories,
 	tags,
 	onSubmit,
@@ -14,6 +15,7 @@ let {
 }: {
 	open: boolean;
 	item?: Item;
+	initialPaths?: string[];
 	categories: Category[];
 	tags: Tag[];
 	onSubmit: (input: CreateItemInput | UpdateItemInput) => void;
@@ -34,7 +36,7 @@ function handleSubmit(input: CreateItemInput | UpdateItemInput) {
   >
     <div class="bg-background w-full max-w-lg rounded-lg p-6 shadow-lg">
       <h2 class="mb-4 text-lg font-semibold">{item ? "アイテムを編集" : "アイテムを追加"}</h2>
-      <ItemForm {item} {categories} {tags} onSubmit={handleSubmit} onCancel={onClose} />
+      <ItemForm {item} {initialPaths} {categories} {tags} onSubmit={handleSubmit} onCancel={onClose} />
     </div>
   </div>
 {/if}

@@ -1,19 +1,23 @@
 <script lang="ts">
+import { untrack } from 'svelte';
 import { Button } from '$lib/components/ui/button';
-import { extractItemIcon } from '$lib/ipc/items';
+import { checkIsDirectory, extractItemIcon } from '$lib/ipc/items';
 import type { Category } from '$lib/types/category';
 import type { CreateItemInput, Item, ItemType, UpdateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
+import { detectType } from '$lib/utils/detect-type';
 import DropZone from './DropZone.svelte';
 
 let {
 	item,
+	initialPaths,
 	categories,
 	tags,
 	onSubmit,
 	onCancel,
 }: {
 	item?: Item;
+	initialPaths?: string[];
 	categories: Category[];
 	tags: Tag[];
 	onSubmit: (input: CreateItemInput | UpdateItemInput) => void;
@@ -31,6 +35,8 @@ let iconPath = $state('');
 let aliasesText = $state('');
 let selectedCategoryIds = $state<Set<string>>(new Set());
 let selectedTagIds = $state<Set<string>>(new Set());
+let userOverrideType = $state(false);
+let initialPathsProcessed = $state(false);
 
 // Sync form fields when the item prop changes (e.g. switching from create to edit)
 $effect(() => {
@@ -43,6 +49,26 @@ $effect(() => {
 	aliasesText = item?.aliases.join(', ') ?? '';
 	selectedCategoryIds = new Set();
 	selectedTagIds = new Set();
+	userOverrideType = false;
+	initialPathsProcessed = false;
+});
+
+// D&D 経由で initialPaths が渡されたら handleDrop を実行
+$effect(() => {
+	if (initialPaths && initialPaths.length > 0 && !initialPathsProcessed) {
+		initialPathsProcessed = true;
+		void handleDrop(initialPaths);
+	}
+});
+
+// ターゲット入力時の自動タイプ判定（新規作成時のみ）
+$effect(() => {
+	const currentTarget = target;
+	untrack(() => {
+		if (!userOverrideType && !item && currentTarget.trim()) {
+			itemType = detectType(currentTarget);
+		}
+	});
 });
 
 function handleSubmit(e: Event) {
@@ -100,17 +126,22 @@ function toggleTag(id: string) {
 	selectedTagIds = next;
 }
 
-function detectType(path: string): ItemType {
-	const lower = path.toLowerCase();
-	if (lower.endsWith('.exe')) return 'exe';
-	if (lower.endsWith('.ps1') || lower.endsWith('.bat') || lower.endsWith('.cmd')) return 'script';
-	return 'exe';
+function handleTypeChange(e: Event) {
+	const select = e.target as HTMLSelectElement;
+	itemType = select.value as ItemType;
+	userOverrideType = true;
 }
 
 async function handleDrop(paths: string[]) {
 	const path = paths[0];
 	if (!path) return;
-	const detected = detectType(path);
+	userOverrideType = false;
+	let detected = detectType(path);
+	// detectType が 'exe' を返した場合、実際にはディレクトリかもしれない
+	if (detected === 'exe') {
+		const isDir = await checkIsDirectory(path).catch(() => false);
+		if (isDir) detected = 'folder';
+	}
 	itemType = detected;
 	target = path;
 	if (!label) {
@@ -134,7 +165,8 @@ async function handleDrop(paths: string[]) {
     <select
       id="item-type"
       class="w-full rounded-md border bg-background px-3 py-2 text-sm"
-      bind:value={itemType}
+      value={itemType}
+      onchange={handleTypeChange}
       disabled={!!item}
     >
       {#each itemTypes as type}

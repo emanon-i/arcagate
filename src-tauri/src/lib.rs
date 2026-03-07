@@ -16,8 +16,8 @@ use commands::config_commands::{
 };
 use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::item_commands::{
-    cmd_count_hidden_items, cmd_create_category, cmd_create_item, cmd_create_tag,
-    cmd_delete_category, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon,
+    cmd_check_is_directory, cmd_count_hidden_items, cmd_create_category, cmd_create_item,
+    cmd_create_tag, cmd_delete_category, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon,
     cmd_get_categories, cmd_get_category_counts, cmd_get_item_categories, cmd_get_library_stats,
     cmd_get_tags, cmd_list_items, cmd_search_items, cmd_search_items_in_category,
     cmd_update_category, cmd_update_item, cmd_update_tag,
@@ -175,6 +175,7 @@ pub fn run() {
             cmd_create_tag,
             cmd_update_tag,
             cmd_delete_tag,
+            cmd_check_is_directory,
             cmd_extract_item_icon,
             cmd_launch_item,
             cmd_list_recent,
