@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/tauri.js';
-import { createItem, deleteItem, invoke } from '../helpers/ipc.js';
+import { createItem, deleteItem } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('ライブラリ詳細パネル', () => {
