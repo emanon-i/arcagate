@@ -1,5 +1,5 @@
 ---
-status: in_progress
+status: done
 phase_id: PH-003-G
 depends_on:
   - PH-003-F
