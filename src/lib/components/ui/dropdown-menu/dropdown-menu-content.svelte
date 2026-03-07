@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
-	import type DropdownMenuPortal from "./dropdown-menu-portal.svelte";
-	import type { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
+	import DropdownMenuPortal from "./dropdown-menu-portal.svelte";
+	import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
 	import type { ComponentProps } from "svelte";
 
 	let {
