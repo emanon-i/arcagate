@@ -25,6 +25,7 @@ function handleInput(e: Event) {
 			type="text"
 			class="flex-1 bg-transparent text-base text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
 			placeholder="検索..."
+			autocomplete="off"
 			bind:value={query}
 			oninput={handleInput}
 		/>

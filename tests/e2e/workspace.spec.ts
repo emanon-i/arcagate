@@ -30,6 +30,24 @@ test.describe('ワークスペース', () => {
 		}
 	});
 
+	test('Workspace タブに切り替えてもエラーなく表示されること', async ({ page }) => {
+		// コンソールエラーを監視
+		const errors: string[] = [];
+		page.on('pageerror', (err) => errors.push(err.message));
+
+		// Workspace タブに切り替え
+		await page.getByRole('button', { name: 'Workspace' }).click();
+		await page.waitForTimeout(500);
+
+		// エラーが出ていないことを確認
+		expect(errors).toHaveLength(0);
+
+		// Workspace ビューの何かしらの要素が表示されていること
+		// PageTabBar の「+」ボタンまたはワークスペース名が見える
+		const workspaceContent = page.locator('main');
+		await expect(workspaceContent).toBeVisible();
+	});
+
 	test('ウィジェットを追加するとワークスペースに表示されること', async ({ page }, testInfo) => {
 		// ワークスペースを作成
 		const workspace = await createWorkspace(page, 'ウィジェットテストWS');

@@ -139,18 +139,26 @@ async function loadTags(): Promise<void> {
 }
 
 async function loadLibraryStats(): Promise<void> {
+	loading = true;
+	error = null;
 	try {
 		libraryStats = await itemsIpc.getLibraryStats();
 	} catch (e) {
 		error = String(e);
+	} finally {
+		loading = false;
 	}
 }
 
 async function loadCategoryWithCounts(): Promise<void> {
+	loading = true;
+	error = null;
 	try {
 		categoryWithCounts = await itemsIpc.getCategoryWithCounts();
 	} catch (e) {
 		error = String(e);
+	} finally {
+		loading = false;
 	}
 }
 

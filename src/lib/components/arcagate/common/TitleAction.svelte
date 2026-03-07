@@ -22,9 +22,10 @@ let { icon: Icon, label, tone = 'default', onclick }: Props = $props();
 
 <button
 	type="button"
-	class="flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs transition {toneClasses[tone]}"
+	class="inline-flex items-center justify-center rounded-lg border p-1.5 transition {toneClasses[tone]}"
+	aria-label={label}
+	title={label}
 	{onclick}
 >
 	<Icon class="h-4 w-4" />
-	<span>{label}</span>
 </button>

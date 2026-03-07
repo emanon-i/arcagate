@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowRightLeft, Clock3 } from '@lucide/svelte';
+import { Clock3 } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
@@ -14,7 +14,7 @@ $effect(() => {
 });
 </script>
 
-<WidgetShell title="Recent launches" icon={Clock3} badge="{recentItems.length} items" source="Usage log from Library">
+<WidgetShell title="Recent launches" icon={Clock3}>
 	<div class="space-y-2">
 		{#each recentItems as item (item.id)}
 			<button

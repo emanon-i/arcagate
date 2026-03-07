@@ -3,8 +3,8 @@ import { Zap } from '@lucide/svelte';
 import { open as dialogOpen, save } from '@tauri-apps/plugin-dialog';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { exportJson, importJson } from '$lib/ipc/export';
-import { configStore } from '$lib/state/config.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
+import { themeStore } from '$lib/state/theme.svelte';
 
 interface QuickAction {
 	label: string;
@@ -27,7 +27,7 @@ async function handleImport() {
 }
 
 function handleThemeToggle() {
-	void configStore.setTheme(configStore.themeMode === 'dark' ? 'light' : 'dark');
+	void themeStore.setThemeMode(themeStore.activeMode === 'dark' ? 'light' : 'dark');
 }
 
 const actions: QuickAction[] = [
@@ -45,7 +45,7 @@ const actions: QuickAction[] = [
 ];
 </script>
 
-<WidgetShell title="Quick actions" icon={Zap} badge="Keyboard" source="Global actions">
+<WidgetShell title="Quick actions" icon={Zap}>
 	<div class="grid grid-cols-2 gap-2 text-sm">
 		{#each actions as action}
 			<button

@@ -14,7 +14,7 @@ $effect(() => {
 });
 </script>
 
-<WidgetShell title="Favorites" icon={Star} badge="Pinned {favorites.length}" source="Linked from Library">
+<WidgetShell title="Favorites" icon={Star}>
 	<div class="space-y-2">
 		{#each favorites as item (item.id)}
 			<button

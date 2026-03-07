@@ -1,15 +1,7 @@
 <script lang="ts">
-import {
-	Calculator,
-	Clipboard,
-	Cpu,
-	FolderOpen,
-	Gamepad2,
-	Globe,
-	TerminalSquare,
-} from '@lucide/svelte';
+import { Calculator, Clipboard } from '@lucide/svelte';
 import type { Component } from 'svelte';
-import type { ItemType } from '$lib/types/item';
+import { typeAccentMap, typeIconMap } from '$lib/constants/item-type';
 import type { PaletteEntry } from '$lib/types/palette';
 
 interface Props {
@@ -20,22 +12,6 @@ interface Props {
 }
 
 let { entry, active = false, index = 0, onclick }: Props = $props();
-
-const typeIconMap: Record<ItemType, Component> = {
-	exe: Gamepad2,
-	url: Globe,
-	script: TerminalSquare,
-	folder: FolderOpen,
-	command: Cpu,
-};
-
-const typeAccentMap: Record<ItemType, string> = {
-	exe: 'from-violet-500/30 to-fuchsia-500/20',
-	url: 'from-emerald-500/30 to-teal-500/20',
-	script: 'from-cyan-500/30 to-sky-500/20',
-	folder: 'from-amber-500/30 to-orange-500/20',
-	command: 'from-pink-500/30 to-rose-500/20',
-};
 
 function getDisplay(e: PaletteEntry): {
 	icon: Component;

@@ -1,36 +1,23 @@
 <script lang="ts">
 import { MoreHorizontal } from '@lucide/svelte';
-import type { Item, ItemType } from '$lib/types/item';
+import { artMap, typeLabel } from '$lib/constants/item-type';
+import type { Item } from '$lib/types/item';
 
 interface Props {
 	item: Item;
 	onclick?: () => void;
+	ondblclick?: () => void;
 }
 
-let { item, onclick }: Props = $props();
-
-const artMap: Record<ItemType, string> = {
-	exe: 'from-violet-600 via-fuchsia-600 to-indigo-700',
-	url: 'from-emerald-500 via-teal-500 to-cyan-700',
-	script: 'from-cyan-500 via-sky-500 to-blue-700',
-	folder: 'from-amber-500 via-orange-500 to-yellow-700',
-	command: 'from-pink-500 via-rose-500 to-fuchsia-700',
-};
-
-const typeLabel: Record<ItemType, string> = {
-	exe: 'Executable',
-	url: 'URL',
-	script: 'Script',
-	folder: 'Folder',
-	command: 'Command',
-};
+let { item, onclick, ondblclick }: Props = $props();
 </script>
 
 <button
 	type="button"
-	class="w-full overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-left"
+	class="w-full overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-left transition-opacity {item.is_enabled ? '' : 'opacity-40 grayscale'}"
 	data-testid="library-card-{item.id}"
 	{onclick}
+	{ondblclick}
 >
 	<div class="relative h-28 bg-gradient-to-br {artMap[item.item_type]}">
 		<div

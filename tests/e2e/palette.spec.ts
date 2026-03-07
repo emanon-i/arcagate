@@ -4,7 +4,7 @@ import { createItem, deleteItem } from '../helpers/ipc.js';
 test.describe('コマンドパレット', () => {
 	test('パレットが開閉できること', async ({ page }) => {
 		// "Palette" ボタンでパレットを開く
-		await page.getByText('Palette').click();
+		await page.getByRole('button', { name: 'Palette' }).click();
 
 		// パレットダイアログが表示されることを確認
 		const dialog = page.locator('[role="dialog"]');
@@ -29,7 +29,7 @@ test.describe('コマンドパレット', () => {
 
 		try {
 			// パレットを開く
-			await page.getByText('Palette').click();
+			await page.getByRole('button', { name: 'Palette' }).click();
 
 			// 検索クエリを入力
 			await page.getByRole('textbox').first().fill('パレット検索テスト');
@@ -54,7 +54,7 @@ test.describe('コマンドパレット', () => {
 
 	test('= 1+2*3 で電卓結果が表示されること', async ({ page }) => {
 		// パレットを開く
-		await page.getByText('Palette').click();
+		await page.getByRole('button', { name: 'Palette' }).click();
 
 		// 計算式を入力
 		await page.getByRole('textbox').first().fill('= 1+2*3');
@@ -84,7 +84,7 @@ test.describe('コマンドパレット', () => {
 
 		try {
 			// パレットを開く
-			await page.getByText('Palette').click();
+			await page.getByRole('button', { name: 'Palette' }).click();
 
 			// 検索クエリを入力
 			await page.getByRole('textbox').first().fill('ナビゲーションテスト');

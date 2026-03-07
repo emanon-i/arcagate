@@ -95,6 +95,14 @@ export async function deleteWorkspace(page: Page, id: string): Promise<void> {
 	return invoke<void>(page, 'cmd_delete_workspace', { id });
 }
 
+export async function updateItem(
+	page: Page,
+	id: string,
+	input: { is_enabled?: boolean; label?: string; target?: string },
+): Promise<Item> {
+	return invoke<Item>(page, 'cmd_update_item', { id, input });
+}
+
 export async function isSetupComplete(page: Page): Promise<boolean> {
 	return invoke<boolean>(page, 'cmd_is_setup_complete');
 }

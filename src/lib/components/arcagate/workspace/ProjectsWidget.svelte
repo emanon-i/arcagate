@@ -14,12 +14,7 @@ $effect(() => {
 });
 </script>
 
-<WidgetShell
-	title="Projects & Git status"
-	icon={GitBranch}
-	badge="{folderItems.length} folders"
-	source="Project shortcuts"
->
+<WidgetShell title="Projects & Git status" icon={GitBranch}>
 	<div class="grid gap-3 md:grid-cols-3">
 		{#each folderItems as item (item.id)}
 			<button

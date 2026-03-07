@@ -8,7 +8,7 @@ $effect(() => {
 });
 </script>
 
-<WidgetShell title="Visibility" icon={Lock} badge="Privacy" source="Workspace-only controls">
+<WidgetShell title="Visibility" icon={Lock}>
 	<div class="space-y-3 text-sm text-[var(--ag-text-secondary)]">
 		<div class="flex items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5">
 			<span>非表示アイテム</span>

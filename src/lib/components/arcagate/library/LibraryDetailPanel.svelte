@@ -1,38 +1,22 @@
 <script lang="ts">
-import { Pin, Play, Settings2, Trash2 } from '@lucide/svelte';
+import { Play, Settings2, Trash2, X } from '@lucide/svelte';
 import ActionButton from '$lib/components/arcagate/common/ActionButton.svelte';
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
-import Tip from '$lib/components/arcagate/common/Tip.svelte';
+import { artMap, typeLabel } from '$lib/constants/item-type';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
-import type { ItemType } from '$lib/types/item';
 import SensitiveControl from './SensitiveControl.svelte';
 
 interface Props {
 	selectedItemId: string | null;
 	onEditItem?: (id: string) => void;
+	onClose?: () => void;
 }
 
-let { selectedItemId, onEditItem }: Props = $props();
+let { selectedItemId, onEditItem, onClose }: Props = $props();
 
 let selectedItem = $derived(itemStore.items.find((i) => i.id === selectedItemId) ?? null);
-
-const artMap: Record<ItemType, string> = {
-	exe: 'from-violet-600 via-fuchsia-600 to-indigo-700',
-	url: 'from-emerald-500 via-teal-500 to-cyan-700',
-	script: 'from-cyan-500 via-sky-500 to-blue-700',
-	folder: 'from-amber-500 via-orange-500 to-yellow-700',
-	command: 'from-pink-500 via-rose-500 to-fuchsia-700',
-};
-
-const typeLabel: Record<ItemType, string> = {
-	exe: 'Executable',
-	url: 'URL',
-	script: 'Script',
-	folder: 'Folder',
-	command: 'Command',
-};
 
 function handleLaunch() {
 	if (selectedItem) {
@@ -85,15 +69,12 @@ let moreMenuItems = $derived.by(() => {
 });
 </script>
 
-<aside class="border-l border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-5">
+<aside class="h-full border-l border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-5" data-testid="library-detail-panel">
 	{#if selectedItem}
 		<!-- Header -->
 		<div class="mb-4 flex items-center justify-between">
-			<div>
-				<div class="text-xs uppercase tracking-[0.18em] text-[var(--ag-text-faint)]">
-					Selected item
-				</div>
-				<div class="mt-1 text-lg font-semibold text-[var(--ag-text-primary)]">
+			<div class="min-w-0 flex-1">
+				<div class="mt-1 truncate text-lg font-semibold text-[var(--ag-text-primary)]">
 					{selectedItem.label}
 				</div>
 			</div>
@@ -104,6 +85,14 @@ let moreMenuItems = $derived.by(() => {
 					{typeLabel[selectedItem.item_type]}
 				</span>
 				<MoreMenu items={moreMenuItems} ariaLabel="アイテム操作メニュー" />
+				<button
+					type="button"
+					class="rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)]"
+					aria-label="パネルを閉じる"
+					onclick={() => onClose?.()}
+				>
+					<X class="h-4 w-4" />
+				</button>
 			</div>
 		</div>
 
@@ -135,18 +124,10 @@ let moreMenuItems = $derived.by(() => {
 		</div>
 
 		<!-- Action buttons -->
-		<div class="mt-4 grid grid-cols-2 gap-2">
+		<div class="mt-4 grid grid-cols-3 gap-2">
 			<ActionButton icon={Play} label="起動" onclick={handleLaunch} />
-			<ActionButton icon={Pin} label="Workspaceに追加" />
 			<ActionButton icon={Settings2} label="編集" onclick={() => onEditItem?.(selectedItem!.id)} />
 			<ActionButton icon={Trash2} label="削除" onclick={handleDelete} data-testid="delete-item-button" />
-		</div>
-
-		<!-- Tip -->
-		<div class="mt-4">
-			<Tip tipId="library-detail-workspace-tip">
-				Workspace に追加しても複製は作られません。編集は Library 側で行います。
-			</Tip>
 		</div>
 
 		<!-- Sensitive control -->

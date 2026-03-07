@@ -55,6 +55,7 @@
 		"vitest": "^4.0.18"
 	},
 	"dependencies": {
-		"@formkit/drag-and-drop": "^0.5.3"
+		"@formkit/drag-and-drop": "^0.5.3",
+		"@tauri-apps/plugin-fs": "^2.4.5"
 	}
 }

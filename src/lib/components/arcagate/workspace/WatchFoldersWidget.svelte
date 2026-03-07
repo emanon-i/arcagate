@@ -13,7 +13,7 @@ $effect(() => {
 });
 </script>
 
-<WidgetShell title="Watch folders" icon={FolderOpen} badge="{watchFolders.length} tracked" source="Feeds Library auto-registration">
+<WidgetShell title="Watch folders" icon={FolderOpen}>
 	<div class="grid gap-3 md:grid-cols-2">
 		{#each watchFolders as wp (wp.id)}
 			<div

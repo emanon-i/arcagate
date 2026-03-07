@@ -1,6 +1,6 @@
 <script lang="ts">
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
-import { configStore } from '$lib/state/config.svelte';
+import { themeStore } from '$lib/state/theme.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 
 interface Props {
@@ -9,10 +9,35 @@ interface Props {
 
 let { onSelectWorkspace }: Props = $props();
 
-function handleAddPage() {
-	const name = prompt('ワークスペース名を入力:');
-	if (name?.trim()) {
-		void workspaceStore.createWorkspace(name.trim());
+let isAdding = $state(false);
+let newName = $state('');
+
+function startAdd() {
+	isAdding = true;
+	newName = '';
+}
+
+function commitAdd() {
+	const name = newName.trim();
+	if (name) {
+		void workspaceStore.createWorkspace(name);
+	}
+	isAdding = false;
+	newName = '';
+}
+
+function cancelAdd() {
+	isAdding = false;
+	newName = '';
+}
+
+function handleKeydown(e: KeyboardEvent) {
+	if (e.key === 'Enter') {
+		e.preventDefault();
+		commitAdd();
+	} else if (e.key === 'Escape') {
+		e.preventDefault();
+		cancelAdd();
 	}
 }
 </script>
@@ -28,21 +53,34 @@ function handleAddPage() {
 				{ws.name}
 			</Chip>
 		{/each}
-		<button
-			type="button"
-			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)]"
-			onclick={handleAddPage}
-		>
-			+ Add page
-		</button>
+		{#if isAdding}
+			<!-- svelte-ignore a11y_autofocus -->
+			<input
+				type="text"
+				class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-surface-3)] px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
+				placeholder="名前"
+				autocomplete="off"
+				bind:value={newName}
+				onkeydown={handleKeydown}
+				onblur={commitAdd}
+				autofocus
+			/>
+		{:else}
+			<button
+				type="button"
+				class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)]"
+				onclick={startAdd}
+			>
+				+ Add page
+			</button>
+		{/if}
 	</div>
 	<div class="flex flex-wrap gap-2">
-		<Chip tone={configStore.themeMode === "dark" ? "accent" : "default"} onclick={() => void configStore.setTheme('dark')}>
+		<Chip tone={themeStore.activeMode === "dark" ? "accent" : "default"} onclick={() => void themeStore.setThemeMode('dark')}>
 			Dark
 		</Chip>
-		<Chip tone={configStore.themeMode === "light" ? "accent" : "default"} onclick={() => void configStore.setTheme('light')}>
+		<Chip tone={themeStore.activeMode === "light" ? "accent" : "default"} onclick={() => void themeStore.setThemeMode('light')}>
 			Light
 		</Chip>
-		<Chip>Theme settings</Chip>
 	</div>
 </div>
