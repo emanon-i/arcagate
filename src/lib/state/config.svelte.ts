@@ -3,7 +3,6 @@ import * as configIpc from '$lib/ipc/config';
 let hotkey = $state('CmdOrCtrl+Space');
 let autostart = $state(false);
 let setupComplete = $state(false);
-let themeMode = $state<'dark' | 'light'>('dark');
 let loading = $state(false);
 let error = $state<string | null>(null);
 
@@ -49,38 +48,6 @@ async function saveAutostart(enabled: boolean): Promise<void> {
 	}
 }
 
-async function loadTheme(): Promise<void> {
-	try {
-		const saved = await configIpc.getConfig('theme_mode');
-		if (saved === 'light' || saved === 'dark') {
-			themeMode = saved;
-		}
-		applyThemeClass();
-	} catch (e) {
-		error = String(e);
-	}
-}
-
-async function setTheme(mode: 'dark' | 'light'): Promise<void> {
-	themeMode = mode;
-	applyThemeClass();
-	try {
-		await configIpc.setConfig('theme_mode', mode);
-	} catch (e) {
-		error = String(e);
-	}
-}
-
-function applyThemeClass(): void {
-	if (typeof document !== 'undefined') {
-		if (themeMode === 'dark') {
-			document.documentElement.classList.add('dark');
-		} else {
-			document.documentElement.classList.remove('dark');
-		}
-	}
-}
-
 async function completeSetup(): Promise<void> {
 	loading = true;
 	error = null;
@@ -104,9 +71,6 @@ export const configStore = {
 	get setupComplete() {
 		return setupComplete;
 	},
-	get themeMode() {
-		return themeMode;
-	},
 	get loading() {
 		return loading;
 	},
@@ -117,6 +81,4 @@ export const configStore = {
 	saveHotkey,
 	saveAutostart,
 	completeSetup,
-	loadTheme,
-	setTheme,
 };

@@ -26,6 +26,11 @@ use commands::item_commands::{
 use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
 };
+use commands::theme_commands::{
+    cmd_create_theme, cmd_delete_theme, cmd_export_theme_json, cmd_get_active_theme_mode,
+    cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
+    cmd_update_theme,
+};
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
@@ -206,6 +211,15 @@ pub fn run() {
             cmd_count_hidden_items,
             cmd_get_item_categories,
             cmd_get_item_stats,
+            cmd_list_themes,
+            cmd_get_theme,
+            cmd_create_theme,
+            cmd_update_theme,
+            cmd_delete_theme,
+            cmd_get_active_theme_mode,
+            cmd_set_active_theme_mode,
+            cmd_export_theme_json,
+            cmd_import_theme_json,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
