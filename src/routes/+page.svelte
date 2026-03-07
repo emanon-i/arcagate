@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { onDestroy } from 'svelte';
 import AppHeader from '$lib/components/arcagate/common/AppHeader.svelte';
 import TitleAction from '$lib/components/arcagate/common/TitleAction.svelte';
+import TitleBar from '$lib/components/arcagate/common/TitleBar.svelte';
 import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
 import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte';
 import PaletteOverlay from '$lib/components/arcagate/palette/PaletteOverlay.svelte';
@@ -12,6 +13,7 @@ import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { themeStore } from '$lib/state/theme.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
 type ActiveView = 'library' | 'workspace';
@@ -29,11 +31,12 @@ $effect(() => {
 	void itemStore.loadItems();
 	void itemStore.loadCategories();
 	void itemStore.loadTags();
+	void itemStore.loadLibraryStats();
 });
 
-// テーマ初期化（configStore から読み込み）
+// テーマ初期化（themeStore から読み込み）
 $effect(() => {
-	void configStore.loadTheme();
+	void themeStore.loadTheme();
 });
 
 // ホットキーイベントリスナー
@@ -105,13 +108,9 @@ function handleFormClose() {
 
 <!-- メインレイアウト -->
 <div class="flex h-screen flex-col bg-[var(--ag-surface-0)]">
+	<TitleBar />
 	<!-- カスタムヘッダーバー -->
-	<AppHeader
-		title={activeView === "library" ? "Library & Item Registry" : "Workspace Dashboard"}
-		subtitle={activeView === "library"
-			? "Source of truth for all registered items"
-			: "Curated views built from Library items"}
-	>
+	<AppHeader>
 		{#snippet centerSlot()}
 			<div class="flex items-center gap-2">
 				<TitleTab
@@ -142,7 +141,7 @@ function handleFormClose() {
 	</AppHeader>
 
 	<!-- メインコンテンツ -->
-	<main class="flex-1 overflow-auto">
+	<main class="min-h-0 flex-1 overflow-hidden">
 		{#if activeView === "library"}
 			<LibraryLayout
 				onEditItem={(id) => {

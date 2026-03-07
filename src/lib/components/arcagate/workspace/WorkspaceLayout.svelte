@@ -49,7 +49,7 @@ const widgetComponents = {
 } as const;
 </script>
 
-<div class="min-h-[780px] bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-page)_100%)] p-5">
+<div class="bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-page)_100%)] p-5">
 	<div class="mb-5 flex items-center gap-2">
 		<div class="flex-1">
 			<PageTabBar onSelectWorkspace={handleSelectWorkspace} />

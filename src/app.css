@@ -119,5 +119,31 @@
   }
   body {
     @apply bg-background text-foreground;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* テキスト入力フィールドは選択可能にする */
+  input, textarea, [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  /* テキスト入力の予測候補を無効化 */
+  input:not([type="password"]), textarea {
+    autocomplete: off;
+  }
+  /* カスタムスクロールバー */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--ag-border, oklch(1 0 0 / 10%));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ag-text-faint, oklch(1 0 0 / 20%));
   }
 }

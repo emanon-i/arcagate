@@ -70,7 +70,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 		<!-- Palette card -->
 		<div
-			class="relative mx-auto mt-[10vh] max-w-5xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/92 shadow-[0_40px_120px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+			class="relative mx-auto mt-[5vh] max-w-5xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/92 shadow-[0_40px_120px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:mt-[10vh]"
 		>
 			<!-- Radial gradient overlay -->
 			<div
@@ -91,7 +91,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 			<!-- Content area -->
 			<div
-				class="relative overflow-hidden bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-1)_100%)] p-8"
+				class="relative overflow-hidden bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-1)_100%)] p-4 md:p-8"
 			>
 				<!-- Inner gradient -->
 				<div

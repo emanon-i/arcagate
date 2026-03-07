@@ -2,7 +2,6 @@
 import { Cpu, FolderOpen, Gamepad2, Globe, LayoutDashboard, TerminalSquare } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import SidebarRow from '$lib/components/arcagate/common/SidebarRow.svelte';
-import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import QuickRegisterDropZone from './QuickRegisterDropZone.svelte';
 
@@ -26,28 +25,9 @@ $effect(() => {
 });
 </script>
 
-<aside class="border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4">
-	<!-- Profile box -->
-	<div
-		class="mb-4 flex items-center gap-3 rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-3"
-	>
-		<div
-			class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 font-semibold text-white"
-		>
-			A
-		</div>
-		<div>
-			<div class="text-sm font-semibold text-[var(--ag-text-primary)]">Items</div>
-			<div class="text-xs text-[var(--ag-text-muted)]">Registry</div>
-		</div>
-	</div>
-
-	<Tip tone="accent" tipId="library-sidebar-intro">
-		ここでアイテムを登録・整理します。Workspace にはよく使うものを配置できます。
-	</Tip>
-
+<aside class="h-full border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4" data-testid="library-sidebar">
 	<!-- Category list -->
-	<div class="mt-4 space-y-1.5">
+	<div class="space-y-1.5">
 		<SidebarRow
 			icon={LayoutDashboard}
 			label="すべて"
