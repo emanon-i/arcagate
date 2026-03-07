@@ -85,6 +85,10 @@
 - `@tauri-apps/api` はデフォルトで package.json に含まれない → `pnpm add -D @tauri-apps/api` で追加
 - Playwright のブラウザコンテキストでは Tauri IPC が使えない（`invoke` が TypeError）。IPC 検証は Tauri ネイティブウィンドウで行う
 - `@tauri-apps/api/event` の `listen()` は `addInitScript` でモックできない（`transformCallback` を内部で呼ぶ）。ブラウザ mock は不可と割り切り、「コードレビュー + vitest」で代替検証する
+- **capabilities 権限不足**: `core:default` にはウィンドウ操作権限が含まれない。カスタムタイトルバーでは `core:window:allow-minimize`, `core:window:allow-toggle-maximize`, `core:window:allow-close`, `core:window:allow-start-dragging`, `core:window:allow-is-maximized` を明示追加する
+- **`getCurrentWindow()` の SSR 問題**: モジュールスコープで呼ぶと SSR 時にクラッシュする。`onMount` 内で動的 import して呼ぶこと: `const { getCurrentWindow } = await import('@tauri-apps/api/window')`
+- **`plugin:window|set_size` の値シリアライズ**: Rust 側は tagged enum `{ "Logical": { "width": w, "height": h } }` を期待する。JS API の `{ type: "Logical", data: { ... } }` 形式は使えない
+- **`page.evaluate` 内で bare module specifier は不可**: `@tauri-apps/api/window` 等の動的 import はブラウザコンテキストで解決できない。`__TAURI_INTERNALS__.invoke('plugin:window|set_size', ...)` を直接呼ぶ
 
 ---
 
@@ -104,6 +108,16 @@
 
 - **DEFAULT バグ**: INSERT SQL に `created_at` / `updated_at` を列挙すると、スキーマの `DEFAULT (strftime(...))` が無効になりエポック値（`"created_at": "1970-01-01T00:00:00Z"`）が入る。列リストから除外して DB DEFAULT に委ねる
 - **N+1**: insert 後に `find_all()` で全件取得して id 検索するのは N+1。`find_by_id()` を追加して直接1件取得に変える
+
+---
+
+## shadcn-svelte CLI の `import type` バグ
+
+- **症状**: shadcn-svelte CLI が生成する `.svelte` ファイルで `import type { X } from "bits-ui"` としているが、テンプレート内で `<X.Root>` 等のランタイム値として使用。`import type` はコンパイル時に除去されるため svelte-check エラー + 実行時クラッシュ
+- **影響範囲**: `src/lib/components/ui/` の DropdownMenu (15), Tooltip (5), ScrollArea (2), Separator (1) = 計23ファイル。加えてローカル `.svelte` の type import（DropdownMenuPortal, TooltipPortal）も同様
+- **修正方法**: `import type { X as XPrimitive } from "bits-ui"` → `import { X as XPrimitive } from "bits-ui"` に一括置換。`import type { ComponentProps } from "svelte"` 等の真の型インポートは変更しない
+- **再発防止**: `npx shadcn-svelte@latest add` でコンポーネント追加時は、生成後に `npx svelte-check` で型エラーがないか確認する。同パターンが出たら同じ修正を適用
+- **参照**: PH-003-G (`docs/l3_phases/PH-20260226-003_power-user-expansion/PH-003-G_shadcn-import-fix.md`)
 
 ---
 
@@ -152,9 +166,40 @@
 
 ---
 
+## デスクトップアプリ UX（実機フィードバック PH-003-F5）
+
+- **情報密度**: ラベル・サブタイトル・バッジ・説明文が多すぎると逆に使いにくい。「ユーザーの操作を助けるか？なくても困らないか？」を自問する
+- **操作ステップ**: ランチャーアプリは2クリック以内で起動が原則。ダブルクリック起動を標準装備する
+- **パネル/モーダル**: 閉じるボタン + Esc 対応を必ず付ける
+- **無効状態の視覚化**: `is_enabled=false` は `opacity-40 grayscale` で明示する
+- **flex/grid の h-full 伝播**: 親が `overflow-hidden` + `min-h-0` でないと子に高さが伝わらない。`overflow-auto` は各パネル個別に付ける
+- **CSS Grid の `grid-template-rows` 未指定**: デフォルトは `auto`（コンテンツ高さに縮む）。フルハイトが必要なら `grid-rows-[1fr]` を明示する。グリッド子要素にも `min-h-0` が必要（デフォルトの `min-height: auto` が overflow を阻害する）
+- **デスクトップ標準**: `user-select: none`（入力欄は除外）、`autocomplete="off"`、カスタムスクロールバーをデフォルトにする
+- **prompt() 廃止**: デスクトップアプリで `prompt()` は UX 品質を下げる。インライン入力に置き換える
+
+---
+
 ## 開発ワークフロー全般
 
 - **コンポーネント組み込み忘れ**: 作っても親に組み込まないと動かない。サブエージェント並列生成後は「繋ぎ忘れ」が起きやすい → 統合確認を必須ステップにする
 - **動作確認の基準**: アプリを実際に起動して操作するまで完了とみなさない。副作用を持つコマンド（`run` など）も必ず実行して確認する
 - **検証アーティファクト**: スクリーンショットは `tmp/screenshots/`（`.gitignore` 済み）に保存
 - **`/simplify` の適用スコープ**: git diff 対象だけでなく全実装ファイルへの適用も有効。発見パターン: デッドコード・N+1・不要 Vec・重複 try-catch・タイムスタンプバグ
+
+---
+
+## biome 2.x の override で `linter.enabled: false` が効かない
+
+biome 2.4.4 で `overrides[].linter.enabled: false` を設定しても lint が実行される（formatter/assist の `enabled: false` は正常動作）。回避策: `linter.rules.recommended: false` を併用する。
+
+```json
+{
+  "includes": ["src/lib/components/ui/**"],
+  "linter": {
+    "enabled": false,
+    "rules": { "recommended": false }
+  },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false }
+}
+```
