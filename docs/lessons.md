@@ -130,13 +130,16 @@
 
 ---
 
-## MCP サーバー（stdio JSON-RPC 2.0）
+## Agent-first CLI 設計判断
 
-- **stdout 専用原則**: `stdout` は JSON-RPC メッセージ専用。`println!` を1行でも混入するとクライアントが壊れる。ログは `eprintln!` のみ
-- **エラーコード**: 引数不足は `-32602`（Invalid params）、権限・業務エラーは `-32000` で統一
-- **`notifications/initialized`**: レスポンスを返さない（`None` を返す設計）
-- **Claude Code への登録**: `~/.claude.json` の `mcpServers` に追加後、Claude Code の**再起動が必要**（起動時のみ読み込み）。`/mcp` コマンドで接続確認
-- **パーミッション境界テスト**: 実プロセス起動を伴うテスト（`launch` など）は「Permission denied でないこと」を確認する設計にする。境界テストと業務ロジックテストは分ける
+- **MCP 除去**: 7 tools の stdio JSON-RPC 2.0 サーバーを除去（約800行）。CLI + Skill ファイルで代替
+- **判断理由**: Claude Code のみで使用、Claude Desktop は不使用。7操作の個人アプリに JSON-RPC は過剰。CLI で Human DX + Agent DX を両立
+- **`--json-input`**: `create` コマンドに JSON 入力パスを用意。エージェントはフラットな引数より JSON を好む
+- **`describe`**: スキーマ内省コマンド。エージェントが実行時に CLI を自己学習できる
+- **`--dry-run`**: `create` と `run` に追加。破壊的操作の事前検証
+- **入力ハードニング**: パス検証（`..` トラバーサル拒否）、制御文字拒否（ASCII 0x00-0x1F）
+- **Skill ファイル**: `.claude/skills/arcagate.md` で `--help` より安定したエージェント誘導
+- **参考**: ["You Need to Rewrite Your CLI for AI Agents"](https://justin.poehnelt.com/posts/rewrite-your-cli-for-ai-agents/)
 
 ---
 
@@ -144,8 +147,6 @@
 
 - `bash scripts/smoke-test.sh` で呼び出す（Windows 上でも `bash` が PATH にあれば動く）
 - `cargo run` ではなく `target/debug/arcagate_cli(.exe)` を直接参照する（再コンパイル回避 + Windows exe ロック問題回避）
-- `call_tool` の戻り値は `[{"type": "text", "text": "..."}]` 形式。内部 JSON はエスケープ済み → grep は `'value'` のように quotes なしで行う
-- UUID 抽出: `grep -o '[0-9a-f]\{8\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{12\}'`
 
 ---
 

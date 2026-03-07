@@ -7,6 +7,7 @@ const MIGRATION_003: &str = include_str!("../../migrations/003_watched_paths.sql
 const MIGRATION_004: &str = include_str!("../../migrations/004_workspaces.sql");
 const MIGRATION_005: &str = include_str!("../../migrations/005_mcp_workspace_permissions.sql");
 const MIGRATION_006: &str = include_str!("../../migrations/006_themes.sql");
+const MIGRATION_007: &str = include_str!("../../migrations/007_drop_mcp_permissions.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -16,6 +17,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_004),
         M::up(MIGRATION_005),
         M::up(MIGRATION_006),
+        M::up(MIGRATION_007),
     ])
 }
 
@@ -56,7 +58,7 @@ mod tests {
         assert!(tables.contains(&"config".to_string()));
         assert!(tables.contains(&"item_categories".to_string()));
         assert!(tables.contains(&"item_tags".to_string()));
-        assert!(tables.contains(&"mcp_permissions".to_string()));
+        assert!(!tables.contains(&"mcp_permissions".to_string()));
         assert!(tables.contains(&"watched_paths".to_string()));
         assert!(tables.contains(&"workspaces".to_string()));
         assert!(tables.contains(&"workspace_widgets".to_string()));

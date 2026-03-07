@@ -47,7 +47,7 @@ PC上に散在する起動元を一箇所に集約する個人用コマンドパ
 ### 設計方針・依存ルール
 
 - レイヤー依存は一方向: `commands/` → `services/` → `repositories/` → DB。逆方向禁止
-- Service Layer が全エントリーポイント（UI / CLI / MCP）の共通経路。Repository を直接呼ばない
+- Service Layer が全エントリーポイント（UI / CLI）の共通経路。Repository を直接呼ばない
 - Repository 間の相互参照禁止。複数 Repository の結合は Service で行う
 
 ### やってはいけないこと

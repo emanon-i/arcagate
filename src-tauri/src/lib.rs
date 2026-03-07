@@ -1,7 +1,6 @@
 mod commands;
 pub mod db;
 mod launcher;
-pub mod mcp;
 pub mod models;
 #[allow(dead_code)]
 mod plugin_api;
