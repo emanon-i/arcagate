@@ -111,7 +111,7 @@
 - **影響範囲**: `src/lib/components/ui/` の DropdownMenu (15), Tooltip (5), ScrollArea (2), Separator (1) = 計23ファイル。加えてローカル `.svelte` の type import（DropdownMenuPortal, TooltipPortal）も同様
 - **修正方法**: `import type { X as XPrimitive } from "bits-ui"` → `import { X as XPrimitive } from "bits-ui"` に一括置換。`import type { ComponentProps } from "svelte"` 等の真の型インポートは変更しない
 - **再発防止**: `npx shadcn-svelte@latest add` でコンポーネント追加時は、生成後に `npx svelte-check` で型エラーがないか確認する。同パターンが出たら同じ修正を適用
-- **参照**: PH-003-G (`docs/l3_phases/PH-20260226-003_power-user-expansion/PH-003-G_shadcn-import-fix.md`)
+- **参照**: PH-003-G (`docs/l3_phases/archive/PH-20260226-003_power-user-expansion/PH-003-G_shadcn-import-fix.md`)
 
 ---
 
