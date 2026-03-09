@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/tauri.js';
+import { waitForAppReady } from '../helpers/app-ready.js';
 import { createItem, deleteItem, listItems } from '../helpers/ipc.js';
 
 test.describe('アイテム管理', () => {
@@ -23,8 +24,9 @@ test.describe('アイテム管理', () => {
 			// UI に反映させるためリロード（IPC 変更は Svelte ストアに通知されないため）
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
-			// Library はデフォルトタブ — カードにテキスト表示確認
-			await expect(page.getByText('E2E テスト URL')).toBeVisible();
+			await waitForAppReady(page);
+			// Library はデフォルトタブ — カードに表示確認
+			await expect(page.getByTestId(`library-card-${item.id}`)).toBeVisible({ timeout: 10_000 });
 
 			// 成功証跡を HTML report に添付
 			const screenshot = await page.screenshot({ fullPage: true });
@@ -43,7 +45,7 @@ test.describe('アイテム管理', () => {
 		await expect(page.locator('input#item-label')).toBeVisible();
 
 		// フォームに入力
-		await page.locator('select#item-type').selectOption('url');
+		await page.getByRole('button', { name: 'URL' }).click();
 		await page.locator('input#item-label').fill('UI フォームテスト');
 		await page.locator('input#item-target').fill('https://form-test.example.com');
 
@@ -72,6 +74,7 @@ test.describe('アイテム管理', () => {
 		if (items.length === 0) {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 			// カード要素がない＝プレースホルダまたは空状態
 			const cards = page.locator('[data-testid^="library-card-"]');
 			await expect(cards).toHaveCount(0);
@@ -79,6 +82,7 @@ test.describe('アイテム管理', () => {
 			// アイテムが存在する場合は、カードが1つ以上あることを確認
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 			const cards = page.locator('[data-testid^="library-card-"]');
 			await expect(cards.first()).toBeVisible();
 		}
@@ -95,6 +99,7 @@ test.describe('アイテム管理', () => {
 		try {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			const card = page.getByTestId(`library-card-${item.id}`);
 			await expect(card).toBeVisible();
@@ -121,6 +126,7 @@ test.describe('アイテム管理', () => {
 		// UI に反映させるためリロード
 		await page.reload();
 		await page.waitForLoadState('domcontentloaded');
+		await waitForAppReady(page);
 		// Library はデフォルトタブ — カードに表示されていることを確認
 		await expect(page.getByTestId(`library-card-${item.id}`)).toBeVisible();
 
@@ -130,6 +136,7 @@ test.describe('アイテム管理', () => {
 		// UI に反映させるためリロード
 		await page.reload();
 		await page.waitForLoadState('domcontentloaded');
+		await waitForAppReady(page);
 
 		// カードが一覧から消えていることを確認
 		await expect(page.getByTestId(`library-card-${item.id}`)).not.toBeVisible();

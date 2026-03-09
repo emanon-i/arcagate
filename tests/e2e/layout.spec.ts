@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/tauri.js';
+import { waitForAppReady } from '../helpers/app-ready.js';
 import { createItem, deleteItem } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
@@ -8,6 +9,7 @@ test.describe('レイアウト', () => {
 		await resizeWindow(page, 1280, 800);
 		await page.reload();
 		await page.waitForLoadState('domcontentloaded');
+		await waitForAppReady(page);
 
 		const sidebar = page.getByTestId('library-sidebar');
 		await expect(sidebar).toBeVisible();
@@ -34,6 +36,7 @@ test.describe('レイアウト', () => {
 		try {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			await expect(page.getByTestId('library-sidebar-wrapper')).toBeVisible();
 			await expect(page.getByTestId('library-main-wrapper')).toBeVisible();
@@ -50,6 +53,7 @@ test.describe('レイアウト', () => {
 		await resizeWindow(page, 900, 800);
 		await page.reload();
 		await page.waitForLoadState('domcontentloaded');
+		await waitForAppReady(page);
 
 		await expect(page.getByTestId('library-sidebar-wrapper')).toBeVisible();
 		await expect(page.getByTestId('library-main-wrapper')).toBeVisible();
@@ -61,6 +65,7 @@ test.describe('レイアウト', () => {
 		await resizeWindow(page, 640, 480);
 		await page.reload();
 		await page.waitForLoadState('domcontentloaded');
+		await waitForAppReady(page);
 
 		// sidebar は md 未満では非表示
 		await expect(page.getByTestId('library-sidebar-wrapper')).not.toBeVisible();
@@ -83,6 +88,7 @@ test.describe('レイアウト', () => {
 
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 			// 安定するのを待つ
 			await page.waitForTimeout(500);
 
@@ -125,6 +131,7 @@ test.describe('レイアウト', () => {
 		await resizeWindow(page, 1280, 800);
 		await page.reload();
 		await page.waitForLoadState('domcontentloaded');
+		await waitForAppReady(page);
 
 		const sidebar = page.getByTestId('library-sidebar');
 		const sidebarButton = page.getByRole('button', { name: 'Sidebar' });
@@ -162,6 +169,7 @@ test.describe('レイアウト', () => {
 		try {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			const sidebar = page.getByTestId('library-sidebar');
 			await expect(sidebar).toBeVisible();

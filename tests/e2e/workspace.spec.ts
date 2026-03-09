@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/tauri.js';
+import { waitForAppReady } from '../helpers/app-ready.js';
 import {
 	createWorkspace,
 	deleteWorkspace,
@@ -24,6 +25,7 @@ test.describe('ワークスペース', () => {
 			// リロードして Store に反映
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			// "Workspace" タブに切り替え
 			await page.getByRole('button', { name: 'Workspace' }).click();
@@ -68,6 +70,7 @@ test.describe('ワークスペース', () => {
 			// リロードして Store に反映
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			// "Workspace" タブに切り替え
 			await page.getByRole('button', { name: 'Workspace' }).click();
@@ -123,9 +126,11 @@ test.describe('ワークスペース', () => {
 
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			// Workspace タブに切り替え
 			await page.getByRole('button', { name: 'Workspace' }).click();
+			await page.waitForTimeout(300);
 			await expect(page.getByText('編集モードウィジェットWS')).toBeVisible();
 
 			// 編集モードに入る

@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/tauri.js';
+import { waitForAppReady } from '../helpers/app-ready.js';
 import { createItem, deleteItem } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
@@ -16,6 +17,7 @@ test.describe('ライブラリ詳細パネル', () => {
 		try {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			// カードをクリックして DetailPanel に表示
 			await page.getByTestId(`library-card-${item.id}`).click();
@@ -61,6 +63,7 @@ test.describe('ライブラリ詳細パネル', () => {
 
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			const card = page.getByTestId(`library-card-${item.id}`);
 			await expect(card).toBeVisible();
@@ -87,6 +90,7 @@ test.describe('ライブラリ詳細パネル', () => {
 		try {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			const card = page.getByTestId(`library-card-${item.id}`);
 			await expect(card).toBeVisible();
@@ -128,6 +132,7 @@ test.describe('ライブラリ詳細パネル', () => {
 		try {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
 			// サイドバーの exe タグをクリック（title属性で特定）
 			const sidebar = page.getByTestId('library-sidebar');
