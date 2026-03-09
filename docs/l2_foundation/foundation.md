@@ -157,14 +157,15 @@ status: done
 │                         │                                 │
 │  ┌──────────────────────▼──────────────────────────────┐  │
 │  │           Service Layer (ビジネスロジック)             │  │
-│  │   ItemService, LaunchService, LogService,            │  │
-│  │   ConfigService                                      │  │
+│  │   ItemService, LaunchService, ConfigService,         │  │
+│  │   ThemeService, WorkspaceService                     │  │
 │  │   *** Plugin Interface Boundary (M1でtrait定義) ***   │  │
 │  └──────────────────────┬──────────────────────────────┘  │
 │                         │                                 │
 │  ┌──────────────────────▼──────────────────────────────┐  │
 │  │           Repository Layer (データアクセス)            │  │
-│  │   ItemRepo, CategoryRepo, TagRepo, LogRepo, ConfigRepo│  │
+│  │   ItemRepo, TagRepo, LogRepo, ConfigRepo,             │  │
+│  │   ThemeRepo, WatchedPathRepo, WorkspaceRepo           │  │
 │  └──────────────────────┬──────────────────────────────┘  │
 │                         │                                 │
 │  ┌──────────────────────▼──────────────────────────────┐  │
@@ -224,6 +225,7 @@ arcagate/
 │   │   │   ├── launch.ts
 │   │   │   ├── config.ts
 │   │   │   ├── export.ts
+│   │   │   ├── theme.ts            # PH-003-F
 │   │   │   ├── watched_paths.ts    # PH-003-D
 │   │   │   └── workspace.ts        # PH-003-E
 │   │   ├── state/                  # グローバルステート (runes)
@@ -234,17 +236,18 @@ arcagate/
 │   │   │   └── workspace.svelte.ts # PH-003-E
 │   │   ├── types/                  # TypeScript 型定義
 │   │   │   ├── item.ts
-│   │   │   ├── category.ts
 │   │   │   ├── tag.ts
 │   │   │   ├── palette.ts
+│   │   │   ├── theme.ts            # PH-003-F
+│   │   │   ├── git.ts              # PH-003-F
 │   │   │   ├── workspace.ts        # PH-003-E
 │   │   │   └── watched_path.ts     # PH-003-D
 │   │   └── utils/                  # ユーティリティ
 │   └── routes/                     # SvelteKit ファイルベースルーティング
 │       ├── +layout.svelte          # ルートレイアウト（トレイ・ホットキーリスナー）
-│       ├── +page.svelte            # メインページ（コマンドパレット）
-│       └── settings/
-│           └── +page.svelte        # 設定ページ
+│       ├── +page.svelte            # メインページ（Library / Workspace / Settings）
+│       └── palette/
+│           └── +page.svelte        # フローティングコマンドパレット (PH-003-F)
 │
 ├── src-tauri/                      # Rust バックエンド (Tauri v2)
 │   ├── Cargo.toml                  # [default-run = "arcagate"] + [[bin]] arcagate_cli
@@ -253,12 +256,17 @@ arcagate/
 │   ├── capabilities/               # Tauri v2 パーミッション定義
 │   │   └── default.json
 │   ├── icons/                      # アプリアイコン
-│   ├── migrations/                 # SQLite マイグレーション SQL
+│   ├── migrations/                 # SQLite マイグレーション SQL（001〜010 実装済み）
 │   │   ├── 001_initial.sql
-│   │   ├── 002_mcp_permissions.sql
+│   │   ├── 002_mcp_permissions.sql             # → 007 で DROP 済み
 │   │   ├── 003_watched_paths.sql
 │   │   ├── 004_workspaces.sql
-│   │   └── 005_mcp_workspace_permissions.sql  # （PH-003-H で MCP 除去。マイグレーションファイルは残存）
+│   │   ├── 005_mcp_workspace_permissions.sql   # → 007 で DROP 済み
+│   │   ├── 006_themes.sql                      # テーマ CRUD（PH-003-F）
+│   │   ├── 007_drop_mcp_permissions.sql        # MCP 除去（PH-003-H）
+│   │   ├── 008_category_to_tag.sql             # カテゴリ → タグ統一（PH-003-N）
+│   │   ├── 009_add_is_tracked.sql              # items.is_tracked 追加（PH-003-M）
+│   │   └── 010_folder_default_app.sql          # items.default_app 追加（PH-003-M）
 │   └── src/
 │       ├── main.rs                 # エントリーポイント (Windows: コンソール非表示)
 │       ├── lib.rs                  # Tauri app setup, コマンド登録
@@ -270,32 +278,35 @@ arcagate/
 │       │   ├── launch_commands.rs
 │       │   ├── config_commands.rs
 │       │   ├── export_commands.rs
+│       │   ├── theme_commands.rs         # PH-003-F
 │       │   ├── watched_path_commands.rs  # PH-003-D
-│       │   └── workspace_commands.rs     # PH-003-E (11コマンド)
+│       │   └── workspace_commands.rs     # PH-003-E
 │       ├── services/               # ビジネスロジック
 │       │   ├── mod.rs
 │       │   ├── item_service.rs
 │       │   ├── launch_service.rs
 │       │   ├── config_service.rs
 │       │   ├── export_service.rs
+│       │   ├── theme_service.rs          # PH-003-F
 │       │   ├── watched_path_service.rs   # PH-003-D
 │       │   └── workspace_service.rs      # PH-003-E
 │       ├── repositories/           # データアクセス (rusqlite)
 │       │   ├── mod.rs
 │       │   ├── item_repository.rs
-│       │   ├── category_repository.rs
 │       │   ├── tag_repository.rs
 │       │   ├── launch_repository.rs
 │       │   ├── config_repository.rs
+│       │   ├── theme_repository.rs         # PH-003-F
 │       │   ├── watched_path_repository.rs  # PH-003-D
 │       │   └── workspace_repository.rs     # PH-003-E
 │       ├── models/                 # ドメインモデル・DTO
 │       │   ├── mod.rs
 │       │   ├── item.rs
-│       │   ├── category.rs
 │       │   ├── tag.rs
 │       │   ├── launch.rs
 │       │   ├── config.rs
+│       │   ├── theme.rs            # PH-003-F
+│       │   ├── git.rs              # PH-003-F
 │       │   ├── watched_path.rs     # PH-003-D
 │       │   └── workspace.rs        # PH-003-E
 │       ├── plugin_api/             # プラグイン trait 定義 (M1: traitのみ)
@@ -353,7 +364,7 @@ arcagate/
 | --------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `src/lib/ipc/`              | フロントエンドは `invoke` を直接呼ばない。型付きラッパー経由でTypeScript型安全性を確保                    |
 | `src/lib/state/`            | `.svelte.ts` 拡張子でコンポーネント外からrunesを使用（Svelte 5推奨パターン）                              |
-| `src-tauri/migrations/`     | SQLファイルを `include_str!` でバイナリに埋め込み。実行時ファイル依存なし。001〜005 実装済み              |
+| `src-tauri/migrations/`     | SQLファイルを `include_str!` でバイナリに埋め込み。実行時ファイル依存なし。001〜010 実装済み              |
 | `src-tauri/src/plugin_api/` | M1ではtrait定義のみ。M2でプラグインローディングを追加する際のリファクタを防止                             |
 | `src/lib/components/setup/` | セットアップウィザード（REQ-006）。初回起動時のみモーダルダイアログとして表示（独立ルートではない）       |
 | `src-tauri/src/watcher/`    | `notify` クレートによる FS 監視（PH-003-D）。バックグラウンドスレッドが変更を検知しフロントへイベント送信 |
@@ -435,44 +446,49 @@ pub trait Plugin: Send + Sync {
 
 論理名は `namespace::action` 形式で設計。Tauri v2の `#[tauri::command]` では関数名がinvoke名になるため、実際のinvoke呼び出しは `namespace_action`（アンダースコア区切り）を使用する。
 
-| 論理名                      | invoke名                       | 引数                                  | 戻り値             |
-| --------------------------- | ------------------------------ | ------------------------------------- | ------------------ |
-| `item::create`              | `item_create`                  | CreateItemInput                       | Item               |
-| `item::update`              | `item_update`                  | id, UpdateItemInput                   | Item               |
-| `item::delete`              | `item_delete`                  | id                                    | ()                 |
-| `item::get`                 | `item_get`                     | id                                    | Item \| null       |
-| `item::search`              | `item_search`                  | query, SearchOptions                  | ItemSearchResult[] |
-| `item::launch`              | `cmd_launch_item`              | item_id                               | ()                 |
-| `item::import_icon`         | `item_import_icon`             | exe_path                              | string (icon_path) |
-| `category::list`            | `cmd_get_categories`           | -                                     | Category[]         |
-| `category::create`          | `cmd_create_category`          | CreateCategoryInput                   | Category           |
-| `category::update`          | `cmd_update_category`          | id, name, prefix?                     | Category           |
-| `category::delete`          | `cmd_delete_category`          | id                                    | ()                 |
-| `category::search_in`       | `cmd_search_items_in_category` | category_id, query                    | Item[]             |
-| `tag::list`                 | `cmd_get_tags`                 | -                                     | Tag[]              |
-| `tag::create`               | `cmd_create_tag`               | CreateTagInput                        | Tag                |
-| `tag::update`               | `cmd_update_tag`               | id, UpdateTagInput                    | Tag                |
-| `tag::delete`               | `cmd_delete_tag`               | id                                    | ()                 |
-| `log::recent`               | `cmd_list_recent`              | limit?                                | LaunchLog[]        |
-| `log::frequent`             | `cmd_list_frequent`            | limit?                                | LaunchLog[]        |
-| `config::get`               | `cmd_get_config`               | key                                   | string \| null     |
-| `config::set`               | `cmd_set_config`               | key, value                            | ()                 |
-| `data::export`              | `cmd_export_json`              | output_path                           | ()                 |
-| `data::import`              | `cmd_import_json`              | input_path                            | ()                 |
-| `watched_path::add`         | `cmd_add_watched_path`         | path, label?                          | WatchedPath        |
-| `watched_path::list`        | `cmd_get_watched_paths`        | -                                     | WatchedPath[]      |
-| `watched_path::remove`      | `cmd_remove_watched_path`      | id                                    | ()                 |
-| `workspace::create`         | `cmd_create_workspace`         | name                                  | Workspace          |
-| `workspace::list`           | `cmd_list_workspaces`          | -                                     | Workspace[]        |
-| `workspace::update`         | `cmd_update_workspace`         | id, name                              | Workspace          |
-| `workspace::delete`         | `cmd_delete_workspace`         | id                                    | ()                 |
-| `widget::add`               | `cmd_add_widget`               | workspace_id, widget_type, x, y, w, h | WorkspaceWidget    |
-| `widget::list`              | `cmd_list_widgets`             | workspace_id                          | WorkspaceWidget[]  |
-| `widget::update_position`   | `cmd_update_widget_position`   | id, x, y, width, height               | WorkspaceWidget    |
-| `widget::remove`            | `cmd_remove_widget`            | id                                    | ()                 |
-| `workspace::frequent_items` | `cmd_get_frequent_items`       | limit                                 | Item[]             |
-| `workspace::recent_items`   | `cmd_get_recent_items`         | limit                                 | Item[]             |
-| `workspace::folder_items`   | `cmd_get_folder_items`         | -                                     | Item[]             |
+| 論理名                      | invoke名                     | 引数                                  | 戻り値             |
+| --------------------------- | ---------------------------- | ------------------------------------- | ------------------ |
+| `item::create`              | `item_create`                | CreateItemInput                       | Item               |
+| `item::update`              | `item_update`                | id, UpdateItemInput                   | Item               |
+| `item::delete`              | `item_delete`                | id                                    | ()                 |
+| `item::get`                 | `item_get`                   | id                                    | Item \| null       |
+| `item::search`              | `item_search`                | query, SearchOptions                  | ItemSearchResult[] |
+| `item::launch`              | `cmd_launch_item`            | item_id                               | ()                 |
+| `item::import_icon`         | `cmd_extract_item_icon`      | exe_path                              | string (icon_path) |
+| `tag::list`                 | `cmd_get_tags`               | -                                     | Tag[]              |
+| `tag::create`               | `cmd_create_tag`             | CreateTagInput                        | Tag                |
+| `tag::update`               | `cmd_update_tag`             | id, UpdateTagInput                    | Tag                |
+| `tag::delete`               | `cmd_delete_tag`             | id                                    | ()                 |
+| `log::recent`               | `cmd_list_recent`            | limit?                                | LaunchLog[]        |
+| `log::frequent`             | `cmd_list_frequent`          | limit?                                | LaunchLog[]        |
+| `config::get`               | `cmd_get_config`             | key                                   | string \| null     |
+| `config::set`               | `cmd_set_config`             | key, value                            | ()                 |
+| `data::export`              | `cmd_export_json`            | output_path                           | ()                 |
+| `data::import`              | `cmd_import_json`            | input_path                            | ()                 |
+| `watched_path::add`         | `cmd_add_watched_path`       | path, label?                          | WatchedPath        |
+| `watched_path::list`        | `cmd_get_watched_paths`      | -                                     | WatchedPath[]      |
+| `watched_path::remove`      | `cmd_remove_watched_path`    | id                                    | ()                 |
+| `workspace::create`         | `cmd_create_workspace`       | name                                  | Workspace          |
+| `workspace::list`           | `cmd_list_workspaces`        | -                                     | Workspace[]        |
+| `workspace::update`         | `cmd_update_workspace`       | id, name                              | Workspace          |
+| `workspace::delete`         | `cmd_delete_workspace`       | id                                    | ()                 |
+| `widget::add`               | `cmd_add_widget`             | workspace_id, widget_type, x, y, w, h | WorkspaceWidget    |
+| `widget::list`              | `cmd_list_widgets`           | workspace_id                          | WorkspaceWidget[]  |
+| `widget::update_position`   | `cmd_update_widget_position` | id, x, y, width, height               | WorkspaceWidget    |
+| `widget::remove`            | `cmd_remove_widget`          | id                                    | ()                 |
+| `workspace::frequent_items` | `cmd_get_frequent_items`     | limit                                 | Item[]             |
+| `workspace::recent_items`   | `cmd_get_recent_items`       | limit                                 | Item[]             |
+| `workspace::folder_items`   | `cmd_get_folder_items`       | -                                     | Item[]             |
+| `workspace::git_status`     | `cmd_git_status`             | path                                  | GitStatus          |
+| `theme::list`               | `cmd_list_themes`            | -                                     | Theme[]            |
+| `theme::get`                | `cmd_get_theme`              | id                                    | Theme              |
+| `theme::create`             | `cmd_create_theme`           | name, base_theme, css_vars            | Theme              |
+| `theme::update`             | `cmd_update_theme`           | id, name?, base_theme?, css_vars?     | Theme              |
+| `theme::delete`             | `cmd_delete_theme`           | id                                    | ()                 |
+| `theme::get_active_mode`    | `cmd_get_active_theme_mode`  | -                                     | string             |
+| `theme::set_active_mode`    | `cmd_set_active_theme_mode`  | mode                                  | ()                 |
+| `theme::export`             | `cmd_export_theme_json`      | id                                    | string (JSON)      |
+| `theme::import`             | `cmd_import_theme_json`      | json                                  | Theme              |
 
 #### Events（Backend → Frontend、fire-and-forget）
 
@@ -632,7 +648,7 @@ PRAGMA cache_size = -8000;       -- 8MB ページキャッシュ
 
 ## 4. SQLiteスキーマ
 
-001〜005 のマイグレーションが実装済み。今後は段階的にマイグレーションで追加する。
+001〜010 のマイグレーションが実装済み。今後は段階的にマイグレーションで追加する。
 
 ```sql
 -- 001_initial.sql
@@ -657,6 +673,8 @@ CREATE TABLE items (
     aliases     TEXT,                 -- JSON配列: ["blen3", "blender3"]
     sort_order  INTEGER NOT NULL DEFAULT 0,
     is_enabled  INTEGER NOT NULL DEFAULT 1,
+    is_tracked  INTEGER NOT NULL DEFAULT 1,   -- フォルダ監視対象フラグ (PH-003-M)
+    default_app TEXT,                          -- フォルダを開くデフォルトアプリ (PH-003-M)
     created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     updated_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
@@ -665,28 +683,15 @@ CREATE INDEX idx_items_type ON items(item_type);
 CREATE INDEX idx_items_label ON items(label COLLATE NOCASE);
 CREATE INDEX idx_items_enabled ON items(is_enabled);
 
--- カテゴリ
-CREATE TABLE categories (
-    id          TEXT    PRIMARY KEY,
-    name        TEXT    NOT NULL UNIQUE,
-    prefix      TEXT    UNIQUE,       -- 名前空間プレフィックス (M2a用、例: "gm")
-    icon        TEXT,
-    sort_order  INTEGER NOT NULL DEFAULT 0,
-    created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-);
-
--- アイテム-カテゴリ関連 (多対多)
-CREATE TABLE item_categories (
-    item_id     TEXT    NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    category_id TEXT    NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-    PRIMARY KEY (item_id, category_id)
-);
-
--- タグ
+-- タグ（008 でカテゴリを統合済み）
 CREATE TABLE tags (
     id          TEXT    PRIMARY KEY,
     name        TEXT    NOT NULL UNIQUE,
-    is_hidden   INTEGER NOT NULL DEFAULT 0,  -- センシティブコンテンツ隠蔽フラグ
+    is_hidden   INTEGER NOT NULL DEFAULT 0,   -- センシティブコンテンツ隠蔽フラグ
+    is_system   INTEGER NOT NULL DEFAULT 0,   -- システムタグフラグ (PH-003-N)
+    prefix      TEXT,                          -- 名前空間プレフィックス (PH-003-N)
+    icon        TEXT,                          -- アイコン (PH-003-N)
+    sort_order  INTEGER NOT NULL DEFAULT 0,   -- ソート順 (PH-003-N)
     created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
@@ -718,22 +723,7 @@ CREATE TABLE item_stats (
 
 ```sql
 -- 002_mcp_permissions.sql
-
--- MCP ツールごとの実行許可フラグ
-CREATE TABLE IF NOT EXISTS mcp_permissions (
-    id         TEXT PRIMARY KEY,     -- UUID v7（固定値で初期データを投入）
-    tool_name  TEXT NOT NULL UNIQUE,
-    is_allowed INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-);
-
--- デフォルト: read のみ許可 (list/search=1, launch/create=0)
-INSERT OR IGNORE INTO mcp_permissions (id, tool_name, is_allowed) VALUES
-    ('01900000-0000-7001-8000-000000000001', 'arcagate_list',   1),
-    ('01900000-0000-7001-8000-000000000002', 'arcagate_search', 1),
-    ('01900000-0000-7001-8000-000000000003', 'arcagate_launch', 0),
-    ('01900000-0000-7001-8000-000000000004', 'arcagate_create', 0);
+-- ※ MCP パーミッション管理テーブル。007_drop_mcp_permissions.sql で DROP 済み
 ```
 
 ```sql
@@ -783,12 +773,22 @@ CREATE INDEX IF NOT EXISTS idx_workspace_widgets_workspace
 
 ```sql
 -- 005_mcp_workspace_permissions.sql
+-- ※ MCP workspace パーミッション追加。007_drop_mcp_permissions.sql で DROP 済み
+```
 
--- MCP workspace ツールの初期パーミッション（テーブル追加なし）
-INSERT OR IGNORE INTO mcp_permissions (id, tool_name, is_allowed) VALUES
-    ('01900000-0000-7001-8000-000000000005', 'arcagate_workspace_list',       1),
-    ('01900000-0000-7001-8000-000000000006', 'arcagate_workspace_create',     0),
-    ('01900000-0000-7001-8000-000000000007', 'arcagate_workspace_add_widget', 0);
+```sql
+-- 006_themes.sql
+
+-- テーマ管理
+CREATE TABLE IF NOT EXISTS themes (
+    id         TEXT    PRIMARY KEY,
+    name       TEXT    NOT NULL UNIQUE,
+    base_theme TEXT    NOT NULL DEFAULT 'dark',   -- 'light' | 'dark'
+    css_vars   TEXT    NOT NULL DEFAULT '{}',      -- JSON: CSS 変数オーバーライド
+    is_builtin INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    updated_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
 ```
 
 ### スキーマ設計方針
@@ -801,7 +801,7 @@ INSERT OR IGNORE INTO mcp_permissions (id, tool_name, is_allowed) VALUES
 | アイコンをファイルシステムに格納 | base64 TEXT比で33%の容量削減。検索クエリでアイコンデータをロードしない。`app_data_dir/icons/` に保存しパスのみDBに保持                              |
 | `item_stats` テーブルで非正規化  | 検索のたびに `COUNT(*)` を避ける。Service層またはトリガーで更新                                                                                     |
 | `ON DELETE CASCADE`              | 参照整合性を保証。`PRAGMA foreign_keys = ON` で有効化                                                                                               |
-| マイグレーション方針             | 002〜005 は実装済み。今後の機能追加は `006_` 以降のマイグレーションで段階的に追加                                                                   |
+| マイグレーション方針             | 001〜010 実装済み。002/005 は 007 で DROP 済み。008 でカテゴリをタグに統一。今後は `011_` 以降で段階的に追加                                        |
 
 ## 5. CI/CD
 
