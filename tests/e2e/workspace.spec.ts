@@ -121,7 +121,7 @@ test.describe('ワークスペース', () => {
 			// ウィジェットを IPC で追加
 			await invoke<Widget>(page, 'cmd_add_widget', {
 				workspaceId: workspace.id,
-				widgetType: 'recent_launches',
+				widgetType: 'recent',
 			});
 
 			await page.reload();
@@ -134,7 +134,7 @@ test.describe('ワークスペース', () => {
 			await expect(page.getByText('編集モードウィジェットWS')).toBeVisible();
 
 			// 編集モードに入る
-			const editBtn = page.getByRole('button', { name: '編集モード' });
+			const editBtn = page.getByRole('button', { name: '編集モード', exact: true });
 			await editBtn.click();
 
 			// リサイズハンドルが編集モード時に表示されること
@@ -142,7 +142,7 @@ test.describe('ワークスペース', () => {
 			await expect(resizeHandle.first()).toBeVisible();
 
 			// 編集モード終了
-			await page.getByRole('button', { name: '編集モード終了' }).click();
+			await page.getByRole('button', { name: '編集モード終了', exact: true }).click();
 		} finally {
 			await deleteWorkspace(page, workspace.id);
 		}

@@ -45,7 +45,7 @@ test.describe('アイテム管理', () => {
 		await expect(page.locator('input#item-label')).toBeVisible();
 
 		// フォームに入力
-		await page.getByRole('button', { name: 'URL' }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'URL' }).click();
 		await page.locator('input#item-label').fill('UI フォームテスト');
 		await page.locator('input#item-target').fill('https://form-test.example.com');
 
