@@ -1,73 +1,105 @@
 <script lang="ts">
+import {
+	Archive,
+	Eye,
+	EyeOff,
+	LayoutDashboard,
+	PanelLeft,
+	Search,
+	Settings2,
+} from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { onDestroy } from 'svelte';
-import CategoryManager from '$lib/components/item/CategoryManager.svelte';
+import AppHeader from '$lib/components/arcagate/common/AppHeader.svelte';
+import TitleAction from '$lib/components/arcagate/common/TitleAction.svelte';
+import TitleBar from '$lib/components/arcagate/common/TitleBar.svelte';
+import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
+import ToastContainer from '$lib/components/arcagate/common/ToastContainer.svelte';
+import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte';
+import PaletteOverlay from '$lib/components/arcagate/palette/PaletteOverlay.svelte';
+import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
-import ItemList from '$lib/components/item/ItemList.svelte';
-import CommandPalette from '$lib/components/palette/CommandPalette.svelte';
-import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
-import { Button } from '$lib/components/ui/button';
-import WorkspaceView from '$lib/components/workspace/WorkspaceView.svelte';
 import { configStore } from '$lib/state/config.svelte';
+import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
-import { paletteStore } from '$lib/state/palette.svelte';
+import { themeStore } from '$lib/state/theme.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
-type Tab = 'items' | 'categories' | 'settings' | 'workspace';
+type ActiveView = 'library' | 'workspace';
 
-let activeTab = $state<Tab>('items');
+let activeView = $state<ActiveView>('library');
+let paletteOpen = $state(false);
 let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
-let missingPaths = $state(new Set<string>());
-let toasts = $state<{ id: number; path: string }[]>([]);
-let nextToastId = 0;
+let droppedPaths = $state<string[] | undefined>(undefined);
+let isDraggingOver = $state(false);
+let sidebarExpanded = $state(false);
 
 // 初期化
 $effect(() => {
 	void configStore.loadConfig();
 	void itemStore.loadItems();
-	void itemStore.loadCategories();
 	void itemStore.loadTags();
+	void itemStore.loadLibraryStats();
+});
+
+// テーマ初期化（themeStore から読み込み）
+$effect(() => {
+	void themeStore.loadTheme();
 });
 
 // ホットキーイベントリスナー
 let unlisten: (() => void) | null = null;
-listen('hotkey-triggered', () => paletteStore.open()).then((fn) => {
+listen('hotkey-triggered', () => {
+	paletteOpen = true;
+}).then((fn) => {
 	unlisten = fn;
+});
+
+// D&D: Library タブ & フォーム未表示のときだけ ItemFormDialog を開く
+let unlistenDragDrop: (() => void) | null = null;
+listen<{ paths: string[] }>('tauri://drag-drop', (event) => {
+	isDraggingOver = false;
+	if (activeView === 'library' && !showItemForm && event.payload.paths?.length > 0) {
+		droppedPaths = event.payload.paths;
+		editingItem = null;
+		showItemForm = true;
+	}
+}).then((fn) => {
+	unlistenDragDrop = fn;
+});
+
+let unlistenDragOver: (() => void) | null = null;
+listen('tauri://drag-over', () => {
+	if (activeView === 'library' && !showItemForm) isDraggingOver = true;
+}).then((fn) => {
+	unlistenDragOver = fn;
+});
+
+let unlistenDragLeave: (() => void) | null = null;
+listen('tauri://drag-leave', () => {
+	isDraggingOver = false;
+}).then((fn) => {
+	unlistenDragLeave = fn;
 });
 
 // パス消失イベントリスナー
 let unlistenPathNotFound: (() => void) | null = null;
 listen<string>('item://path-not-found', (e) => {
-	missingPaths = new Set([...missingPaths, e.payload]);
-	const id = nextToastId++;
-	toasts = [...toasts, { id, path: e.payload }];
-	setTimeout(() => {
-		toasts = toasts.filter((t) => t.id !== id);
-	}, 5000);
+	toastStore.add(`パスが見つかりません: ${e.payload}`, 'error');
 }).then((fn) => {
 	unlistenPathNotFound = fn;
 });
 
 onDestroy(() => {
 	unlisten?.();
+	unlistenDragDrop?.();
+	unlistenDragOver?.();
+	unlistenDragLeave?.();
 	unlistenPathNotFound?.();
 });
-
-function handleEdit(item: Item) {
-	editingItem = item;
-	showItemForm = true;
-}
-
-function handleDelete(id: string) {
-	void itemStore.deleteItem(id);
-}
-
-function handleAddNew() {
-	editingItem = null;
-	showItemForm = true;
-}
 
 function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
 	if (editingItem) {
@@ -77,110 +109,100 @@ function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
 	}
 	showItemForm = false;
 	editingItem = null;
+	droppedPaths = undefined;
 }
 
 function handleFormClose() {
 	showItemForm = false;
 	editingItem = null;
+	droppedPaths = undefined;
 }
 </script>
 
 <!-- オーバーレイ層 -->
 <SetupWizard />
-<CommandPalette />
+<PaletteOverlay bind:open={paletteOpen} />
 <ItemFormDialog
 	open={showItemForm}
 	item={editingItem ?? undefined}
-	categories={itemStore.categories}
+	initialPaths={droppedPaths}
 	tags={itemStore.tags}
 	onSubmit={handleFormSubmit}
 	onClose={handleFormClose}
 />
 
 <!-- トースト通知 -->
-{#if toasts.length > 0}
-	<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-		{#each toasts as toast (toast.id)}
-			<div
-				class="max-w-sm rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-md"
-			>
-				<span class="font-medium">⚠ パスが見つかりません</span>
-				<p class="mt-1 truncate text-xs opacity-80">{toast.path}</p>
-			</div>
-		{/each}
+<ToastContainer />
+
+<!-- D&D オーバーレイ -->
+{#if isDraggingOver}
+	<div class="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/30">
+		<div class="rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-surface-1)]/90 px-8 py-6 text-center shadow-lg">
+			<p class="text-lg font-medium text-[var(--ag-text-primary)]">ここにドロップして登録</p>
+			<p class="mt-1 text-sm text-[var(--ag-text-muted)]">exe / url / folder / script</p>
+		</div>
 	</div>
 {/if}
 
 <!-- メインレイアウト -->
-<div class="flex h-screen flex-col">
-	<!-- ヘッダー -->
-	<header class="flex items-center justify-between border-b px-6 py-3">
-		<h1 class="text-lg font-bold">Arcagate</h1>
-		<div class="flex gap-2">
-			<Button variant="outline" size="sm" onclick={() => paletteStore.open()}>
-				検索
-			</Button>
-			<Button
-				variant={activeTab === 'items' ? 'default' : 'ghost'}
-				size="sm"
-				onclick={() => (activeTab = 'items')}
-			>
-				アイテム
-			</Button>
-			<Button
-				variant={activeTab === 'categories' ? 'default' : 'ghost'}
-				size="sm"
-				onclick={() => (activeTab = 'categories')}
-			>
-				カテゴリ
-			</Button>
-			<Button
-				variant={activeTab === 'workspace' ? 'default' : 'ghost'}
-				size="sm"
-				onclick={() => (activeTab = 'workspace')}
-			>
-				ワークスペース
-			</Button>
-			<Button
-				variant={activeTab === 'settings' ? 'default' : 'ghost'}
-				size="sm"
-				onclick={() => (activeTab = 'settings')}
-			>
-				設定
-			</Button>
-		</div>
-	</header>
+<div class="flex h-screen flex-col bg-[var(--ag-surface-0)]">
+	<TitleBar />
+	<!-- カスタムヘッダーバー -->
+	<AppHeader>
+		{#snippet leftSlot()}
+			{#if activeView === "library"}
+				<TitleAction icon={PanelLeft} label="Sidebar" onclick={() => (sidebarExpanded = !sidebarExpanded)} />
+			{/if}
+		{/snippet}
+		{#snippet centerSlot()}
+			<div class="flex items-center gap-2">
+				<TitleTab
+					icon={Archive}
+					label="Library"
+					active={activeView === "library"}
+					onclick={() => (activeView = "library")}
+				/>
+				<TitleTab
+					icon={LayoutDashboard}
+					label="Workspace"
+					active={activeView === "workspace"}
+					onclick={() => (activeView = "workspace")}
+				/>
+			</div>
+		{/snippet}
+		{#snippet rightSlot()}
+			<TitleAction icon={Search} label="Palette" tone="accent" onclick={() => (paletteOpen = true)} />
+			{#if activeView === "library"}
+				<TitleAction
+					icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
+					label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示中' : '非表示アイテム: 非表示'}
+					tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
+					onclick={() => hiddenStore.toggleDirect()}
+				/>
+			{:else}
+				<TitleAction icon={EyeOff} label="Safe mode" tone="warm" />
+			{/if}
+			<!-- TODO: Settings 導線 U-05 で配置先決定 -->
+			<TitleAction icon={Settings2} label="Settings" />
+		{/snippet}
+	</AppHeader>
 
 	<!-- メインコンテンツ -->
-	<main class="flex-1 overflow-auto p-6">
-		{#if activeTab === 'items'}
-			<div class="mb-4 flex items-center justify-between">
-				<h2 class="text-base font-semibold">アイテム一覧</h2>
-				<Button size="sm" onclick={handleAddNew}>＋ 追加</Button>
-			</div>
-			{#if itemStore.loading}
-				<p class="text-muted-foreground text-sm">読み込み中...</p>
-			{:else if itemStore.error}
-				<p class="text-sm text-destructive">{itemStore.error}</p>
-			{:else}
-				<ItemList
-				items={itemStore.items}
-				onEdit={handleEdit}
-				onDelete={handleDelete}
-				{missingPaths}
-			/>
-			{/if}
-		{:else if activeTab === 'workspace'}
-			<WorkspaceView />
-		{:else if activeTab === 'categories'}
-			<CategoryManager
-				categories={itemStore.categories}
-				onCreateCategory={(input) => itemStore.createCategory(input)}
-				onUpdateCategory={(id, name, prefix) => itemStore.updateCategory(id, name, prefix)}
-				onDeleteCategory={(id) => itemStore.deleteCategory(id)}
+	<main class="min-h-0 flex-1 overflow-hidden">
+		{#if activeView === "library"}
+			<LibraryLayout
+				{sidebarExpanded}
+				onEditItem={(id) => {
+					editingItem = itemStore.items.find((i) => i.id === id) ?? null;
+					showItemForm = true;
+				}}
+				onAddItem={() => {
+					editingItem = null;
+					showItemForm = true;
+				}}
 			/>
 		{:else}
-			<SettingsPanel />
+			<WorkspaceLayout />
 		{/if}
 	</main>
 </div>

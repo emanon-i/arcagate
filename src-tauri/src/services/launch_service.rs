@@ -27,7 +27,7 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
             item.working_dir.as_deref(),
         ),
         ItemType::Url => launcher::launch_url(&item.target),
-        ItemType::Folder => launcher::launch_folder(&item.target),
+        ItemType::Folder => launch_folder_with_app(&item.target, item.default_app.as_deref()),
         ItemType::Script => launcher::launch_script(
             &item.target,
             item.args.as_deref(),
@@ -47,6 +47,20 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
     }
 
     result
+}
+
+fn launch_folder_with_app(path: &str, default_app: Option<&str>) -> Result<(), AppError> {
+    match default_app {
+        Some("vscode") => launcher::launch_exe("code", Some(path), None),
+        Some("terminal") => launcher::launch_exe("wt", Some(&format!("-d {}", path)), None),
+        Some(custom) => launcher::launch_exe(custom, Some(path), None),
+        None => launcher::launch_folder(path),
+    }
+}
+
+pub fn get_item_stats(db: &DbState, item_id: &str) -> Result<Option<ItemStats>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    launch_repository::find_stats_by_item(&conn, item_id)
 }
 
 pub fn list_recent(db: &DbState, limit: i64) -> Result<Vec<LaunchLog>, AppError> {

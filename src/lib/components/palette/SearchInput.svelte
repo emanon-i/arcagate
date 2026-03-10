@@ -14,6 +14,7 @@ let {
 
 <input
   type="text"
+  autocomplete="off"
   {value}
   {placeholder}
   class="w-full bg-transparent outline-none text-sm px-3 py-2"

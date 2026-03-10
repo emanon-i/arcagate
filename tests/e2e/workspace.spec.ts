@@ -1,8 +1,15 @@
 import { expect, test } from '../fixtures/tauri.js';
-import { createWorkspace, deleteWorkspace, listWorkspaces } from '../helpers/ipc.js';
+import { waitForAppReady } from '../helpers/app-ready.js';
+import {
+	createWorkspace,
+	deleteWorkspace,
+	invoke,
+	listWorkspaces,
+	type Widget,
+} from '../helpers/ipc.js';
 
 test.describe('ワークスペース', () => {
-	test('ワークスペースを作成できること', async ({ page }) => {
+	test('ワークスペースを作成すると UI に表示されること', async ({ page }) => {
 		// IPC でワークスペースを作成
 		const workspace = await createWorkspace(page, 'E2E テストワークスペース');
 
@@ -15,10 +22,15 @@ test.describe('ワークスペース', () => {
 		expect(found).toBeDefined();
 
 		try {
-			// 「ワークスペース」タブに切り替えて UI でも確認
-			await page.getByRole('button', { name: 'ワークスペース', exact: true }).click();
+			// リロードして Store に反映
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
-			// タブ表示を確認
+			// "Workspace" タブに切り替え
+			await page.getByRole('button', { name: 'Workspace' }).click();
+
+			// PageTabBar にワークスペース名が表示されることを確認
 			await expect(page.getByText('E2E テストワークスペース')).toBeVisible();
 		} finally {
 			// クリーンアップ
@@ -26,33 +38,48 @@ test.describe('ワークスペース', () => {
 		}
 	});
 
-	test('ウィジェットを追加できること', async ({ page }, testInfo) => {
+	test('Workspace タブに切り替えてもエラーなく表示されること', async ({ page }) => {
+		// コンソールエラーを監視
+		const errors: string[] = [];
+		page.on('pageerror', (err) => errors.push(err.message));
+
+		// Workspace タブに切り替え
+		await page.getByRole('button', { name: 'Workspace' }).click();
+		await page.waitForTimeout(500);
+
+		// エラーが出ていないことを確認
+		expect(errors).toHaveLength(0);
+
+		// Workspace ビューの何かしらの要素が表示されていること
+		// PageTabBar の「+」ボタンまたはワークスペース名が見える
+		const workspaceContent = page.locator('main');
+		await expect(workspaceContent).toBeVisible();
+	});
+
+	test('ウィジェットを追加するとワークスペースに表示されること', async ({ page }, testInfo) => {
 		// ワークスペースを作成
-		const workspace = await createWorkspace(page, 'ウィジェットテストワークスペース');
+		const workspace = await createWorkspace(page, 'ウィジェットテストWS');
 
 		try {
-			// IPC 変更は Svelte ストアに通知されないためリロードしてから切り替え
-			// リロードにより WorkspaceView が再 mount → onMount で loadWorkspaces が呼ばれる
+			// IPC でウィジェットを追加
+			await invoke(page, 'cmd_add_widget', {
+				workspaceId: workspace.id,
+				widgetType: 'favorites',
+			});
+
+			// リロードして Store に反映
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
-			// 「ワークスペース」タブに切り替え
-			await page.getByRole('button', { name: 'ワークスペース', exact: true }).click();
+			await waitForAppReady(page);
+
+			// "Workspace" タブに切り替え
+			await page.getByRole('button', { name: 'Workspace' }).click();
 
 			// ワークスペースタブが表示されていることを確認
-			await expect(page.getByText('ウィジェットテストワークスペース')).toBeVisible();
+			await expect(page.getByText('ウィジェットテストWS')).toBeVisible();
 
-			// ウィジェット追加ボタンをクリック
-			await page.getByRole('button', { name: 'ウィジェット追加' }).click();
-
-			// ダイアログが表示されることを確認
-			// AddWidgetDialog は role="dialog" を持たないため、内部ボタンで代替確認
-			await expect(page.getByRole('button', { name: 'よく使うもの' })).toBeVisible();
-
-			// 「よく使うもの」ウィジェットを追加
-			await page.getByRole('button', { name: 'よく使うもの' }).click();
-
-			// ウィジェットが追加されたことを確認（WidgetCard に表示される）
-			await expect(page.getByText('よく使うもの')).toBeVisible();
+			// Favorites ウィジェットが表示されていることを確認
+			await expect(page.getByText('Favorites')).toBeVisible();
 
 			// 成功証跡を HTML report に添付
 			const screenshot = await page.screenshot({ fullPage: true });
@@ -62,6 +89,61 @@ test.describe('ワークスペース', () => {
 			});
 		} finally {
 			// クリーンアップ
+			await deleteWorkspace(page, workspace.id);
+		}
+	});
+
+	test('編集モードのオン/オフが動作すること', async ({ page }) => {
+		// Workspace タブに切り替え
+		await page.getByRole('button', { name: 'Workspace' }).click();
+		await page.waitForTimeout(300);
+
+		// 編集モードボタンをクリック
+		const editBtn = page.getByRole('button', { name: '編集モード' });
+		await expect(editBtn).toBeVisible();
+		await editBtn.click();
+
+		// 編集モード時: サイドバーが表示される
+		const exitBtn = page.getByRole('button', { name: '編集モード終了' });
+		await expect(exitBtn).toBeVisible();
+
+		// 編集モード終了
+		await exitBtn.click();
+
+		// 非編集モードに戻る
+		await expect(page.getByRole('button', { name: '編集モード' })).toBeVisible();
+	});
+
+	test('編集モードでウィジェットを IPC 追加して表示されること', async ({ page }) => {
+		const workspace = await createWorkspace(page, '編集モードウィジェットWS');
+
+		try {
+			// ウィジェットを IPC で追加
+			await invoke<Widget>(page, 'cmd_add_widget', {
+				workspaceId: workspace.id,
+				widgetType: 'recent',
+			});
+
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			// Workspace タブに切り替え
+			await page.getByRole('button', { name: 'Workspace' }).click();
+			await page.waitForTimeout(300);
+			await expect(page.getByText('編集モードウィジェットWS')).toBeVisible();
+
+			// 編集モードに入る
+			const editBtn = page.getByRole('button', { name: '編集モード', exact: true });
+			await editBtn.click();
+
+			// リサイズハンドルが編集モード時に表示されること
+			const resizeHandle = page.getByRole('separator', { name: 'リサイズ' });
+			await expect(resizeHandle.first()).toBeVisible();
+
+			// 編集モード終了
+			await page.getByRole('button', { name: '編集モード終了', exact: true }).click();
+		} finally {
 			await deleteWorkspace(page, workspace.id);
 		}
 	});

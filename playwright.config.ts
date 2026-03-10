@@ -2,9 +2,15 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
+  snapshotDir: './tests/e2e/__snapshots__',
   timeout: 60_000,
   retries: 1,
   workers: 1,
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+    },
+  },
   reporter: [
     ['html', { open: 'never', outputFolder: 'tmp/playwright-report' }],
     ['junit', { outputFile: 'tmp/playwright-results.xml' }],

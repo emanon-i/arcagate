@@ -1,11 +1,12 @@
 import * as itemsIpc from '$lib/ipc/items';
-import type { Category, CreateCategoryInput } from '$lib/types/category';
-import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
-import type { CreateTagInput, Tag } from '$lib/types/tag';
+import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
+import type { CreateTagInput, Tag, TagWithCount } from '$lib/types/tag';
 
 let items = $state<Item[]>([]);
-let categories = $state<Category[]>([]);
 let tags = $state<Tag[]>([]);
+let libraryStats = $state<LibraryStats | null>(null);
+let tagWithCounts = $state<TagWithCount[]>([]);
+let tagItems = $state<Item[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 
@@ -60,50 +61,11 @@ async function deleteItem(id: string): Promise<void> {
 	}
 }
 
-async function loadCategories(): Promise<void> {
+async function loadItemsByTag(tagId: string, query: string): Promise<void> {
 	loading = true;
 	error = null;
 	try {
-		categories = await itemsIpc.getCategories();
-	} catch (e) {
-		error = String(e);
-	} finally {
-		loading = false;
-	}
-}
-
-async function createCategory(input: CreateCategoryInput): Promise<void> {
-	loading = true;
-	error = null;
-	try {
-		const created = await itemsIpc.createCategory(input);
-		categories = [...categories, created];
-	} catch (e) {
-		error = String(e);
-	} finally {
-		loading = false;
-	}
-}
-
-async function updateCategory(id: string, name: string, prefix: string | null): Promise<void> {
-	loading = true;
-	error = null;
-	try {
-		await itemsIpc.updateCategory(id, name, prefix);
-		categories = categories.map((c) => (c.id === id ? { ...c, name, prefix } : c));
-	} catch (e) {
-		error = String(e);
-	} finally {
-		loading = false;
-	}
-}
-
-async function deleteCategory(id: string): Promise<void> {
-	loading = true;
-	error = null;
-	try {
-		await itemsIpc.deleteCategory(id);
-		categories = categories.filter((c) => c.id !== id);
+		tagItems = await itemsIpc.searchItemsInTag(tagId, query);
 	} catch (e) {
 		error = String(e);
 	} finally {
@@ -116,6 +78,30 @@ async function loadTags(): Promise<void> {
 	error = null;
 	try {
 		tags = await itemsIpc.getTags();
+	} catch (e) {
+		error = String(e);
+	} finally {
+		loading = false;
+	}
+}
+
+async function loadLibraryStats(): Promise<void> {
+	loading = true;
+	error = null;
+	try {
+		libraryStats = await itemsIpc.getLibraryStats();
+	} catch (e) {
+		error = String(e);
+	} finally {
+		loading = false;
+	}
+}
+
+async function loadTagWithCounts(): Promise<void> {
+	loading = true;
+	error = null;
+	try {
+		tagWithCounts = await itemsIpc.getTagWithCounts();
 	} catch (e) {
 		error = String(e);
 	} finally {
@@ -140,11 +126,17 @@ export const itemStore = {
 	get items() {
 		return items;
 	},
-	get categories() {
-		return categories;
+	get tagItems() {
+		return tagItems;
 	},
 	get tags() {
 		return tags;
+	},
+	get libraryStats() {
+		return libraryStats;
+	},
+	get tagWithCounts() {
+		return tagWithCounts;
 	},
 	get loading() {
 		return loading;
@@ -153,13 +145,12 @@ export const itemStore = {
 		return error;
 	},
 	loadItems,
+	loadItemsByTag,
 	createItem,
 	updateItem,
 	deleteItem,
-	loadCategories,
-	createCategory,
-	updateCategory,
-	deleteCategory,
 	loadTags,
 	createTag,
+	loadLibraryStats,
+	loadTagWithCounts,
 };

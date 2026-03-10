@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
+import { findMainPage } from '../helpers/app-ready.js';
 import { markSetupComplete } from '../helpers/ipc.js';
 
 const CDP_PORT = 9515;
@@ -52,10 +53,14 @@ export default async function globalSetup(): Promise<void> {
 	const browser = await chromium.connectOverCDP(`http://localhost:${CDP_PORT}`);
 	try {
 		const ctx = browser.contexts()[0];
-		const page = ctx.pages()[0] ?? (await ctx.waitForEvent('page'));
+		// メインウィンドウを URL で特定（パレットウィンドウ /palette を除外）
+		let page = findMainPage(ctx);
+		if (!page) {
+			page = ctx.pages()[0] ?? (await ctx.waitForEvent('page'));
+		}
 		// WebView2 が about:blank から devUrl に遷移するまで待機
 		// waitForCdp が成功しても devUrl ロード前の場合があるため
-		await page.waitForURL(/^http:\/\/localhost:5173/, { timeout: 30_000 });
+		await page.waitForURL(/^http:\/\/localhost:\d+\/?(\?.*)?$/, { timeout: 30_000 });
 		await page.waitForLoadState('domcontentloaded');
 
 		// SetupWizard スキップ

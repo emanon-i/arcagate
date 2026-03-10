@@ -42,7 +42,10 @@
 		{
 			"includes": ["src/lib/components/ui/**"],
 			"linter": {
-				"enabled": false
+				"enabled": false,
+				"rules": {
+					"recommended": false
+				}
 			},
 			"formatter": {
 				"enabled": false

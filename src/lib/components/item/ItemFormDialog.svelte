@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { Category } from '$lib/types/category';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
 import ItemForm from './ItemForm.svelte';
@@ -7,14 +6,14 @@ import ItemForm from './ItemForm.svelte';
 let {
 	open,
 	item,
-	categories,
+	initialPaths,
 	tags,
 	onSubmit,
 	onClose,
 }: {
 	open: boolean;
 	item?: Item;
-	categories: Category[];
+	initialPaths?: string[];
 	tags: Tag[];
 	onSubmit: (input: CreateItemInput | UpdateItemInput) => void;
 	onClose: () => void;
@@ -32,9 +31,9 @@ function handleSubmit(input: CreateItemInput | UpdateItemInput) {
     role="dialog"
     aria-modal="true"
   >
-    <div class="bg-background w-full max-w-lg rounded-lg p-6 shadow-lg">
-      <h2 class="mb-4 text-lg font-semibold">{item ? "アイテムを編集" : "アイテムを追加"}</h2>
-      <ItemForm {item} {categories} {tags} onSubmit={handleSubmit} onCancel={onClose} />
+    <div class="w-full max-w-lg rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-6 shadow-[var(--ag-shadow-dialog)]">
+      <h2 class="mb-4 text-lg font-semibold text-[var(--ag-text-primary)]">{item ? "アイテムを編集" : "アイテムを追加"}</h2>
+      <ItemForm {item} {initialPaths} {tags} onSubmit={handleSubmit} onCancel={onClose} />
     </div>
   </div>
 {/if}

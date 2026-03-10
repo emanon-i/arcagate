@@ -30,7 +30,6 @@ pub fn record_launch_and_update_stats(
     Ok(())
 }
 
-#[allow(dead_code)]
 pub fn find_stats_by_item(conn: &Connection, item_id: &str) -> Result<Option<ItemStats>, AppError> {
     let result = conn.query_row(
         "SELECT item_id, launch_count, last_launched_at
@@ -113,6 +112,8 @@ mod tests {
             aliases: vec![],
             sort_order: 0,
             is_enabled: true,
+            is_tracked: true,
+            default_app: None,
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-01T00:00:00Z".to_string(),
         }

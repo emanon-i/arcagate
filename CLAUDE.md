@@ -47,12 +47,13 @@ PC上に散在する起動元を一箇所に集約する個人用コマンドパ
 ### 設計方針・依存ルール
 
 - レイヤー依存は一方向: `commands/` → `services/` → `repositories/` → DB。逆方向禁止
-- Service Layer が全エントリーポイント（UI / CLI / MCP）の共通経路。Repository を直接呼ばない
+- Service Layer が全エントリーポイント（UI / CLI）の共通経路。Repository を直接呼ばない
 - Repository 間の相互参照禁止。複数 Repository の結合は Service で行う
 
 ### やってはいけないこと
 
-- `src/lib/components/ui/` の手動編集（shadcn-svelte 上流管理。lint/format 除外済み）
+- `src/lib/components/ui/` の手動編集は原則禁止（shadcn-svelte scaffold 出力。lint/format 除外済み）。
+  ビルドエラー・型エラーの修正は例外とし、L3 ドキュメントに記録する
 - `status: done` の L1/L2 ドキュメント書き換え（明示的な改訂プロセスを経る）
 - ORM（diesel, sqlx, sea-orm）の導入。rusqlite + 生SQL が意図的な選択
 

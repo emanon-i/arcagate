@@ -1,7 +1,6 @@
 mod commands;
 pub mod db;
 mod launcher;
-pub mod mcp;
 pub mod models;
 #[allow(dead_code)]
 mod plugin_api;
@@ -12,29 +11,36 @@ pub mod watcher;
 
 use commands::config_commands::{
     cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_setup_complete,
-    cmd_mark_setup_complete, cmd_set_autostart, cmd_set_config, cmd_set_hidden_password,
-    cmd_set_hotkey, cmd_verify_hidden_password,
+    cmd_mark_setup_complete, cmd_set_autostart, cmd_set_config, cmd_set_hotkey,
 };
 use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::item_commands::{
-    cmd_create_category, cmd_create_item, cmd_create_tag, cmd_delete_category, cmd_delete_item,
-    cmd_delete_tag, cmd_extract_item_icon, cmd_get_categories, cmd_get_tags, cmd_list_items,
-    cmd_search_items, cmd_search_items_in_category, cmd_update_category, cmd_update_item,
-    cmd_update_tag,
+    cmd_check_is_directory, cmd_count_hidden_items, cmd_create_item, cmd_create_tag,
+    cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon, cmd_get_item_tags,
+    cmd_get_library_stats, cmd_get_tag_counts, cmd_get_tags, cmd_list_items, cmd_search_items,
+    cmd_search_items_in_tag, cmd_update_item, cmd_update_tag, cmd_update_tag_prefix,
 };
-use commands::launch_commands::{cmd_launch_item, cmd_list_frequent, cmd_list_recent};
+use commands::launch_commands::{
+    cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
+};
+use commands::theme_commands::{
+    cmd_create_theme, cmd_delete_theme, cmd_export_theme_json, cmd_get_active_theme_mode,
+    cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
+    cmd_update_theme,
+};
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
 use commands::workspace_commands::{
     cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
-    cmd_get_frequent_items, cmd_get_recent_items, cmd_list_widgets, cmd_list_workspaces,
-    cmd_remove_widget, cmd_update_widget_position, cmd_update_workspace,
+    cmd_get_frequent_items, cmd_get_recent_items, cmd_git_status, cmd_list_widgets,
+    cmd_list_workspaces, cmd_remove_widget, cmd_update_widget_config, cmd_update_widget_position,
+    cmd_update_workspace,
 };
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, WindowEvent,
+    Emitter, Listener, Manager, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
@@ -45,11 +51,25 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
                     if event.state() == ShortcutState::Pressed {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                        let main_visible = app
+                            .get_webview_window("main")
+                            .and_then(|w| w.is_visible().ok())
+                            .unwrap_or(false);
+
+                        if main_visible {
+                            // メインウィンドウ表示中 → インラインパレットを開く
+                            app.emit("hotkey-triggered", ()).ok();
+                        } else if let Some(palette) = app.get_webview_window("palette") {
+                            // メインウィンドウ非表示 → フローティングパレット
+                            let is_visible = palette.is_visible().unwrap_or(false);
+                            if is_visible {
+                                let _ = palette.hide();
+                            } else {
+                                let _ = palette.show();
+                                let _ = palette.set_focus();
+                                palette.emit("palette-open", ()).ok();
+                            }
                         }
-                        app.emit("hotkey-triggered", ()).ok();
                     }
                 })
                 .build(),
@@ -144,30 +164,46 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // palette-close イベント: フロントエンドから palette ウィンドウを非表示にする
+            let app_handle = app.handle().clone();
+            app.listen("palette-close", move |_| {
+                if let Some(palette) = app_handle.get_webview_window("palette") {
+                    let _ = palette.hide();
+                }
+            });
+
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                // ウィンドウを閉じる代わりに非表示にしてトレイに残す
-                api.prevent_close();
-                let _ = window.hide();
+            let label = window.label();
+            match event {
+                WindowEvent::CloseRequested { api, .. } => {
+                    // ウィンドウを閉じる代わりに非表示にしてトレイに残す
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+                WindowEvent::Focused(false) if label == "palette" => {
+                    // パレットウィンドウのフォーカスアウト → 非表示
+                    let _ = window.hide();
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
             cmd_create_item,
             cmd_list_items,
             cmd_search_items,
-            cmd_search_items_in_category,
+            cmd_search_items_in_tag,
             cmd_update_item,
             cmd_delete_item,
-            cmd_get_categories,
-            cmd_create_category,
-            cmd_update_category,
-            cmd_delete_category,
             cmd_get_tags,
             cmd_create_tag,
             cmd_update_tag,
+            cmd_update_tag_prefix,
             cmd_delete_tag,
+            cmd_get_tag_counts,
+            cmd_get_item_tags,
+            cmd_check_is_directory,
             cmd_extract_item_icon,
             cmd_launch_item,
             cmd_list_recent,
@@ -180,8 +216,6 @@ pub fn run() {
             cmd_set_autostart,
             cmd_is_setup_complete,
             cmd_mark_setup_complete,
-            cmd_set_hidden_password,
-            cmd_verify_hidden_password,
             cmd_export_json,
             cmd_import_json,
             cmd_add_watched_path,
@@ -194,10 +228,24 @@ pub fn run() {
             cmd_add_widget,
             cmd_list_widgets,
             cmd_update_widget_position,
+            cmd_update_widget_config,
             cmd_remove_widget,
             cmd_get_frequent_items,
             cmd_get_recent_items,
             cmd_get_folder_items,
+            cmd_git_status,
+            cmd_get_library_stats,
+            cmd_count_hidden_items,
+            cmd_get_item_stats,
+            cmd_list_themes,
+            cmd_get_theme,
+            cmd_create_theme,
+            cmd_update_theme,
+            cmd_delete_theme,
+            cmd_get_active_theme_mode,
+            cmd_set_active_theme_mode,
+            cmd_export_theme_json,
+            cmd_import_theme_json,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

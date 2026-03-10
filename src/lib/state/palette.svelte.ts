@@ -1,7 +1,9 @@
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { searchItemsInCategory } from '$lib/ipc/items';
+import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem, searchItems } from '$lib/ipc/launch';
+import { getFrequentItems, getRecentItems } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import type { PaletteEntry } from '$lib/types/palette';
 
@@ -92,6 +94,29 @@ async function search(q: string): Promise<void> {
 	selectedIndex = 0;
 	lastError = null;
 
+	// 空検索: recent + frequent を表示
+	if (!q.trim()) {
+		loading = true;
+		try {
+			const [recent, frequent] = await Promise.all([getRecentItems(5), getFrequentItems(5)]);
+			const seen = new Set<string>();
+			const merged: Item[] = [];
+			for (const item of [...recent, ...frequent]) {
+				if (!seen.has(item.id)) {
+					seen.add(item.id);
+					merged.push(item);
+				}
+			}
+			results = merged.map((item) => ({ kind: 'item', item }));
+		} catch (e) {
+			lastError = String(e);
+			results = [];
+		} finally {
+			loading = false;
+		}
+		return;
+	}
+
 	// 電卓モード: "= <expr>"
 	if (q.startsWith('= ')) {
 		const expr = q.slice(2);
@@ -112,16 +137,16 @@ async function search(q: string): Promise<void> {
 		return;
 	}
 
-	// カテゴリプレフィックスモード: "<prefix>:<subquery>"
+	// タグプレフィックスモード: "<prefix>:<subquery>"
 	const colonIdx = q.indexOf(':');
 	if (colonIdx > 0) {
 		const prefix = q.slice(0, colonIdx);
 		const subQuery = q.slice(colonIdx + 1);
-		const matched = itemStore.categories.find(
-			(c) => c.prefix && c.prefix.toLowerCase() === prefix.toLowerCase(),
+		const matched = itemStore.tags.find(
+			(t) => t.prefix && t.prefix.toLowerCase() === prefix.toLowerCase(),
 		);
 		if (matched) {
-			await fetchItems(() => searchItemsInCategory(matched.id, subQuery));
+			await fetchItems(() => searchItemsInTag(matched.id, subQuery));
 			return;
 		}
 	}
@@ -136,19 +161,23 @@ async function launch(entry: PaletteEntry): Promise<void> {
 		switch (entry.kind) {
 			case 'item':
 				await launchItem(entry.item.id);
+				toastStore.add(`${entry.item.label} を起動しました`, 'success');
 				close();
 				break;
 			case 'calc':
 				await writeText(entry.result);
+				toastStore.add('計算結果をクリップボードにコピーしました', 'success');
 				close();
 				break;
 			case 'clipboard':
 				await writeText(entry.text);
+				toastStore.add('クリップボードにコピーしました', 'success');
 				close();
 				break;
 		}
 	} catch (e) {
 		lastError = String(e);
+		toastStore.add(`起動に失敗しました: ${String(e)}`, 'error');
 	}
 }
 

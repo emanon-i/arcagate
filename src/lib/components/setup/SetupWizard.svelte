@@ -8,7 +8,7 @@ let step = $state(1);
 </script>
 
 {#if !configStore.setupComplete}
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div data-testid="setup-wizard" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div class="w-full max-w-md rounded-xl bg-background p-8 shadow-2xl">
       <!-- ステップインジケーター -->
       <div class="mb-6 flex gap-2">

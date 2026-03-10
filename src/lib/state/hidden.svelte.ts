@@ -1,41 +1,27 @@
-import * as configIpc from '$lib/ipc/config';
+import { countHiddenItems } from '$lib/ipc/items';
 
 let isHiddenVisible = $state(false);
-let error = $state<string | null>(null);
+let hiddenCount = $state(0);
 
-async function toggle(password: string): Promise<boolean> {
-	try {
-		const result = await configIpc.verifyHiddenPassword(password);
-		if (result === null) {
-			// パスワード未設定の場合はそのまま切り替え
-			isHiddenVisible = !isHiddenVisible;
-			return true;
-		}
-		if (result) {
-			isHiddenVisible = !isHiddenVisible;
-			error = null;
-			return true;
-		} else {
-			error = 'パスワードが正しくありません';
-			return false;
-		}
-	} catch (e) {
-		error = String(e);
-		return false;
-	}
+function toggleDirect(): void {
+	isHiddenVisible = !isHiddenVisible;
 }
 
-async function setPassword(password: string): Promise<void> {
-	await configIpc.setHiddenPassword(password);
+async function loadHiddenCount(): Promise<void> {
+	try {
+		hiddenCount = await countHiddenItems();
+	} catch {
+		// ignore – count is non-critical
+	}
 }
 
 export const hiddenStore = {
 	get isHiddenVisible() {
 		return isHiddenVisible;
 	},
-	get error() {
-		return error;
+	get hiddenCount() {
+		return hiddenCount;
 	},
-	toggle,
-	setPassword,
+	toggleDirect,
+	loadHiddenCount,
 };

@@ -151,6 +151,20 @@ pub fn update_widget_position(
     find_widget_by_id(conn, id)
 }
 
+pub fn update_widget_config(
+    conn: &Connection,
+    id: &str,
+    config: Option<&str>,
+) -> Result<WorkspaceWidget, AppError> {
+    conn.execute(
+        "UPDATE workspace_widgets
+         SET config = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE id = ?2",
+        params![config, id],
+    )?;
+    find_widget_by_id(conn, id)
+}
+
 pub fn delete_widget(conn: &Connection, id: &str) -> Result<(), AppError> {
     let n = conn.execute("DELETE FROM workspace_widgets WHERE id = ?1", params![id])?;
     if n == 0 {
@@ -165,7 +179,7 @@ pub fn list_frequent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, A
     let mut stmt = conn.prepare(
         "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                 i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                i.created_at, i.updated_at
+                i.is_tracked, i.default_app, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_stats s ON s.item_id = i.id
          WHERE i.is_enabled = 1
@@ -182,7 +196,7 @@ pub fn list_recent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, App
     let mut stmt = conn.prepare(
         "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                 i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                i.created_at, i.updated_at
+                i.is_tracked, i.default_app, i.created_at, i.updated_at
          FROM items i
          INNER JOIN (
              SELECT item_id, MAX(launched_at) AS last_launch
@@ -202,7 +216,7 @@ pub fn list_folder_items(conn: &Connection) -> Result<Vec<Item>, AppError> {
     let mut stmt = conn.prepare(
         "SELECT id, item_type, label, target, args, working_dir,
                 icon_path, icon_type, aliases, sort_order, is_enabled,
-                created_at, updated_at
+                is_tracked, default_app, created_at, updated_at
          FROM items
          WHERE item_type = 'folder' AND is_enabled = 1
          ORDER BY sort_order, label",
@@ -258,6 +272,8 @@ mod tests {
             aliases: vec![],
             sort_order: 0,
             is_enabled: true,
+            is_tracked: true,
+            default_app: None,
             created_at: String::new(),
             updated_at: String::new(),
         }

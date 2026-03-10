@@ -6,6 +6,11 @@ const MIGRATION_002: &str = include_str!("../../migrations/002_mcp_permissions.s
 const MIGRATION_003: &str = include_str!("../../migrations/003_watched_paths.sql");
 const MIGRATION_004: &str = include_str!("../../migrations/004_workspaces.sql");
 const MIGRATION_005: &str = include_str!("../../migrations/005_mcp_workspace_permissions.sql");
+const MIGRATION_006: &str = include_str!("../../migrations/006_themes.sql");
+const MIGRATION_007: &str = include_str!("../../migrations/007_drop_mcp_permissions.sql");
+const MIGRATION_008: &str = include_str!("../../migrations/008_category_to_tag.sql");
+const MIGRATION_009: &str = include_str!("../../migrations/009_add_is_tracked.sql");
+const MIGRATION_010: &str = include_str!("../../migrations/010_folder_default_app.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -14,6 +19,11 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_003),
         M::up(MIGRATION_004),
         M::up(MIGRATION_005),
+        M::up(MIGRATION_006),
+        M::up(MIGRATION_007),
+        M::up(MIGRATION_008),
+        M::up(MIGRATION_009),
+        M::up(MIGRATION_010),
     ])
 }
 
@@ -47,17 +57,18 @@ mod tests {
             .unwrap();
 
         assert!(tables.contains(&"items".to_string()));
-        assert!(tables.contains(&"categories".to_string()));
+        assert!(!tables.contains(&"categories".to_string()));
         assert!(tables.contains(&"tags".to_string()));
         assert!(tables.contains(&"launch_log".to_string()));
         assert!(tables.contains(&"item_stats".to_string()));
         assert!(tables.contains(&"config".to_string()));
-        assert!(tables.contains(&"item_categories".to_string()));
+        assert!(!tables.contains(&"item_categories".to_string()));
         assert!(tables.contains(&"item_tags".to_string()));
-        assert!(tables.contains(&"mcp_permissions".to_string()));
+        assert!(!tables.contains(&"mcp_permissions".to_string()));
         assert!(tables.contains(&"watched_paths".to_string()));
         assert!(tables.contains(&"workspaces".to_string()));
         assert!(tables.contains(&"workspace_widgets".to_string()));
+        assert!(tables.contains(&"themes".to_string()));
     }
 
     #[test]

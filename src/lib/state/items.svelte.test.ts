@@ -26,6 +26,8 @@ describe('itemStore', () => {
 				aliases: [],
 				sort_order: 0,
 				is_enabled: true,
+				is_tracked: true,
+				default_app: null,
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T00:00:00Z',
 			},
@@ -41,6 +43,8 @@ describe('itemStore', () => {
 				aliases: [],
 				sort_order: 1,
 				is_enabled: true,
+				is_tracked: false,
+				default_app: null,
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T00:00:00Z',
 			},
@@ -78,6 +82,8 @@ describe('itemStore', () => {
 				aliases: [],
 				sort_order: 0,
 				is_enabled: true,
+				is_tracked: true,
+				default_app: null,
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T00:00:00Z',
 			},
@@ -95,6 +101,8 @@ describe('itemStore', () => {
 			aliases: [],
 			sort_order: 1,
 			is_enabled: true,
+			is_tracked: false,
+			default_app: null,
 			created_at: '2024-01-01T00:00:00Z',
 			updated_at: '2024-01-01T00:00:00Z',
 		};
@@ -119,11 +127,61 @@ describe('itemStore', () => {
 			working_dir: null,
 			icon_path: null,
 			aliases: [],
-			category_ids: [],
 			tag_ids: [],
+			is_tracked: false,
 		});
 
 		expect(itemStore.items).toHaveLength(2);
 		expect(itemStore.items[1].id).toBe('item-2');
+	});
+
+	it('loadLibraryStats() fetches and stores library stats', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const mockStats = {
+			total_items: 42,
+			total_tags: 5,
+			recent_launch_count: 12,
+		};
+
+		mockInvoke.mockResolvedValueOnce(mockStats);
+
+		const { itemStore } = await import('./items.svelte');
+
+		expect(itemStore.libraryStats).toBeNull();
+
+		await itemStore.loadLibraryStats();
+
+		expect(itemStore.libraryStats).toEqual(mockStats);
+		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_library_stats');
+	});
+
+	it('loadTagWithCounts() fetches and stores tags with counts', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const mockTags = [
+			{ id: 'tag-1', name: 'ゲーム', is_system: false, prefix: 'game', icon: null, item_count: 10 },
+			{
+				id: 'tag-2',
+				name: '開発ツール',
+				is_system: false,
+				prefix: 'dev',
+				icon: null,
+				item_count: 5,
+			},
+		];
+
+		mockInvoke.mockResolvedValueOnce(mockTags);
+
+		const { itemStore } = await import('./items.svelte');
+
+		expect(itemStore.tagWithCounts).toEqual([]);
+
+		await itemStore.loadTagWithCounts();
+
+		expect(itemStore.tagWithCounts).toEqual(mockTags);
+		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_tag_counts');
 	});
 });

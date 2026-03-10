@@ -1,4 +1,5 @@
 import { test as base, chromium, type Page } from '@playwright/test';
+import { findMainPage, waitForAppReady } from '../helpers/app-ready.js';
 
 export const test = base.extend<{ page: Page }>({
 	// biome-ignore lint/correctness/noEmptyPattern: Playwright requires object destructuring
@@ -6,11 +7,15 @@ export const test = base.extend<{ page: Page }>({
 		const port = process.env.ARCAGATE_TEST_CDP_PORT ?? '9515';
 		const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
 		const ctx = browser.contexts()[0];
-		const page = ctx.pages()[0] ?? (await ctx.waitForEvent('page'));
-		// WebView2 が devUrl (localhost:5173) にいることを保証
-		// about:blank や chrome-error:// だと page.evaluate が失敗するため
-		await page.waitForURL(/^http:\/\/localhost:5173/, { timeout: 30_000 });
+		// メインウィンドウを URL で特定（パレットウィンドウ /palette を除外）
+		let page = findMainPage(ctx);
+		if (!page) {
+			page = ctx.pages()[0] ?? (await ctx.waitForEvent('page'));
+		}
+		await page.waitForURL(/^http:\/\/localhost:\d+\/?(\?.*)?$/, { timeout: 30_000 });
 		await page.waitForLoadState('domcontentloaded');
+		// configStore.loadConfig() 完了まで SetupWizard overlay が表示されるため待機
+		await waitForAppReady(page);
 		await use(page);
 		// テスト後: 開いているダイアログ・パレットを Escape で閉じる（次テストへの状態リーク防止）
 		// パレットの keydown ハンドラは input にアタッチされているため、先にフォーカスが必要

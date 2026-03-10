@@ -11,7 +11,7 @@ vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
 
 vi.mock('$lib/state/items.svelte', () => ({
 	itemStore: {
-		categories: [],
+		tags: [],
 	},
 }));
 
@@ -27,6 +27,8 @@ const mockItem = {
 	aliases: [],
 	sort_order: 0,
 	is_enabled: true,
+	is_tracked: true,
+	default_app: null,
 	created_at: '2024-01-01T00:00:00Z',
 	updated_at: '2024-01-01T00:00:00Z',
 };
@@ -43,6 +45,8 @@ const mockItem2 = {
 	aliases: [],
 	sort_order: 1,
 	is_enabled: true,
+	is_tracked: false,
+	default_app: null,
 	created_at: '2024-01-01T00:00:00Z',
 	updated_at: '2024-01-01T00:00:00Z',
 };

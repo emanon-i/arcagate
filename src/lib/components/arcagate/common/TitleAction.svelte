@@ -1,0 +1,31 @@
+<script lang="ts">
+import type { Component } from 'svelte';
+
+type Tone = 'default' | 'accent' | 'warm';
+
+interface Props {
+	icon: Component;
+	label: string;
+	tone?: Tone;
+	onclick?: () => void;
+}
+
+const toneClasses: Record<Tone, string> = {
+	default:
+		'border-[var(--ag-border)] bg-[var(--ag-surface-2)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]',
+	accent: 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]',
+	warm: 'border-[var(--ag-warm-border)] bg-[var(--ag-warm-bg)] text-[var(--ag-warm-text)]',
+};
+
+let { icon: Icon, label, tone = 'default', onclick }: Props = $props();
+</script>
+
+<button
+	type="button"
+	class="inline-flex items-center justify-center rounded-lg border p-1.5 transition {toneClasses[tone]}"
+	aria-label={label}
+	title={label}
+	{onclick}
+>
+	<Icon class="h-4 w-4" />
+</button>

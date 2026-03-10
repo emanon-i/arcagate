@@ -1,12 +1,5 @@
-use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
-};
-use rand_core::OsRng;
-
 use crate::db::DbState;
 use crate::models::config;
-use crate::models::config::KEY_HIDDEN_PASSWORD_HASH;
 use crate::repositories::config_repository;
 use crate::utils::error::AppError;
 
@@ -54,36 +47,6 @@ pub fn get_config(db: &DbState, key: &str) -> Result<Option<String>, AppError> {
 pub fn set_config(db: &DbState, key: &str, value: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     config_repository::set(&conn, key, value)
-}
-
-/// パスワードをハッシュ化して config に保存する
-pub fn set_hidden_password(db: &DbState, password: &str) -> Result<(), AppError> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-    let password_hash = argon2
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| AppError::Permission(e.to_string()))?
-        .to_string();
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    config_repository::set(&conn, KEY_HIDDEN_PASSWORD_HASH, &password_hash)
-}
-
-/// パスワードを検証する
-/// - パスワード未設定: Ok(None)
-/// - 一致: Ok(Some(true))
-/// - 不一致: Ok(Some(false))
-pub fn verify_hidden_password(db: &DbState, password: &str) -> Result<Option<bool>, AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    let stored = config_repository::get(&conn, KEY_HIDDEN_PASSWORD_HASH)?;
-    match stored {
-        None => Ok(None),
-        Some(hash_str) => {
-            let parsed_hash =
-                PasswordHash::new(&hash_str).map_err(|e| AppError::Permission(e.to_string()))?;
-            let result = Argon2::default().verify_password(password.as_bytes(), &parsed_hash);
-            Ok(Some(result.is_ok()))
-        }
-    }
 }
 
 #[cfg(test)]
@@ -148,28 +111,5 @@ mod tests {
         set_config(&db, "custom_key", "custom_value").unwrap();
         let result = get_config(&db, "custom_key").unwrap();
         assert_eq!(result, Some("custom_value".to_string()));
-    }
-
-    #[test]
-    fn test_hidden_password_correct() {
-        let db = initialize_in_memory();
-        set_hidden_password(&db, "password").unwrap();
-        let result = verify_hidden_password(&db, "password").unwrap();
-        assert_eq!(result, Some(true));
-    }
-
-    #[test]
-    fn test_hidden_password_wrong() {
-        let db = initialize_in_memory();
-        set_hidden_password(&db, "password").unwrap();
-        let result = verify_hidden_password(&db, "wrong").unwrap();
-        assert_eq!(result, Some(false));
-    }
-
-    #[test]
-    fn test_hidden_password_not_set() {
-        let db = initialize_in_memory();
-        let result = verify_hidden_password(&db, "any").unwrap();
-        assert_eq!(result, None);
     }
 }

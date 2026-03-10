@@ -125,6 +125,16 @@ async function persistWidgetOrder(orderedWidgets: WorkspaceWidget[]): Promise<vo
 	}
 }
 
+async function updateWidgetConfig(id: string, config: string | null): Promise<void> {
+	try {
+		error = null;
+		const updated = await workspaceIpc.updateWidgetConfig(id, config);
+		widgets = widgets.map((w) => (w.id === id ? updated : w));
+	} catch (e) {
+		error = String(e);
+	}
+}
+
 async function resizeWidget(id: string, width: number, height: number): Promise<void> {
 	const target = widgets.find((w) => w.id === id);
 	if (!target) return;
@@ -141,6 +151,27 @@ async function resizeWidget(id: string, width: number, height: number): Promise<
 	} catch (e) {
 		error = String(e);
 	}
+}
+
+async function moveWidget(id: string, x: number, y: number): Promise<void> {
+	const target = widgets.find((w) => w.id === id);
+	if (!target) return;
+	error = null;
+	// 楽観的ローカル更新
+	widgets = widgets.map((w) => (w.id === id ? { ...w, position_x: x, position_y: y } : w));
+	try {
+		await workspaceIpc.updateWidgetPosition(id, x, y, target.width, target.height);
+	} catch (e) {
+		error = String(e);
+		// ロールバック
+		widgets = widgets.map((w) =>
+			w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
+		);
+	}
+}
+
+function optimisticResize(id: string, width: number, height: number): void {
+	widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : w));
 }
 
 export const workspaceStore = {
@@ -166,6 +197,9 @@ export const workspaceStore = {
 	selectWorkspace,
 	addWidget,
 	removeWidget,
+	updateWidgetConfig,
 	persistWidgetOrder,
 	resizeWidget,
+	moveWidget,
+	optimisticResize,
 };
