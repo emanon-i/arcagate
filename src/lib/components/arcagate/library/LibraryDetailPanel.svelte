@@ -135,7 +135,15 @@ let moreMenuItems = $derived.by(() => {
 		<div class="mt-4 grid grid-cols-3 gap-2">
 			<ActionButton icon={Play} label="起動" onclick={handleLaunch} />
 			<ActionButton icon={Settings2} label="編集" onclick={() => onEditItem?.(selectedItem!.id)} />
-			<ActionButton icon={Trash2} label="削除" onclick={handleDelete} data-testid="delete-item-button" />
+			<button
+				type="button"
+				class="flex items-center justify-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm text-destructive hover:bg-destructive/20"
+				onclick={handleDelete}
+				data-testid="delete-item-button"
+			>
+				<Trash2 class="h-4 w-4" />
+				削除
+			</button>
 		</div>
 
 		<!-- Sensitive control -->

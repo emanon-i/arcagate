@@ -7,6 +7,7 @@ import {
 	PanelLeft,
 	Search,
 	Settings2,
+	X,
 } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { onDestroy } from 'svelte';
@@ -19,12 +20,14 @@ import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte
 import PaletteOverlay from '$lib/components/arcagate/palette/PaletteOverlay.svelte';
 import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
+import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
 type ActiveView = 'library' | 'workspace';
@@ -36,6 +39,7 @@ let showItemForm = $state(false);
 let droppedPaths = $state<string[] | undefined>(undefined);
 let isDraggingOver = $state(false);
 let sidebarExpanded = $state(false);
+let showSettings = $state(false);
 
 // 初期化
 $effect(() => {
@@ -48,6 +52,24 @@ $effect(() => {
 // テーマ初期化（themeStore から読み込み）
 $effect(() => {
 	void themeStore.loadTheme();
+});
+
+// Store エラー → トースト自動連携
+let prevItemError: string | null = null;
+let prevWorkspaceError: string | null = null;
+$effect(() => {
+	const err = itemStore.error;
+	if (err && err !== prevItemError) {
+		toastStore.add(err, 'error');
+	}
+	prevItemError = err;
+});
+$effect(() => {
+	const err = workspaceStore.error;
+	if (err && err !== prevWorkspaceError) {
+		toastStore.add(err, 'error');
+	}
+	prevWorkspaceError = err;
 });
 
 // ホットキーイベントリスナー
@@ -101,11 +123,13 @@ onDestroy(() => {
 	unlistenPathNotFound?.();
 });
 
-function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
+async function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
 	if (editingItem) {
-		void itemStore.updateItem(editingItem.id, input as UpdateItemInput);
+		await itemStore.updateItem(editingItem.id, input as UpdateItemInput);
+		toastStore.add('アイテムを更新しました', 'success');
 	} else {
-		void itemStore.createItem(input as CreateItemInput);
+		await itemStore.createItem(input as CreateItemInput);
+		toastStore.add('アイテムを作成しました', 'success');
 	}
 	showItemForm = false;
 	editingItem = null;
@@ -130,6 +154,31 @@ function handleFormClose() {
 	onSubmit={handleFormSubmit}
 	onClose={handleFormClose}
 />
+
+<!-- Settings ダイアログ -->
+{#if showSettings}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+		onclick={(e) => { if (e.target === e.currentTarget) showSettings = false; }}
+		onkeydown={(e) => { if (e.key === 'Escape') showSettings = false; }}
+	>
+		<div class="relative w-full max-w-lg rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] shadow-[var(--ag-shadow-dialog)]">
+			<button
+				type="button"
+				class="absolute right-3 top-3 rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
+				aria-label="設定を閉じる"
+				onclick={() => (showSettings = false)}
+			>
+				<X class="h-4 w-4" />
+			</button>
+			<SettingsPanel />
+		</div>
+	</div>
+{/if}
 
 <!-- トースト通知 -->
 <ToastContainer />
@@ -182,8 +231,7 @@ function handleFormClose() {
 			{:else}
 				<TitleAction icon={EyeOff} label="Safe mode" tone="warm" />
 			{/if}
-			<!-- TODO: Settings 導線 U-05 で配置先決定 -->
-			<TitleAction icon={Settings2} label="Settings" />
+			<TitleAction icon={Settings2} label="Settings" onclick={() => (showSettings = true)} />
 		{/snippet}
 	</AppHeader>
 

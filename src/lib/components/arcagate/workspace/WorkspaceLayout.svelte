@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Pencil, X } from '@lucide/svelte';
+import { Pencil, Trash2, X } from '@lucide/svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -21,6 +21,8 @@ let editMode = $state(false);
 let dragOverCell = $state<{ x: number; y: number } | null>(null);
 let resizingWidget = $state<string | null>(null);
 let movingWidget = $state<string | null>(null);
+let renameOpen = $state(false);
+let renameValue = $state('');
 
 function handleSelectWorkspace(id: string) {
 	void workspaceStore.selectWorkspace(id);
@@ -33,10 +35,16 @@ function handleAddWidget(type: WidgetType) {
 function handleRenameWorkspace() {
 	const ws = workspaceStore.workspaces.find((w) => w.id === workspaceStore.activeWorkspaceId);
 	if (!ws) return;
-	const newName = prompt('ワークスペース名を入力', ws.name);
-	if (newName && newName !== ws.name) {
-		void workspaceStore.updateWorkspace(ws.id, newName);
+	renameValue = ws.name;
+	renameOpen = true;
+}
+
+function confirmRename() {
+	const ws = workspaceStore.workspaces.find((w) => w.id === workspaceStore.activeWorkspaceId);
+	if (ws && renameValue.trim() && renameValue !== ws.name) {
+		void workspaceStore.updateWorkspace(ws.id, renameValue.trim());
 	}
+	renameOpen = false;
 }
 
 const workspaceMenuItems = [
@@ -152,6 +160,13 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	{/if}
 
 	{#if editMode}
+		<!-- 編集モード操作ガイド -->
+		<div class="mb-4">
+			<Tip tone="accent" tipId="workspace-edit-guide">
+				ドラッグ&ドロップでウィジェットを移動、右下のハンドルでリサイズ、ゴミ箱アイコンで削除できます。
+			</Tip>
+		</div>
+
 		<!-- L-1: Edit mode with sidebar -->
 		<div class="flex gap-4">
 			<WorkspaceEditorSidebar widgets={workspaceStore.widgets} onDragStart={() => {}} />
@@ -178,15 +193,26 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						{#if WidgetComp}
 							<div
 								class="relative"
+								role="group"
+								aria-label={widget.widget_type}
 								style="grid-column: {widget.position_x + 1} / span {Math.min(widget.width, GRID_COLS - widget.position_x)}; grid-row: {widget.position_y + 1} / span {widget.height};"
 								draggable="true"
 								ondragstart={(e) => handleWidgetDragStart(e, widget.id)}
 							>
 								<WidgetComp {widget} />
+								<!-- 削除ボタン -->
+								<button
+									type="button"
+									class="absolute right-1 top-1 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
+									aria-label="ウィジェットを削除"
+									onclick={() => void workspaceStore.removeWidget(widget.id)}
+								>
+									<Trash2 class="h-3 w-3" />
+								</button>
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
 								<!-- L-4: Resize handle -->
 								<div
 									class="absolute bottom-1 right-1 h-4 w-4 cursor-se-resize rounded-sm bg-[var(--ag-accent)]/30 hover:bg-[var(--ag-accent)]/60"
-									role="separator"
 									aria-label="リサイズ"
 									onmousedown={(e) => handleResizeStart(e, widget.id)}
 								></div>
@@ -201,6 +227,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 								(w) => x >= w.position_x && x < w.position_x + w.width && y >= w.position_y && y < w.position_y + w.height,
 							)}
 							{#if !occupied}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
 								<div
 									class="rounded-lg border-2 border-dashed transition-colors {dragOverCell?.x === x && dragOverCell?.y === y
 										? 'border-[var(--ag-accent)] bg-[var(--ag-accent)]/10'
@@ -249,3 +276,45 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		</div>
 	{/if}
 </div>
+
+<!-- ワークスペース名変更ダイアログ -->
+{#if renameOpen}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+		onclick={(e) => { if (e.target === e.currentTarget) renameOpen = false; }}
+		onkeydown={(e) => { if (e.key === 'Escape') renameOpen = false; }}
+	>
+		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-6 shadow-[var(--ag-shadow-dialog)]">
+			<h3 class="mb-4 text-lg font-semibold text-[var(--ag-text-primary)]">ワークスペース名を変更</h3>
+			<form onsubmit={(e) => { e.preventDefault(); confirmRename(); }}>
+				<!-- svelte-ignore a11y_autofocus -->
+				<input
+					type="text"
+					class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
+					bind:value={renameValue}
+					placeholder="ワークスペース名"
+					autofocus
+				/>
+				<div class="mt-4 flex justify-end gap-2">
+					<button
+						type="button"
+						class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+						onclick={() => (renameOpen = false)}
+					>
+						キャンセル
+					</button>
+					<button
+						type="submit"
+						class="rounded-lg bg-[var(--ag-accent)] px-4 py-2 text-sm text-white hover:opacity-90"
+					>
+						変更
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}

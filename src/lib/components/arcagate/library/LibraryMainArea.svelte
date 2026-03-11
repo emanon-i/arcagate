@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Plus, Search } from '@lucide/svelte';
+import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
@@ -9,9 +10,22 @@ interface Props {
 	activeTag: string | null;
 	onSelectItem?: (id: string | null) => void;
 	onAddItem?: () => void;
+	onEditItem?: (id: string) => void;
 }
 
-let { activeTag, onSelectItem, onAddItem }: Props = $props();
+let { activeTag, onSelectItem, onAddItem, onEditItem }: Props = $props();
+
+async function handleDeleteItem(id: string) {
+	const item = itemStore.items.find((i) => i.id === id);
+	if (!item) return;
+	const confirmed = await ask(`「${item.label}」を削除しますか？`, {
+		title: '削除の確認',
+		kind: 'warning',
+	});
+	if (confirmed) {
+		void itemStore.deleteItem(id);
+	}
+}
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
@@ -43,6 +57,7 @@ let filteredItems = $derived.by(() => {
 });
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
 <main
 	class="min-h-full p-5"
 	onclick={(e: MouseEvent) => {
@@ -72,7 +87,7 @@ let filteredItems = $derived.by(() => {
 			onclick={() => onAddItem?.()}
 		>
 			<Plus class="h-4 w-4" />
-			Add item
+			アイテムを追加
 		</button>
 	</div>
 
@@ -86,14 +101,28 @@ let filteredItems = $derived.by(() => {
 	{/if}
 
 	<!-- Card grid -->
-	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 [&>*]:max-w-sm">
-		{#each filteredItems as item (item.id)}
-			<LibraryCard {item} onclick={() => onSelectItem?.(item.id)} ondblclick={() => void launchItem(item.id)} />
-		{/each}
-		{#if filteredItems.length === 0}
-			<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">
-				{searchQuery ? `「${searchQuery}」に一致するアイテムはありません` : 'アイテムがまだありません'}
-			</div>
-		{/if}
-	</div>
+	{#if itemStore.loading && itemStore.items.length === 0}
+		<div class="flex items-center justify-center py-20">
+			<span class="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--ag-accent)] border-t-transparent"></span>
+			<span class="text-sm text-[var(--ag-text-muted)]">読み込み中...</span>
+		</div>
+	{:else}
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 [&>*]:max-w-sm">
+			{#each filteredItems as item (item.id)}
+				<LibraryCard
+				{item}
+				onclick={() => onSelectItem?.(item.id)}
+				ondblclick={() => void launchItem(item.id)}
+				onLaunch={() => void launchItem(item.id)}
+				onEdit={() => onEditItem?.(item.id)}
+				onDelete={() => void handleDeleteItem(item.id)}
+			/>
+			{/each}
+			{#if filteredItems.length === 0}
+				<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">
+					{searchQuery ? `「${searchQuery}」に一致するアイテムはありません` : 'アイテムがまだありません'}
+				</div>
+			{/if}
+		</div>
+	{/if}
 </main>
