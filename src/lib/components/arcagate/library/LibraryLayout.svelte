@@ -4,15 +4,27 @@ import LibraryMainArea from './LibraryMainArea.svelte';
 import LibrarySidebar from './LibrarySidebar.svelte';
 
 interface Props {
-	sidebarExpanded?: boolean;
 	onEditItem?: (id: string) => void;
 	onAddItem?: () => void;
+	onOpenSettings?: () => void;
 }
 
-let { sidebarExpanded = false, onEditItem, onAddItem }: Props = $props();
+let { onEditItem, onAddItem, onOpenSettings }: Props = $props();
 
+let sidebarExpanded = $state(false);
 let selectedItemId: string | null = $state(null);
 let activeTag: string | null = $state(null);
+
+function handleTagSelect(tagId: string | null) {
+	if (!sidebarExpanded) {
+		sidebarExpanded = true;
+		activeTag = tagId;
+	} else if (activeTag === tagId) {
+		sidebarExpanded = false;
+	} else {
+		activeTag = tagId;
+	}
+}
 
 const base = 'flex h-full flex-col md:grid md:grid-rows-[1fr] bg-[var(--ag-surface-0)]';
 
@@ -32,7 +44,7 @@ let gridClass = $derived.by(() => {
 
 <div class={gridClass}>
 	<div class="hidden min-h-0 overflow-y-auto md:block" data-testid="library-sidebar-wrapper">
-		<LibrarySidebar expanded={sidebarExpanded} {activeTag} onSelectTag={(id) => (activeTag = id)} />
+		<LibrarySidebar expanded={sidebarExpanded} {activeTag} onSelectTag={handleTagSelect} {onOpenSettings} />
 	</div>
 	<div class="min-h-0 overflow-y-auto" data-testid="library-main-wrapper">
 		<LibraryMainArea {activeTag} onSelectItem={(id: string | null) => (selectedItemId = id)} {onAddItem} {onEditItem} />

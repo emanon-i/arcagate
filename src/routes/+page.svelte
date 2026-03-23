@@ -1,17 +1,7 @@
 <script lang="ts">
-import {
-	Archive,
-	Eye,
-	EyeOff,
-	LayoutDashboard,
-	PanelLeft,
-	Search,
-	Settings2,
-	X,
-} from '@lucide/svelte';
+import { Archive, Eye, EyeOff, LayoutDashboard, Search, Settings2, X } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { onDestroy } from 'svelte';
-import AppHeader from '$lib/components/arcagate/common/AppHeader.svelte';
 import TitleAction from '$lib/components/arcagate/common/TitleAction.svelte';
 import TitleBar from '$lib/components/arcagate/common/TitleBar.svelte';
 import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
@@ -38,7 +28,6 @@ let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
 let droppedPaths = $state<string[] | undefined>(undefined);
 let isDraggingOver = $state(false);
-let sidebarExpanded = $state(false);
 let showSettings = $state(false);
 
 // 初期化
@@ -166,7 +155,7 @@ function handleFormClose() {
 		onclick={(e) => { if (e.target === e.currentTarget) showSettings = false; }}
 		onkeydown={(e) => { if (e.key === 'Escape') showSettings = false; }}
 	>
-		<div class="relative w-full max-w-lg rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] shadow-[var(--ag-shadow-dialog)]">
+		<div class="relative w-full max-w-lg rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
 			<button
 				type="button"
 				class="absolute right-3 top-3 rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
@@ -195,13 +184,20 @@ function handleFormClose() {
 
 <!-- メインレイアウト -->
 <div class="flex h-screen flex-col bg-[var(--ag-surface-0)]">
-	<TitleBar />
-	<!-- カスタムヘッダーバー -->
-	<AppHeader>
+	<TitleBar>
 		{#snippet leftSlot()}
+			<TitleAction icon={Settings2} label="Settings" onclick={() => (showSettings = true)} />
 			{#if activeView === "library"}
-				<TitleAction icon={PanelLeft} label="Sidebar" onclick={() => (sidebarExpanded = !sidebarExpanded)} />
+				<TitleAction
+					icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
+					label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示中' : '非表示アイテム: 非表示'}
+					tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
+					onclick={() => hiddenStore.toggleDirect()}
+				/>
+			{:else}
+				<TitleAction icon={EyeOff} label="Safe mode" tone="warm" />
 			{/if}
+			<TitleAction icon={Search} label="Palette" tone="accent" onclick={() => (paletteOpen = true)} />
 		{/snippet}
 		{#snippet centerSlot()}
 			<div class="flex items-center gap-2">
@@ -219,27 +215,12 @@ function handleFormClose() {
 				/>
 			</div>
 		{/snippet}
-		{#snippet rightSlot()}
-			<TitleAction icon={Search} label="Palette" tone="accent" onclick={() => (paletteOpen = true)} />
-			{#if activeView === "library"}
-				<TitleAction
-					icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
-					label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示中' : '非表示アイテム: 非表示'}
-					tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
-					onclick={() => hiddenStore.toggleDirect()}
-				/>
-			{:else}
-				<TitleAction icon={EyeOff} label="Safe mode" tone="warm" />
-			{/if}
-			<TitleAction icon={Settings2} label="Settings" onclick={() => (showSettings = true)} />
-		{/snippet}
-	</AppHeader>
+	</TitleBar>
 
 	<!-- メインコンテンツ -->
 	<main class="min-h-0 flex-1 overflow-hidden">
 		{#if activeView === "library"}
 			<LibraryLayout
-				{sidebarExpanded}
 				onEditItem={(id) => {
 					editingItem = itemStore.items.find((i) => i.id === id) ?? null;
 					showItemForm = true;
@@ -248,9 +229,10 @@ function handleFormClose() {
 					editingItem = null;
 					showItemForm = true;
 				}}
+				onOpenSettings={() => (showSettings = true)}
 			/>
 		{:else}
-			<WorkspaceLayout />
+			<WorkspaceLayout onOpenSettings={() => (showSettings = true)} />
 		{/if}
 	</main>
 </div>

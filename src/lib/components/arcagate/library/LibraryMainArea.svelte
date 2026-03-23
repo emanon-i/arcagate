@@ -107,15 +107,12 @@ let filteredItems = $derived.by(() => {
 			<span class="text-sm text-[var(--ag-text-muted)]">読み込み中...</span>
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 [&>*]:max-w-sm">
+		<div class="grid gap-4 [&>*]:max-w-sm" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
 				{item}
 				onclick={() => onSelectItem?.(item.id)}
 				ondblclick={() => void launchItem(item.id)}
-				onLaunch={() => void launchItem(item.id)}
-				onEdit={() => onEditItem?.(item.id)}
-				onDelete={() => void handleDeleteItem(item.id)}
 			/>
 			{/each}
 			{#if filteredItems.length === 0}

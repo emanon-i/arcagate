@@ -8,7 +8,12 @@ import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
 
-let { widget }: { widget?: WorkspaceWidget } = $props();
+interface Props {
+	widget?: WorkspaceWidget;
+	onItemContext?: (itemId: string) => void;
+}
+
+let { widget, onItemContext }: Props = $props();
 
 let recentItems = $state<Item[]>([]);
 let settingsOpen = $state(false);
@@ -41,6 +46,12 @@ let menuItems = $derived(
 				type="button"
 				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-3 text-sm hover:bg-[var(--ag-surface-4)]"
 				onclick={() => void launchItem(item.id)}
+				oncontextmenu={(e) => {
+					if (onItemContext) {
+						e.preventDefault();
+						onItemContext(item.id);
+					}
+				}}
 			>
 				<div class="flex items-center gap-3 text-[var(--ag-text-secondary)]">
 					<div class="h-2.5 w-2.5 rounded-full bg-cyan-300"></div>
