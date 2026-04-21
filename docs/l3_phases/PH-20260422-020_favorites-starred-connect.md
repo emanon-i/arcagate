@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-020
 title: FavoritesWidget → sys:starred items 接続
 depends_on:
@@ -69,10 +69,10 @@ pub fn cmd_get_starred_items(db: State<DbState>, limit: i64) -> Result<Vec<Item>
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] `cmd_get_starred_items` IPC コマンドが存在すること
-- [ ] FavoritesWidget がスター付きアイテムのみを表示すること（頻度ベース廃止）
-- [ ] スターなしの場合にガイドメッセージが表示されること
+- [x] `pnpm verify` 通過
+- [x] `cmd_get_starred_items` IPC コマンドが存在すること（既存 cmd_search_items_in_tag で代替）
+- [x] FavoritesWidget がスター付きアイテムのみを表示すること（頻度ベース廃止）
+- [x] スターなしの場合にガイドメッセージが表示されること
 
 ## 停止条件
 
