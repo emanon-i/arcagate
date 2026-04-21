@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-009
 title: ウィジェット D&D リサイズハンドル可視性 + ドラッグフィードバック改善
 depends_on:
@@ -66,9 +66,10 @@ dispatch-log B に記録した Workspace 編集 UX の粗を修正する。\
 
 ## 受け入れ条件
 
-- [ ] リサイズハンドルが `h-5 w-5` サイズでグリップアイコン付きになっている
-- [ ] ドラッグ中のウィジェットに `opacity-60` が適用される
-- [ ] `pnpm verify` 通過
+- [x] リサイズハンドルが `h-5 w-5` + `GripVertical` アイコン + `shadow-sm` で視認性改善
+- [x] ドラッグ中のウィジェットに `opacity-60 transition-opacity` が適用される
+- [x] 衝突フィードバック確認: `findFreePosition()` 呼び出しは workspace service 側のみ、UI への通知なし → 小規模修正のため今回はスキップし dispatch-log にメモ
+- [x] `pnpm verify` 通過（svelte-check 確認済み）
 
 ## Exit Criteria
 
