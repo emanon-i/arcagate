@@ -169,7 +169,7 @@ type は `feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf` から
 各 Plan 着手・完了・エラー時にここに追記（append-only。過去ログは書き換えない）:
 
 ```markdown
-## YYYY-MM-DD HH:MM  [PH-YYYYMMDD-NNN]  <start|step|done|stop>
+## YYYY-MM-DD HH:MM [PH-YYYYMMDD-NNN] <start|step|done|stop>
 
 - (step の場合) 何をしたか・結果
 - (stop の場合) 停止理由・§5 のどの条件に該当か
@@ -180,18 +180,22 @@ type は `feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf` から
 
 ```markdown
 ## 対応 Plan
+
 `docs/l3_phases/PH-YYYYMMDD-NNN_<slug>.md`
 
 ## 変更サマリ
+
 - <主要変更点 1-3 行>
 
 ## 検証
+
 - [x] `pnpm verify` 通過
 - [x] `pnpm test:e2e` 通過
 - [x] Plan 内受け入れ条件すべて [x]
 - スクショ: `tmp/screenshots/PH-YYYYMMDD-NNN/`（ローカルのみ。PR には添付しない）
 
 ## 参照
+
 - 親ドキュメント: docs/l1_requirements/vision.md / docs/l2_foundation/foundation.md
 ```
 
