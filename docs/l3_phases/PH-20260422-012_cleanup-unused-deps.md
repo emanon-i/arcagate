@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-012
 title: 未使用 @formkit/drag-and-drop 削除 + stale TODO 整理
 depends_on:
@@ -55,10 +55,10 @@ grep -rn "TODO\|FIXME\|HACK\|XXX" src/ src-tauri/src/
 
 ## 受け入れ条件
 
-- [ ] `@formkit/drag-and-drop` が package.json から削除されている
-- [ ] `grep -r "formkit" src/` が 0 件
-- [ ] stale TODO / FIXME が整理されている（残す場合は理由が明記）
-- [ ] `pnpm verify` 通過
+- [x] `@formkit/drag-and-drop` が package.json から削除されている
+- [x] `grep -r "formkit" src/` が 0 件（使用箇所なし確認済み）
+- [x] stale TODO / FIXME がゼロ件（grep で確認済み）
+- [x] `pnpm verify` 通過（biome/dprint/svelte-check 確認済み）
 
 ## Exit Criteria
 
