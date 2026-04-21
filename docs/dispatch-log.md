@@ -242,3 +242,27 @@ PH-20260422-001〜007 全 7 Plan 完了・アーカイブ済み。
 
 - 実機でのスクリーンショット（Plan 受け入れ条件の「6 枚以上」）は取得できていない
 - E2E テスト（`tests/e2e/widget-zoom.spec.ts`）は CDP 接続が必要なため、実行は次回の `pnpm test:e2e` で確認する
+
+---
+
+## 2026-04-22 バッチ 2 完了・Plan 在庫切れにつき停止
+
+PH-20260422-008〜012 全 5 Plan 処理完了（010 は stopped、他は done）。
+
+### バッチ 2 棚卸しサマリ
+
+| Phase | タイトル                                          | 結果    | 主な変更                                                                                  |
+| ----- | ------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------- |
+| 008   | ProjectsWidget アイコン表示                       | done    | `ProjectsWidget.svelte` の FolderKanban を `ItemIcon` に置換（icon_path 活用）            |
+| 009   | リサイズハンドル可視性 + ドラッグ opacity         | done    | ハンドル h-4→h-5・GripVertical アイコン追加・ドラッグ中 `opacity-60`                      |
+| 010   | Favorites に追加ボタン                            | stopped | FavoritesWidget が `getFrequentItems` ベースで `sys:favorites` タグ不在。設計不一致で停止 |
+| 011   | Library タグフィルタ + ウィジェット右クリック E2E | done    | `library-tag-filter.spec.ts` + `widget-context-panel.spec.ts` 新規追加                    |
+| 012   | 未使用 @formkit/drag-and-drop 削除                | done    | `package.json` から依存削除・stale TODO/FIXME ゼロ確認                                    |
+
+### 次バッチ候補（次セッションでユーザが Plan 作成）
+
+1. **sys:starred システムタグ**: DB マイグレーション不要。`LibraryDetailPanel` に「★ スター」ボタン追加 + Library 一覧でスター強調。PH-20260422-010 の代替
+2. **ウィジェット追加の高速パス**: `LibraryDetailPanel` に「ワークスペースに追加」ボタン（FavoritesWidget ではなく、新規タグ/ウィジェット選択 UI）
+3. **ウィジェット操作のアンドゥ**: 誤移動・誤リサイズの取り消し（`cancelEdit()` のリロード方式を改善）
+4. **E2E test:e2e 実行確認**: `pnpm test:e2e`（CDP 接続）をローカル実機で実行し、全 E2E テストの通過を確認
+5. **LibraryMainArea a11y 警告解消**: `<main>` に onClick を付けている件（svelte-check WARN）。`<div role="presentation">` に変更する候補
