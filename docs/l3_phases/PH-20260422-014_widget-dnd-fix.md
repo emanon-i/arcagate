@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-014
 title: Widget D&D 配置修復（calcGridPosition 基準修正 + 専用ドラッグハンドル）
 depends_on:
