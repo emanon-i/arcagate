@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Clock3 } from '@lucide/svelte';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
@@ -53,11 +54,11 @@ let menuItems = $derived(
 					}
 				}}
 			>
-				<div class="flex items-center gap-3 text-[var(--ag-text-secondary)]">
-					<div class="h-2.5 w-2.5 rounded-full bg-cyan-300"></div>
-					<span>{item.label}</span>
-				</div>
-				<span class="text-[var(--ag-text-muted)]">{item.target}</span>
+				<span class="flex min-w-0 flex-1 items-center gap-2 text-[var(--ag-text-secondary)]">
+					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-5 w-5 shrink-0 object-cover" />
+					<span class="truncate">{item.label}</span>
+				</span>
+				<span class="shrink-0 max-w-[40%] truncate text-xs text-[var(--ag-text-muted)]">{item.target}</span>
 			</button>
 		{/each}
 		{#if recentItems.length === 0}

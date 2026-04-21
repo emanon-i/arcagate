@@ -1,4 +1,5 @@
 <script lang="ts">
+import { AppWindow } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 
 interface Props {
@@ -27,4 +28,6 @@ $effect(() => {
 			iconError = true;
 		}}
 	/>
+{:else}
+	<AppWindow class="{className} text-[var(--ag-text-muted)]" />
 {/if}
