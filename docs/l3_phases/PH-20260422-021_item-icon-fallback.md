@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-021
 title: ItemIcon フォールバック（item_type 別デフォルトアイコン）
 depends_on:
@@ -60,10 +60,10 @@ item_type に応じたデフォルトアイコンを表示することで、
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（svelte-check WARNING 0）
-- [ ] iconSrc なし + item_type 指定時に対応アイコンが表示されること
-- [ ] iconSrc あり時は img が優先されること
-- [ ] 既存の ItemIcon 利用箇所（FavoritesWidget 等）が壊れないこと
+- [x] `pnpm verify` 通過（svelte-check WARNING 0）
+- [x] iconSrc なし + item_type 指定時に対応アイコンが表示されること
+- [x] iconSrc あり時は img が優先されること
+- [x] 既存の ItemIcon 利用箇所（FavoritesWidget 等）が壊れないこと
 
 ## 停止条件
 
