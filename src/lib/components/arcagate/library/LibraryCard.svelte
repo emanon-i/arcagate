@@ -22,7 +22,7 @@ let { item, isStarred = false, onclick, ondblclick }: Props = $props();
 	{ondblclick}
 >
 	<div class="relative flex aspect-video items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
-		<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-14 w-14 object-contain drop-shadow-lg" />
+		<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class="h-14 w-14 object-contain drop-shadow-lg" />
 		{#if isStarred}
 			<div class="absolute right-2 top-2 rounded-full bg-[var(--ag-accent)]/90 p-1 shadow-sm">
 				<Star class="h-3 w-3 fill-white text-white" />

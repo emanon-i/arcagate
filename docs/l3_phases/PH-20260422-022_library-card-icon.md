@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-022
 title: LibraryCard にアイコン表示
 depends_on:
@@ -51,10 +51,10 @@ parallel_safe: true
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] LibraryCard にアイコンが表示されること
-- [ ] icon_path なしのアイテムでも item_type 別フォールバックアイコンが表示されること
-- [ ] 既存の LibraryCard テスト（E2E）が壊れないこと
+- [x] `pnpm verify` 通過
+- [x] LibraryCard にアイコンが表示されること
+- [x] icon_path なしのアイテムでも item_type 別フォールバックアイコンが表示されること
+- [x] 既存の LibraryCard テスト（E2E）が壊れないこと
 
 ## 停止条件
 
