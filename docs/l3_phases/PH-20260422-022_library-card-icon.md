@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-022
 title: LibraryCard にアイコン表示
 depends_on:
