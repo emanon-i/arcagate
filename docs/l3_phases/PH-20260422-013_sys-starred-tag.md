@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-013
 title: sys:starred システムタグ実装（Rust 基盤 + DetailPanel ★ トグル）
 depends_on:
