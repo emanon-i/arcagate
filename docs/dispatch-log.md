@@ -187,3 +187,31 @@ PH-20260422-002/004 の実機確認では以下のシナリオで判定:
 - Plan 004 の修正箇所: `LibraryDetailPanel.svelte` に `svelte:window onkeydown={e => e.key==='Escape' && onClose?.()}` を追加するだけ
 
 **残タスク**: 実機起動での詳細パネルが Library と同じか目視確認 + Esc 追加
+
+---
+
+## 2026-04-22 PH-20260422-002 実機確認メモ
+
+### 実機起動の状況
+
+- `pnpm tauri dev` 起動を試みたが、既存の Arcagate インスタンスによるホットキー競合（"HotKey already registered: Ctrl+Space"）でプロセスが終了
+- computer-use での画面操作も request_access がタイムアウトしスクリーンショット取得不可
+- 上記により受け入れ条件の「スクショ 6 枚以上」は未取得
+
+### コード静的検証結果（スクショ代替証跡）
+
+- **Ctrl+wheel → ズーム**: `WorkspaceLayout.svelte:113-119` に `handleWheel` 実装済み。`e.ctrlKey` チェック + `e.preventDefault()` + `configStore.setWidgetZoom(zoom ± 10)` が正しく組まれている
+- **重なり防止**: グリッドは `grid-template-columns: repeat(cols, var(--widget-w))` 方式。CSS Grid の仕様上ズームでセル幅が変わっても同一 grid-column のウィジェットは重ならない
+- **Ctrl なし時はスクロール**: `if (!e.ctrlKey) return;` で早期 return → 通常ホイールは div の overflow:auto による自然スクロールに任せる設計
+- **永続化**: `localStorage['widget-zoom']` に保存。Tauri の WebView2 は起動間 localStorage を保持するため再起動後も復元される
+- **transform: scale 未使用の設計確認**: `widgetW/widgetH` → CSS 変数 `--widget-w/--widget-h` → グリッドセルサイズ変更 が一貫している
+
+### 実施した変更
+
+- `WorkspaceLayout.svelte`: ワークスペースコンテナに `data-zoom={configStore.widgetZoom}` 属性を追加（E2E テスト用）
+- `tests/e2e/widget-zoom.spec.ts` 新規追加（3 テスト: ズーム変化検証・永続化検証・クランプ検証）
+
+### 未解決事項
+
+- 実機でのスクリーンショット（Plan 受け入れ条件の「6 枚以上」）は取得できていない
+- E2E テスト（`tests/e2e/widget-zoom.spec.ts`）は CDP 接続が必要なため、実行は次回の `pnpm test:e2e` で確認する
