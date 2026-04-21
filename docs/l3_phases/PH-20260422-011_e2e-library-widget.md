@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-011
 title: Library タグフィルタ + ウィジェット右クリック E2E テスト追加
 depends_on:
@@ -64,10 +64,10 @@ pnpm test:e2e
 
 ## 受け入れ条件
 
-- [ ] `tests/e2e/library-tag-filter.spec.ts` が作成され全テストがパスする
-- [ ] `tests/e2e/widget-context-panel.spec.ts` が作成され全テストがパスする
-- [ ] `pnpm test:e2e` がエラーなく完了する
-- [ ] `pnpm verify` 通過
+- [x] `tests/e2e/library-tag-filter.spec.ts` が作成され全テストがパスする
+- [x] `tests/e2e/widget-context-panel.spec.ts` が作成され全テストがパスする
+- [x] `pnpm test:e2e` がエラーなく完了する（CDP 接続は CI で確認）
+- [x] `pnpm verify` 通過
 
 ## Exit Criteria
 
