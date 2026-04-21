@@ -99,6 +99,14 @@ pub fn cmd_count_hidden_items(db: State<DbState>) -> Result<i64, AppError> {
 }
 
 #[tauri::command]
+pub fn cmd_auto_register_folder_items(
+    db: State<DbState>,
+    root_path: String,
+) -> Result<Vec<Item>, AppError> {
+    item_service::auto_register_folder_items(&db, &root_path)
+}
+
+#[tauri::command]
 pub fn cmd_check_is_directory(path: String) -> bool {
     std::path::Path::new(&path).is_dir()
 }

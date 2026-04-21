@@ -127,33 +127,30 @@ test.describe('レイアウト', () => {
 		expect((box as { y: number }).y).toBeLessThan(28);
 	});
 
-	test('Sidebar ボタンでサイドバーが展開/折り畳みすること', async ({ page }) => {
-		await resizeWindow(page, 1280, 800);
-		await page.reload();
-		await page.waitForLoadState('domcontentloaded');
-		await waitForAppReady(page);
+	test('Sidebar トグルボタンが存在しないこと（S-1-2）', async ({ page }) => {
+		await expect(page.getByRole('button', { name: 'Sidebar' })).not.toBeVisible();
+	});
 
-		const sidebar = page.getByTestId('library-sidebar');
-		const sidebarButton = page.getByRole('button', { name: 'Sidebar' });
+	test('TitleBar に "Arcagate" テキストが表示されないこと（S-1-1）', async ({ page }) => {
+		// TitleBar 内にテキスト "Arcagate" がないこと
+		const titleBar = page.locator('[data-tauri-drag-region]').first();
+		await expect(titleBar).toBeVisible();
+		const text = await titleBar.evaluate((el) => el.textContent?.trim() ?? '');
+		expect(text).not.toContain('Arcagate');
+	});
 
-		// 初期状態: サイドバーは折り畳み（アイコンのみ）
-		await expect(sidebar).toBeVisible();
-		await expect(sidebarButton).toBeVisible();
-		const collapsedBox = await sidebar.boundingBox();
-		expect(collapsedBox).toBeTruthy();
-		expect(collapsedBox?.width).toBeLessThan(60);
+	test('アクションボタンが左側に正しい順序で配置されること（S-1-4）', async ({ page }) => {
+		const settingsBtn = page.getByRole('button', { name: 'Settings' });
+		const paletteBtn = page.getByRole('button', { name: 'Palette' });
 
-		// クリックで展開（タグ名 + 件数表示）
-		await sidebarButton.click();
-		const expandedBox = await sidebar.boundingBox();
-		expect(expandedBox).toBeTruthy();
-		expect(expandedBox?.width).toBeGreaterThan(100);
+		await expect(settingsBtn).toBeVisible();
+		await expect(paletteBtn).toBeVisible();
 
-		// 再クリックで折り畳み
-		await sidebarButton.click();
-		const reCollapsedBox = await sidebar.boundingBox();
-		expect(reCollapsedBox).toBeTruthy();
-		expect(reCollapsedBox?.width).toBeLessThan(60);
+		// Settings が Palette より左にある
+		const settingsBox = await settingsBtn.boundingBox();
+		const paletteBox = await paletteBtn.boundingBox();
+		if (!settingsBox || !paletteBox) throw new Error('boundingBox is null');
+		expect(settingsBox.x).toBeLessThan(paletteBox.x);
 	});
 
 	test('アイテム作成でサイドバーにシステムタグアイコンが表示されること', async ({ page }) => {

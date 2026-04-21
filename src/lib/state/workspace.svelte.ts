@@ -7,6 +7,45 @@ let widgets = $state<WorkspaceWidget[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 
+/** AABB overlap check: does rect (x, y, w, h) overlap any widget in the list? */
+function isOverlapping(
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	others: WorkspaceWidget[],
+): boolean {
+	return others.some(
+		(ww) =>
+			x < ww.position_x + ww.width &&
+			x + w > ww.position_x &&
+			y < ww.position_y + ww.height &&
+			y + h > ww.position_y,
+	);
+}
+
+/**
+ * Find the first free grid position for a widget of size w x h.
+ * Scans top-to-bottom, left-to-right in a virtual grid.
+ * gridCols is the number of columns in the auto-fill grid (default 4).
+ */
+function findFreePosition(
+	existingWidgets: WorkspaceWidget[],
+	w: number,
+	h: number,
+	gridCols = 4,
+): { x: number; y: number } {
+	const maxY = Math.max(10, ...existingWidgets.map((ww) => ww.position_y + ww.height)) + h;
+
+	for (let y = 0; y < maxY; y++) {
+		for (let x = 0; x <= gridCols - w; x++) {
+			if (!isOverlapping(x, y, w, h, existingWidgets)) return { x, y };
+		}
+	}
+	// Fallback: place below everything
+	return { x: 0, y: maxY };
+}
+
 async function loadWorkspaces(): Promise<void> {
 	loading = true;
 	error = null;
@@ -30,7 +69,7 @@ async function createWorkspace(name: string): Promise<void> {
 		const ws = await workspaceIpc.createWorkspace(name);
 		workspaces = [...workspaces, ws];
 		activeWorkspaceId = ws.id;
-		widgets = [];
+		await seedDefaultWidgets(ws.id);
 	} catch (e) {
 		error = String(e);
 	} finally {
@@ -78,11 +117,27 @@ async function loadWidgets(workspaceId: string): Promise<void> {
 	error = null;
 	try {
 		widgets = await workspaceIpc.listWidgets(workspaceId);
+		if (widgets.length === 0) {
+			await seedDefaultWidgets(workspaceId);
+		}
 	} catch (e) {
 		error = String(e);
 	} finally {
 		loading = false;
 	}
+}
+
+async function seedDefaultWidgets(workspaceId: string): Promise<void> {
+	const defaults: { type: WidgetType; x: number; y: number; w: number; h: number }[] = [
+		{ type: 'favorites', x: 0, y: 0, w: 1, h: 2 },
+		{ type: 'recent', x: 1, y: 0, w: 2, h: 1 },
+		{ type: 'projects', x: 1, y: 1, w: 2, h: 1 },
+	];
+	for (const d of defaults) {
+		const widget = await workspaceIpc.addWidget(workspaceId, d.type);
+		await workspaceIpc.updateWidgetPosition(widget.id, d.x, d.y, d.w, d.h);
+	}
+	widgets = await workspaceIpc.listWidgets(workspaceId);
 }
 
 async function addWidget(widgetType: WidgetType): Promise<void> {
@@ -91,6 +146,30 @@ async function addWidget(widgetType: WidgetType): Promise<void> {
 	error = null;
 	try {
 		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
+		// Auto-place at first free position
+		const pos = findFreePosition(widgets, widget.width, widget.height);
+		if (pos.x !== widget.position_x || pos.y !== widget.position_y) {
+			await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
+			widget.position_x = pos.x;
+			widget.position_y = pos.y;
+		}
+		widgets = [...widgets, widget];
+	} catch (e) {
+		error = String(e);
+	} finally {
+		loading = false;
+	}
+}
+
+async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promise<void> {
+	if (!activeWorkspaceId) return;
+	loading = true;
+	error = null;
+	try {
+		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
+		await workspaceIpc.updateWidgetPosition(widget.id, x, y, widget.width, widget.height);
+		widget.position_x = x;
+		widget.position_y = y;
 		widgets = [...widgets, widget];
 	} catch (e) {
 		error = String(e);
@@ -157,13 +236,28 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 	const target = widgets.find((w) => w.id === id);
 	if (!target) return;
 	error = null;
-	// 楽観的ローカル更新
-	widgets = widgets.map((w) => (w.id === id ? { ...w, position_x: x, position_y: y } : w));
+
+	// Check for overlap at target position
+	const othersWithout = widgets.filter((w) => w.id !== id);
+	const finalPos = isOverlapping(x, y, target.width, target.height, othersWithout)
+		? findFreePosition(othersWithout, target.width, target.height)
+		: { x, y };
+
+	// Optimistic local update
+	widgets = widgets.map((w) =>
+		w.id === id ? { ...w, position_x: finalPos.x, position_y: finalPos.y } : w,
+	);
 	try {
-		await workspaceIpc.updateWidgetPosition(id, x, y, target.width, target.height);
+		await workspaceIpc.updateWidgetPosition(
+			id,
+			finalPos.x,
+			finalPos.y,
+			target.width,
+			target.height,
+		);
 	} catch (e) {
 		error = String(e);
-		// ロールバック
+		// Rollback
 		widgets = widgets.map((w) =>
 			w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
 		);
@@ -195,11 +289,14 @@ export const workspaceStore = {
 	updateWorkspace,
 	deleteWorkspace,
 	selectWorkspace,
+	loadWidgets,
 	addWidget,
+	addWidgetAt,
 	removeWidget,
 	updateWidgetConfig,
 	persistWidgetOrder,
 	resizeWidget,
 	moveWidget,
 	optimisticResize,
+	findFreePosition,
 };

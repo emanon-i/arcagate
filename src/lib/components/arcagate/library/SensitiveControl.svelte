@@ -10,9 +10,9 @@ import { hiddenStore } from '$lib/state/hidden.svelte';
 >
 	{#if hiddenStore.isHiddenVisible}
 		<Eye class="h-4 w-4" />
-		<span>不可視化</span>
+		<span>プライベート ON</span>
 	{:else}
 		<EyeOff class="h-4 w-4" />
-		<span>可視化</span>
+		<span>プライベート OFF</span>
 	{/if}
 </button>
