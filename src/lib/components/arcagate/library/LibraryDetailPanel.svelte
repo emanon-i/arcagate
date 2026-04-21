@@ -160,7 +160,7 @@ let showTagSelect = $state(false);
 
 		<!-- Gradient preview -->
 		<div class="flex h-40 items-center justify-center rounded-[var(--ag-radius-widget)] bg-gradient-to-br {artMap[selectedItem.item_type]}">
-			<ItemIcon iconPath={selectedItem.icon_path} alt="{selectedItem.label} icon" class="h-20 w-20 object-cover drop-shadow-lg" />
+			<ItemIcon iconPath={selectedItem.icon_path} itemType={selectedItem.item_type} alt="{selectedItem.label} icon" class="h-20 w-20 object-cover drop-shadow-lg" />
 		</div>
 
 		<!-- Detail rows -->
