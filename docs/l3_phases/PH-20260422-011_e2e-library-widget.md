@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-011
 title: Library タグフィルタ + ウィジェット右クリック E2E テスト追加
 depends_on:
