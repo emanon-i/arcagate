@@ -129,15 +129,15 @@ $effect(() => {
 
 // S-7-2: Calculate grid position from drop coordinates
 function calcGridPosition(e: DragEvent): { x: number; y: number } {
-	if (!workspaceContainer) return { x: 0, y: 0 };
-	const rect = workspaceContainer.getBoundingClientRect();
-	const relX = e.clientX - rect.left + workspaceContainer.scrollLeft;
-	const relY = e.clientY - rect.top + workspaceContainer.scrollTop;
+	const ref = dropZone;
+	if (!ref) return { x: 0, y: 0 };
+	const rect = ref.getBoundingClientRect();
+	const relX = e.clientX - rect.left;
+	const relY = e.clientY - rect.top;
 	const gap = 16;
 	const cellW = widgetW + gap;
 	const cellH = widgetH + gap;
-	const cols = Math.max(1, Math.floor(rect.width / widgetW));
-	const x = Math.max(0, Math.min(cols - 1, Math.floor(relX / cellW)));
+	const x = Math.max(0, Math.min(dynamicCols - 1, Math.floor(relX / cellW)));
 	const y = Math.max(0, Math.floor(relY / cellH));
 	return { x, y };
 }
@@ -320,10 +320,18 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 										role="group"
 										aria-label={widget.widget_type}
 										style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
-										draggable="true"
-										use:dragMoveWidget={widget.id}
 									>
 										<WidgetComp {widget} onItemContext={handleItemContext} />
+										<!-- ドラッグハンドル -->
+										<div
+											class="absolute left-1 top-1 flex h-6 w-6 cursor-grab items-center justify-center rounded-sm bg-[var(--ag-surface-4)]/80 hover:bg-[var(--ag-surface-4)]"
+											draggable="true"
+											use:dragMoveWidget={widget.id}
+											aria-label="ウィジェットを移動"
+											ondragstart={(e) => e.stopPropagation()}
+										>
+											<GripVertical class="h-3 w-3 text-[var(--ag-text-muted)]" />
+										</div>
 										<!-- 削除ボタン -->
 										<button
 											type="button"
