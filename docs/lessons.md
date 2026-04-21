@@ -4,16 +4,6 @@
 
 ---
 
-## 技術的負債（F-3b コードレビューで検出）
-
-### `LibraryMainArea.svelte` の $effect race condition
-
-- 現状: `$effect` で `activeTag` / `searchQuery` 変更時に `loadItemsByTag()` を呼ぶ
-- リスク: 高速切替時に stale response が後着して上書きする可能性
-- 判断: IPC <10ms のため実用上は顕在化しにくい。AbortController or request ID で将来対策可能
-
----
-
 ## コードレビュー改善パターン（PH-003 コードレビュー）
 
 ### `pub(crate)` で helper を crate 内共有する
