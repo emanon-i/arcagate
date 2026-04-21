@@ -264,6 +264,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	<div
 		class="min-w-0 flex-1 overflow-auto bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-page)_100%)] p-5"
 		style="--widget-w: {widgetW}px; --widget-h: {widgetH}px;"
+		data-zoom={configStore.widgetZoom}
 		bind:this={workspaceContainer}
 	>
 		<div class="mb-5" class:pointer-events-none={editMode} class:opacity-50={editMode}>
