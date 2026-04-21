@@ -33,41 +33,36 @@
 
 ### PH-20260422-002: ウィジェットズーム実機検証
 
-**想定リスク**:
+**コード調査結果（CI 待ち中に確認済み）**:
 
-- Ctrl+scroll の `wheel` イベントは `on:wheel|capture` か `on:wheel|nonpassive` が必要な場合がある
-  （Svelte 5 の event handling 変更で `passive` がデフォルトになった可能性）
-- ズーム永続化先が `config` テーブルか `workspace` テーブルか Plan で明確でない
-  → `src/lib/state/workspace.svelte.ts` と `config.svelte.ts` 両方確認が必要
-- Ctrl+scroll を WorkspaceLayout 全体で受けるか個別ウィジェットで受けるかで DOM 設計が変わる
+- `WorkspaceLayout.svelte:113-127`: wheel handler は実装済み。`{ passive: false }` で addEventListener、Ctrl なし時は return でスキップ
+- `configStore.setWidgetZoom(zoom)` を呼ぶ（localStorage の `'widget-zoom'` キーに保存）
+- zoom は 50〜200% / step 10 でクランプ済み
+- `transform: scale()` は未使用。代わりに `widgetW / widgetH` を CSS 変数経由でグリッドに渡す設計
+- SettingsPanel にも widgetZoom スライダーが存在（UI 一貫性 OK）
 
-**受け入れ条件の曖昧さ**:
-
-- 「ウィジェットが重ならない」とあるが、zoom 後に grid の配置ロジックがどう動くか不明
-  → `transform: scale()` は DOM サイズを変えないので grid collapse は起きないはず。確認要
-
-**着手前に確認すべきファイル**:
-
-- `WorkspaceLayout.svelte` の wheel handler 有無
-- `config.svelte.ts` の保存可能キー一覧
+**残タスク**: 実機起動で動作確認のみ（コード修正不要の可能性大）
 
 ---
 
 ### PH-20260422-003: 監視フォルダ実機検証
 
-**想定リスク**:
+**コード調査結果（CI 待ち中に確認済み）**:
 
-- `notify` の Windows WatchDescriptor エラーは `let _ = w.watch(...)` で握り潰されている可能性大
-  → lessons.md にも明記されているパターン
-- テスト用フォルダ `C:\Users\gonda\AppData\Local\Temp\arcagate-watch-test-YYYYMMDD\` に空き容量・権限の問題はないはず
-- 自動追加 ON/OFF の設定キーが DB に存在するか、設定変更が watcher 再起動にどう伝わるか確認要
-- 重複追加の回避が UNIQUE 制約か EXISTS check かで DB migration 影響が変わる
-  → もし migration が必要なら停止条件に引っかかる可能性
+- `watcher/mod.rs:47`: `let _ = watcher.watch(...)` が残存 → lessons.md 違反。**必ず修正**
+- `watcher/mod.rs:handle_event`: `Modify(Rename)` と `Remove` のみハンドル。**`Create` イベントなし**
+- 現状の auto-register は `ProjectsWidget.svelte:60` の `onMount` で `autoRegisterFolderItems` を呼ぶ scan-on-load。リアルタイムではない
+- `auto_add` はウィジェット config (JSON) のフィールド。`WatchedPath` モデルには存在しない
+- 重複防止は `auto_register_folder_items` サービス側に実装済み（テスト確認済み）
 
-**受け入れ条件の曖昧さ**:
+**実装必要事項（scope_files 内）**:
 
-- 「Library のアイテム数が +3 増えていること」= タブ切り替えで再取得できるか、
-  それとも store が自動更新されるかが UI 側に依存する
+1. `watcher/mod.rs:47` の `let _ = watcher.watch(...)` → `if let Err(e) = ... { log::warn! }` に修正
+2. Create イベントハンドラ追加: 新規 dir 検知 → `app.emit("item://new-directory", &path_str)` を emit
+3. `ProjectsWidget.svelte` で `listen('item://new-directory')` を追加し、`auto_add` ON 時のみ `autoRegisterFolderItems` を呼ぶ
+4. ON/OFF は `is_active` フラグ（watcher が watch しているかどうか）で制御
+
+**DB migration は不要**（`is_active` は既存フィールド）
 
 ---
 
