@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-020
 title: FavoritesWidget → sys:starred items 接続
 depends_on:
