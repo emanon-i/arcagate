@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-001
 title: develop ブランチ初期化 + feature/ui-dx-refinement を develop に取り込む
 depends_on: []
