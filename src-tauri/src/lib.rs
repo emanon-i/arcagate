@@ -117,6 +117,12 @@ pub fn run() {
                 db::initialize(db_path.to_str().unwrap()).expect("failed to initialize database");
             app.manage(db_state);
 
+            // sys:starred など必須システムタグの初期化（べき等）
+            {
+                let db_state = app.state::<db::DbState>();
+                let _ = services::item_service::ensure_system_tags(&db_state);
+            }
+
             // ファイルシステム監視 (DB manage 後に起動)
             let watcher_state = watcher::start_watcher(app.handle());
             app.manage(watcher_state);
