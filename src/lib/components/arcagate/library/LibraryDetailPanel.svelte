@@ -1,5 +1,5 @@
 <script lang="ts">
-import { FolderOpen, Play, Settings2, Trash2, X as XIcon } from '@lucide/svelte';
+import { FolderOpen, Play, Settings2, Star, Trash2, X as XIcon } from '@lucide/svelte';
 import { ask, open } from '@tauri-apps/plugin-dialog';
 import ActionButton from '$lib/components/arcagate/common/ActionButton.svelte';
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
@@ -35,6 +35,11 @@ $effect(() => {
 	}
 });
 
+const SYS_STARRED_ID = 'sys-starred';
+
+// スター状態
+let isStarred = $derived(itemTags.some((t) => t.id === SYS_STARRED_ID));
+
 // 非システムタグの一覧（追加候補）
 let availableTags = $derived.by(() => {
 	const assignedIds = new Set(itemTags.map((t) => t.id));
@@ -53,6 +58,14 @@ async function handleRemoveTag(tagId: string) {
 	const currentIds = itemTags.filter((t) => t.id !== tagId).map((t) => t.id);
 	await itemStore.updateItem(selectedItem.id, { tag_ids: currentIds });
 	itemTags = await getItemTags(selectedItem.id);
+}
+
+async function handleToggleStar() {
+	if (isStarred) {
+		await handleRemoveTag(SYS_STARRED_ID);
+	} else {
+		await handleAddTag(SYS_STARRED_ID);
+	}
 }
 
 function handleLaunch() {
@@ -225,9 +238,21 @@ let showTagSelect = $state(false);
 		{/if}
 
 		<!-- Action buttons -->
-		<div class="mt-4 grid grid-cols-3 gap-2">
+		<div class="mt-4 grid grid-cols-4 gap-2">
 			<ActionButton icon={Play} label="起動" onclick={handleLaunch} />
 			<ActionButton icon={Settings2} label="編集" onclick={() => onEditItem?.(selectedItem!.id)} />
+			<button
+				type="button"
+				aria-label={isStarred ? 'スターを外す' : 'スターを付ける'}
+				class="flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition-colors
+					{isStarred
+					? 'border-[var(--ag-accent)]/60 bg-[var(--ag-accent)]/15 text-[var(--ag-accent)] hover:bg-[var(--ag-accent)]/25'
+					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+				onclick={handleToggleStar}
+			>
+				<Star class="h-4 w-4 {isStarred ? 'fill-current' : ''}" />
+				{isStarred ? '★' : '☆'}
+			</button>
 			<button
 				type="button"
 				class="flex items-center justify-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm text-destructive hover:bg-destructive/20"

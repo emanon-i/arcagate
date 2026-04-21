@@ -207,6 +207,22 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
     Ok(registered)
 }
 
+/// 起動時に必須システムタグを upsert する（べき等）。
+pub fn ensure_system_tags(db: &DbState) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let starred = Tag {
+        id: "sys-starred".to_string(),
+        name: "Starred".to_string(),
+        is_hidden: false,
+        is_system: true,
+        prefix: Some("★".to_string()),
+        icon: None,
+        sort_order: 90,
+        created_at: String::new(),
+    };
+    tag_repository::upsert_system_tag(&conn, &starred)
+}
+
 pub fn extract_item_icon(
     app_data_dir: &std::path::Path,
     exe_path: &str,
