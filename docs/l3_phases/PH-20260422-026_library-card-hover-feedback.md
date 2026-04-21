@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-026
 title: LibraryCard ホバー/アクティブ ビジュアルフィードバック追加
 depends_on: []
@@ -58,7 +58,7 @@ parallel_safe: true
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] LibraryCard にカーソルを乗せると背景色・枠線色が変化すること
-- [ ] クリック時に微小なスケールダウンアニメーションがあること
-- [ ] disabled（is_enabled = false）のカードも同様のホバー状態を持つこと
+- [x] `pnpm verify` 通過
+- [x] LibraryCard にカーソルを乗せると背景色・枠線色が変化すること
+- [x] クリック時に微小なスケールダウンアニメーションがあること
+- [x] disabled（is_enabled = false）のカードも同様のホバー状態を持つこと
