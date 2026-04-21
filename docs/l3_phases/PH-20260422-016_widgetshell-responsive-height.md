@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-016
 title: WidgetShell レスポンシブ高さ修正（h-full + overflow-y-auto）
 depends_on:
