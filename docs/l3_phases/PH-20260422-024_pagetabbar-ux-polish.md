@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-024
 title: PageTabBar UX 磨き（日本語化 + blur ガード）
 depends_on: []
