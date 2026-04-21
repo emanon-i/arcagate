@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-019
 title: sys:starred タグ実装 + ★ボタン + Library カード表示
 depends_on:
