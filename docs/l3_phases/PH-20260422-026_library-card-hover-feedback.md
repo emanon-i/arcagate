@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-026
 title: LibraryCard ホバー/アクティブ ビジュアルフィードバック追加
 depends_on: []
