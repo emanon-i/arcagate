@@ -65,15 +65,20 @@ let filteredItems = $derived.by(() => {
 });
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-<main
-	class="min-h-full p-5"
-	onclick={(e: MouseEvent) => {
-		if (!(e.target as HTMLElement).closest('[data-testid^="library-card-"]')) {
-			onSelectItem?.(null);
-		}
-	}}
->
+<main class="min-h-full">
+	<div
+		class="min-h-full p-5"
+		role="presentation"
+		tabindex="-1"
+		onclick={(e: MouseEvent) => {
+			if (!(e.target as HTMLElement).closest('[data-testid^="library-card-"]')) {
+				onSelectItem?.(null);
+			}
+		}}
+		onkeydown={(e: KeyboardEvent) => {
+			if (e.key === 'Escape') onSelectItem?.(null);
+		}}
+	>
 	<!-- Search bar + sort chips -->
 	<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
 		<div
@@ -130,4 +135,5 @@ let filteredItems = $derived.by(() => {
 			{/if}
 		</div>
 	{/if}
+	</div>
 </main>

@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-017
 title: 整理：LibraryMainArea a11y 解消 + svelte-check WARNING 一掃
 depends_on:
@@ -78,10 +78,10 @@ pnpm check 2>&1 | grep -E "WARNING|ERRORS"
 
 ## 受け入れ条件
 
-- [ ] `pnpm check` の WARNING が 0 になる
-- [ ] `svelte-ignore` コメントが LibraryMainArea.svelte から削除されている
-- [ ] カード外クリックで選択解除が引き続き動作する
-- [ ] `pnpm verify` 通過
+- [x] `pnpm check` の WARNING が 0 になる
+- [x] `svelte-ignore` コメントが LibraryMainArea.svelte から削除されている
+- [x] カード外クリックで選択解除が引き続き動作する
+- [x] `pnpm verify` 通過
 
 ## 停止条件
 
