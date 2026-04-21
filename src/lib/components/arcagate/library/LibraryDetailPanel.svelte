@@ -116,6 +116,8 @@ let moreMenuItems = $derived.by(() => {
 let showTagSelect = $state(false);
 </script>
 
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') onClose?.(); }} />
+
 <aside class="h-full border-l border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-5" data-testid="library-detail-panel">
 	{#if selectedItem}
 		<!-- Header -->

@@ -232,7 +232,13 @@ function handleFormClose() {
 				onOpenSettings={() => (showSettings = true)}
 			/>
 		{:else}
-			<WorkspaceLayout onOpenSettings={() => (showSettings = true)} />
+			<WorkspaceLayout
+					onOpenSettings={() => (showSettings = true)}
+					onEditItem={(id) => {
+						editingItem = itemStore.items.find((i) => i.id === id) ?? null;
+						showItemForm = true;
+					}}
+				/>
 		{/if}
 	</main>
 </div>

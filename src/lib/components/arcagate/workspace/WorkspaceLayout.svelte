@@ -13,9 +13,10 @@ import WorkspaceSidebar from './WorkspaceSidebar.svelte';
 
 interface Props {
 	onOpenSettings?: () => void;
+	onEditItem?: (id: string) => void;
 }
 
-let { onOpenSettings }: Props = $props();
+let { onOpenSettings, onEditItem }: Props = $props();
 
 // Base widget dimensions (at 100% zoom)
 const BASE_W = 320;
@@ -380,6 +381,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 				<div class="w-80 shrink-0">
 					<LibraryDetailPanel
 						selectedItemId={contextItemId}
+						{onEditItem}
 						onClose={() => { contextItemId = null; }}
 					/>
 				</div>
