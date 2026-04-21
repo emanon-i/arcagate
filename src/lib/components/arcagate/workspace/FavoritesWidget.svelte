@@ -2,8 +2,8 @@
 import { ChevronRight, Star } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
+import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { getFrequentItems } from '$lib/ipc/workspace';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
@@ -21,8 +21,8 @@ let settingsOpen = $state(false);
 
 $effect(() => {
 	const { max_items: limit } = parseWidgetConfig(widget?.config, { max_items: 10 });
-	void getFrequentItems(limit).then((items) => {
-		favorites = items;
+	void searchItemsInTag('sys-starred', '').then((items) => {
+		favorites = items.slice(0, limit);
 	});
 });
 
@@ -63,7 +63,7 @@ let menuItems = $derived(
 		{/each}
 		{#if favorites.length === 0}
 			<div class="py-4 text-center text-xs text-[var(--ag-text-muted)]">
-				よく使うアイテムがここに表示されます
+				★ のついたアイテムがここに表示されます
 			</div>
 		{/if}
 	</div>
