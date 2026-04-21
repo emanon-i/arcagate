@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Plus, Search } from '@lucide/svelte';
+import { Package, Plus, Search } from '@lucide/svelte';
 import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
@@ -143,9 +143,36 @@ let filteredItems = $derived.by(() => {
 				/>
 			{/each}
 			{#if filteredItems.length === 0}
-				<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">
-					{searchQuery ? `「${searchQuery}」に一致するアイテムはありません` : 'アイテムがまだありません'}
-				</div>
+				{#if !searchQuery && !activeTag && itemStore.items.length === 0}
+					<!-- 真の空状態：初回体験ガイド -->
+					<div class="col-span-full flex flex-col items-center justify-center gap-4 py-16">
+						<div class="rounded-full bg-[var(--ag-surface-4)] p-4">
+							<Package class="h-8 w-8 text-[var(--ag-text-muted)]" />
+						</div>
+						<div class="text-center">
+							<p class="text-sm font-medium text-[var(--ag-text-primary)]">ライブラリが空です</p>
+							<p class="mt-1 text-xs text-[var(--ag-text-muted)]">
+								アプリ・フォルダ・URL などのショートカットを追加できます
+							</p>
+						</div>
+						<button
+							type="button"
+							class="flex items-center gap-2 rounded-[var(--ag-radius-card)] bg-[var(--ag-accent)] px-4 py-2 text-sm text-white hover:opacity-90"
+							onclick={() => onAddItem?.()}
+						>
+							<Plus class="h-4 w-4" />
+							アイテムを追加
+						</button>
+					</div>
+				{:else}
+					<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">
+						{searchQuery
+							? `「${searchQuery}」に一致するアイテムはありません`
+							: activeTag
+								? 'このタグにアイテムがありません'
+								: 'アイテムがまだありません'}
+					</div>
+				{/if}
 			{/if}
 		</div>
 	{/if}
