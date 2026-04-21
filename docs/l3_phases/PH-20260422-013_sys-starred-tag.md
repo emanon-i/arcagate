@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-013
 title: sys:starred システムタグ実装（Rust 基盤 + DetailPanel ★ トグル）
 depends_on:
@@ -68,10 +68,10 @@ let _ = tag_repository::upsert_system_tag(&conn, &starred_tag);
 
 ## 受け入れ条件
 
-- [ ] アプリ起動後に Library サイドバーに「★ Starred」行が表示される
-- [ ] Library でアイテムを選択 → 詳細パネルの「スターを付ける」ボタンクリック → タグが付与される
-- [ ] 同ボタンを再クリック（スターを外す）→ タグが解除される
-- [ ] `pnpm verify` 通過
+- [x] アプリ起動後に Library サイドバーに「★ Starred」行が表示される（is_hidden: false で自動表示）
+- [x] Library でアイテムを選択 → 詳細パネルの「スターを付ける」ボタンクリック → タグが付与される
+- [x] 同ボタンを再クリック（スターを外す）→ タグが解除される
+- [x] `pnpm verify` 通過（141 Rust tests / 43 vitest tests / tauri build OK）
 
 ## 停止条件
 
