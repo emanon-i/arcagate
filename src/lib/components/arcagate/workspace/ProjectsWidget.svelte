@@ -1,6 +1,7 @@
 <script lang="ts">
 import { CircleDot, Eye, FolderKanban, GitBranch } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
@@ -142,7 +143,7 @@ let menuItems = $derived(
 			>
 				<div class="mb-2 flex items-center justify-between">
 					<div class="text-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
-					<FolderKanban class="h-4 w-4 text-[var(--ag-text-faint)]" />
+					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-6 w-6 shrink-0 object-cover" />
 				</div>
 				<div class="truncate text-xs text-[var(--ag-text-muted)]">{item.target}</div>
 				{#if gs}
