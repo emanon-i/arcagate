@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-003
 title: 監視フォルダ自動登録フローの実機検証と修正
 depends_on:
