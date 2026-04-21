@@ -2,6 +2,7 @@
 import { Plus, Search } from '@lucide/svelte';
 import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
+import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import LibraryCard from './LibraryCard.svelte';
@@ -50,6 +51,18 @@ $effect(() => {
 	void itemStore.loadItemsByTag(activeTag, debouncedQuery).then(() => {
 		if (myId !== currentRequestId) return; // stale レスポンスは無視
 		localTagItems = itemStore.tagItems;
+	});
+});
+
+// starred アイテム ID セット（LibraryCard の ★ バッジ表示用）
+// itemStore.items.length を依存として宣言し、スター操作後に自動再取得する
+let starredIds = $state<Set<string>>(new Set());
+
+$effect(() => {
+	// itemStore.items の変化（追加/削除/タグ更新）を検知して再フェッチ
+	const _dep = itemStore.items.length;
+	void searchItemsInTag('sys-starred', '').then((items) => {
+		starredIds = new Set(items.map((i) => i.id));
 	});
 });
 
@@ -123,10 +136,11 @@ let filteredItems = $derived.by(() => {
 		<div class="grid gap-4 [&>*]:max-w-sm" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
-				{item}
-				onclick={() => onSelectItem?.(item.id)}
-				ondblclick={() => void launchItem(item.id)}
-			/>
+					{item}
+					isStarred={starredIds.has(item.id)}
+					onclick={() => onSelectItem?.(item.id)}
+					ondblclick={() => void launchItem(item.id)}
+				/>
 			{/each}
 			{#if filteredItems.length === 0}
 				<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">

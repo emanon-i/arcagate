@@ -1,15 +1,17 @@
 <script lang="ts">
+import { Star } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
 import type { Item } from '$lib/types/item';
 
 interface Props {
 	item: Item;
+	isStarred?: boolean;
 	onclick?: () => void;
 	ondblclick?: () => void;
 }
 
-let { item, onclick, ondblclick }: Props = $props();
+let { item, isStarred = false, onclick, ondblclick }: Props = $props();
 </script>
 
 <button
@@ -21,6 +23,11 @@ let { item, onclick, ondblclick }: Props = $props();
 >
 	<div class="relative flex aspect-video items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
 		<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-14 w-14 object-contain drop-shadow-lg" />
+		{#if isStarred}
+			<div class="absolute right-2 top-2 rounded-full bg-[var(--ag-accent)]/90 p-1 shadow-sm">
+				<Star class="h-3 w-3 fill-white text-white" />
+			</div>
+		{/if}
 	</div>
 	<div class="space-y-3 p-4">
 		<div class="flex items-start justify-between gap-3">
