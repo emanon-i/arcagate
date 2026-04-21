@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-005
 title: LibraryMainArea の $effect race condition 対応
 depends_on:

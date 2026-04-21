@@ -39,15 +39,23 @@ $effect(() => {
 	return () => clearTimeout(timer);
 });
 
+// request ID 方式で race condition を防止:
+// activeTag / debouncedQuery が高速変化したとき、古い IPC レスポンスで上書きしない
+let localTagItems = $state<import('$lib/types/item').Item[]>([]);
+let currentRequestId = 0;
+
 $effect(() => {
-	if (activeTag) {
-		void itemStore.loadItemsByTag(activeTag, debouncedQuery);
-	}
+	if (!activeTag) return;
+	const myId = ++currentRequestId;
+	void itemStore.loadItemsByTag(activeTag, debouncedQuery).then(() => {
+		if (myId !== currentRequestId) return; // stale レスポンスは無視
+		localTagItems = itemStore.tagItems;
+	});
 });
 
 let filteredItems = $derived.by(() => {
 	if (activeTag) {
-		return itemStore.tagItems;
+		return localTagItems;
 	}
 	if (searchQuery) {
 		const q = searchQuery.toLowerCase();
