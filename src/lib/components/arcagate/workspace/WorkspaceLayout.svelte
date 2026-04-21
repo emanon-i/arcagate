@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Trash2 } from '@lucide/svelte';
+import { GripVertical, Trash2 } from '@lucide/svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import { configStore } from '$lib/state/config.svelte';
@@ -315,7 +315,8 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 								{@const clamped = clampWidget(widget, dynamicCols)}
 								{#if WidgetComp}
 									<div
-										class="relative"
+										class="relative transition-opacity"
+										class:opacity-60={movingWidget === widget.id}
 										role="group"
 										aria-label={widget.widget_type}
 										style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
@@ -335,10 +336,12 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<!-- L-4: Resize handle -->
 										<div
-											class="absolute bottom-1 right-1 h-4 w-4 cursor-se-resize rounded-sm bg-[var(--ag-accent)]/30 hover:bg-[var(--ag-accent)]/60"
+											class="absolute bottom-1 right-1 flex h-5 w-5 cursor-se-resize items-center justify-center rounded-sm bg-[var(--ag-accent)]/40 shadow-sm hover:bg-[var(--ag-accent)]/80"
 											aria-label="リサイズ"
 											onmousedown={(e) => handleResizeStart(e, widget.id)}
-										></div>
+										>
+											<GripVertical class="h-3 w-3 text-white/70" />
+										</div>
 									</div>
 								{/if}
 							{/each}
