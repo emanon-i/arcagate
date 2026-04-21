@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-017
 title: 整理：LibraryMainArea a11y 解消 + svelte-check WARNING 一掃
 depends_on:
