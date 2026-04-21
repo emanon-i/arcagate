@@ -17,6 +17,7 @@ function startAdd() {
 }
 
 function commitAdd() {
+	if (!isAdding) return;
 	const name = newName.trim();
 	if (name) {
 		void workspaceStore.createWorkspace(name);
@@ -70,7 +71,7 @@ function handleKeydown(e: KeyboardEvent) {
 			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)]"
 			onclick={startAdd}
 		>
-			+ Add page
+			+ ページを追加
 		</button>
 	{/if}
 </div>

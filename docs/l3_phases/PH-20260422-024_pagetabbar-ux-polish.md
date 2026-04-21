@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-024
 title: PageTabBar UX 磨き（日本語化 + blur ガード）
 depends_on: []
@@ -69,7 +69,7 @@ function commitAdd() {
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] "+ ページを追加" と表示されること
-- [ ] Escape キーでキャンセル後、フォーカス移動してもワークスペースが作成されないこと
-- [ ] Tab キー / 外部クリックで確定（commitAdd）が動作すること
+- [x] `pnpm verify` 通過
+- [x] "+ ページを追加" と表示されること
+- [x] Escape キーでキャンセル後、フォーカス移動してもワークスペースが作成されないこと
+- [x] Tab キー / 外部クリックで確定（commitAdd）が動作すること
