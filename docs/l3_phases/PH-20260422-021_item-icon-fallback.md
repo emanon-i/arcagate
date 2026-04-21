@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-021
 title: ItemIcon フォールバック（item_type 別デフォルトアイコン）
 depends_on:
