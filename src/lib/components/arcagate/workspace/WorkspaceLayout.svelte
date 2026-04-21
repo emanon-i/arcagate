@@ -181,42 +181,38 @@ $effect(() => {
 	};
 });
 
-function handleResizeStart(e: MouseEvent, widgetId: string) {
+function handleResizeStart(e: PointerEvent, widgetId: string) {
 	e.preventDefault();
+	const handle = e.currentTarget as HTMLElement;
+	handle.setPointerCapture(e.pointerId);
 	resizingWidget = widgetId;
+
 	const startX = e.clientX;
 	const startY = e.clientY;
 	const widget = workspaceStore.widgets.find((w) => w.id === widgetId);
 	if (!widget) return;
 	const startW = widget.width;
 	const startH = widget.height;
-	let rafId = 0;
 
-	function onMove(ev: MouseEvent) {
-		if (rafId) return;
-		rafId = requestAnimationFrame(() => {
-			rafId = 0;
-			const dx = ev.clientX - startX;
-			const dy = ev.clientY - startY;
-			const newW = Math.max(1, Math.min(MAX_SPAN, startW + Math.round(dx / widgetW)));
-			const newH = Math.max(1, Math.min(MAX_SPAN, startH + Math.round(dy / widgetH)));
-			workspaceStore.optimisticResize(widgetId, newW, newH);
-		});
+	function onMove(ev: PointerEvent) {
+		const dx = ev.clientX - startX;
+		const dy = ev.clientY - startY;
+		const newW = Math.max(1, Math.min(MAX_SPAN, startW + Math.round(dx / widgetW)));
+		const newH = Math.max(1, Math.min(MAX_SPAN, startH + Math.round(dy / widgetH)));
+		workspaceStore.optimisticResize(widgetId, newW, newH);
 	}
 
-	function onUp() {
-		if (rafId) cancelAnimationFrame(rafId);
+	function onUp(ev: PointerEvent) {
+		handle.releasePointerCapture(ev.pointerId);
 		resizingWidget = null;
 		const w = workspaceStore.widgets.find((ww) => ww.id === widgetId);
-		if (w) {
-			void workspaceStore.resizeWidget(widgetId, w.width, w.height);
-		}
-		document.removeEventListener('mousemove', onMove);
-		document.removeEventListener('mouseup', onUp);
+		if (w) void workspaceStore.resizeWidget(widgetId, w.width, w.height);
+		handle.removeEventListener('pointermove', onMove);
+		handle.removeEventListener('pointerup', onUp);
 	}
 
-	document.addEventListener('mousemove', onMove);
-	document.addEventListener('mouseup', onUp);
+	handle.addEventListener('pointermove', onMove);
+	handle.addEventListener('pointerup', onUp);
 }
 
 // Imperative dragstart action for widget move (same pattern as dropZone listeners)
@@ -346,7 +342,8 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 										<div
 											class="absolute bottom-1 right-1 flex h-5 w-5 cursor-se-resize items-center justify-center rounded-sm bg-[var(--ag-accent)]/40 shadow-sm hover:bg-[var(--ag-accent)]/80"
 											aria-label="リサイズ"
-											onmousedown={(e) => handleResizeStart(e, widget.id)}
+											onpointerdown={(e) => handleResizeStart(e, widget.id)}
+											ondragstart={(e) => { e.preventDefault(); e.stopPropagation(); }}
 										>
 											<GripVertical class="h-3 w-3 text-white/70" />
 										</div>

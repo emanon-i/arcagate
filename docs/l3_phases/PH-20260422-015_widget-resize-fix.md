@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-015
 title: Widget リサイズ修復（pointer events + dragstart ブロック）
 depends_on:
@@ -94,10 +94,10 @@ function handleResizeStart(e: PointerEvent, widgetId: string) {
 
 ## 受け入れ条件
 
-- [ ] 編集モードでリサイズハンドルをドラッグすると、span が拡大・縮小する
-- [ ] ドラッグ中はウィジェットがリアルタイムにリサイズされる（optimisticResize）
-- [ ] マウスをハンドル外に移動してもリサイズが継続する（setPointerCapture）
-- [ ] `pnpm verify` 通過
+- [x] 編集モードでリサイズハンドルをドラッグすると、span が拡大・縮小する
+- [x] ドラッグ中はウィジェットがリアルタイムにリサイズされる（optimisticResize）
+- [x] マウスをハンドル外に移動してもリサイズが継続する（setPointerCapture）
+- [x] `pnpm verify` 通過
 
 ## 停止条件
 
