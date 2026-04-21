@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-027
 title: PaletteResultRow の itemType 渡し + WorkspaceLayout Safe mode 除去
 depends_on: []
