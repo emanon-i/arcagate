@@ -1,14 +1,16 @@
 <script lang="ts">
-import { AppWindow } from '@lucide/svelte';
+import { AppWindow, Box, FileText, Folder, Globe, Terminal } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import type { Component } from 'svelte';
 
 interface Props {
 	iconPath: string | null | undefined;
 	alt: string;
+	itemType?: string;
 	class?: string;
 }
 
-let { iconPath, alt, class: className = '' }: Props = $props();
+let { iconPath, alt, itemType, class: className = '' }: Props = $props();
 let iconSrc = $derived(iconPath ? convertFileSrc(iconPath) : null);
 let iconError = $state(false);
 
@@ -17,6 +19,18 @@ $effect(() => {
 	iconPath;
 	iconError = false;
 });
+
+const fallbackIconMap: Record<string, Component> = {
+	url: Globe,
+	folder: Folder,
+	file: FileText,
+	app: AppWindow,
+	command: Terminal,
+};
+
+let FallbackIcon = $derived(
+	(itemType ? (fallbackIconMap[itemType] ?? Box) : AppWindow) as Component,
+);
 </script>
 
 {#if iconSrc && !iconError}
@@ -29,5 +43,5 @@ $effect(() => {
 		}}
 	/>
 {:else}
-	<AppWindow class="{className} text-[var(--ag-text-muted)]" />
+	<FallbackIcon class="{className} text-[var(--ag-text-muted)]" />
 {/if}
