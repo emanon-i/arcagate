@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-025
 title: LibraryDetailPanel タグドロップダウン Escape/外部クリック対応
 depends_on: []
