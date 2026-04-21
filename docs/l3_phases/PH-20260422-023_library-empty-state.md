@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-023
 title: Library 空状態ガイド改善
 depends_on:
