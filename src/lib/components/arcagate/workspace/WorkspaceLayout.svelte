@@ -289,6 +289,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 					<!-- L-3: Grid with overlay -->
 					<div
 						class="relative"
+						data-testid="workspace-drop-zone"
 						bind:this={dropZone}
 					>
 						<!-- Grid lines overlay (in flow — defines drop zone height) -->
