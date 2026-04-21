@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-004
 title: ウィジェット右クリック詳細パネルの一貫性検証と修正
 depends_on:
