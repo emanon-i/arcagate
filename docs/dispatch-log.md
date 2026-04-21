@@ -310,3 +310,40 @@ PH-20260422-008〜012 全 5 Plan 処理完了（010 は stopped、他は done）
 | 016   | WidgetShell レスポンシブ高さ    | vitest-starred-coverage → Workspace 欠陥を優先 |
 | 017   | Library a11y 整理（既存維持）   | 変更なし                                       |
 | 018   | Workspace 操作 E2E 防衛（新規） | —                                              |
+
+---
+
+## 2026-04-22 バッチ 3 完了
+
+PH-20260422-013〜018 全 6 Plan 処理完了。
+
+| Phase | タイトル                           | 結果 | PR  | 主な変更                                                          |
+| ----- | ---------------------------------- | ---- | --- | ----------------------------------------------------------------- |
+| 013   | sys:starred タグ（差し替え前旧案） | skip | —   | バッチ再構成でアーカイブのみ                                      |
+| 014   | Widget D&D 配置修復                | done | #20 | calcGridPosition → dropZone.getBoundingClientRect()・専用ハンドル |
+| 015   | Widget リサイズ修復                | done | #21 | MouseEvent → PointerEvent + setPointerCapture                     |
+| 016   | WidgetShell レスポンシブ高さ       | done | #22 | h-full flex-col + min-h-0 flex-1 overflow-y-auto                  |
+| 017   | Library a11y 整理                  | done | #23 | `<main>` を pure landmark、inner div に role="presentation"       |
+| 018   | Workspace 操作 E2E 防衛            | done | #24 | workspace-editing.spec.ts 新規 3 テスト + data-testid 追加        |
+
+---
+
+## 2026-04-22 バッチマージモード決定 → Batch 4 開始
+
+ユーザー決定（2026-04-22）:
+
+- **Batch 4 以降**はバッチマージモードに切替
+- ブランチ: `feature/batch-YYYYMMDD-N`
+- マージ戦略: `gh pr merge --rebase`（コミット履歴保持）
+- Plan アーカイブ: バッチ完了時に一括 `git mv` + 1 コミット
+- dispatch-operation.md §4「バッチマージモード」節に仕様記録済み
+
+### Batch 4 Plan 構成（PH-20260422-019〜023）
+
+| Phase | タイトル                                  | parallel_safe |
+| ----- | ----------------------------------------- | ------------- |
+| 019   | sys:starred タグ + ★ボタン + Library 表示 | false         |
+| 020   | FavoritesWidget → starred items 接続      | false         |
+| 021   | ItemIcon フォールバック（item_type 別）   | true          |
+| 022   | LibraryCard アイコン表示                  | true          |
+| 023   | Library 空状態ガイド改善                  | true          |

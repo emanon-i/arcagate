@@ -124,11 +124,33 @@ parallel_safe: true | false
 
 type は `feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf` から選ぶ。
 
-### PR マージ戦略
+### PR マージ戦略（通常モード）
 
 - 原則 squash merge（Plan 1 つ = PR 1 つ = コミット 1 つ に集約）
 - CI が緑でない PR は絶対にマージしない
 - コンフリクトが起きたら `git rebase develop` → CI 再実行 → マージ
+
+### バッチマージモード（Batch 4 以降）
+
+通常モード（1 Plan = 1 PR）では PR ごとの merge conflict 解消コストが高いため、
+Batch 4 以降は**バッチ単位で 1 PR** に集約する。
+
+**ブランチ命名**: `feature/batch-YYYYMMDD-N`（例: `feature/batch-20260422-4`）
+
+**フロー**:
+
+1. `git switch develop && git pull --ff-only`
+2. `git switch -c feature/batch-YYYYMMDD-N`
+3. 各 Plan を順番に実装。1 Plan 完了ごとに commit（コミットメッセージは通常規約に従う）
+4. 全 Plan 完了後に PR を 1 本作成: `gh pr create --base develop`
+5. CI 緑 → `gh pr merge --rebase --delete-branch`（rebase merge でコミット履歴を保持）
+6. `git switch develop && git pull --ff-only`
+7. 全 Plan ドキュメントを一括アーカイブ:
+   `git mv docs/l3_phases/PH-*.md docs/l3_phases/archive/`
+   コミット: `chore(batch-YYYYMMDD-N): archive all plans`
+8. push して完了
+
+**PR タイトル**: `[Batch YYYYMMDD-N] <バッチの主要テーマ>`
 
 ---
 
