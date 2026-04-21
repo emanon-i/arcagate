@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-015
 title: Widget リサイズ修復（pointer events + dragstart ブロック）
 depends_on:
