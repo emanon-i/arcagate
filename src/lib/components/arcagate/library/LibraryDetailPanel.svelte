@@ -127,9 +127,25 @@ let moreMenuItems = $derived.by(() => {
 
 // タグ追加ドロップダウンの表示制御
 let showTagSelect = $state(false);
+let tagDropdownEl = $state<HTMLElement | null>(null);
 </script>
 
-<svelte:window onkeydown={(e) => { if (e.key === 'Escape') onClose?.(); }} />
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape') {
+			if (showTagSelect) {
+				showTagSelect = false;
+			} else {
+				onClose?.();
+			}
+		}
+	}}
+	onpointerdown={(e) => {
+		if (showTagSelect && tagDropdownEl && !tagDropdownEl.contains(e.target as Node)) {
+			showTagSelect = false;
+		}
+	}}
+/>
 
 <aside class="h-full border-l border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-5" data-testid="library-detail-panel">
 	{#if selectedItem}
@@ -206,7 +222,7 @@ let showTagSelect = $state(false);
 						+ タグを追加
 					</button>
 					{#if showTagSelect}
-						<div class="absolute left-0 top-full z-10 mt-1 max-h-32 overflow-y-auto rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-lg">
+						<div bind:this={tagDropdownEl} class="absolute left-0 top-full z-10 mt-1 max-h-32 overflow-y-auto rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-lg">
 							{#each availableTags as tag (tag.id)}
 								<button
 									type="button"
