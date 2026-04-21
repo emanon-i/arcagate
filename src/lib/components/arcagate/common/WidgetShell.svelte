@@ -18,8 +18,8 @@ interface Props {
 let { title, icon: Icon, menuItems = [], children }: Props = $props();
 </script>
 
-<div class="rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-	<div class="mb-3 flex items-center justify-between">
+<div class="flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+	<div class="mb-3 shrink-0 flex items-center justify-between">
 		<div class="flex min-w-0 items-center gap-2">
 			<div class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5">
 				<Icon class="h-4 w-4 text-[var(--ag-text-secondary)]" />
@@ -44,5 +44,7 @@ let { title, icon: Icon, menuItems = [], children }: Props = $props();
 		</DropdownMenu.Root>
 	</div>
 
-	{@render children()}
+	<div class="min-h-0 flex-1 overflow-y-auto">
+		{@render children()}
+	</div>
 </div>
