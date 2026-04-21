@@ -1,5 +1,6 @@
 <script lang="ts">
 import { CircleDot, Eye, FolderKanban, GitBranch } from '@lucide/svelte';
+import { listen } from '@tauri-apps/api/event';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
@@ -81,6 +82,30 @@ $effect(() => {
 		void fetchGitStatuses(folderItems);
 	}, interval);
 	return () => clearInterval(timer);
+});
+
+// リアルタイム: 監視フォルダに新規ディレクトリが作成されたとき auto_add ON なら即座に登録
+$effect(() => {
+	if (!config.auto_add || !config.watched_folder) return;
+	const folder = config.watched_folder;
+	let unlisten: (() => void) | undefined;
+	void listen<string>('folder://new-directory', async (event) => {
+		const newPath = event.payload;
+		// 監視対象フォルダの直下のディレクトリのみ対象（子孫は除く）
+		const parentPath = newPath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
+		const normalizedFolder = folder.replace(/\\/g, '/').replace(/\/$/, '');
+		if (parentPath !== normalizedFolder) return;
+		const newItems = await autoRegisterFolderItems(folder);
+		if (newItems.length > 0) {
+			const existingIds = new Set(folderItems.map((i) => i.id));
+			const merged = [...folderItems, ...newItems.filter((i) => !existingIds.has(i.id))];
+			folderItems = merged;
+			void fetchGitStatuses(newItems, true);
+		}
+	}).then((fn) => {
+		unlisten = fn;
+	});
+	return () => unlisten?.();
 });
 
 let menuItems = $derived(
