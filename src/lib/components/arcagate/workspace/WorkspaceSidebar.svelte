@@ -74,6 +74,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 					type="button"
 					class="flex w-full cursor-grab items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--ag-text-secondary)] transition-colors hover:bg-[var(--ag-surface-4)]"
 					draggable="true"
+					data-widget-type={aw.type}
 					use:dragWidget={aw.type}
 				>
 					<Grip class="h-3.5 w-3.5 text-[var(--ag-text-faint)]" />

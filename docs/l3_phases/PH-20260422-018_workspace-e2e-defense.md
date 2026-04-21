@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-018
 title: Workspace 操作 E2E 防衛（D&D・リサイズ・永続化）
 depends_on:
