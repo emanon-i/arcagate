@@ -347,3 +347,17 @@ PH-20260422-013〜018 全 6 Plan 処理完了。
 | 021   | ItemIcon フォールバック（item_type 別）   | true          |
 | 022   | LibraryCard アイコン表示                  | true          |
 | 023   | Library 空状態ガイド改善                  | true          |
+
+## 2026-04-22 Batch 4 完了
+
+| Phase | タイトル                                  | PR  | 結果 |
+| ----- | ----------------------------------------- | --- | ---- |
+| 019   | sys:starred タグ + ★ボタン + Library 表示 | #25 | ✅   |
+| 020   | FavoritesWidget → starred items 接続      | #25 | ✅   |
+| 021   | ItemIcon フォールバック（item_type 別）   | #25 | ✅   |
+| 022   | LibraryCard アイコン表示                  | #25 | ✅   |
+| 023   | Library 空状態ガイド改善                  | #25 | ✅   |
+
+- PR #25: `feature/batch-20260422-4` → `develop`（rebase マージ）
+- `pnpm verify` 全通過（biome / dprint / clippy / svelte-check / cargo test / tauri build）
+- Plan files アーカイブ: commit `0d81556`
