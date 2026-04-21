@@ -266,3 +266,47 @@ PH-20260422-008〜012 全 5 Plan 処理完了（010 は stopped、他は done）
 3. **ウィジェット操作のアンドゥ**: 誤移動・誤リサイズの取り消し（`cancelEdit()` のリロード方式を改善）
 4. **E2E test:e2e 実行確認**: `pnpm test:e2e`（CDP 接続）をローカル実機で実行し、全 E2E テストの通過を確認
 5. **LibraryMainArea a11y 警告解消**: `<main>` に onClick を付けている件（svelte-check WARN）。`<div role="presentation">` に変更する候補
+
+---
+
+## 2026-04-22 バッチ 3 方針変更・Workspace 致命欠陥調査
+
+ユーザー割り込み: Workspace の3点が致命的に壊れている。バッチ 3 の Plan 014〜016 をスコープ差し替え。
+
+### 調査対象ファイル
+
+- `src/lib/components/arcagate/workspace/WorkspaceLayout.svelte`
+- `src/lib/state/workspace.svelte.ts`
+- `src/lib/components/arcagate/common/WidgetShell.svelte`
+
+### 欠陥 1: Widget D&D 配置できない
+
+**根本原因（複合）**:
+
+① `calcGridPosition`（WorkspaceLayout.svelte:131-143）が `workspaceContainer`（外側スクロールコンテナ全体）を基準に位置計算している。しかしウィジェットグリッド (`dropZone`) は `workspaceContainer` の上端から PageTabBar + Tip + 編集ガイドの高さ分（推定 150-200px）下に位置する。`relY = e.clientY - workspaceContainer.getBoundingClientRect().top` が `dropZone` までのオフセットを含むため、行計算が 1-2 行ずれる。
+
+② 既存ウィジェットに専用ドラッグハンドルがない。ウィジェット div 全体に `draggable="true"` が付いているが、内部（WidgetShell コンテンツ）はボタン・リスト等のインタラクティブ要素で埋まっており、ブラウザがドラッグ開始を阻止する。
+
+**修正方針**: `calcGridPosition` を `dropZone.getBoundingClientRect()` 基準に変更。`draggable` をウィジェット全体から外し、専用ドラッグハンドル（GripVertical アイコン）のみに付与する。
+
+### 欠陥 2: リサイズできない
+
+**根本原因**: リサイズハンドル div（WorkspaceLayout.svelte:338-344）の `onmousedown` ハンドラは `document.addEventListener('mousemove', onMove)` を登録するが、リサイズハンドルの親要素が `draggable="true"` のウィジェット div である。マウスを動かすと HTML5 DnD の `dragstart` が親から発火し、`mousemove` イベントが抑制される。`onMove` が呼ばれず、リサイズ量が 0 のままとなる。
+
+**修正方針**: リサイズハンドルに `ondragstart={(e) => e.stopPropagation()}` を追加。または `mousedown/mousemove` を `pointerdown/pointermove` + `setPointerCapture` に切り替えて HTML5 DnD と完全に切り離す（推奨）。
+
+### 欠陥 3: リサイズで見づらくなる
+
+**根本原因**: `WidgetShell`（WidgetShell.svelte:21）の root div が `h-full` を持たない。グリッドセルが 2 行 span になっても WidgetShell は自然なコンテンツ高さのままで空白が生じる。逆に小さくすると内容がグリッドセルをはみ出して他ウィジェットに重なる。
+
+**修正方針**: WidgetShell の root div を `h-full flex flex-col` にし、`{@render children()}` を `flex-1 min-h-0 overflow-y-auto` で囲む。
+
+### バッチ 3 再構成
+
+| Phase | 新タイトル                      | 旧タイトル（差し替え理由）                     |
+| ----- | ------------------------------- | ---------------------------------------------- |
+| 014   | Widget D&D 配置修復             | workspace persistence → Workspace 欠陥を優先   |
+| 015   | Widget リサイズ修復             | starred-badge-ui → Workspace 欠陥を優先        |
+| 016   | WidgetShell レスポンシブ高さ    | vitest-starred-coverage → Workspace 欠陥を優先 |
+| 017   | Library a11y 整理（既存維持）   | 変更なし                                       |
+| 018   | Workspace 操作 E2E 防衛（新規） | —                                              |
