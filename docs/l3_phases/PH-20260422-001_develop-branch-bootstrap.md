@@ -35,8 +35,10 @@ parallel_safe: false
 ### Step 2: feature/ui-dx-refinement を develop に取り込む PR
 
 1. `git switch feature/ui-dx-refinement`
-2. `git pull --ff-only origin feature/ui-dx-refinement`
-3. `gh pr create --base develop --head feature/ui-dx-refinement \
+2. `git pull --ff-only origin feature/ui-dx-refinement || true`（未 push のコミットがある場合に備える）
+3. `git push origin feature/ui-dx-refinement`（ディスパッチ投入時点の最新コミット
+   `98ea981` = "docs: ディスパッチ運用マニュアル + L3 Plan 5本" を origin に反映）
+4. `gh pr create --base develop --head feature/ui-dx-refinement \
      --title "[PH-20260311-001/002] UI/UX リファインメント + 実機フィードバック UI 全面改修" \
      --body-file - <<EOF
 ## 対応 Plan
@@ -52,7 +54,7 @@ parallel_safe: false
 - E2E 28/28 通過
 - 実機未検証 3 項目（S-6-2 / S-8-3 / S-6-6）は後続 Plan で検査
 EOF`
-4. CI 完了を待つ: `gh pr checks --watch`
+5. CI 完了を待つ: `gh pr checks --watch`
 
 ### Step 3: develop へマージ
 
