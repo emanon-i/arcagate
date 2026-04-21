@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-025
 title: LibraryDetailPanel タグドロップダウン Escape/外部クリック対応
 depends_on: []
@@ -79,10 +79,10 @@ function handleWindowPointerDown(e: PointerEvent) {
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] Escape キーでタグドロップダウンが閉じること（パネルは閉じないこと）
-- [ ] タグドロップダウン外をクリックするとドロップダウンが閉じること
-- [ ] タグ選択後はドロップダウンが閉じること（既存動作）
+- [x] `pnpm verify` 通過
+- [x] Escape キーでタグドロップダウンが閉じること（パネルは閉じないこと）
+- [x] タグドロップダウン外をクリックするとドロップダウンが閉じること
+- [x] タグ選択後はドロップダウンが閉じること（既存動作）
 
 ## 停止条件
 
