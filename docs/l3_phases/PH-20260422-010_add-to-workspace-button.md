@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-010
 title: LibraryDetailPanel「ワークスペースに追加」ボタン
 depends_on:
@@ -76,9 +76,17 @@ grep -r "favorites\|favorite\|sys:fav" src/lib/
 
 ## 受け入れ条件
 
-- [ ] LibraryDetailPanel に「Favorites に追加 / 解除」ボタンが表示される
-- [ ] ボタンクリックでアイテムの favorites タグが付与/解除される
-- [ ] `pnpm verify` 通過
+**停止条件発動 — コード変更なし**
+
+- FavoritesWidget は `getFrequentItems`（起動頻度自動集計）ベースであり `sys:favorites` タグは存在しない
+- 設計前提（Favorites = 手動ピン留め）と実装（Favorites = 自動頻度）に根本的不一致あり
+- タグベースへの切替は FavoritesWidget の大規模変更を要するため停止
+
+**代替 Plan 候補（次バッチで検討）**:
+
+- `sys:starred` システムタグを追加し LibraryDetailPanel にスター切替ボタンを設ける
+- FavoritesWidget は変更不要。スター付きアイテムを Library 上で視覚的に識別できるようにする
+- dispatch-log に記録済み
 
 ## Exit Criteria
 

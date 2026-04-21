@@ -190,6 +190,19 @@ PH-20260422-002/004 の実機確認では以下のシナリオで判定:
 
 ---
 
+## 2026-04-22 PH-20260422-010 停止記録
+
+FavoritesWidget が `getFrequentItems`（自動頻度集計）ベースであり `sys:favorites` タグ不在のため停止。
+
+**代替 Plan 候補**: `sys:starred` システムタグ実装
+
+- DB マイグレーション不要（起動時に `upsert_system_tag` で登録）
+- LibraryDetailPanel に「★ スター」ボタン追加（is_system タグの付与/解除）
+- FavoritesWidget は変更不要
+- Library のアイテム一覧でスター付きを視覚的に強調
+
+---
+
 ## 2026-04-22 バッチ 1 完了・バッチ 2 作成
 
 PH-20260422-001〜007 全 7 Plan 完了・アーカイブ済み。
