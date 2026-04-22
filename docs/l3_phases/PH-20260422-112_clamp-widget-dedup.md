@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-112
 title: clampWidget 関数の重複排除（共通ユーティリティへ移動）
-status: todo
+status: done
 batch: 24
 priority: low
 created: 2026-04-23

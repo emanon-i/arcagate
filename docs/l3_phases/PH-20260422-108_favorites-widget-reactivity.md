@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-108
 title: FavoritesWidget リアクティブ更新（itemStore 依存追加）
-status: todo
+status: done
 batch: 24
 priority: high
 created: 2026-04-23

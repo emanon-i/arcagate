@@ -900,3 +900,19 @@ Obsidian Canvas から採用する要素:
 | PH-112 | clampWidget 関数の重複排除（共通ユーティリティへ移動）      | 整理系   | low    |
 
 実行順序: PH-108 / PH-109 / PH-110 / PH-111（parallel_safe: true）→ PH-112
+
+---
+
+## 2026-04-23 [batch-24] 実装完了 → PR 作成予定
+
+| PH     | タイトル                              | 実装結果                                                                    |
+| ------ | ------------------------------------- | --------------------------------------------------------------------------- |
+| PH-108 | FavoritesWidget リアクティブ更新      | `itemStore.items` 依存追加 → スター変更時に自動更新                         |
+| PH-109 | RecentLaunchesWidget target 短縮表示  | `format-target.ts` 新規作成（URL→ホスト名 / パス→ファイル名）               |
+| PH-110 | ウィジェット行スタイル統一            | RecentLaunchesWidget の `py-3` → `py-2.5` に統一                            |
+| PH-111 | Workspace ウィジェット E2E テスト追加 | `widget-display.spec.ts` 3 テスト（@smoke 1件）                             |
+| PH-112 | clampWidget 重複排除                  | `widget-grid.ts` 新規作成・WorkspaceLayout / WidgetGrid から local 定義削除 |
+
+- svelte-check 0 errors / 0 warnings
+- vitest 114 passed
+- biome 0 errors

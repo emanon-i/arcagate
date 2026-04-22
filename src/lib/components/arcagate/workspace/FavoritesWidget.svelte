@@ -5,6 +5,7 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { hiddenStore } from '$lib/state/hidden.svelte';
+import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
@@ -21,6 +22,7 @@ let favorites = $state<Item[]>([]);
 let settingsOpen = $state(false);
 
 $effect(() => {
+	const _dep = itemStore.items; // スター変更時に再実行させるための依存追跡
 	const { max_items: limit } = parseWidgetConfig(widget?.config, { max_items: 10 });
 	void searchItemsInTag('sys-starred', '').then((items) => {
 		favorites = items.slice(0, limit);
