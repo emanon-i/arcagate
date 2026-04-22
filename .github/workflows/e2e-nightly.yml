@@ -1,17 +1,15 @@
-name: E2E
+name: E2E (nightly full suite)
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  schedule:
+    - cron: '0 2 * * *' # 毎朝 02:00 UTC (JST 11:00)
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  e2e:
+  e2e-full:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,14 +41,7 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
 
-      - name: Run E2E smoke tests (PR — @smoke only)
-        if: github.event_name == 'pull_request'
-        run: pnpm test:e2e:smoke
-        env:
-          WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
-
-      - name: Run full E2E suite (push / workflow_dispatch)
-        if: github.event_name != 'pull_request'
+      - name: Run full E2E suite (S + A rank)
         run: pnpm test:e2e
         env:
           WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
@@ -59,14 +50,14 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-nightly
           path: tmp/playwright-report/
-          retention-days: 30
+          retention-days: 7
 
-      - name: Upload test results (traces, videos, failure screenshots)
+      - name: Upload test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-nightly
           path: test-results/
-          retention-days: 7
+          retention-days: 3

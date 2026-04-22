@@ -9,7 +9,7 @@ import {
 } from '../helpers/ipc.js';
 
 test.describe('ワークスペース', () => {
-	test('ワークスペースを作成すると UI に表示されること', async ({ page }) => {
+	test('ワークスペースを作成すると UI に表示されること', { tag: '@smoke' }, async ({ page }) => {
 		// IPC でワークスペースを作成
 		const workspace = await createWorkspace(page, 'E2E テストワークスペース');
 

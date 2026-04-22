@@ -3,39 +3,46 @@ import { waitForAppReady } from '../helpers/app-ready.js';
 import { createItem, deleteItem, listItems } from '../helpers/ipc.js';
 
 test.describe('アイテム管理', () => {
-	test('IPC 経由でアイテムを作成すると一覧に反映されること', async ({ page }, testInfo) => {
-		// IPC で直接アイテム作成
-		const item = await createItem(page, {
-			item_type: 'url',
-			label: 'E2E テスト URL',
-			target: 'https://example.com',
-		});
+	test(
+		'IPC 経由でアイテムを作成すると一覧に反映されること',
+		{ tag: '@smoke' },
+		async ({ page }, testInfo) => {
+			// IPC で直接アイテム作成
+			const item = await createItem(page, {
+				item_type: 'url',
+				label: 'E2E テスト URL',
+				target: 'https://example.com',
+			});
 
-		expect(item.id).toBeTruthy();
-		expect(item.label).toBe('E2E テスト URL');
+			expect(item.id).toBeTruthy();
+			expect(item.label).toBe('E2E テスト URL');
 
-		// アイテム一覧 IPC でも確認
-		const items = await listItems(page);
-		const found = items.find((i) => i.id === item.id);
-		expect(found).toBeDefined();
-		expect(found?.label).toBe('E2E テスト URL');
+			// アイテム一覧 IPC でも確認
+			const items = await listItems(page);
+			const found = items.find((i) => i.id === item.id);
+			expect(found).toBeDefined();
+			expect(found?.label).toBe('E2E テスト URL');
 
-		try {
-			// UI に反映させるためリロード（IPC 変更は Svelte ストアに通知されないため）
-			await page.reload();
-			await page.waitForLoadState('domcontentloaded');
-			await waitForAppReady(page);
-			// Library はデフォルトタブ — カードに表示確認
-			await expect(page.getByTestId(`library-card-${item.id}`)).toBeVisible({ timeout: 10_000 });
+			try {
+				// UI に反映させるためリロード（IPC 変更は Svelte ストアに通知されないため）
+				await page.reload();
+				await page.waitForLoadState('domcontentloaded');
+				await waitForAppReady(page);
+				// Library はデフォルトタブ — カードに表示確認
+				await expect(page.getByTestId(`library-card-${item.id}`)).toBeVisible({ timeout: 10_000 });
 
-			// 成功証跡を HTML report に添付
-			const screenshot = await page.screenshot({ fullPage: true });
-			await testInfo.attach('success-items-create', { body: screenshot, contentType: 'image/png' });
-		} finally {
-			// クリーンアップ
-			await deleteItem(page, item.id);
-		}
-	});
+				// 成功証跡を HTML report に添付
+				const screenshot = await page.screenshot({ fullPage: true });
+				await testInfo.attach('success-items-create', {
+					body: screenshot,
+					contentType: 'image/png',
+				});
+			} finally {
+				// クリーンアップ
+				await deleteItem(page, item.id);
+			}
+		},
+	);
 
 	test('UI フォームからアイテムを追加できること', async ({ page }) => {
 		// Library はデフォルトタブ — "Add item" ボタンをクリック
@@ -115,7 +122,7 @@ test.describe('アイテム管理', () => {
 		}
 	});
 
-	test('アイテムを削除できること', async ({ page }) => {
+	test('アイテムを削除できること', { tag: '@smoke' }, async ({ page }) => {
 		// まず IPC でアイテムを作成
 		const item = await createItem(page, {
 			item_type: 'url',
