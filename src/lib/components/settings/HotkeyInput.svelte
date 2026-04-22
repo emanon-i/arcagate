@@ -36,12 +36,12 @@ function handleBlur() {
 </script>
 
 <div class="flex items-center gap-2">
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <input
     type="text"
     autocomplete="off"
+    tabindex="0"
     class="w-48 rounded-md border bg-background px-3 py-2 text-sm font-mono {recording
-      ? 'border-primary ring-1 ring-primary'
+      ? 'border-[var(--ag-accent)] ring-1 ring-[var(--ag-accent)]'
       : ''}"
     readonly
     value={recording ? "キーを押してください..." : value}
@@ -53,9 +53,9 @@ function handleBlur() {
     type="button"
     class="rounded-md border px-3 py-2 text-sm {recording
       ? 'border-destructive bg-destructive/10 text-destructive'
-      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}"
+      : 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-4)]'}"
     onclick={startRecording}
   >
-    {recording ? "キャンセル" : "Record"}
+    {recording ? "キャンセル" : "変更"}
   </button>
 </div>
