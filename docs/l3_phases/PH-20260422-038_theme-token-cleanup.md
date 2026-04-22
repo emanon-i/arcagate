@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-038
 title: arcagate-theme.css ラジアス整理（--ag-radius-input 追加 + Radii コメント統一）
 depends_on:
@@ -57,9 +57,9 @@ PH-20260422-037 で `--ag-accent` / `--ag-border-hover` を補完したが、
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（svelte-check WARNING 0）
-- [ ] ItemForm の入力フィールドに 8px の角丸が適用されること
-- [ ] WidgetSettingsDialog の入力フィールドも同様に角丸が適用されること
+- [x] `pnpm verify` 通過（svelte-check WARNING 0）
+- [x] ItemForm の入力フィールドに 8px の角丸が適用されること
+- [x] WidgetSettingsDialog の入力フィールドも同様に角丸が適用されること
 
 ## 停止条件
 
