@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-028
 title: Library E2E テストカバレッジ拡充（空状態・タグフィルタ・starred）
 depends_on: []
