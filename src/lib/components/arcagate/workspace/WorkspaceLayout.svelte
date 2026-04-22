@@ -179,6 +179,9 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		if (!editMode) return;
 		if (e.key === 'Escape' && !deleteConfirmId && !renameOpen) {
 			cancelEdit();
+		} else if (e.key === 'Enter' && !deleteConfirmId && !renameOpen) {
+			e.preventDefault();
+			confirmEdit();
 		}
 		if (
 			(e.key === 'Delete' || e.key === 'Backspace') &&

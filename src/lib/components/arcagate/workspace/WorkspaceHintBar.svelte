@@ -14,6 +14,8 @@ let { editMode, selectedWidgetId }: Props = $props();
 		>
 			<span><kbd class="font-mono">Esc</kbd> 終了</span>
 			<span class="opacity-30">|</span>
+			<span><kbd class="font-mono">Enter</kbd> 確定</span>
+			<span class="opacity-30">|</span>
 			<span><kbd class="font-mono">Del</kbd> 削除</span>
 			{#if selectedWidgetId}
 				<span class="opacity-30">|</span>

@@ -306,6 +306,42 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 		}
 	});
 
+	test('編集モード中に Enter を押すと編集が確定されること', async ({ page }) => {
+		const workspace = await createWorkspace(page, 'Enter 確定テストWS');
+
+		try {
+			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
+				workspaceId: workspace.id,
+				widgetType: 'recent',
+			});
+			await invoke<Widget>(page, 'cmd_update_widget_position', {
+				id: widget.id,
+				positionX: 0,
+				positionY: 0,
+				width: 1,
+				height: 1,
+			});
+
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+			await page.getByRole('button', { name: 'Workspace' }).click();
+			await expect(page.getByText('Enter 確定テストWS')).toBeVisible();
+
+			// 編集モードに入る
+			await page.getByLabel('編集モード').click();
+			await expect(page.getByLabel('編集を確定')).toBeVisible();
+			await expect(page.locator('[role="group"]').first()).toBeVisible();
+
+			// Enter を押す → 編集モードが終了する
+			await page.keyboard.press('Enter');
+			await expect(page.getByLabel('編集を確定')).not.toBeVisible();
+			await expect(page.locator('[role="group"]')).not.toBeVisible();
+		} finally {
+			await deleteWorkspace(page, workspace.id);
+		}
+	});
+
 	test('削除確認ダイアログでキャンセルするとウィジェットが残ること', async ({ page }) => {
 		const workspace = await createWorkspace(page, '削除キャンセルテストWS');
 
