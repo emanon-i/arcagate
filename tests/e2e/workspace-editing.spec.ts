@@ -198,4 +198,42 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			await deleteWorkspace(page, workspace.id);
 		}
 	});
+
+	test('編集モードでゴミ箱ボタンをクリックするとウィジェットが削除されること', async ({ page }) => {
+		const workspace = await createWorkspace(page, '削除テストWS');
+
+		try {
+			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
+				workspaceId: workspace.id,
+				widgetType: 'recent',
+			});
+			await invoke<Widget>(page, 'cmd_update_widget_position', {
+				id: widget.id,
+				positionX: 0,
+				positionY: 0,
+				width: 1,
+				height: 1,
+			});
+
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+			await page.getByRole('button', { name: 'Workspace' }).click();
+			await expect(page.getByText('削除テストWS')).toBeVisible();
+
+			await page.getByLabel('編集モード').click();
+			await expect(page.getByLabel('編集を確定')).toBeVisible();
+
+			const beforeCount = await page.getByLabel('ウィジェットを移動').count();
+			expect(beforeCount).toBeGreaterThan(0);
+
+			await page.getByRole('button', { name: 'ウィジェットを削除' }).first().click();
+
+			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount - 1, {
+				timeout: 3000,
+			});
+		} finally {
+			await deleteWorkspace(page, workspace.id);
+		}
+	});
 });
