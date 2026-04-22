@@ -4,24 +4,28 @@ import { createItem, deleteItem } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('レイアウト', () => {
-	test('サイドバーが viewport 下端まで伸びること（#23 修正検証）', async ({ page }) => {
-		// lg 幅にリサイズしてサイドバーを表示
-		await resizeWindow(page, 1280, 800);
-		await page.reload();
-		await page.waitForLoadState('domcontentloaded');
-		await waitForAppReady(page);
+	test(
+		'サイドバーが viewport 下端まで伸びること（#23 修正検証）',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			// lg 幅にリサイズしてサイドバーを表示
+			await resizeWindow(page, 1280, 800);
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
 
-		const sidebar = page.getByTestId('library-sidebar');
-		await expect(sidebar).toBeVisible();
+			const sidebar = page.getByTestId('library-sidebar');
+			await expect(sidebar).toBeVisible();
 
-		const sidebarBox = await sidebar.boundingBox();
-		expect(sidebarBox).toBeTruthy();
-		const { y, height } = sidebarBox as { y: number; height: number };
+			const sidebarBox = await sidebar.boundingBox();
+			expect(sidebarBox).toBeTruthy();
+			const { y, height } = sidebarBox as { y: number; height: number };
 
-		const windowHeight = await page.evaluate(() => window.innerHeight);
-		// サイドバーの下端が viewport 下端付近（2px 許容）まで伸びていること
-		expect(y + height).toBeGreaterThanOrEqual(windowHeight - 2);
-	});
+			const windowHeight = await page.evaluate(() => window.innerHeight);
+			// サイドバーの下端が viewport 下端付近（2px 許容）まで伸びていること
+			expect(y + height).toBeGreaterThanOrEqual(windowHeight - 2);
+		},
+	);
 
 	test('3カラムレイアウト（lg: 1280px）', async ({ page }) => {
 		await resizeWindow(page, 1280, 800);
@@ -95,11 +99,15 @@ test.describe('レイアウト', () => {
 		}
 	});
 
-	test('TitleBar のボタンが存在すること（#1, #2 修正検証）', async ({ page }) => {
-		await expect(page.getByRole('button', { name: '最小化' })).toBeVisible();
-		await expect(page.getByRole('button', { name: /最大化|元に戻す/ })).toBeVisible();
-		await expect(page.getByRole('button', { name: '閉じる' })).toBeVisible();
-	});
+	test(
+		'TitleBar のボタンが存在すること（#1, #2 修正検証）',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			await expect(page.getByRole('button', { name: '最小化' })).toBeVisible();
+			await expect(page.getByRole('button', { name: /最大化|元に戻す/ })).toBeVisible();
+			await expect(page.getByRole('button', { name: '閉じる' })).toBeVisible();
+		},
+	);
 
 	test('TitleAction がアイコンのみであること（#5 修正検証）', async ({ page }) => {
 		const paletteButton = page.getByRole('button', { name: 'Palette' });
