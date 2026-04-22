@@ -937,3 +937,24 @@ Obsidian Canvas から採用する要素:
 | PH-117 | tests/helpers/ipc.ts に addWidget ヘルパー追加                   | 整理系   | low    |
 
 実行順序: PH-113 / PH-114 / PH-115 / PH-116（parallel_safe: true）→ PH-117
+
+---
+
+## 2026-04-23 [batch-25] 完了 → PR #53 merge 済み
+
+- PR #53: `feature/batch-20260422-24` → `main`（CI 全通過・rebase merge 完了）
+- PH-113〜117 全 5 件を archive/ に移動
+
+---
+
+## 2026-04-23 [batch-26] Plan 作成完了（在庫切れによる自律作成）
+
+| PH     | タイトル                                                         | 種別     | 優先度 |
+| ------ | ---------------------------------------------------------------- | -------- | ------ |
+| PH-118 | palette.spec.ts Tab キー補完に @smoke + cb: プレフィックステスト | 改善系   | medium |
+| PH-119 | WidgetSettingsDialog を form 要素に置き換えて Enter 送信を追加   | 改善系   | medium |
+| PH-120 | LibraryDetailPanel タグドロップダウン閉後フォーカス返却          | 改善系   | medium |
+| PH-121 | widget-context-panel.spec.ts の test.skip() 解消                 | 品質防衛 | medium |
+| PH-122 | setupWorkspaceWithWidget ヘルパーを tests/helpers/ に抽出        | 整理系   | low    |
+
+実行順序: PH-118 / PH-119 / PH-120 / PH-121（parallel_safe: true）→ PH-122
