@@ -4,6 +4,7 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
+import { hiddenStore } from '$lib/state/hidden.svelte';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
@@ -26,6 +27,10 @@ $effect(() => {
 	});
 });
 
+let visibleFavorites = $derived(
+	hiddenStore.isHiddenVisible ? favorites : favorites.filter((i) => i.is_enabled),
+);
+
 let menuItems = $derived(
 	widget
 		? [
@@ -42,7 +47,7 @@ let menuItems = $derived(
 
 <WidgetShell title="Favorites" icon={Star} {menuItems}>
 	<div class="space-y-2">
-		{#each favorites as item (item.id)}
+		{#each visibleFavorites as item (item.id)}
 			<button
 				type="button"
 				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
@@ -61,7 +66,7 @@ let menuItems = $derived(
 				<ChevronRight class="h-4 w-4 shrink-0 text-[var(--ag-text-faint)]" />
 			</button>
 		{/each}
-		{#if favorites.length === 0}
+		{#if visibleFavorites.length === 0}
 			<div class="py-4 text-center text-xs text-[var(--ag-text-muted)]">
 				★ のついたアイテムがここに表示されます
 			</div>

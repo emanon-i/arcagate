@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-033
 title: Workspace Widget で非表示アイテムをフィルタリング
 depends_on: []
@@ -60,9 +60,9 @@ let visibleItems = $derived(
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] FavoritesWidget: 非表示切替ボタン OFF 時に is_enabled=false のアイテムが非表示になること
-- [ ] RecentLaunchesWidget: 同様に非表示フィルタが機能すること
+- [x] `pnpm verify` 通過
+- [x] FavoritesWidget: 非表示切替ボタン OFF 時に is_enabled=false のアイテムが非表示になること
+- [x] RecentLaunchesWidget: 同様に非表示フィルタが機能すること
 
 ## 停止条件
 

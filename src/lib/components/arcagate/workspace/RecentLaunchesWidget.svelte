@@ -4,6 +4,7 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
+import { hiddenStore } from '$lib/state/hidden.svelte';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
@@ -26,6 +27,10 @@ $effect(() => {
 	});
 });
 
+let visibleRecentItems = $derived(
+	hiddenStore.isHiddenVisible ? recentItems : recentItems.filter((i) => i.is_enabled),
+);
+
 let menuItems = $derived(
 	widget
 		? [
@@ -42,7 +47,7 @@ let menuItems = $derived(
 
 <WidgetShell title="Recent launches" icon={Clock3} {menuItems}>
 	<div class="space-y-2">
-		{#each recentItems as item (item.id)}
+		{#each visibleRecentItems as item (item.id)}
 			<button
 				type="button"
 				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-3 text-sm hover:bg-[var(--ag-surface-4)]"
@@ -61,7 +66,7 @@ let menuItems = $derived(
 				<span class="shrink-0 max-w-[40%] truncate text-xs text-[var(--ag-text-muted)]">{item.target}</span>
 			</button>
 		{/each}
-		{#if recentItems.length === 0}
+		{#if visibleRecentItems.length === 0}
 			<div class="py-4 text-center text-xs text-[var(--ag-text-muted)]">
 				最近の起動履歴がここに表示されます
 			</div>
