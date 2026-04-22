@@ -389,3 +389,17 @@ PH-20260422-013〜018 全 6 Plan 処理完了。
 - PR #27: `feature/batch-20260422-6` → `develop`（rebase マージ）
 - `pnpm verify` 全通過
 - Plan files アーカイブ: `docs/l3_phases/archive/` に移動
+
+## 2026-04-22 Batch 7 完了
+
+| Phase | タイトル                                                               | PR  | 結果 |
+| ----- | ---------------------------------------------------------------------- | --- | ---- |
+| 034   | Library 検索バー `/` キーショートカット追加                            | #28 | ✅   |
+| 035   | コマンドパレット検索 150ms debounce 追加                               | #28 | ✅   |
+| 036   | Library 検索バー クリアボタン追加                                      | #28 | ✅   |
+| 037   | arcagate-theme.css 未定義トークン --ag-accent / --ag-border-hover 追加 | #28 | ✅   |
+| 038   | arcagate-theme.css --ag-radius-input トークン追加                      | #28 | ✅   |
+
+- PR #28: `feature/batch-20260422-7` → `develop`（rebase マージ）
+- `pnpm verify` 全通過
+- Plan files アーカイブ: `docs/l3_phases/archive/` に移動
