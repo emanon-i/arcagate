@@ -38,8 +38,13 @@ function close() {
 	}
 }
 
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
 function handleSearch(q: string) {
-	void paletteStore.search(q);
+	if (searchTimer !== null) clearTimeout(searchTimer);
+	searchTimer = setTimeout(() => {
+		void paletteStore.search(q);
+	}, 150);
 }
 
 function handleKeydown(e: KeyboardEvent) {
