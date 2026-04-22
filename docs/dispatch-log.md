@@ -837,3 +837,14 @@ Obsidian Canvas から採用する要素:
 - 変更ファイル: WorkspaceLayout / WorkspaceSidebar / LibrarySidebar / LibraryLayout / WidgetShell / FavoritesWidget / RecentLaunchesWidget / ProjectsWidget / SettingsPanel / +page.svelte
 - `pnpm verify` 全通過（biome/dprint/clippy/rustfmt/svelte-check/cargo test/smoke/vitest/tauri build）
 - PR #43: `feature/batch-20260422-21` → `main`（CI 確認後 rebase merge 予定）
+
+---
+
+## 2026-04-22 [batch-22] 完了 → PR #46 merge 済み
+
+| PH     | タイトル                      | 実装結果                                           |
+| ------ | ----------------------------- | -------------------------------------------------- |
+| PH-101 | フレーキー E2E 修正           | waitForSelector でライブラリデータロード完了を待機 |
+| PH-102 | WorkspaceLayout a11y 警告抑制 | svelte-ignore 2件追加 → 0 WARNINGS                 |
+
+- PR #46: `feature/batch-20260422-22` → `main`（CI 全通過・rebase merge 完了）
