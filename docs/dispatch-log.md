@@ -862,3 +862,17 @@ Obsidian Canvas から採用する要素:
 | PH-107 | WorkspaceLayout.svelte 分割リファクタ                 | 整理系   | low    |
 
 実行順序: PH-103 / PH-105 / PH-106（並列安全）→ PH-104 → PH-107（PH-104 依存）
+
+---
+
+## 2026-04-22 [batch-23] 実装完了 → PR #49 merge 済み
+
+| PH     | タイトル                                  | 実装結果                                                        |
+| ------ | ----------------------------------------- | --------------------------------------------------------------- |
+| PH-103 | HotkeyInput UX 磨き込み                   | 「変更」ラベル + ag-* トークン置換 + tabindex で a11y 改善      |
+| PH-104 | Workspace 編集モード キーボードヒントバー | Esc/Del ヒントバー表示 + Delete キーで削除確認ダイアログ起動    |
+| PH-105 | app.css 未使用 shadcn トークン除去        | chart-_/sidebar-_ 13 トークンを :root / .dark / @theme から除去 |
+| PH-106 | SettingsPanel E2E テスト追加              | settings.spec.ts 4 テスト（@smoke 1件含む）                     |
+
+- PH-107（WorkspaceLayout 分割）は PH-104 依存 → 次バッチに持越し
+- PR #49: `feature/batch-20260422-23` → `main`（CI 全通過・rebase merge 完了）
