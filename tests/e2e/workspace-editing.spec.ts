@@ -59,39 +59,43 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 		await page.mouse.up().catch(() => {});
 	});
 
-	test('編集モードでサイドバーから Recent ウィジェットを D&D 追加できること', async ({ page }) => {
-		const workspace = await createWorkspace(page, 'D&D追加テストWS');
+	test(
+		'編集モードでサイドバーから Recent ウィジェットを D&D 追加できること',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			const workspace = await createWorkspace(page, 'D&D追加テストWS');
 
-		try {
-			await page.reload();
-			await page.waitForLoadState('domcontentloaded');
-			await waitForAppReady(page);
-			await page.getByRole('button', { name: 'Workspace' }).click();
-			await expect(page.getByText('D&D追加テストWS')).toBeVisible();
+			try {
+				await page.reload();
+				await page.waitForLoadState('domcontentloaded');
+				await waitForAppReady(page);
+				await page.getByRole('button', { name: 'Workspace' }).click();
+				await expect(page.getByText('D&D追加テストWS')).toBeVisible();
 
-			// 編集モードに入る
-			await page.getByLabel('編集モード').click();
-			await expect(page.getByLabel('編集を確定')).toBeVisible();
+				// 編集モードに入る
+				await page.getByLabel('編集モード').click();
+				await expect(page.getByLabel('編集を確定')).toBeVisible();
 
-			// D&D 前のウィジェット数
-			const beforeCount = await page.getByLabel('ウィジェットを移動').count();
+				// D&D 前のウィジェット数
+				const beforeCount = await page.getByLabel('ウィジェットを移動').count();
 
-			// サイドバーの Recent ボタン（data-widget-type="recent"）からドロップゾーンへ D&D
-			const dropped = await simulateDragDrop(
-				page,
-				'[data-widget-type="recent"]',
-				'[data-testid="workspace-drop-zone"]',
-			);
-			expect(dropped).toBe(true);
+				// サイドバーの Recent ボタン（data-widget-type="recent"）からドロップゾーンへ D&D
+				const dropped = await simulateDragDrop(
+					page,
+					'[data-widget-type="recent"]',
+					'[data-testid="workspace-drop-zone"]',
+				);
+				expect(dropped).toBe(true);
 
-			// ウィジェットが追加されたことを確認（ドラッグハンドルが 1 増加）
-			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount + 1, {
-				timeout: 3000,
-			});
-		} finally {
-			await deleteWorkspace(page, workspace.id);
-		}
-	});
+				// ウィジェットが追加されたことを確認（ドラッグハンドルが 1 増加）
+				await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount + 1, {
+					timeout: 3000,
+				});
+			} finally {
+				await deleteWorkspace(page, workspace.id);
+			}
+		},
+	);
 
 	test('ドラッグハンドルでウィジェットを移動し永続化されること', async ({ page }) => {
 		const workspace = await createWorkspace(page, '移動テストWS');
@@ -343,6 +347,48 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			await page.getByRole('dialog').getByRole('button', { name: 'キャンセル' }).click();
 			await expect(page.getByRole('dialog')).not.toBeVisible();
 			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount);
+		} finally {
+			await deleteWorkspace(page, workspace.id);
+		}
+	});
+
+	test('Delete キーでウィジェット削除ダイアログが開くこと', async ({ page }) => {
+		const workspace = await createWorkspace(page, 'Deleteキーテス テストWS');
+
+		try {
+			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
+				workspaceId: workspace.id,
+				widgetType: 'recent',
+			});
+			await invoke<Widget>(page, 'cmd_update_widget_position', {
+				id: widget.id,
+				positionX: 0,
+				positionY: 0,
+				width: 1,
+				height: 1,
+			});
+
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+			await page.getByRole('button', { name: 'Workspace' }).click();
+			await expect(page.getByText('Deleteキーテス テストWS')).toBeVisible();
+
+			// 編集モードに入る
+			await page.getByLabel('編集モード').click();
+			await expect(page.getByLabel('編集を確定')).toBeVisible();
+
+			// ウィジェットをクリックして選択
+			await page.getByRole('group', { name: 'recent' }).click();
+
+			// Delete キーを押すと削除確認ダイアログが開く
+			await page.keyboard.press('Delete');
+			await expect(page.getByRole('dialog')).toBeVisible();
+			await expect(page.getByText('ウィジェットを削除しますか？')).toBeVisible();
+
+			// Escape でキャンセルできる
+			await page.keyboard.press('Escape');
+			await expect(page.getByRole('dialog')).not.toBeVisible();
 		} finally {
 			await deleteWorkspace(page, workspace.id);
 		}

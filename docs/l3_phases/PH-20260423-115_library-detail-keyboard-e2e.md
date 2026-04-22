@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-115
 title: LibraryDetailPanel Enter キー起動の E2E テスト追加
-status: todo
+status: done
 batch: 25
 priority: medium
 created: 2026-04-23

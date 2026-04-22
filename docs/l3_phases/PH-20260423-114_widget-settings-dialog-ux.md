@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-114
 title: WidgetSettingsDialog に Escape/backdrop-click クローズを追加
-status: todo
+status: done
 batch: 25
 priority: medium
 created: 2026-04-23

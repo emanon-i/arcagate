@@ -191,4 +191,66 @@ test.describe('ライブラリ詳細パネル', () => {
 			await deleteItem(page, urlItem.id);
 		}
 	});
+
+	test('Enter キーでアイテムが起動しトーストが表示されること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'Enter起動テスト',
+			target: 'https://enter-launch-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			// カードをクリックして DetailPanel を開く
+			await page.getByTestId(`library-card-${item.id}`).click();
+			const detailPanel = page.getByTestId('library-detail-panel');
+			await expect(detailPanel.getByText('Enter起動テスト')).toBeVisible();
+
+			// DetailPanel 外（body）にフォーカスを移して Enter を押す
+			await page.locator('body').press('Enter');
+
+			// トーストが表示されること
+			await expect(page.getByTestId('toast-container')).toBeVisible();
+			await expect(page.getByText('Enter起動テスト を起動しました')).toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
+
+	test('INPUT フォーカス時は Enter キーで起動しないこと', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'Enterガードテスト',
+			target: 'https://enter-guard-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			// カードをクリックして DetailPanel を開く
+			await page.getByTestId(`library-card-${item.id}`).click();
+			const detailPanel = page.getByTestId('library-detail-panel');
+			await expect(detailPanel.getByText('Enterガードテスト')).toBeVisible();
+
+			// DetailPanel 内の検索または入力にフォーカス
+			const searchInput = page.getByPlaceholder('ライブラリを検索');
+			await searchInput.focus();
+
+			// フォーカスが INPUT にある状態で Enter を押してもトーストが出ないこと
+			await page.keyboard.press('Enter');
+			await page.waitForTimeout(300);
+			await expect(page.getByTestId('toast-container')).not.toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
 });

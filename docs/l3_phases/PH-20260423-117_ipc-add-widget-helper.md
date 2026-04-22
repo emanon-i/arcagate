@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-117
 title: tests/helpers/ipc.ts に addWidget ヘルパー追加
-status: todo
+status: done
 batch: 25
 priority: low
 created: 2026-04-23
