@@ -19,6 +19,7 @@ Object.defineProperty(window, 'matchMedia', {
 
 describe('themeStore.resolvedMode', () => {
 	beforeEach(() => {
+		vi.resetModules();
 		vi.resetAllMocks();
 		// matchMedia を dark 優先に戻す
 		vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
