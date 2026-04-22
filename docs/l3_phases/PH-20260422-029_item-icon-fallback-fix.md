@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-029
 title: ItemIcon fallbackIconMap の item_type 名修正 + LibrarySidebar を typeIconMap に統一
 depends_on: []

@@ -1,15 +1,7 @@
 <script lang="ts">
-import {
-	AppWindow,
-	Cpu,
-	FolderOpen,
-	Globe,
-	LayoutDashboard,
-	Settings2,
-	TerminalSquare,
-} from '@lucide/svelte';
-import type { Component } from 'svelte';
+import { LayoutDashboard, Settings2 } from '@lucide/svelte';
 import SidebarRow from '$lib/components/arcagate/common/SidebarRow.svelte';
+import { typeIconMap } from '$lib/constants/item-type';
 import { itemStore } from '$lib/state/items.svelte';
 
 interface Props {
@@ -20,14 +12,6 @@ interface Props {
 }
 
 let { expanded = false, activeTag, onSelectTag, onOpenSettings }: Props = $props();
-
-const systemIconMap: Record<string, Component> = {
-	exe: AppWindow,
-	url: Globe,
-	folder: FolderOpen,
-	script: TerminalSquare,
-	command: Cpu,
-};
 
 $effect(() => {
 	void itemStore.loadTagWithCounts();
@@ -49,7 +33,7 @@ $effect(() => {
 		/>
 		{#each itemStore.tagWithCounts as tag}
 			<SidebarRow
-				icon={systemIconMap[tag.name] ?? LayoutDashboard}
+				icon={typeIconMap[tag.name as keyof typeof typeIconMap] ?? LayoutDashboard}
 				label={tag.name}
 				meta={expanded ? String(tag.item_count) : undefined}
 				iconOnly={!expanded}
