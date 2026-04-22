@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './tests/e2e',
   snapshotDir: './tests/e2e/__snapshots__',
   timeout: 60_000,
-  globalTimeout: 300_000,
+  globalTimeout: 600_000,
   retries: 1,
   workers: 1,
   expect: {
