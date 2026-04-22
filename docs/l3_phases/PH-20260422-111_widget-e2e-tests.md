@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-111
 title: Workspace ウィジェット E2E テスト追加（Favorites / Recent 空状態・表示）
-status: todo
+status: done
 batch: 24
 priority: medium
 created: 2026-04-23

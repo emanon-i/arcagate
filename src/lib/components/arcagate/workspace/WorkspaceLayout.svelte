@@ -4,6 +4,7 @@ import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPa
 import { configStore } from '$lib/state/config.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WidgetType } from '$lib/types/workspace';
+import { clampWidget } from '$lib/utils/widget-grid';
 import FavoritesWidget from './FavoritesWidget.svelte';
 import PageTabBar from './PageTabBar.svelte';
 import ProjectsWidget from './ProjectsWidget.svelte';
@@ -177,12 +178,6 @@ $effect(() => {
 		el.removeEventListener('dragleave', handleDragLeave);
 	};
 });
-
-function clampWidget(widget: { position_x: number; width: number }, cols: number) {
-	const x = Math.min(widget.position_x, Math.max(0, cols - 1));
-	const span = Math.max(1, Math.min(widget.width, cols - x));
-	return { x, span };
-}
 
 // Compute grid rows needed
 let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));

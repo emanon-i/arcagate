@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-110
 title: ウィジェット行スタイル統一（FavoritesWidget / RecentLaunchesWidget）
-status: todo
+status: done
 batch: 24
 priority: low
 created: 2026-04-23

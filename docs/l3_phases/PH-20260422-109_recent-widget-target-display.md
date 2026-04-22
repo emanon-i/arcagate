@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-109
 title: RecentLaunchesWidget の target 短縮表示
-status: todo
+status: done
 batch: 24
 priority: medium
 created: 2026-04-23

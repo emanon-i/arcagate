@@ -2,6 +2,7 @@
 import { GripVertical, Trash2 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { clampWidget } from '$lib/utils/widget-grid';
 
 interface Props {
 	dynamicCols: number;
@@ -41,12 +42,6 @@ let {
 	onDragOverCellChange,
 	onDropZoneElChange,
 }: Props = $props();
-
-function clampWidget(widget: { position_x: number; width: number }, cols: number) {
-	const x = Math.min(widget.position_x, Math.max(0, cols - 1));
-	const span = Math.max(1, Math.min(widget.width, cols - x));
-	return { x, span };
-}
 
 function handleResizeStart(e: PointerEvent, widgetId: string) {
 	e.preventDefault();

@@ -7,6 +7,7 @@ import { getRecentItems } from '$lib/ipc/workspace';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { formatTarget } from '$lib/utils/format-target';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
 
@@ -50,7 +51,7 @@ let menuItems = $derived(
 		{#each visibleRecentItems as item (item.id)}
 			<button
 				type="button"
-				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-3 text-sm transition-colors duration-100 hover:bg-[var(--ag-surface-4)]"
+				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm transition-colors duration-100 hover:bg-[var(--ag-surface-4)]"
 				onclick={() => void launchItem(item.id)}
 				oncontextmenu={(e) => {
 					if (onItemContext) {
@@ -63,7 +64,7 @@ let menuItems = $derived(
 					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-5 w-5 shrink-0 object-cover" />
 					<span class="truncate">{item.label}</span>
 				</span>
-				<span class="shrink-0 max-w-[40%] truncate text-xs text-[var(--ag-text-muted)]">{item.target}</span>
+				<span class="shrink-0 max-w-[40%] truncate text-xs text-[var(--ag-text-muted)]">{formatTarget(item.target)}</span>
 			</button>
 		{/each}
 		{#if visibleRecentItems.length === 0}
