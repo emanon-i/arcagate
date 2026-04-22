@@ -219,4 +219,121 @@ describe('workspaceStore IPC', () => {
 		expect(workspaceStore.workspaces).toHaveLength(0);
 		expect(workspaceStore.activeWorkspaceId).toBeNull();
 	});
+
+	it('updateWorkspace() でワークスペース名が配列内で更新される', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const updated = { ...mockWorkspace, name: '更新後' };
+		vi.mocked(invoke)
+			.mockResolvedValueOnce([mockWorkspace])
+			.mockResolvedValueOnce([mkWidget('w1', 0, 0, 1, 1)])
+			.mockResolvedValueOnce(updated); // updateWorkspace
+
+		const { workspaceStore } = await import('./workspace.svelte');
+		await workspaceStore.loadWorkspaces();
+		await workspaceStore.updateWorkspace('ws-1', '更新後');
+
+		expect(workspaceStore.workspaces[0].name).toBe('更新後');
+	});
+
+	it('createWorkspace() でワークスペースが追加され activeWorkspaceId が変わる', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const newWs: Workspace = {
+			id: 'ws-new',
+			name: 'New WS',
+			sort_order: 1,
+			created_at: '',
+			updated_at: '',
+		};
+		const favW = mkWidget('fav', 0, 0, 1, 2);
+		const recW = mkWidget('rec', 1, 0, 2, 1);
+		const prjW = mkWidget('prj', 1, 1, 2, 1);
+		vi.mocked(invoke)
+			.mockResolvedValueOnce(newWs) // createWorkspace
+			.mockResolvedValueOnce(favW) // addWidget favorites
+			.mockResolvedValueOnce(favW) // updateWidgetPosition favorites
+			.mockResolvedValueOnce(recW) // addWidget recent
+			.mockResolvedValueOnce(recW) // updateWidgetPosition recent
+			.mockResolvedValueOnce(prjW) // addWidget projects
+			.mockResolvedValueOnce(prjW) // updateWidgetPosition projects
+			.mockResolvedValueOnce([favW, recW, prjW]); // listWidgets (seed complete)
+
+		const { workspaceStore } = await import('./workspace.svelte');
+		await workspaceStore.createWorkspace('New WS');
+
+		expect(workspaceStore.workspaces).toHaveLength(1);
+		expect(workspaceStore.activeWorkspaceId).toBe('ws-new');
+		expect(workspaceStore.widgets).toHaveLength(3);
+	});
+
+	it('selectWorkspace() でアクティブ ID と widgets が切り替わる', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const ws2: Workspace = {
+			id: 'ws-2',
+			name: 'Second',
+			sort_order: 1,
+			created_at: '',
+			updated_at: '',
+		};
+		vi.mocked(invoke)
+			.mockResolvedValueOnce([mockWorkspace, ws2]) // listWorkspaces
+			.mockResolvedValueOnce([mkWidget('w1', 0, 0, 1, 1)]) // listWidgets (ws-1)
+			.mockResolvedValueOnce([mkWidget('w2', 0, 0, 2, 1)]); // listWidgets (ws-2)
+
+		const { workspaceStore } = await import('./workspace.svelte');
+		await workspaceStore.loadWorkspaces();
+		expect(workspaceStore.activeWorkspaceId).toBe('ws-1');
+
+		await workspaceStore.selectWorkspace('ws-2');
+
+		expect(workspaceStore.activeWorkspaceId).toBe('ws-2');
+		expect(workspaceStore.widgets[0].width).toBe(2);
+	});
+
+	it('resizeWidget() でウィジェットの width / height が更新される', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		vi.mocked(invoke)
+			.mockResolvedValueOnce([mockWorkspace])
+			.mockResolvedValueOnce([mkWidget('w1', 0, 0, 1, 1)])
+			.mockResolvedValueOnce(undefined); // updateWidgetPosition (resize)
+
+		const { workspaceStore } = await import('./workspace.svelte');
+		await workspaceStore.loadWorkspaces();
+		await workspaceStore.resizeWidget('w1', 2, 2);
+
+		const w = workspaceStore.widgets.find((w) => w.id === 'w1');
+		expect(w?.width).toBe(2);
+		expect(w?.height).toBe(2);
+	});
+
+	it('updateWidgetConfig() でウィジェットの config が更新される', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const updatedW = { ...mkWidget('w1', 0, 0, 1, 1), config: '{"k":"v"}' };
+		vi.mocked(invoke)
+			.mockResolvedValueOnce([mockWorkspace])
+			.mockResolvedValueOnce([mkWidget('w1', 0, 0, 1, 1)])
+			.mockResolvedValueOnce(updatedW); // updateWidgetConfig
+
+		const { workspaceStore } = await import('./workspace.svelte');
+		await workspaceStore.loadWorkspaces();
+		await workspaceStore.updateWidgetConfig('w1', '{"k":"v"}');
+
+		expect(workspaceStore.widgets.find((w) => w.id === 'w1')?.config).toBe('{"k":"v"}');
+	});
+
+	it('optimisticResize() は IPC なしでウィジェットサイズを同期更新する', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		vi.mocked(invoke)
+			.mockResolvedValueOnce([mockWorkspace])
+			.mockResolvedValueOnce([mkWidget('w1', 0, 0, 1, 1)]);
+
+		const { workspaceStore } = await import('./workspace.svelte');
+		await workspaceStore.loadWorkspaces();
+
+		workspaceStore.optimisticResize('w1', 3, 2);
+
+		const w = workspaceStore.widgets.find((w) => w.id === 'w1');
+		expect(w?.width).toBe(3);
+		expect(w?.height).toBe(2);
+		expect(vi.mocked(invoke)).toHaveBeenCalledTimes(2); // loadWorkspaces の 2 呼び出しのみ
+	});
 });

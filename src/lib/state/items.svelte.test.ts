@@ -6,6 +6,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 describe('itemStore', () => {
 	beforeEach(async () => {
+		vi.resetModules();
 		vi.resetAllMocks();
 	});
 
@@ -272,5 +273,70 @@ describe('itemStore', () => {
 
 		expect(itemStore.tagWithCounts).toEqual(mockTags);
 		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_tag_counts');
+	});
+
+	it('loadItemsByTag() で tagItems が設定される', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const taggedItems = [
+			{
+				id: 'item-1',
+				item_type: 'exe' as const,
+				label: 'App',
+				target: 'app.exe',
+				args: null,
+				working_dir: null,
+				icon_path: null,
+				icon_type: null,
+				aliases: [],
+				sort_order: 0,
+				is_enabled: true,
+				is_tracked: false,
+				default_app: null,
+				created_at: '2024-01-01T00:00:00Z',
+				updated_at: '2024-01-01T00:00:00Z',
+			},
+		];
+
+		mockInvoke.mockResolvedValueOnce(taggedItems);
+
+		const { itemStore } = await import('./items.svelte');
+
+		expect(itemStore.tagItems).toHaveLength(0);
+
+		await itemStore.loadItemsByTag('tag-1', 'app');
+
+		expect(itemStore.tagItems).toHaveLength(1);
+		expect(mockInvoke).toHaveBeenCalledWith('cmd_search_items_in_tag', {
+			tagId: 'tag-1',
+			query: 'app',
+		});
+	});
+
+	it('createTag() でタグが配列に追加される', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const newTag = {
+			id: 'tag-new',
+			name: 'music',
+			is_hidden: false,
+			is_system: false,
+			prefix: null,
+			icon: null,
+			sort_order: 0,
+			created_at: '2024-01-01T00:00:00Z',
+		};
+		mockInvoke.mockResolvedValueOnce(newTag);
+
+		const { itemStore } = await import('./items.svelte');
+
+		await itemStore.createTag({ name: 'music', is_hidden: false });
+
+		expect(itemStore.tags.some((t) => t.id === 'tag-new')).toBe(true);
+		expect(mockInvoke).toHaveBeenCalledWith('cmd_create_tag', {
+			input: { name: 'music', is_hidden: false },
+		});
 	});
 });
