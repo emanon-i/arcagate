@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-100
 title: ウィジェット実機体感の底上げ
-status: wip
+status: done
 batch: 21
 priority: medium
 created: 2026-04-22
@@ -46,8 +46,8 @@ FavoritesWidget / RecentLaunchesWidget のアイテム行に
 
 ## 受け入れ条件
 
-- [ ] ウィジェットにホバーすると影が付く
-- [ ] 編集モードのドロップゾーンが破線枠でハイライトされる
-- [ ] アイテム行の hover 色変化が 100ms 以内に感じられる
-- [ ] 空ウィジェットに案内テキストが表示される
-- [ ] `pnpm verify` 全通過
+- [x] ウィジェットにホバーすると影が付く（WidgetShell: transition-shadow hover:shadow-md）
+- [x] 編集モードのドロップゾーンは既存実装で破線枠ハイライト済み（維持）
+- [x] アイテム行に transition-colors duration-100 追加（Favorites/Recent/Projects）
+- [x] 空ウィジェット時の案内テキストを追加（「左の編集ボタンを押して...」）
+- [x] `pnpm verify` 全通過（PR #43）

@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-099
 title: Settings ボタン統一 + Config 画面洗練
-status: wip
+status: done
 batch: 21
 priority: high
 created: 2026-04-22
@@ -48,9 +48,9 @@ Settings ボタンが TitleBar / LibrarySidebar / WorkspaceSidebar の3箇所に
 
 ## 受け入れ条件
 
-- [ ] LibrarySidebar に Settings ボタンが存在しない
-- [ ] WorkspaceSidebar に Settings ボタンが存在しない
-- [ ] TitleBar の Settings ボタンから Settings パネルが開く（回帰なし）
-- [ ] Settings パネルにセクションヘッダが表示される
-- [ ] フォームコントロールが縦に揃っている（左ラベル・右コントロール）
-- [ ] `pnpm verify` 全通過
+- [x] LibrarySidebar に Settings ボタンが存在しない
+- [x] WorkspaceSidebar に Settings ボタンが存在しない
+- [x] TitleBar の Settings ボタンから Settings パネルが開く（回帰なし）
+- [x] Settings パネルに「一般/ワークスペース/テーマ/データ」セクションヘッダ表示
+- [x] フォームコントロールが flex justify-between で左ラベル・右コントロールに統一
+- [x] `pnpm verify` 全通過（PR #43）
