@@ -51,19 +51,21 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 			<div class="flex items-center gap-1">
 				<button
 					type="button"
-					class="rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
+					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
 					aria-label="編集を確定"
 					onclick={onConfirmEdit}
 				>
-					<Check class="h-4 w-4" />
+					<Check class="h-3.5 w-3.5" />
+					完了
 				</button>
 				<button
 					type="button"
-					class="rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
+					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
 					aria-label="編集をキャンセル"
 					onclick={onCancelEdit}
 				>
-					<X class="h-4 w-4" />
+					<X class="h-3.5 w-3.5" />
+					戻す
 				</button>
 			</div>
 		</div>

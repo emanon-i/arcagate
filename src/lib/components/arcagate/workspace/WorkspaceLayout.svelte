@@ -38,6 +38,7 @@ let movingWidget = $state<string | null>(null);
 let dropZone = $state<HTMLDivElement | null>(null);
 let renameOpen = $state(false);
 let renameValue = $state('');
+let deleteConfirmId = $state<string | null>(null);
 // S-6-6: Right-click detail panel
 let contextItemId = $state<string | null>(null);
 
@@ -217,22 +218,32 @@ function handleResizeStart(e: PointerEvent, widgetId: string) {
 
 // Imperative dragstart action for widget move (same pattern as dropZone listeners)
 function dragMoveWidget(node: HTMLElement, widgetId: string) {
-	let handler = (e: DragEvent) => {
+	let startHandler = (e: DragEvent) => {
 		e.dataTransfer?.setData('widget-move-id', widgetId);
 		movingWidget = widgetId;
 	};
-	node.addEventListener('dragstart', handler);
+	let endHandler = () => {
+		movingWidget = null;
+	};
+	node.addEventListener('dragstart', startHandler);
+	node.addEventListener('dragend', endHandler);
 	return {
 		update(newId: string) {
-			node.removeEventListener('dragstart', handler);
-			handler = (e: DragEvent) => {
+			node.removeEventListener('dragstart', startHandler);
+			node.removeEventListener('dragend', endHandler);
+			startHandler = (e: DragEvent) => {
 				e.dataTransfer?.setData('widget-move-id', newId);
 				movingWidget = newId;
 			};
-			node.addEventListener('dragstart', handler);
+			endHandler = () => {
+				movingWidget = null;
+			};
+			node.addEventListener('dragstart', startHandler);
+			node.addEventListener('dragend', endHandler);
 		},
 		destroy() {
-			node.removeEventListener('dragstart', handler);
+			node.removeEventListener('dragstart', startHandler);
+			node.removeEventListener('dragend', endHandler);
 		},
 	};
 }
@@ -321,7 +332,9 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 										<WidgetComp {widget} onItemContext={handleItemContext} />
 										<!-- ドラッグハンドル -->
 										<div
-											class="absolute left-1 top-1 flex h-6 w-6 cursor-grab items-center justify-center rounded-sm bg-[var(--ag-surface-4)]/80 hover:bg-[var(--ag-surface-4)]"
+											class="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--ag-surface-4)]/80 hover:bg-[var(--ag-surface-4)]"
+											class:cursor-grab={movingWidget !== widget.id}
+											class:cursor-grabbing={movingWidget === widget.id}
 											draggable="true"
 											use:dragMoveWidget={widget.id}
 											aria-label="ウィジェットを移動"
@@ -334,7 +347,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 											type="button"
 											class="absolute right-1 top-1 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
 											aria-label="ウィジェットを削除"
-											onclick={() => void workspaceStore.removeWidget(widget.id)}
+											onclick={() => (deleteConfirmId = widget.id)}
 										>
 											<Trash2 class="h-3 w-3" />
 										</button>
@@ -355,7 +368,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 							<!-- Drop zone highlight -->
 							{#if dragOverCell}
 								<div
-									class="pointer-events-none rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-accent)]/10"
+									class="pointer-events-none rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-accent)]/10 shadow-[0_0_0_2px_var(--ag-accent)]"
 									style="grid-column: {dragOverCell.x + 1}; grid-row: {dragOverCell.y + 1};"
 								></div>
 							{/if}
@@ -380,7 +393,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 					</div>
 				{:else}
 					<div class="flex items-center justify-center py-20">
-						<p class="text-sm text-[var(--ag-text-muted)]">ワークスペースがまだありません</p>
+						<p class="text-sm text-[var(--ag-text-muted)]">ウィジェットがまだ追加されていません</p>
 					</div>
 				{/if}
 			</div>
@@ -398,6 +411,43 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		</div>
 	</div>
 </div>
+
+<!-- ウィジェット削除確認ダイアログ -->
+{#if deleteConfirmId}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+		onclick={(e) => { if (e.target === e.currentTarget) deleteConfirmId = null; }}
+		onkeydown={(e) => { if (e.key === 'Escape') deleteConfirmId = null; }}
+	>
+		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-6 shadow-[var(--ag-shadow-dialog)]">
+			<h3 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">ウィジェットを削除しますか？</h3>
+			<p class="mb-5 text-sm text-[var(--ag-text-muted)]">この操作は元に戻せません。</p>
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+					onclick={() => (deleteConfirmId = null)}
+				>
+					キャンセル
+				</button>
+				<button
+					type="button"
+					class="rounded-lg bg-destructive px-4 py-2 text-sm text-white hover:opacity-90"
+					onclick={() => {
+						if (deleteConfirmId) void workspaceStore.removeWidget(deleteConfirmId);
+						deleteConfirmId = null;
+					}}
+				>
+					削除
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- ワークスペース名変更ダイアログ -->
 {#if renameOpen}
