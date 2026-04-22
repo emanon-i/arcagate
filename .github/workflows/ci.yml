@@ -59,5 +59,8 @@ jobs:
         working-directory: src-tauri
         run: cargo test
 
+      - name: Vitest (unit tests)
+        run: pnpm test
+
       - name: Tauri build
         run: pnpm tauri build

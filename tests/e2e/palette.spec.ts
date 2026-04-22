@@ -69,6 +69,28 @@ test.describe('コマンドパレット', () => {
 		await page.keyboard.press('Escape');
 	});
 
+	test('検索クリア後に空の結果状態または最近の履歴が表示されること（debounce 回帰防衛）', async ({
+		page,
+	}) => {
+		// パレットを開く
+		await page.getByRole('button', { name: 'Palette' }).click();
+
+		const input = page.getByRole('textbox').first();
+		await input.fill('テスト検索キーワード');
+
+		// 少し待ってから入力クリア（debounce の完了を確認するため）
+		await page.waitForTimeout(300);
+		await input.fill('');
+		await page.waitForTimeout(300);
+
+		// 入力が空の状態で結果エリアが表示されること（空状態メッセージ or 結果）
+		const results = page.getByTestId('palette-results');
+		await expect(results).toBeVisible();
+
+		// パレットを閉じる
+		await page.keyboard.press('Escape');
+	});
+
 	test('ArrowDown でキーボードナビゲーションできること', async ({ page }) => {
 		// テスト用アイテムを複数作成
 		const item1 = await createItem(page, {

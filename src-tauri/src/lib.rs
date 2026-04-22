@@ -15,10 +15,11 @@ use commands::config_commands::{
 };
 use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::item_commands::{
-    cmd_check_is_directory, cmd_count_hidden_items, cmd_create_item, cmd_create_tag,
-    cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon, cmd_get_item_tags,
-    cmd_get_library_stats, cmd_get_tag_counts, cmd_get_tags, cmd_list_items, cmd_search_items,
-    cmd_search_items_in_tag, cmd_update_item, cmd_update_tag, cmd_update_tag_prefix,
+    cmd_auto_register_folder_items, cmd_check_is_directory, cmd_count_hidden_items,
+    cmd_create_item, cmd_create_tag, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon,
+    cmd_get_item_tags, cmd_get_library_stats, cmd_get_tag_counts, cmd_get_tags, cmd_list_items,
+    cmd_search_items, cmd_search_items_in_tag, cmd_update_item, cmd_update_tag,
+    cmd_update_tag_prefix,
 };
 use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
@@ -112,9 +113,19 @@ pub fn run() {
             let db_path = std::env::var("ARCAGATE_DB_PATH")
                 .map(std::path::PathBuf::from)
                 .unwrap_or_else(|_| app_data_dir.join("arcagate.db"));
-            let db_state =
-                db::initialize(db_path.to_str().unwrap()).expect("failed to initialize database");
+            let db_state = db::initialize(
+                db_path
+                    .to_str()
+                    .expect("database path contains non-UTF-8 characters"),
+            )
+            .expect("failed to initialize database");
             app.manage(db_state);
+
+            // sys:starred など必須システムタグの初期化（べき等）
+            {
+                let db_state = app.state::<db::DbState>();
+                let _ = services::item_service::ensure_system_tags(&db_state);
+            }
 
             // ファイルシステム監視 (DB manage 後に起動)
             let watcher_state = watcher::start_watcher(app.handle());
@@ -236,6 +247,7 @@ pub fn run() {
             cmd_git_status,
             cmd_get_library_stats,
             cmd_count_hidden_items,
+            cmd_auto_register_folder_items,
             cmd_get_item_stats,
             cmd_list_themes,
             cmd_get_theme,

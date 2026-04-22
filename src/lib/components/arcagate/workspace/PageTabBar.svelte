@@ -1,6 +1,5 @@
 <script lang="ts">
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
-import { themeStore } from '$lib/state/theme.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 
 interface Props {
@@ -18,6 +17,7 @@ function startAdd() {
 }
 
 function commitAdd() {
+	if (!isAdding) return;
 	const name = newName.trim();
 	if (name) {
 		void workspaceStore.createWorkspace(name);
@@ -42,45 +42,36 @@ function handleKeydown(e: KeyboardEvent) {
 }
 </script>
 
-<div class="flex flex-wrap items-center justify-between gap-3">
-	<div class="flex flex-wrap items-center gap-2">
-		{#each workspaceStore.workspaces as ws (ws.id)}
-			<Chip
-				tone={ws.id === workspaceStore.activeWorkspaceId ? "accent" : "default"}
-				onclick={() => onSelectWorkspace?.(ws.id)}
-				data-testid="workspace-tab-{ws.id}"
-			>
-				{ws.name}
-			</Chip>
-		{/each}
-		{#if isAdding}
-			<!-- svelte-ignore a11y_autofocus -->
-			<input
-				type="text"
-				class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-surface-3)] px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
-				placeholder="名前"
-				autocomplete="off"
-				bind:value={newName}
-				onkeydown={handleKeydown}
-				onblur={commitAdd}
-				autofocus
-			/>
-		{:else}
-			<button
-				type="button"
-				class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)]"
-				onclick={startAdd}
-			>
-				+ Add page
-			</button>
-		{/if}
-	</div>
-	<div class="flex flex-wrap gap-2">
-		<Chip tone={themeStore.activeMode === "dark" ? "accent" : "default"} onclick={() => void themeStore.setThemeMode('dark')}>
-			Dark
+<div class="flex flex-wrap items-center gap-2">
+	{#each workspaceStore.workspaces as ws (ws.id)}
+		<Chip
+			tone={ws.id === workspaceStore.activeWorkspaceId ? "accent" : "default"}
+			size="md"
+			onclick={() => onSelectWorkspace?.(ws.id)}
+			data-testid="workspace-tab-{ws.id}"
+		>
+			{ws.name}
 		</Chip>
-		<Chip tone={themeStore.activeMode === "light" ? "accent" : "default"} onclick={() => void themeStore.setThemeMode('light')}>
-			Light
-		</Chip>
-	</div>
+	{/each}
+	{#if isAdding}
+		<!-- svelte-ignore a11y_autofocus -->
+		<input
+			type="text"
+			class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-surface-3)] px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
+			placeholder="名前"
+			autocomplete="off"
+			bind:value={newName}
+			onkeydown={handleKeydown}
+			onblur={commitAdd}
+			autofocus
+		/>
+	{:else}
+		<button
+			type="button"
+			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)]"
+			onclick={startAdd}
+		>
+			+ ページを追加
+		</button>
+	{/if}
 </div>

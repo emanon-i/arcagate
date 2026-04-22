@@ -15,12 +15,14 @@ let {
 	tags,
 	onSubmit,
 	onCancel,
+	submitting = false,
 }: {
 	item?: Item;
 	initialPaths?: string[];
 	tags: Tag[];
 	onSubmit: (input: CreateItemInput | UpdateItemInput) => void;
 	onCancel: () => void;
+	submitting?: boolean;
 } = $props();
 
 // J-2: URL/ローカル二択
@@ -170,7 +172,7 @@ async function handleSelectIcon() {
 
   <!-- J-2: タイプ → URL/ローカル二択トグル -->
   <div class="space-y-1">
-    <label class="text-sm font-medium text-[var(--ag-text-primary)]">タイプ</label>
+    <span class="text-sm font-medium text-[var(--ag-text-primary)]">タイプ</span>
     <div class="flex gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-1">
       <button
         type="button"
@@ -202,6 +204,7 @@ async function handleSelectIcon() {
 
   <div class="space-y-1">
     <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-label">ラベル <span class="text-destructive">*</span></label>
+    <!-- svelte-ignore a11y_autofocus -->
     <input
       id="item-label"
       type="text"
@@ -209,6 +212,7 @@ async function handleSelectIcon() {
       class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
       bind:value={label}
       required
+      autofocus
       placeholder="表示名"
     />
   </div>
@@ -219,7 +223,7 @@ async function handleSelectIcon() {
     {#if typeMode === 'url'}
       <input
         id="item-target"
-        type="text"
+        type="url"
         autocomplete="off"
         class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
         bind:value={target}
@@ -254,7 +258,7 @@ async function handleSelectIcon() {
 
   <!-- J-6: アイコン画像プレビュー -->
   <div class="space-y-1">
-    <label class="text-sm font-medium text-[var(--ag-text-primary)]">アイコン</label>
+    <span class="text-sm font-medium text-[var(--ag-text-primary)]">アイコン</span>
     <div class="flex items-center gap-3">
       <div class="flex h-12 w-12 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]">
         {#if iconPath}
@@ -326,7 +330,14 @@ async function handleSelectIcon() {
   {/if}
 
   <div class="flex justify-end gap-2 pt-2">
-    <Button type="button" variant="outline" onclick={onCancel}>キャンセル</Button>
-    <Button type="submit">{item ? "更新" : "作成"}</Button>
+    <Button type="button" variant="outline" onclick={onCancel} disabled={submitting}>キャンセル</Button>
+    <Button type="submit" disabled={submitting}>
+      {#if submitting}
+        <span class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+        処理中...
+      {:else}
+        {item ? "更新" : "作成"}
+      {/if}
+    </Button>
   </div>
 </form>

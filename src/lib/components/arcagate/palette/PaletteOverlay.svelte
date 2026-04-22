@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Command } from '@lucide/svelte';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
+import { hiddenStore } from '$lib/state/hidden.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
 import PaletteKeyGuide from './PaletteKeyGuide.svelte';
 import PaletteQuickContext from './PaletteQuickContext.svelte';
@@ -37,8 +38,13 @@ function close() {
 	}
 }
 
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
 function handleSearch(q: string) {
-	void paletteStore.search(q);
+	if (searchTimer !== null) clearTimeout(searchTimer);
+	searchTimer = setTimeout(() => {
+		void paletteStore.search(q);
+	}, 150);
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -57,13 +63,19 @@ function handleKeydown(e: KeyboardEvent) {
 			void paletteStore.launch(selected);
 			close();
 		}
+	} else if (e.key === 'Tab') {
+		e.preventDefault();
+		const completed = paletteStore.tabComplete();
+		if (completed !== null) {
+			searchQuery = completed;
+			void paletteStore.search(completed);
+		}
 	}
 }
 </script>
 
 {#if open}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<div class="fixed inset-0 z-50" role="dialog" tabindex="-1" onkeydown={handleKeydown}>
+	<div class="fixed inset-0 z-50" role="dialog" aria-modal="true" tabindex="-1" onkeydown={handleKeydown}>
 		{#if mode === 'inline'}
 			<!-- Backdrop (inline only) -->
 			<button
@@ -92,7 +104,7 @@ function handleKeydown(e: KeyboardEvent) {
 				</div>
 				<div class="flex items-center gap-2">
 					<Chip tone="accent">Alt + Space</Chip>
-					<Chip tone="warm">hidden off</Chip>
+					<Chip tone="warm">{hiddenStore.isHiddenVisible ? '非表示: ON' : '非表示: OFF'}</Chip>
 				</div>
 			</div>
 
@@ -115,7 +127,7 @@ function handleKeydown(e: KeyboardEvent) {
 					<!-- 2-column grid: results + context -->
 					<div class="mt-5 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
 						<!-- Left: results + guide chips -->
-						<div class="space-y-2" data-testid="palette-results">
+						<div id="palette-results" class="space-y-2" data-testid="palette-results" role="listbox" aria-label="検索結果">
 							{#each paletteStore.results as entry, index (index)}
 								<PaletteResultRow
 									{entry}

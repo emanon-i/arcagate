@@ -209,6 +209,20 @@ pub fn get_library_stats(conn: &Connection) -> Result<LibraryStats, AppError> {
     .map_err(AppError::Database)
 }
 
+pub fn find_by_target(conn: &Connection, target: &str) -> Result<Option<Item>, AppError> {
+    let result = conn.query_row(
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
+         FROM items WHERE target = ?1",
+        params![target],
+        row_to_item,
+    );
+    match result {
+        Ok(item) => Ok(Some(item)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::Database(e)),
+    }
+}
+
 pub fn count_hidden_items(conn: &Connection) -> Result<i64, AppError> {
     let count: i64 = conn.query_row(
         "SELECT COUNT(DISTINCT it.item_id)
@@ -626,5 +640,30 @@ mod tests {
         let new = std::path::Path::new("C:/moved/app.exe");
         let count = update_target_by_path(&conn, old, new).unwrap();
         assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_find_by_target_found() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut item = make_item("id-001", "My Folder", ItemType::Folder);
+        item.target = "C:/projects/my-folder".to_string();
+        insert(&conn, &item).unwrap();
+
+        let found = find_by_target(&conn, "C:/projects/my-folder").unwrap();
+        assert!(found.is_some());
+        let found = found.unwrap();
+        assert_eq!(found.id, "id-001");
+        assert_eq!(found.label, "My Folder");
+    }
+
+    #[test]
+    fn test_find_by_target_not_found() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let result = find_by_target(&conn, "C:/nonexistent/path").unwrap();
+        assert!(result.is_none());
     }
 }

@@ -156,6 +156,73 @@ pub fn count_hidden_items(db: &DbState) -> Result<i64, AppError> {
     item_repository::count_hidden_items(&conn)
 }
 
+pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<Item>, AppError> {
+    let root = std::path::Path::new(root_path);
+    if !root.is_dir() {
+        return Err(AppError::InvalidInput(format!(
+            "Not a directory: {}",
+            root_path
+        )));
+    }
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let mut registered = Vec::new();
+    let entries = std::fs::read_dir(root).map_err(AppError::Io)?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let target = path.to_string_lossy().to_string();
+        if item_repository::find_by_target(&conn, &target)?.is_some() {
+            continue;
+        }
+        let label = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| target.clone());
+        let id = Uuid::now_v7().to_string();
+        let item = Item {
+            id: id.clone(),
+            item_type: crate::models::item::ItemType::Folder,
+            label,
+            target,
+            args: None,
+            working_dir: None,
+            icon_path: None,
+            icon_type: None,
+            aliases: vec![],
+            sort_order: 0,
+            is_enabled: true,
+            is_tracked: true,
+            default_app: None,
+            created_at: String::new(),
+            updated_at: String::new(),
+        };
+        item_repository::insert(&conn, &item)?;
+        let sys_tag_id =
+            crate::models::tag::sys_type_tag_id(&crate::models::item::ItemType::Folder);
+        item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+        registered.push(item_repository::find_by_id(&conn, &id)?);
+    }
+    Ok(registered)
+}
+
+/// 起動時に必須システムタグを upsert する（べき等）。
+pub fn ensure_system_tags(db: &DbState) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let starred = Tag {
+        id: "sys-starred".to_string(),
+        name: "Starred".to_string(),
+        is_hidden: false,
+        is_system: true,
+        prefix: Some("★".to_string()),
+        icon: None,
+        sort_order: 90,
+        created_at: String::new(),
+    };
+    tag_repository::upsert_system_tag(&conn, &starred)
+}
+
 pub fn extract_item_icon(
     app_data_dir: &std::path::Path,
     exe_path: &str,
@@ -380,5 +447,54 @@ mod tests {
 
         // cleanup
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_auto_register_folder_items() {
+        let db = initialize_in_memory();
+
+        // Create temp dir with subdirectories
+        let tmp = std::env::temp_dir().join(format!("arcagate_auto_reg_{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("project-a")).unwrap();
+        std::fs::create_dir_all(tmp.join("project-b")).unwrap();
+        // Also create a file (should be skipped)
+        std::fs::write(tmp.join("readme.txt"), "hello").unwrap();
+
+        let root_path = tmp.to_string_lossy().to_string();
+        let result = auto_register_folder_items(&db, &root_path).unwrap();
+        assert_eq!(result.len(), 2, "should register 2 subdirectories");
+
+        // Verify items are in the database
+        let items = list_items(&db).unwrap();
+        assert_eq!(items.len(), 2);
+        let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+        assert!(labels.contains(&"project-a"));
+        assert!(labels.contains(&"project-b"));
+
+        // Verify system tag is assigned
+        for item in &items {
+            let tags = get_item_tags(&db, &item.id).unwrap();
+            assert!(
+                tags.iter().any(|t| t.id == "sys-type-folder"),
+                "system tag sys-type-folder should be assigned"
+            );
+        }
+
+        // Running again should not create duplicates
+        let result2 = auto_register_folder_items(&db, &root_path).unwrap();
+        assert_eq!(result2.len(), 0, "should skip already registered items");
+
+        // cleanup
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_auto_register_folder_items_invalid_path() {
+        let db = initialize_in_memory();
+        let result = auto_register_folder_items(&db, "C:/nonexistent/path/xyz");
+        assert!(
+            matches!(result, Err(AppError::InvalidInput(_))),
+            "should return InvalidInput for non-directory"
+        );
     }
 }

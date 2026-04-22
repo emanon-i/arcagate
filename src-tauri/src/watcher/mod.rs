@@ -44,10 +44,12 @@ pub fn start_watcher(app: &tauri::AppHandle) -> WatcherState {
             .unwrap_or_default()
     };
     for path in &active_paths {
-        let _ = watcher.watch(
+        if let Err(e) = watcher.watch(
             std::path::Path::new(path),
             notify::RecursiveMode::NonRecursive,
-        );
+        ) {
+            log::warn!("watcher: failed to watch '{}': {:?}", path, e);
+        }
     }
 
     WatcherState(Mutex::new(watcher))
@@ -58,6 +60,18 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
     use notify::EventKind::*;
 
     match &event.kind {
+        Create(_) => {
+            for path in &event.paths {
+                if path.is_dir() {
+                    let path_str = path.to_string_lossy().to_string();
+                    if let Err(e) = app.emit("folder://new-directory", &path_str) {
+                        log::warn!("failed to emit folder://new-directory: {:?}", e);
+                    } else {
+                        log::info!("new-directory detected: {}", path_str);
+                    }
+                }
+            }
+        }
         Modify(ModifyKind::Name(RenameMode::Both)) if event.paths.len() == 2 => {
             let old = &event.paths[0];
             let new = &event.paths[1];

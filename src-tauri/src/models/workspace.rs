@@ -77,3 +77,52 @@ pub struct UpdateWidgetPositionInput {
     pub width: i64,
     pub height: i64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_widget_type_as_str() {
+        assert_eq!(WidgetType::Favorites.as_str(), "favorites");
+        assert_eq!(WidgetType::Recent.as_str(), "recent");
+        assert_eq!(WidgetType::Projects.as_str(), "projects");
+        assert_eq!(WidgetType::WatchedFolders.as_str(), "watched_folders");
+    }
+
+    #[test]
+    fn test_widget_type_from_str_valid() {
+        assert_eq!(
+            WidgetType::from_str("favorites"),
+            Some(WidgetType::Favorites)
+        );
+        assert_eq!(WidgetType::from_str("recent"), Some(WidgetType::Recent));
+        assert_eq!(WidgetType::from_str("projects"), Some(WidgetType::Projects));
+        assert_eq!(
+            WidgetType::from_str("watched_folders"),
+            Some(WidgetType::WatchedFolders)
+        );
+    }
+
+    #[test]
+    fn test_widget_type_from_str_invalid() {
+        assert_eq!(WidgetType::from_str("unknown"), None);
+        assert_eq!(WidgetType::from_str("Favorites"), None);
+        assert_eq!(WidgetType::from_str(""), None);
+    }
+
+    #[test]
+    fn test_widget_type_roundtrip() {
+        let types = [
+            WidgetType::Favorites,
+            WidgetType::Recent,
+            WidgetType::Projects,
+            WidgetType::WatchedFolders,
+        ];
+        for t in &types {
+            let s = t.as_str();
+            let back = WidgetType::from_str(s);
+            assert_eq!(back.as_ref(), Some(t));
+        }
+    }
+}

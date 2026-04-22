@@ -57,3 +57,7 @@ export async function getLibraryStats(): Promise<LibraryStats> {
 export async function getTagWithCounts(): Promise<TagWithCount[]> {
 	return invoke<TagWithCount[]>('cmd_get_tag_counts');
 }
+
+export async function autoRegisterFolderItems(rootPath: string): Promise<Item[]> {
+	return invoke<Item[]>('cmd_auto_register_folder_items', { rootPath });
+}

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
+import { fade, fly } from 'svelte/transition';
 import { toastStore } from '$lib/state/toast.svelte';
 
 const typeStyles: Record<string, string> = {
@@ -18,6 +19,8 @@ const typeStyles: Record<string, string> = {
 					toast.type
 				]}"
 				data-testid="toast-{toast.type}"
+				in:fly={{ x: 100, duration: 250 }}
+				out:fade={{ duration: 150 }}
 			>
 				<span class="flex-1">{toast.message}</span>
 				<button

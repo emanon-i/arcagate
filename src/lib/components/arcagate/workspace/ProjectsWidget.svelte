@@ -1,6 +1,9 @@
 <script lang="ts">
 import { CircleDot, Eye, FolderKanban, GitBranch } from '@lucide/svelte';
+import { listen } from '@tauri-apps/api/event';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
+import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { getWatchedPaths } from '$lib/ipc/watched_paths';
 import { getFolderItems, getGitStatus } from '$lib/ipc/workspace';
@@ -11,16 +14,30 @@ import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
 
-let { widget }: { widget?: WorkspaceWidget } = $props();
+interface Props {
+	widget?: WorkspaceWidget;
+	onItemContext?: (itemId: string) => void;
+}
+
+let { widget, onItemContext }: Props = $props();
 
 let folderItems = $state<Item[]>([]);
 let watchedPaths = $state<WatchedPath[]>([]);
 let gitStatuses = $state<Record<string, GitStatus>>({});
 let settingsOpen = $state(false);
 
-const PROJECT_CONFIG_DEFAULTS = { max_items: 10, git_poll_interval_sec: 60 };
+const PROJECT_CONFIG_DEFAULTS = {
+	max_items: 10,
+	git_poll_interval_sec: 60,
+	title: 'ウォッチフォルダー',
+	description: '',
+	watched_folder: '',
+	auto_add: false,
+};
 
-async function fetchGitStatuses(items: Item[]): Promise<void> {
+let config = $derived(parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS));
+
+async function fetchGitStatuses(items: Item[], merge = false): Promise<void> {
 	const entries: Record<string, GitStatus> = {};
 	await Promise.all(
 		items
@@ -33,14 +50,26 @@ async function fetchGitStatuses(items: Item[]): Promise<void> {
 				}
 			}),
 	);
-	gitStatuses = entries;
+	gitStatuses = merge ? { ...gitStatuses, ...entries } : entries;
 }
 
 $effect(() => {
-	void getFolderItems().then((items) => {
+	async function loadData() {
+		const items = await getFolderItems();
 		folderItems = items;
 		void fetchGitStatuses(items);
-	});
+
+		if (config.auto_add && config.watched_folder) {
+			const newItems = await autoRegisterFolderItems(config.watched_folder);
+			if (newItems.length > 0) {
+				const existingIds = new Set(items.map((i) => i.id));
+				const merged = [...items, ...newItems.filter((i) => !existingIds.has(i.id))];
+				folderItems = merged;
+				void fetchGitStatuses(newItems, true);
+			}
+		}
+	}
+	void loadData();
 	void getWatchedPaths().then((paths) => {
 		watchedPaths = paths;
 	});
@@ -49,11 +78,35 @@ $effect(() => {
 // ポーリング
 $effect(() => {
 	if (folderItems.length === 0) return;
-	const config = parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS);
+	const interval = config.git_poll_interval_sec * 1000;
 	const timer = setInterval(() => {
 		void fetchGitStatuses(folderItems);
-	}, config.git_poll_interval_sec * 1000);
+	}, interval);
 	return () => clearInterval(timer);
+});
+
+// リアルタイム: 監視フォルダに新規ディレクトリが作成されたとき auto_add ON なら即座に登録
+$effect(() => {
+	if (!config.auto_add || !config.watched_folder) return;
+	const folder = config.watched_folder;
+	let unlisten: (() => void) | undefined;
+	void listen<string>('folder://new-directory', async (event) => {
+		const newPath = event.payload;
+		// 監視対象フォルダの直下のディレクトリのみ対象（子孫は除く）
+		const parentPath = newPath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
+		const normalizedFolder = folder.replace(/\\/g, '/').replace(/\/$/, '');
+		if (parentPath !== normalizedFolder) return;
+		const newItems = await autoRegisterFolderItems(folder);
+		if (newItems.length > 0) {
+			const existingIds = new Set(folderItems.map((i) => i.id));
+			const merged = [...folderItems, ...newItems.filter((i) => !existingIds.has(i.id))];
+			folderItems = merged;
+			void fetchGitStatuses(newItems, true);
+		}
+	}).then((fn) => {
+		unlisten = fn;
+	});
+	return () => unlisten?.();
 });
 
 let menuItems = $derived(
@@ -70,7 +123,10 @@ let menuItems = $derived(
 );
 </script>
 
-<WidgetShell title="Projects & Git status" icon={GitBranch} {menuItems}>
+<WidgetShell title={config.title} icon={GitBranch} {menuItems}>
+	{#if config.description}
+		<p class="mb-3 text-xs text-[var(--ag-text-muted)]">{config.description}</p>
+	{/if}
 	<div class="grid gap-3 md:grid-cols-3">
 		{#each folderItems as item (item.id)}
 			{@const gs = gitStatuses[item.id]}
@@ -78,10 +134,16 @@ let menuItems = $derived(
 				type="button"
 				class="rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-4 text-left hover:bg-[var(--ag-surface-4)]"
 				onclick={() => void launchItem(item.id)}
+				oncontextmenu={(e) => {
+					if (onItemContext) {
+						e.preventDefault();
+						onItemContext(item.id);
+					}
+				}}
 			>
 				<div class="mb-2 flex items-center justify-between">
 					<div class="text-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
-					<FolderKanban class="h-4 w-4 text-[var(--ag-text-faint)]" />
+					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-6 w-6 shrink-0 object-cover" />
 				</div>
 				<div class="truncate text-xs text-[var(--ag-text-muted)]">{item.target}</div>
 				{#if gs}

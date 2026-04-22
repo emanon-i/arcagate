@@ -71,6 +71,52 @@ fn default_true() -> bool {
     true
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_item_type_as_str() {
+        assert_eq!(ItemType::Exe.as_str(), "exe");
+        assert_eq!(ItemType::Url.as_str(), "url");
+        assert_eq!(ItemType::Folder.as_str(), "folder");
+        assert_eq!(ItemType::Script.as_str(), "script");
+        assert_eq!(ItemType::Command.as_str(), "command");
+    }
+
+    #[test]
+    fn test_item_type_from_str_valid() {
+        assert_eq!(ItemType::from_str("exe"), Some(ItemType::Exe));
+        assert_eq!(ItemType::from_str("url"), Some(ItemType::Url));
+        assert_eq!(ItemType::from_str("folder"), Some(ItemType::Folder));
+        assert_eq!(ItemType::from_str("script"), Some(ItemType::Script));
+        assert_eq!(ItemType::from_str("command"), Some(ItemType::Command));
+    }
+
+    #[test]
+    fn test_item_type_from_str_invalid() {
+        assert_eq!(ItemType::from_str("unknown"), None);
+        assert_eq!(ItemType::from_str("EXE"), None);
+        assert_eq!(ItemType::from_str(""), None);
+    }
+
+    #[test]
+    fn test_item_type_roundtrip() {
+        let types = [
+            ItemType::Exe,
+            ItemType::Url,
+            ItemType::Folder,
+            ItemType::Script,
+            ItemType::Command,
+        ];
+        for t in &types {
+            let s = t.as_str();
+            let back = ItemType::from_str(s);
+            assert_eq!(back.as_ref(), Some(t));
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateItemInput {
     pub label: Option<String>,

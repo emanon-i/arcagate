@@ -198,11 +198,18 @@ function close(): void {
 
 function selectNext(): void {
 	if (results.length === 0) return;
-	selectedIndex = Math.min(selectedIndex + 1, results.length - 1);
+	selectedIndex = (selectedIndex + 1) % results.length;
 }
 
 function selectPrev(): void {
-	selectedIndex = Math.max(selectedIndex - 1, 0);
+	if (results.length === 0) return;
+	selectedIndex = (selectedIndex - 1 + results.length) % results.length;
+}
+
+function tabComplete(): string | null {
+	const entry = results[selectedIndex];
+	if (!entry || entry.kind !== 'item') return null;
+	return entry.item.label;
 }
 
 export const paletteStore = {
@@ -230,4 +237,5 @@ export const paletteStore = {
 	close,
 	selectNext,
 	selectPrev,
+	tabComplete,
 };
