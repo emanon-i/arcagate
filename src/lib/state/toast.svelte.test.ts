@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('toastStore', () => {
 	beforeEach(() => {
+		vi.resetModules();
+		vi.resetAllMocks();
 		vi.useFakeTimers();
 	});
 

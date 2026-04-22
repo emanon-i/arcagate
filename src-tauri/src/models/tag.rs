@@ -63,8 +63,21 @@ mod tests {
 
     #[test]
     fn test_sys_ws_tag_id_prefix_format() {
-        // 常に "sys-ws-" プレフィックスであること
         let result = sys_ws_tag_id("any-id");
         assert!(result.starts_with("sys-ws-"));
+    }
+
+    #[test]
+    fn test_sys_type_tag_id_prefix_format() {
+        for item_type in &[
+            ItemType::Exe,
+            ItemType::Url,
+            ItemType::Folder,
+            ItemType::Script,
+            ItemType::Command,
+        ] {
+            let result = sys_type_tag_id(item_type);
+            assert!(result.starts_with("sys-type-"));
+        }
     }
 }
