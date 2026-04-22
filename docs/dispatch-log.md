@@ -749,3 +749,20 @@ dev ビルドは Start menu 未登録で `request_access` 不可。
 | 1 | Workspace 編集モード中        | Esc で編集モードが終了する                       | キャンセル時に変更が巻き戻るか（UI がチラつかないか）     | 未確認 |
 | 2 | コマンドパレット 検索バー     | クエリ入力中に X ボタンが出る / クリックでクリア | X ボタンの位置・サイズ感・押しやすさ                      | 未確認 |
 | 3 | ライブラリ DetailPanel 表示中 | Enter キーでアイテムが起動しトーストが出る       | INPUT にフォーカスある状態で Enter しても起動されないこと | 未確認 |
+
+---
+
+## 2026-04-22 Batch 20 完了
+
+| PH     | タイトル                                   | PR  | 結果 |
+| ------ | ------------------------------------------ | --- | ---- |
+| PH-092 | WorkspaceLayout 編集モード Esc キャンセル  | #41 | ✅   |
+| PH-093 | PaletteSearchBar X クリアボタン追加        | #41 | ✅   |
+| PH-094 | LibraryDetailPanel Enter キー起動          | #41 | ✅   |
+| PH-095 | E2E テスト追加（Esc/X clear/Enter launch） | #41 | ✅   |
+| PH-096 | WorkspaceLayout Spec 参照コメント除去      | #41 | ✅   |
+
+- biome / dprint / clippy / rustfmt / svelte-check / cargo test / smoke / vitest 全通過
+- computer-use 実機確認: dev ビルドの Start menu 未登録問題で断念 → Playwright E2E で代替
+- 主観 UX 確認: 手動確認依頼セクション参照（ユーザ手動）
+- PR #41: `feature/batch-20260422-20` → `main`（squash マージ済み）
