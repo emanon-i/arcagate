@@ -113,8 +113,12 @@ pub fn run() {
             let db_path = std::env::var("ARCAGATE_DB_PATH")
                 .map(std::path::PathBuf::from)
                 .unwrap_or_else(|_| app_data_dir.join("arcagate.db"));
-            let db_state =
-                db::initialize(db_path.to_str().unwrap()).expect("failed to initialize database");
+            let db_state = db::initialize(
+                db_path
+                    .to_str()
+                    .expect("database path contains non-UTF-8 characters"),
+            )
+            .expect("failed to initialize database");
             app.manage(db_state);
 
             // sys:starred など必須システムタグの初期化（べき等）
