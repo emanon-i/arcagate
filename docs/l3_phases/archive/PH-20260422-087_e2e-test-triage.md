@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-087
 title: E2E テスト S/A/B トリアージ + B 削除 / A nightly 分離
-status: todo
+status: done
 batch: 17
 priority: medium
 created: 2026-04-22

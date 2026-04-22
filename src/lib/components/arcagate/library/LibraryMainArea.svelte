@@ -56,12 +56,12 @@ $effect(() => {
 });
 
 // starred アイテム ID セット（LibraryCard の ★ バッジ表示用）
-// itemStore.items.length を依存として宣言し、スター操作後に自動再取得する
+// itemStore.items を依存として宣言し、配列参照の変化（追加/削除/タグ更新）で自動再取得する
 let starredIds = $state<Set<string>>(new Set());
 
 $effect(() => {
 	// itemStore.items の変化（追加/削除/タグ更新）を検知して再フェッチ
-	const _dep = itemStore.items.length;
+	const _dep = itemStore.items;
 	void searchItemsInTag('sys-starred', '').then((items) => {
 		starredIds = new Set(items.map((i) => i.id));
 	});
