@@ -375,3 +375,17 @@ PH-20260422-013〜018 全 6 Plan 処理完了。
 - PR #26: `feature/batch-20260422-5` → `develop`（rebase マージ）
 - `pnpm verify` 全通過
 - Plan files アーカイブ: commit `d4284d8`
+
+## 2026-04-22 Batch 6 完了
+
+| Phase | タイトル                                                    | PR  | 結果 |
+| ----- | ----------------------------------------------------------- | --- | ---- |
+| 029   | ItemIcon fallbackIconMap バグ修正 + LibrarySidebar 統一     | #27 | ✅   |
+| 030   | ItemForm ラベル autofocus + URL モード type="url" 対応      | #27 | ✅   |
+| 031   | LibraryDetailPanel タグドロップダウン ↑↓ キーボードナビ追加 | #27 | ✅   |
+| 032   | Workspace ウィジェット削除 E2E テスト追加                   | #27 | ✅   |
+| 033   | Workspace Widget で非表示アイテムをフィルタリング           | #27 | ✅   |
+
+- PR #27: `feature/batch-20260422-6` → `develop`（rebase マージ）
+- `pnpm verify` 全通過
+- Plan files アーカイブ: `docs/l3_phases/archive/` に移動
