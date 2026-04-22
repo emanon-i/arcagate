@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-037
 title: arcagate-theme.css 未定義トークン補完（--ag-accent / --ag-border-hover）
 depends_on: []
@@ -62,10 +62,10 @@ parallel_safe: true
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（svelte-check WARNING 0）
-- [ ] LibraryCard の focus-visible リングが cyan で表示されること
-- [ ] LibraryCard のホバー時ボーダーが強調されること
-- [ ] ライト / ダーク両テーマでトークン定義が存在すること
+- [x] `pnpm verify` 通過（svelte-check WARNING 0）
+- [x] LibraryCard の focus-visible リングが cyan で表示されること
+- [x] LibraryCard のホバー時ボーダーが強調されること
+- [x] ライト / ダーク両テーマでトークン定義が存在すること
 
 ## 停止条件
 

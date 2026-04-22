@@ -11,7 +11,11 @@
 
 	/* Border */
 	--ag-border: rgba(0, 0, 0, 0.1);
+	--ag-border-hover: rgba(0, 0, 0, 0.2);
 	--ag-border-dashed: rgba(0, 0, 0, 0.15);
+
+	/* Accent */
+	--ag-accent: #06b6d4;
 
 	/* Tone: accent (cyan) */
 	--ag-accent-border: rgba(6, 182, 212, 0.2);
@@ -60,7 +64,11 @@
 
 	/* Border */
 	--ag-border: rgba(255, 255, 255, 0.1);
+	--ag-border-hover: rgba(255, 255, 255, 0.2);
 	--ag-border-dashed: rgba(255, 255, 255, 0.15);
+
+	/* Accent */
+	--ag-accent: #22d3ee;
 
 	/* Tone: accent (cyan) */
 	--ag-accent-border: rgba(34, 211, 238, 0.2);
