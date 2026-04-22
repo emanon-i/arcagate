@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-093
 title: PaletteSearchBar クリアボタン追加
-status: wip
+status: done
 batch: 20
 priority: medium
 created: 2026-04-22

@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-097
 title: ディスパッチ状態整合性修復（branch 戦略改訂 + l3_phases クリーンアップ）
-status: wip
+status: done
 batch: reconcile
 priority: critical
 created: 2026-04-22

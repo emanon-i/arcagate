@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-095
 title: E2E テスト追加（Esc キャンセル / Enter 起動）
-status: wip
+status: done
 batch: 20
 priority: medium
 created: 2026-04-22

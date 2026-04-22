@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-092
 title: Workspace 編集モード Esc キャンセル対応
-status: wip
+status: done
 batch: 20
 priority: high
 created: 2026-04-22

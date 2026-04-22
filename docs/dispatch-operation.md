@@ -104,15 +104,18 @@ parallel_safe: true | false
 
 ## 4. ブランチ戦略とコミット規約
 
+> **2026-04-22 改訂**: batch-16 以降の実績に合わせ main ベース運用に移行。
+> develop ブランチは廃止方向（過去履歴として保持するのみ）。
+
 ### ブランチ命名
 
-- develop 起点の機能ブランチ: `feature/ph-YYYYMMDD-NNN-<slug>`
+- main 起点の機能ブランチ: `feature/ph-YYYYMMDD-NNN-<slug>` または `feature/batch-YYYYMMDD-N`
 - ホットフィックスや調査用: `spike/<slug>` または `chore/<slug>`
 
 ### 保護ブランチ
 
-- `main`: ユーザ手動操作のみ。ディスパッチは触らない（push / PR 作成も不可）
-- `develop`: ディスパッチが自動マージする。直接 push は禁止、必ず PR 経由
+- `main`: ディスパッチの PR ターゲット。**force push / 直 push は禁止**。PR 経由 merge は OK
+- `develop`: 廃止（batch-15 まで使用。以降は main に直接 PR）
 
 ### コミットメッセージ規約
 
@@ -128,25 +131,25 @@ type は `feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf` から
 
 - 原則 squash merge（Plan 1 つ = PR 1 つ = コミット 1 つ に集約）
 - CI が緑でない PR は絶対にマージしない
-- コンフリクトが起きたら `git rebase develop` → CI 再実行 → マージ
+- コンフリクトが起きたら `git rebase origin/main` → CI 再実行 → マージ
 
 ### バッチマージモード（Batch 4 以降）
 
 通常モード（1 Plan = 1 PR）では PR ごとの merge conflict 解消コストが高いため、
 Batch 4 以降は**バッチ単位で 1 PR** に集約する。
 
-**ブランチ命名**: `feature/batch-YYYYMMDD-N`（例: `feature/batch-20260422-4`）
+**ブランチ命名**: `feature/batch-YYYYMMDD-N`（例: `feature/batch-20260422-21`）
 
 **フロー**:
 
-1. `git switch develop && git pull --ff-only`
+1. `git fetch origin && git reset --hard origin/main`（worktree または feature ブランチを最新 main に合わせる）
 2. `git switch -c feature/batch-YYYYMMDD-N`
 3. 各 Plan を順番に実装。1 Plan 完了ごとに commit（コミットメッセージは通常規約に従う）
 4. 全 Plan 実装後に `pnpm verify` 全通過を確認
 5. `git push -u origin feature/batch-YYYYMMDD-N`
-6. PR を 1 本作成: `gh pr create --base develop --title "<概要>" --body "$(cat <<'EOF' ... EOF)"`
+6. PR を 1 本作成: `gh pr create --base main --title "<概要>" --body "$(cat <<'EOF' ... EOF)"`
 7. CI 緑 → `gh pr merge --rebase --delete-branch`（rebase merge でコミット履歴を保持）
-8. `git switch develop && git pull --ff-only`
+8. `git fetch origin && git reset --hard origin/main`（worktree を最新に更新）
 9. 全 Plan ドキュメントを一括アーカイブ:
    ```bash
    for f in PH-YYYYMMDD-N*; do
@@ -363,7 +366,7 @@ Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTit
 - ORM 導入（rusqlite + 生 SQL 維持）
 - `status: done` の L1/L2 書き換え
 - pre-commit hook のバイパス（`--no-verify`）
-- main ブランチへの push / PR / force push
+- main ブランチへの **force push / 直 push**（PR 経由 merge は OK）
 - ユーザの明示指示なしの config / settings.json / CLAUDE.md の改変
 - 実機確認なしで受け入れ条件を `[x]` にマーク（コードインスペクション代替は禁止）
 
