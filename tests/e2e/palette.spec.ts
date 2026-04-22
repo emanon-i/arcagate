@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures/tauri.js';
 import { createItem, deleteItem } from '../helpers/ipc.js';
 
 test.describe('コマンドパレット', () => {
-	test('パレットが開閉できること', async ({ page }) => {
+	test('パレットが開閉できること', { tag: '@smoke' }, async ({ page }) => {
 		// "Palette" ボタンでパレットを開く
 		await page.getByRole('button', { name: 'Palette' }).click();
 

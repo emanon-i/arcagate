@@ -11,7 +11,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
+  # lint: biome / dprint / clippy / rustfmt / svelte-check (~5-7min)
+  lint:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,12 +56,94 @@ jobs:
       - name: Svelte check
         run: pnpm check
 
+  # test: cargo test + vitest (~3-4min) — parallel with lint
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
       - name: Cargo test
         working-directory: src-tauri
         run: cargo test
 
       - name: Vitest (unit tests)
         run: pnpm test
+
+  # changes: detect whether src code changed (skip build for docs-only PRs)
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'src/**'
+              - 'src-tauri/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - '.github/workflows/ci.yml'
+
+  # build: tauri build (~25-28min) — skipped for docs/test-only PRs
+  build:
+    needs: [lint, test, changes]
+    if: |
+      always() &&
+      needs.lint.result == 'success' &&
+      needs.test.result == 'success' &&
+      (
+        github.event_name == 'push' ||
+        github.event_name == 'workflow_dispatch' ||
+        needs.changes.outputs.src == 'true'
+      )
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install
 
       - name: Tauri build
         run: pnpm tauri build
