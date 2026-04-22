@@ -11,15 +11,13 @@ test.describe('Library 検索バー（PH-20260422-034/036 回帰防衛）', () =
 		await page.waitForLoadState('domcontentloaded');
 		await waitForAppReady(page);
 
-		// Library タブが表示されていること
-		const main = page.locator('main');
-		await expect(main).toBeVisible();
-
-		// 検索バー以外の場所にフォーカス（body）
-		await page.locator('body').press('/');
-
-		// 検索 input にフォーカスが移ること
+		// 検索バーが存在することを確認してから body にフォーカスを確保
 		const searchInput = page.locator('input[placeholder="ライブラリを検索"]');
+		await expect(searchInput).toBeVisible();
+		await page.locator('body').click();
+
+		// / キーで検索バーにフォーカスが移ること
+		await page.locator('body').press('/');
 		await expect(searchInput).toBeFocused();
 	});
 

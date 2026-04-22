@@ -90,7 +90,7 @@ test.describe('ウィジェット右クリック詳細パネル（PH-20260422-00
 		});
 
 		// cmd_launch_item で launch_count を記録（explorer.exe が spawn されるが CI では無害）
-		await invoke<void>(page, 'cmd_launch_item', { item_id: item.id });
+		await invoke<void>(page, 'cmd_launch_item', { itemId: item.id });
 
 		try {
 			await page.reload();

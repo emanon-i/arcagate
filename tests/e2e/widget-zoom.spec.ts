@@ -81,8 +81,11 @@ test.describe('ウィジェットズーム', () => {
 	});
 
 	test('localStorage にズーム値が永続化されること', async ({ page }) => {
-		// 初期化
+		// 初期化（アプリ状態を確実にリセット）
 		await removeStoredZoom(page);
+		await page.reload();
+		await page.waitForLoadState('domcontentloaded');
+		await waitForAppReady(page);
 
 		// Workspace タブに切り替え
 		await page.getByRole('button', { name: 'Workspace' }).click();

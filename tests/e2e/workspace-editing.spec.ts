@@ -1,6 +1,7 @@
 import { expect, test } from '../fixtures/tauri.js';
 import { waitForAppReady } from '../helpers/app-ready.js';
 import { createWorkspace, deleteWorkspace, invoke, type Widget } from '../helpers/ipc.js';
+import { resizeWindow } from '../helpers/resize.js';
 
 /**
  * Simulate HTML5 drag-and-drop via synthetic DragEvents.
@@ -54,6 +55,10 @@ async function simulateDragDrop(
 }
 
 test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッション防衛）', () => {
+	test.afterEach(async ({ page }) => {
+		await page.mouse.up().catch(() => {});
+	});
+
 	test('編集モードでサイドバーから Recent ウィジェットを D&D 追加できること', async ({ page }) => {
 		const workspace = await createWorkspace(page, 'D&D追加テストWS');
 
@@ -137,6 +142,8 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			await waitForAppReady(page);
 			await page.getByRole('button', { name: 'Workspace' }).click();
 			await expect(page.getByText('移動テストWS')).toBeVisible();
+			// 編集モードで role=group を確認（通常モードには role=group がない）
+			await page.getByLabel('編集モード').click();
 			await expect(page.locator('[role="group"]').first()).toBeVisible();
 		} finally {
 			await deleteWorkspace(page, workspace.id);
@@ -144,6 +151,8 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 	});
 
 	test('リサイズハンドルでウィジェットをリサイズしコンテンツが表示されること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
 		const workspace = await createWorkspace(page, 'リサイズテストWS');
 
 		try {
@@ -179,11 +188,26 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			const cx = box.x + box.width / 2;
 			const cy = box.y + box.height / 2;
 
-			// ウィジェット幅 + gap（320 + 16 = 336px）右へドラッグ → span 2 になるはず
-			await page.mouse.move(cx, cy);
-			await page.mouse.down();
-			await page.mouse.move(cx + 336, cy, { steps: 10 });
-			await page.mouse.up();
+			// page.evaluate で pointer events を直接ディスパッチ（setPointerCapture 依存を回避）
+			await page.evaluate(
+				({ x, y, dx }: { x: number; y: number; dx: number }) => {
+					const handle = document.querySelector('[aria-label="リサイズ"]') as HTMLElement | null;
+					if (!handle) throw new Error('resize handle not found');
+					const mkPtr = (type: string, clientX: number) =>
+						new PointerEvent(type, {
+							bubbles: true,
+							cancelable: true,
+							pointerId: 1,
+							pointerType: 'mouse',
+							clientX,
+							clientY: y,
+						});
+					handle.dispatchEvent(mkPtr('pointerdown', x));
+					handle.dispatchEvent(mkPtr('pointermove', x + dx));
+					handle.dispatchEvent(mkPtr('pointerup', x + dx));
+				},
+				{ x: cx, y: cy, dx: 400 },
+			);
 
 			await page.waitForTimeout(300);
 
@@ -238,7 +262,7 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount);
 
 			// 「削除」ボタンで確定 → ウィジェットが消える
-			await page.getByRole('button', { name: '削除' }).click();
+			await page.getByRole('dialog').getByRole('button', { name: '削除' }).click();
 			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount - 1, {
 				timeout: 3000,
 			});
@@ -280,7 +304,7 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			await expect(page.getByRole('dialog')).toBeVisible();
 
 			// 「キャンセル」クリック → ダイアログが閉じ、ウィジェットは残る
-			await page.getByRole('button', { name: 'キャンセル' }).click();
+			await page.getByRole('dialog').getByRole('button', { name: 'キャンセル' }).click();
 			await expect(page.getByRole('dialog')).not.toBeVisible();
 			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount);
 		} finally {
