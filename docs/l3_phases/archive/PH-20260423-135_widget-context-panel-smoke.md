@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-135
 title: widget-context-panel.spec.ts @smoke タグ追加
-status: todo
+status: done
 batch: 29
 priority: low
 created: 2026-04-23

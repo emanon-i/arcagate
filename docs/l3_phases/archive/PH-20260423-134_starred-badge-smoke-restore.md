@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-134
 title: library-empty-starred starred バッジテスト @smoke 復活
-status: todo
+status: done
 batch: 29
 priority: medium
 created: 2026-04-23

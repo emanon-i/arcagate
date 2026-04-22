@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-136
 title: layout.spec.ts @smoke タグ追加（基本レイアウト検証）
-status: todo
+status: done
 batch: 29
 priority: medium
 created: 2026-04-23
