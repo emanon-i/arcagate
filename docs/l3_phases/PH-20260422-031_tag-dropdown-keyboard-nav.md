@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-031
 title: LibraryDetailPanel タグドロップダウン キーボードナビゲーション
 depends_on:
