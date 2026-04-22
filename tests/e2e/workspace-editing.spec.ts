@@ -135,8 +135,6 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			);
 			expect(dropped).toBe(true);
 
-			await page.waitForTimeout(300);
-
 			// 確定して編集モード終了
 			await page.getByLabel('編集を確定').click();
 
@@ -213,12 +211,9 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 				{ x: cx, y: cy, dx: 400 },
 			);
 
-			await page.waitForTimeout(300);
-
-			// ウィジェットコンテナの style に span 2 が含まれること
+			// ウィジェットコンテナの style に span 2 が含まれること（pointer events 処理完了を待つ）
 			const widgetContainer = page.locator('[role="group"]').first();
-			const styleAfter = await widgetContainer.getAttribute('style');
-			expect(styleAfter).toContain('span 2');
+			await expect(widgetContainer).toHaveAttribute('style', /span 2/);
 
 			// WidgetShell 内の overflow コンテナが表示されていること（PH-20260422-016 修正確認）
 			await expect(widgetContainer.locator('.min-h-0.flex-1').first()).toBeVisible();

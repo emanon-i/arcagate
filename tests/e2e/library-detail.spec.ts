@@ -4,7 +4,7 @@ import { createItem, deleteItem } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('ライブラリ詳細パネル', () => {
-	test('閉じるボタンでパネルが閉じること（#17 修正検証）', async ({ page }) => {
+	test('閉じるボタンでパネルが閉じること（#17 修正検証）', { tag: '@smoke' }, async ({ page }) => {
 		// lg 幅にして DetailPanel を表示
 		await resizeWindow(page, 1280, 800);
 
