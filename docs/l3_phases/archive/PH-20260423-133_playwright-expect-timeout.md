@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-133
 title: Playwright expect.timeout を 10s に設定（CI 安定化）
-status: todo
+status: done
 batch: 29
 priority: high
 created: 2026-04-23

@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-137
 title: lessons.md 更新（batch-28 知見記録）
-status: todo
+status: done
 batch: 29
 priority: low
 created: 2026-04-23

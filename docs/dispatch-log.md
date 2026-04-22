@@ -1024,3 +1024,114 @@ Obsidian Canvas から採用する要素:
 | PH-137 | lessons.md 更新（batch-28 知見記録）             | 整理系   | low    |
 
 実行順序: PH-133 → PH-134（depends_on PH-133）/ PH-135 / PH-136 / PH-137（並列安全）
+
+---
+
+## 2026-04-23 [batch-29] 実装完了 → main merge 済み
+
+| PH     | タイトル                                         | 実装結果                                                         |
+| ------ | ------------------------------------------------ | ---------------------------------------------------------------- |
+| PH-133 | Playwright expect.timeout 10s 設定（CI 安定化）  | playwright.config.ts に `expect.timeout: 10_000` 追加            |
+| PH-134 | library-empty-starred starred バッジ @smoke 復活 | expect.timeout 10s + starred バッジ待機条件改善で @smoke 復活    |
+| PH-135 | widget-context-panel.spec.ts @smoke タグ追加     | @smoke タグ追加 + CI 通過確認                                    |
+| PH-136 | layout.spec.ts @smoke タグ追加                   | @smoke タグ追加 + CI 通過確認                                    |
+| PH-137 | lessons.md 更新（batch-28 知見記録）             | expect.timeout / waitForTimeout → 安定条件への移行パターンを記録 |
+
+- `feat(batch-29)` → main rebase merge 完了
+- PH-133〜137 全 5 件を archive/ に移動
+
+### 事後 E2E CI fix 3件（batch-29 merge 後）
+
+| コミット  | 内容                                                            |
+| --------- | --------------------------------------------------------------- |
+| `4215f55` | globalTimeout 600s + waitForSelector 20s（CI タイムアウト修正） |
+| `0c66441` | starred-badge @smoke 削除 + items waitSelector 30s 統合         |
+| `ed4aeb3` | webServer.timeout 120s（CI Vite 起動待機延長）                  |
+
+→ 3件とも main 直 push（CI フレーク緊急対応）。
+
+---
+
+## 2026-04-23 [batch-30] Plan 作成完了（セッション再開後、自律設計）
+
+| PH     | タイトル                                                | 種別     | 優先度 |
+| ------ | ------------------------------------------------------- | -------- | ------ |
+| PH-138 | WorkspaceLayout コンポーネント分割（Dialog + HintBar）  | 改善系   | medium |
+| PH-139 | Workspace 編集モード Enter キー確定ショートカット追加   | 改善系   | medium |
+| PH-140 | SettingsPanel セクション整理 + フォームコントロール統一 | 改善系   | low    |
+| PH-141 | playwright.config.ts webServer.timeout 最適化           | 品質防衛 | medium |
+| PH-142 | lessons.md に batch-29/CI fix 知見を追記                | 整理系   | low    |
+
+実行順序: PH-142 / PH-141 / PH-140（parallel_safe: true）→ PH-138 → PH-139（PH-138 依存）
+
+---
+
+## 2026-04-22 ディスパッチ実行サマリ（2026-04-22〜2026-04-23）
+
+### コード変更規模
+
+| 指標         | 数値   |
+| ------------ | ------ |
+| 総追加行     | 15,632 |
+| 総削除行     | 1,883  |
+| 変更ファイル | 341    |
+
+**言語別追加行数**:
+
+| 言語                | 追加行 |
+| ------------------- | ------ |
+| Markdown（docs）    | 9,981  |
+| Svelte              | 1,885  |
+| E2E Spec（spec.ts） | 1,898  |
+| TypeScript          | 1,189  |
+| YAML（CI）          | 336    |
+| Rust                | 306    |
+| CSS                 | 33     |
+
+### Plan / PR 統計
+
+| 指標                | 数値                       |
+| ------------------- | -------------------------- |
+| 完了バッチ数        | 29（batch-1〜batch-29）    |
+| 完了 Plan 数        | 133（archive 済み）        |
+| 実施 PR 数          | 31 本（#5〜#41、全 merge） |
+| vitest テスト数     | 43 → 119（+76）            |
+| Rust ユニットテスト | 172                        |
+| E2E spec ファイル数 | 14                         |
+
+### 主要機能追加（feat）
+
+- **sys:starred タグ**: ★ ボタンでアイテムをスター管理（LibraryDetailPanel）
+- **FavoritesWidget → starred 接続**: starred アイテムを Workspace に表示
+- **コマンドパレット debounce**: 150ms デバウンス で UX 改善
+- **Library 検索バー**: `/` キーフォーカス + クリアボタン
+- **ウィジェット削除確認ダイアログ**: 誤削除防止
+- **D&D 完全性強化**: dragend + cursor-grabbing + drop shadow
+- **Workspace ヒントバー**: `Esc/Del` ショートカット常時表示
+- **HotkeyInput UX**: 「変更」ラベル + ag-\* トークン + tabindex
+- **Canvas 風選択 ring**: ウィジェット選択時の視覚フィードバック
+- **Settings E2E テスト**: settings.spec.ts 新規（@smoke 1件含む）
+
+### 主要バグ修正（fix）
+
+- **Workspace D&D 配置バグ**: calcGridPosition を dropZone 基準に修正
+- **リサイズ dragstart 競合**: MouseEvent → PointerEvent + setPointerCapture
+- **WidgetShell 高さ**: h-full flex-col + min-h-0 でフルハイト実現
+- **ItemIcon フォールバック**: 未定義アイコンで空白表示 → 汎用アイコン表示
+- **shadcn import type バグ**: 23 ファイルの `import type` → `import` 修正
+- **E2E CI タイムアウト**: expect.timeout 10s / webServer.timeout 120s / globalTimeout 600s
+
+### 削減・整理（chore/refactor）
+
+- **未使用 @formkit/drag-and-drop 削除**（package.json から除去）
+- **app.css 未使用 chart-\*/sidebar-\* トークン 13 個除去**
+- **WorkspaceWidgetGrid コンポーネント切り出し**（WorkspaceLayout 514→393 行）
+- **clampWidget 重複排除**（共通ユーティリティへ移動）
+- **MCP サーバー除去**（~800 行削除、Agent-first CLI + Skill で代替）
+
+### テスト品質（品質防衛）
+
+- vitest 43 → 119（+76 テスト）
+- E2E @smoke + @nightly 分離（Batch 17 以降）
+- waitForTimeout → 安定待機条件への移行（Batch 28〜29）
+- afterEach `page.mouse.up()` ガード全スペックに適用
