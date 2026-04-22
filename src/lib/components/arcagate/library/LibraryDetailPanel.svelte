@@ -129,7 +129,13 @@ let moreMenuItems = $derived.by(() => {
 // タグ追加ドロップダウンの表示制御
 let showTagSelect = $state(false);
 let tagDropdownEl = $state<HTMLElement | null>(null);
+let tagTriggerEl = $state<HTMLButtonElement | null>(null);
 let focusedTagIndex = $state(-1);
+
+function closeTagDropdown() {
+	showTagSelect = false;
+	tagTriggerEl?.focus();
+}
 
 // ドロップダウンを開いたとき最初のアイテムにフォーカス
 $effect(() => {
@@ -160,7 +166,7 @@ $effect(() => {
 		}
 		if (e.key === 'Escape') {
 			if (showTagSelect) {
-				showTagSelect = false;
+				closeTagDropdown();
 			} else {
 				onClose?.();
 			}
@@ -168,7 +174,7 @@ $effect(() => {
 	}}
 	onpointerdown={(e) => {
 		if (showTagSelect && tagDropdownEl && !tagDropdownEl.contains(e.target as Node)) {
-			showTagSelect = false;
+			closeTagDropdown();
 		}
 	}}
 />
@@ -241,6 +247,7 @@ $effect(() => {
 			{#if availableTags.length > 0}
 				<div class="relative">
 					<button
+						bind:this={tagTriggerEl}
 						type="button"
 						class="rounded-full border border-dashed border-[var(--ag-border)] px-2.5 py-1 text-xs text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)]"
 						onclick={() => (showTagSelect = !showTagSelect)}
@@ -254,7 +261,7 @@ $effect(() => {
 									type="button"
 									class="block w-full rounded-md px-3 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
 									tabindex={focusedTagIndex === i ? 0 : -1}
-									onclick={() => { void handleAddTag(tag.id); showTagSelect = false; }}
+									onclick={() => { void handleAddTag(tag.id); closeTagDropdown(); }}
 									onkeydown={(e) => {
 										if (e.key === 'ArrowDown') {
 											e.preventDefault();

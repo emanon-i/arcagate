@@ -1,24 +1,7 @@
-import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/tauri.js';
 import { waitForAppReady } from '../helpers/app-ready.js';
-import {
-	addWidget,
-	createItem,
-	createWorkspace,
-	deleteItem,
-	deleteWorkspace,
-} from '../helpers/ipc.js';
-
-async function setupWorkspaceWithWidget(page: Page, workspaceName: string, widgetType: string) {
-	const workspace = await createWorkspace(page, workspaceName);
-	await addWidget(page, workspace.id, widgetType);
-	await page.reload();
-	await page.waitForLoadState('domcontentloaded');
-	await waitForAppReady(page);
-	await page.getByRole('button', { name: 'Workspace' }).click();
-	await expect(page.getByText(workspaceName)).toBeVisible();
-	return workspace;
-}
+import { createItem, deleteItem, deleteWorkspace } from '../helpers/ipc.js';
+import { setupWorkspaceWithWidget } from '../helpers/workspace.js';
 
 test.describe('Workspace ウィジェット表示', () => {
 	test(
