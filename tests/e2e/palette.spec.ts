@@ -91,6 +91,28 @@ test.describe('コマンドパレット', () => {
 		await page.keyboard.press('Escape');
 	});
 
+	test('クエリ入力後に X ボタンが表示され、クリックするとクリアされること', async ({ page }) => {
+		await page.getByRole('button', { name: 'Palette' }).click();
+		const dialog = page.locator('[role="dialog"]');
+		await expect(dialog).toBeVisible();
+
+		const input = dialog.getByRole('textbox').first();
+		await input.fill('テストクエリ');
+
+		// X ボタンが表示されること
+		const clearButton = dialog.getByLabel('検索をクリア');
+		await expect(clearButton).toBeVisible();
+
+		// X ボタンをクリックするとクエリがクリアされること
+		await clearButton.click();
+		await expect(input).toHaveValue('');
+
+		// クリア後は X ボタンが非表示になること
+		await expect(clearButton).not.toBeVisible();
+
+		await page.keyboard.press('Escape');
+	});
+
 	test('ArrowDown でキーボードナビゲーションできること', async ({ page }) => {
 		// テスト用アイテムを複数作成
 		const item1 = await createItem(page, {
