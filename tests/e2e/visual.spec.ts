@@ -9,8 +9,7 @@ test.describe
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
 			await waitForAppReady(page);
-			// アニメーション完了待ち
-			await page.waitForTimeout(500);
+			await page.waitForLoadState('networkidle');
 
 			await expect(page).toHaveScreenshot('library-1280x800.png', { scale: 'css' });
 		});
@@ -23,7 +22,7 @@ test.describe
 
 			// Workspace タブに切り替え
 			await page.getByRole('button', { name: 'Workspace' }).click();
-			await page.waitForTimeout(500);
+			await page.waitForLoadState('networkidle');
 
 			await expect(page).toHaveScreenshot('workspace-1280x800.png', { scale: 'css' });
 		});
@@ -38,7 +37,7 @@ test.describe
 			await page.getByRole('button', { name: 'Palette' }).click();
 			const dialog = page.locator('[role="dialog"]');
 			await expect(dialog).toBeVisible();
-			await page.waitForTimeout(500);
+			await page.waitForLoadState('networkidle');
 
 			await expect(page).toHaveScreenshot('palette-overlay.png', { scale: 'css' });
 

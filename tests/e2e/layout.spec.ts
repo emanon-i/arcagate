@@ -89,8 +89,6 @@ test.describe('レイアウト', () => {
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
 			await waitForAppReady(page);
-			// 安定するのを待つ
-			await page.waitForTimeout(500);
 
 			expect(errors, `${w}x${h} でコンソールエラー`).toHaveLength(0);
 			page.removeAllListeners('pageerror');

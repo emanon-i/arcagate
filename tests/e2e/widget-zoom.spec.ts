@@ -34,51 +34,50 @@ async function removeStoredZoom(page: import('@playwright/test').Page): Promise<
 }
 
 test.describe('ウィジェットズーム', () => {
-	test('Ctrl+wheel でズームが段階的に変化し data-zoom 属性が更新されること', async ({ page }) => {
-		// ズームを初期値に戻す（テスト間の状態リーク防止）
-		await removeStoredZoom(page);
+	test(
+		'Ctrl+wheel でズームが段階的に変化し data-zoom 属性が更新されること',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			// ズームを初期値に戻す（テスト間の状態リーク防止）
+			await removeStoredZoom(page);
 
-		// Workspace タブに切り替え
-		await page.getByRole('button', { name: 'Workspace' }).click();
-		await page.waitForTimeout(300);
+			// Workspace タブに切り替え
+			await page.getByRole('button', { name: 'Workspace' }).click();
 
-		// data-zoom 要素が表示されていること
-		const container = page.locator('[data-zoom]').first();
-		await expect(container).toBeVisible();
+			// data-zoom 要素が表示されていること
+			const container = page.locator('[data-zoom]').first();
+			await expect(container).toBeVisible();
 
-		// 初期値確認
-		const initialZoom = await getDataZoom(page);
-		expect(initialZoom).toBe(DEFAULT_ZOOM);
+			// 初期値確認
+			const initialZoom = await getDataZoom(page);
+			expect(initialZoom).toBe(DEFAULT_ZOOM);
 
-		// Ctrl+ホイール上で3回 → ズームアップ
-		await container.hover();
-		await page.keyboard.down('Control');
-		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
-		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
-		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
-		await page.keyboard.up('Control');
-		await page.waitForTimeout(100);
+			// Ctrl+ホイール上で3回 → ズームアップ
+			await container.hover();
+			await page.keyboard.down('Control');
+			await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
+			await page.keyboard.up('Control');
 
-		const zoomedIn = await getDataZoom(page);
-		expect(zoomedIn).toBe(130); // 100 + 10*3
+			await expect(container).toHaveAttribute('data-zoom', '130'); // 100 + 10*3
 
-		// Ctrl+ホイール下で6回 → ズームダウン（初期値より下）
-		await page.keyboard.down('Control');
-		await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
-		await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
-		await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
-		await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
-		await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
-		await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
-		await page.keyboard.up('Control');
-		await page.waitForTimeout(100);
+			// Ctrl+ホイール下で6回 → ズームダウン（初期値より下）
+			await page.keyboard.down('Control');
+			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+			await page.keyboard.up('Control');
 
-		const zoomedOut = await getDataZoom(page);
-		expect(zoomedOut).toBe(70); // 130 - 10*6
+			await expect(container).toHaveAttribute('data-zoom', '70'); // 130 - 10*6
 
-		// ズームをリセット（後続テストへの影響を防ぐ）
-		await setStoredZoom(page, DEFAULT_ZOOM);
-	});
+			// ズームをリセット（後続テストへの影響を防ぐ）
+			await setStoredZoom(page, DEFAULT_ZOOM);
+		},
+	);
 
 	test('localStorage にズーム値が永続化されること', async ({ page }) => {
 		// 初期化（アプリ状態を確実にリセット）
@@ -89,7 +88,6 @@ test.describe('ウィジェットズーム', () => {
 
 		// Workspace タブに切り替え
 		await page.getByRole('button', { name: 'Workspace' }).click();
-		await page.waitForTimeout(300);
 
 		const container = page.locator('[data-zoom]').first();
 		await expect(container).toBeVisible();
@@ -100,7 +98,8 @@ test.describe('ウィジェットズーム', () => {
 		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
 		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
 		await page.keyboard.up('Control');
-		await page.waitForTimeout(100);
+
+		await expect(container).toHaveAttribute('data-zoom', '120');
 
 		// localStorage に保存されていること
 		const stored = await getStoredZoom(page);
@@ -112,10 +111,8 @@ test.describe('ウィジェットズーム', () => {
 		await waitForAppReady(page);
 
 		await page.getByRole('button', { name: 'Workspace' }).click();
-		await page.waitForTimeout(300);
 
-		const zoomAfterReload = await getDataZoom(page);
-		expect(zoomAfterReload).toBe(120);
+		await expect(page.locator('[data-zoom]').first()).toHaveAttribute('data-zoom', '120');
 
 		// クリーンアップ
 		await setStoredZoom(page, DEFAULT_ZOOM);
@@ -128,7 +125,6 @@ test.describe('ウィジェットズーム', () => {
 		await page.waitForLoadState('domcontentloaded');
 		await waitForAppReady(page);
 		await page.getByRole('button', { name: 'Workspace' }).click();
-		await page.waitForTimeout(300);
 
 		const container = page.locator('[data-zoom]').first();
 		await expect(container).toBeVisible();
@@ -138,10 +134,8 @@ test.describe('ウィジェットズーム', () => {
 		await page.keyboard.down('Control');
 		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
 		await page.keyboard.up('Control');
-		await page.waitForTimeout(100);
 
-		const atMax = await getDataZoom(page);
-		expect(atMax).toBe(200); // クランプされて 200 に留まる
+		await expect(container).toHaveAttribute('data-zoom', '200'); // クランプされて 200 に留まる
 
 		// クリーンアップ
 		await setStoredZoom(page, DEFAULT_ZOOM);
