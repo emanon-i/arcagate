@@ -9,7 +9,8 @@ async function openSettings(page: Page) {
 test.describe('設定パネル', () => {
 	test('設定パネルが TitleBar から開閉できること', { tag: '@smoke' }, async ({ page }) => {
 		await openSettings(page);
-		await page.keyboard.press('Escape');
+		// ✕ ボタンで閉じる（keyboard Escape は dialog div がフォーカスを持つ必要があるため button を使用）
+		await page.getByRole('button', { name: '設定を閉じる' }).click();
 		await expect(page.getByRole('dialog')).not.toBeVisible();
 	});
 
