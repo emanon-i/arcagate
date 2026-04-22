@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-035
 title: コマンドパレット検索 150ms debounce 追加
 depends_on: []
@@ -54,9 +54,9 @@ function handleSearch(q: string) {
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（svelte-check WARNING 0）
-- [ ] 高速入力時に最後のキーストロークから 150ms 後に検索が実行されること
-- [ ] 既存の ↑↓ Enter Escape キーハンドラが影響を受けないこと
+- [x] `pnpm verify` 通過（svelte-check WARNING 0）
+- [x] 高速入力時に最後のキーストロークから 150ms 後に検索が実行されること
+- [x] 既存の ↑↓ Enter Escape キーハンドラが影響を受けないこと
 
 ## 停止条件
 
