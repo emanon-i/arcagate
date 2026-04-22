@@ -361,3 +361,17 @@ PH-20260422-013〜018 全 6 Plan 処理完了。
 - PR #25: `feature/batch-20260422-4` → `develop`（rebase マージ）
 - `pnpm verify` 全通過（biome / dprint / clippy / svelte-check / cargo test / tauri build）
 - Plan files アーカイブ: commit `0d81556`
+
+## 2026-04-22 Batch 5 完了
+
+| Phase | タイトル                                               | PR  | 結果 |
+| ----- | ------------------------------------------------------ | --- | ---- |
+| 024   | PageTabBar UX 磨き（日本語化 + blur ガード）           | #26 | ✅   |
+| 025   | LibraryDetailPanel タグドロップダウン Escape/外部閉じ  | #26 | ✅   |
+| 026   | LibraryCard ホバー/アクティブ ビジュアルフィードバック | #26 | ✅   |
+| 027   | PaletteResultRow itemType 渡し + Safe mode ボタン修正  | #26 | ✅   |
+| 028   | Library E2E テスト拡充（空状態・検索0件・starred）     | #26 | ✅   |
+
+- PR #26: `feature/batch-20260422-5` → `develop`（rebase マージ）
+- `pnpm verify` 全通過
+- Plan files アーカイブ: commit `d4284d8`
