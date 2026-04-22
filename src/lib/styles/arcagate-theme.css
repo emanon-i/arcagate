@@ -34,6 +34,11 @@
 	--ag-success-bg: rgba(5, 150, 105, 0.1);
 	--ag-success-text: #065f46;
 
+	/* Tone: error (red) */
+	--ag-error-border: rgba(220, 38, 38, 0.25);
+	--ag-error-bg: rgba(220, 38, 38, 0.08);
+	--ag-error-text: #991b1b;
+
 	/* Text hierarchy */
 	--ag-text-primary: rgba(0, 0, 0, 0.9);
 	--ag-text-secondary: rgba(0, 0, 0, 0.6);
@@ -87,6 +92,11 @@
 	--ag-success-border: rgba(52, 211, 153, 0.2);
 	--ag-success-bg: rgba(52, 211, 153, 0.1);
 	--ag-success-text: #a7f3d0;
+
+	/* Tone: error (red) */
+	--ag-error-border: rgba(248, 113, 113, 0.25);
+	--ag-error-bg: rgba(248, 113, 113, 0.1);
+	--ag-error-text: #fca5a5;
 
 	/* Opaque surface for dialogs/widgets */
 	--ag-surface-opaque: #10141b;
