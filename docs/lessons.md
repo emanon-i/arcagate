@@ -343,3 +343,44 @@ expect: {
 - **@smoke に向くパターン**: クリック → 即座に DOM 変化（IPC 1回以内）
 - **原則**: 複雑な IPC 連鎖テストは nightly のみで運用し、@smoke には含めない
 - **starredIds の具体例**: `LibraryMainArea.svelte` の starredIds 更新は 2 段階非同期（updateItem → $effect → searchItemsInTag）のため CI で不安定
+
+---
+
+## E2E: `webServer.timeout` は 120s 以上にすること（Batch 29 事後 CI fix の教訓）
+
+- **デフォルト 60s は CI Windows runner では短い**: Vite の cold start（pnpm dev）が CI で 60〜90s かかることがある
+- **症状**: `webServer` タイムアウトで全 E2E テストが起動前に失敗する
+- **対処**: `playwright.config.ts` の `webServer.timeout: 120_000`（2分）以上を設定する
+- **ローカルとの差**: ローカルでは HMR キャッシュが効くため問題にならないが、CI は毎回クリーンビルド
+
+```ts
+webServer: {
+  command: 'pnpm dev',
+  url: 'http://localhost:5173',
+  reuseExistingServer: !process.env.CI,
+  timeout: 120_000, // デフォルト 60s → CI では不足
+}
+```
+
+---
+
+## E2E: `globalTimeout` の CI/ローカル分岐（Batch 29 事後 CI fix の教訓）
+
+- **現状**: `globalTimeout: 600_000`（10分）はローカル実行時にも適用される
+- **適切な分岐パターン**: `process.env.CI ? 600_000 : 300_000` で環境ごとに設定を分ける
+- **ローカルでは 300s（5分）が実用的**: ローカルランでは全 E2E が 2〜3 分以内に完了するため、600s では timeout 検知が遅すぎる
+
+```ts
+globalTimeout: process.env.CI ? 600_000 : 300_000,
+```
+
+---
+
+## E2E: `waitForTimeout` → `waitForSelector` / `expect().toBeVisible()` への移行パターン（Batch 28〜29 の教訓）
+
+- **`waitForTimeout` の問題**: 固定待機は環境依存でフレーキーを招く。ローカル高速・CI 低速の差が顕著
+- **移行パターン**:
+  - DOM 要素出現待ち: `await page.waitForSelector('[data-testid="foo"]', { state: 'visible', timeout: 20_000 })`
+  - 要素テキスト変化待ち: `await expect(el).toHaveText('expected', { timeout: 15_000 })`
+  - ネットワーク/IPC 完了待ち: IPC 完了を示す DOM 変化（ボタン状態・バッジ出現）で間接的に待つ
+- **タイムアウト明示**: 各 `waitForSelector` に `{ timeout: 20_000 }` を付けると `expect.timeout` との整合が取れる
