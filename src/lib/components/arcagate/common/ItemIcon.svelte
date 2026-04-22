@@ -1,5 +1,5 @@
 <script lang="ts">
-import { AppWindow, Box, FileText, Folder, Globe, Terminal } from '@lucide/svelte';
+import { Cpu, FolderOpen, Gamepad2, Globe, TerminalSquare } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { Component } from 'svelte';
 
@@ -21,15 +21,15 @@ $effect(() => {
 });
 
 const fallbackIconMap: Record<string, Component> = {
+	exe: Gamepad2,
 	url: Globe,
-	folder: Folder,
-	file: FileText,
-	app: AppWindow,
-	command: Terminal,
+	script: TerminalSquare,
+	folder: FolderOpen,
+	command: Cpu,
 };
 
 let FallbackIcon = $derived(
-	(itemType ? (fallbackIconMap[itemType] ?? Box) : AppWindow) as Component,
+	(itemType ? (fallbackIconMap[itemType] ?? Gamepad2) : Gamepad2) as Component,
 );
 </script>
 
