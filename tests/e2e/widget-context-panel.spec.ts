@@ -84,46 +84,48 @@ test.describe('ウィジェット右クリック詳細パネル（PH-20260422-00
 		await expect(panel).not.toBeVisible();
 	});
 
-	test('FavoritesWidget のアイテムを右クリックすると詳細パネルが表示され Esc で閉じること', async ({
-		page,
-	}) => {
-		await resizeWindow(page, 1280, 800);
+	test(
+		'FavoritesWidget のアイテムを右クリックすると詳細パネルが表示され Esc で閉じること',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			await resizeWindow(page, 1280, 800);
 
-		// ★付きアイテムを作成（FavoritesWidget に表示されるよう sys-starred タグ付き）
-		const workspace = await createWorkspace(page, '右クリックテストWS');
-		await addWidget(page, workspace.id, 'favorites');
-		const item = await createItem(page, {
-			item_type: 'url',
-			label: 'E2E-右クリックテスト',
-			target: 'https://rightclick-test.example.com',
-			tag_ids: ['sys-starred'],
-		});
+			// ★付きアイテムを作成（FavoritesWidget に表示されるよう sys-starred タグ付き）
+			const workspace = await createWorkspace(page, '右クリックテストWS');
+			await addWidget(page, workspace.id, 'favorites');
+			const item = await createItem(page, {
+				item_type: 'url',
+				label: 'E2E-右クリックテスト',
+				target: 'https://rightclick-test.example.com',
+				tag_ids: ['sys-starred'],
+			});
 
-		try {
-			await page.reload();
-			await page.waitForLoadState('domcontentloaded');
-			await waitForAppReady(page);
+			try {
+				await page.reload();
+				await page.waitForLoadState('domcontentloaded');
+				await waitForAppReady(page);
 
-			// Workspace タブに切り替え
-			await page.getByRole('button', { name: 'Workspace' }).click();
-			await expect(page.getByText('右クリックテストWS')).toBeVisible();
+				// Workspace タブに切り替え
+				await page.getByRole('button', { name: 'Workspace' }).click();
+				await expect(page.getByText('右クリックテストWS')).toBeVisible();
 
-			// FavoritesWidget にアイテムが表示されること
-			const widgetItem = page.getByText('E2E-右クリックテスト').first();
-			await expect(widgetItem).toBeVisible({ timeout: 5000 });
+				// FavoritesWidget にアイテムが表示されること
+				const widgetItem = page.getByText('E2E-右クリックテスト').first();
+				await expect(widgetItem).toBeVisible({ timeout: 5000 });
 
-			// 右クリックで詳細パネルが表示されること
-			await widgetItem.click({ button: 'right' });
+				// 右クリックで詳細パネルが表示されること
+				await widgetItem.click({ button: 'right' });
 
-			const detailPanel = page.getByTestId('library-detail-panel');
-			await expect(detailPanel).toBeVisible();
+				const detailPanel = page.getByTestId('library-detail-panel');
+				await expect(detailPanel).toBeVisible();
 
-			// Esc でパネルが閉じること
-			await page.keyboard.press('Escape');
-			await expect(detailPanel).not.toBeVisible();
-		} finally {
-			await deleteItem(page, item.id);
-			await deleteWorkspace(page, workspace.id);
-		}
-	});
+				// Esc でパネルが閉じること
+				await page.keyboard.press('Escape');
+				await expect(detailPanel).not.toBeVisible();
+			} finally {
+				await deleteItem(page, item.id);
+				await deleteWorkspace(page, workspace.id);
+			}
+		},
+	);
 });
