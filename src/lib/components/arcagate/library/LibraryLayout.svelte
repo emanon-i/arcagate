@@ -6,10 +6,9 @@ import LibrarySidebar from './LibrarySidebar.svelte';
 interface Props {
 	onEditItem?: (id: string) => void;
 	onAddItem?: () => void;
-	onOpenSettings?: () => void;
 }
 
-let { onEditItem, onAddItem, onOpenSettings }: Props = $props();
+let { onEditItem, onAddItem }: Props = $props();
 
 let sidebarExpanded = $state(false);
 let selectedItemId: string | null = $state(null);
@@ -44,7 +43,7 @@ let gridClass = $derived.by(() => {
 
 <div class={gridClass}>
 	<div class="hidden min-h-0 overflow-y-auto md:block" data-testid="library-sidebar-wrapper">
-		<LibrarySidebar expanded={sidebarExpanded} {activeTag} onSelectTag={handleTagSelect} {onOpenSettings} />
+		<LibrarySidebar expanded={sidebarExpanded} {activeTag} onSelectTag={handleTagSelect} />
 	</div>
 	<div class="min-h-0 overflow-y-auto" data-testid="library-main-wrapper">
 		<LibraryMainArea {activeTag} onSelectItem={(id: string | null) => (selectedItemId = id)} {onAddItem} {onEditItem} />

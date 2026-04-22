@@ -12,11 +12,10 @@ import RecentLaunchesWidget from './RecentLaunchesWidget.svelte';
 import WorkspaceSidebar from './WorkspaceSidebar.svelte';
 
 interface Props {
-	onOpenSettings?: () => void;
 	onEditItem?: (id: string) => void;
 }
 
-let { onOpenSettings, onEditItem }: Props = $props();
+let { onEditItem }: Props = $props();
 
 // Base widget dimensions (at 100% zoom)
 const BASE_W = 320;
@@ -32,6 +31,7 @@ $effect(() => {
 });
 
 let editMode = $state(false);
+let selectedWidgetId = $state<string | null>(null);
 let dragOverCell = $state<{ x: number; y: number } | null>(null);
 let resizingWidget = $state<string | null>(null);
 let movingWidget = $state<string | null>(null);
@@ -86,14 +86,17 @@ function confirmRename() {
 
 function startEdit() {
 	editMode = true;
+	selectedWidgetId = null;
 }
 
 function confirmEdit() {
 	editMode = false;
+	selectedWidgetId = null;
 }
 
 function cancelEdit() {
 	editMode = false;
+	selectedWidgetId = null;
 	// DB と同期して不整合を防ぐ（編集中の操作は即座に DB 反映されるため）
 	if (workspaceStore.activeWorkspaceId) {
 		void workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
@@ -217,6 +220,13 @@ function dragMoveWidget(node: HTMLElement, widgetId: string) {
 	let startHandler = (e: DragEvent) => {
 		e.dataTransfer?.setData('widget-move-id', widgetId);
 		movingWidget = widgetId;
+		// Custom drag ghost — browser default (semi-transparent clone) replaced with accent pill
+		const ghost = document.createElement('div');
+		ghost.style.cssText =
+			'position:fixed;top:-200px;left:-200px;width:72px;height:36px;background:var(--ag-accent);opacity:0.75;border-radius:8px;pointer-events:none;';
+		document.body.appendChild(ghost);
+		e.dataTransfer?.setDragImage(ghost, 36, 18);
+		requestAnimationFrame(() => ghost.remove());
 	};
 	let endHandler = () => {
 		movingWidget = null;
@@ -269,13 +279,16 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		onToggleEdit={startEdit}
 		onConfirmEdit={confirmEdit}
 		onCancelEdit={cancelEdit}
-		onOpenSettings={() => onOpenSettings?.()}
 	/>
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="min-w-0 flex-1 overflow-auto bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-page)_100%)] p-5"
-		style="--widget-w: {widgetW}px; --widget-h: {widgetH}px;"
+		class="min-w-0 flex-1 overflow-auto p-5"
+		style="--widget-w: {widgetW}px; --widget-h: {widgetH}px; background-image: {editMode
+			? 'radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
+			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
+			? '24px 24px, 100% 100%'
+			: '100% 100%'};"
 		data-zoom={configStore.widgetZoom}
 		bind:this={workspaceContainer}
 	>
@@ -297,7 +310,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 					<!-- 編集モード操作ガイド -->
 					<div class="mb-4">
 						<Tip tone="accent" tipId="workspace-edit-guide">
-							ドラッグ&ドロップでウィジェットを移動、右下のハンドルでリサイズ、ゴミ箱アイコンで削除できます。
+							クリックで選択、ドラッグで移動、右下のハンドルでリサイズ、ゴミ箱で削除できます。
 						</Tip>
 					</div>
 
@@ -318,20 +331,24 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						</div>
 
 						<!-- Widget grid (absolute overlay on top of grid lines) -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class="absolute inset-0 z-10"
 							style="display: grid; grid-template-columns: repeat({dynamicCols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
+							onclick={() => { selectedWidgetId = null; }}
 						>
 							{#each workspaceStore.widgets as widget (widget.id)}
 								{@const WidgetComp = widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
 								{@const clamped = clampWidget(widget, dynamicCols)}
 								{#if WidgetComp}
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
 									<div
 										class="relative transition-opacity"
 										class:opacity-60={movingWidget === widget.id}
 										role="group"
 										aria-label={widget.widget_type}
-										style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
+										style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};{selectedWidgetId === widget.id ? ' outline: 2px solid var(--ag-accent); outline-offset: 3px; border-radius: var(--ag-radius-widget);' : ''}"
+										onclick={(e) => { e.stopPropagation(); selectedWidgetId = widget.id; }}
 									>
 										<WidgetComp {widget} onItemContext={handleItemContext} />
 										<!-- ドラッグハンドル -->
@@ -356,14 +373,14 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 											<Trash2 class="h-3 w-3" />
 										</button>
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<!-- L-4: Resize handle -->
+										<!-- L-4: Resize handle (SE corner) -->
 										<div
-											class="absolute bottom-1 right-1 flex h-5 w-5 cursor-se-resize items-center justify-center rounded-sm bg-[var(--ag-accent)]/40 shadow-sm hover:bg-[var(--ag-accent)]/80"
+											class="absolute bottom-1 right-1 flex h-6 w-6 cursor-se-resize items-center justify-center rounded bg-[var(--ag-accent)]/50 shadow hover:bg-[var(--ag-accent)]"
 											aria-label="リサイズ"
 											onpointerdown={(e) => handleResizeStart(e, widget.id)}
 											ondragstart={(e) => { e.preventDefault(); e.stopPropagation(); }}
 										>
-											<GripVertical class="h-3 w-3 text-white/70" />
+											<GripVertical class="h-4 w-4 text-white" />
 										</div>
 									</div>
 								{/if}
@@ -396,8 +413,9 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						{/each}
 					</div>
 				{:else}
-					<div class="flex items-center justify-center py-20">
+					<div class="flex flex-col items-center justify-center gap-2 py-20">
 						<p class="text-sm text-[var(--ag-text-muted)]">ウィジェットがまだ追加されていません</p>
+						<p class="text-xs text-[var(--ag-text-faint)]">左の編集ボタンを押してウィジェットをドラッグで追加できます</p>
 					</div>
 				{/if}
 			</div>
