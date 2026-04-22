@@ -886,3 +886,17 @@ Obsidian Canvas から採用する要素:
 | PH-107 | WorkspaceLayout.svelte 分割リファクタ | WorkspaceWidgetGrid.svelte 切り出し（514→393行）、biome/svelte-check 全通過 |
 
 - PR #51: `feature/batch-20260422-24` → `main`（CI 待ち）
+
+---
+
+## 2026-04-23 [batch-24] Plan 作成完了（在庫切れによる自律作成）
+
+| PH     | タイトル                                                    | 種別     | 優先度 |
+| ------ | ----------------------------------------------------------- | -------- | ------ |
+| PH-108 | FavoritesWidget リアクティブ更新（itemStore 依存追加）      | 改善系   | high   |
+| PH-109 | RecentLaunchesWidget の target 短縮表示                     | 改善系   | medium |
+| PH-110 | ウィジェット行スタイル統一（FavoritesWidget / Recent）      | 改善系   | low    |
+| PH-111 | Workspace ウィジェット E2E テスト追加（Favorites / Recent） | 品質防衛 | medium |
+| PH-112 | clampWidget 関数の重複排除（共通ユーティリティへ移動）      | 整理系   | low    |
+
+実行順序: PH-108 / PH-109 / PH-110 / PH-111（parallel_safe: true）→ PH-112
