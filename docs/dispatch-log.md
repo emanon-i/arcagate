@@ -732,10 +732,10 @@ dev ビルド（`src-tauri\target\debug\arcagate.exe`）はインストーラ経
 > **注**: batch-16 以降は PR base が `develop` → `main` に変わった（誤運用）。
 > batch-18 以降も同様。2026-04-22 PH-097 整合性修復 PR で正式に main ベース運用を採用。
 
-| PH     | タイトル                                         | PR  | 結果 |
-| ------ | ------------------------------------------------ | --- | ---- |
-| PH-088 | LibraryMainArea starredIds 更新バグ修正          | #39 | ✅   |
-| PH-089 | Node.js 24 GitHub Actions 移行                   | #39 | ✅   |
+| PH     | タイトル                                | PR  | 結果 |
+| ------ | --------------------------------------- | --- | ---- |
+| PH-088 | LibraryMainArea starredIds 更新バグ修正 | #39 | ✅   |
+| PH-089 | Node.js 24 GitHub Actions 移行          | #39 | ✅   |
 
 - PR #39: `feature/batch-20260422-18` → `main`（rebase マージ済み）
 - `pnpm verify` 全通過
@@ -744,10 +744,10 @@ dev ビルド（`src-tauri\target\debug\arcagate.exe`）はインストーラ経
 
 ## 2026-04-22 Batch 19 完了（アーカイブ・ドキュメント整理専用）
 
-| PH     | タイトル                                         | PR  | 結果 |
-| ------ | ------------------------------------------------ | --- | ---- |
-| PH-090 | lessons.md 更新（batch-18 知見記録）             | #40 | ✅   |
-| PH-091 | PH-088/089 アーカイブ（batch-18 完了整理）       | #40 | ✅   |
+| PH     | タイトル                                   | PR  | 結果 |
+| ------ | ------------------------------------------ | --- | ---- |
+| PH-090 | lessons.md 更新（batch-18 知見記録）       | #40 | ✅   |
+| PH-091 | PH-088/089 アーカイブ（batch-18 完了整理） | #40 | ✅   |
 
 - PR #40: `feature/batch-20260422-19` → `main`（rebase マージ済み）
 
@@ -755,13 +755,13 @@ dev ビルド（`src-tauri\target\debug\arcagate.exe`）はインストーラ経
 
 ## 2026-04-22 Batch 20 完了
 
-| PH     | タイトル                                              | PR  | 結果 |
-| ------ | ----------------------------------------------------- | --- | ---- |
-| PH-092 | Workspace 編集モード Esc キャンセル対応               | #41 | ✅   |
-| PH-093 | PaletteSearchBar クリアボタン追加                     | #41 | ✅   |
-| PH-094 | LibraryDetailPanel Enter キーで起動                   | #41 | ✅   |
-| PH-095 | E2E テスト追加（Esc キャンセル / Enter 起動）         | #41 | ✅   |
-| PH-096 | WorkspaceLayout の Spec 参照コメント除去              | #41 | ✅   |
+| PH     | タイトル                                      | PR  | 結果 |
+| ------ | --------------------------------------------- | --- | ---- |
+| PH-092 | Workspace 編集モード Esc キャンセル対応       | #41 | ✅   |
+| PH-093 | PaletteSearchBar クリアボタン追加             | #41 | ✅   |
+| PH-094 | LibraryDetailPanel Enter キーで起動           | #41 | ✅   |
+| PH-095 | E2E テスト追加（Esc キャンセル / Enter 起動） | #41 | ✅   |
+| PH-096 | WorkspaceLayout の Spec 参照コメント除去      | #41 | ✅   |
 
 - PR #41: `feature/batch-20260422-20` → `main`（rebase マージ済み）
 - `pnpm verify` 全通過
