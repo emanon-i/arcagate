@@ -958,3 +958,24 @@ Obsidian Canvas から採用する要素:
 | PH-122 | setupWorkspaceWithWidget ヘルパーを tests/helpers/ に抽出        | 整理系   | low    |
 
 実行順序: PH-118 / PH-119 / PH-120 / PH-121（parallel_safe: true）→ PH-122
+
+---
+
+## 2026-04-23 [batch-26] 完了 → PR #54 merge 済み
+
+- PR #54: `feature/batch-20260422-24` → `main`（CI 全通過・rebase merge 完了）
+- PH-118〜122 全 5 件を archive/ に移動
+
+---
+
+## 2026-04-23 [batch-27] Plan 作成完了（在庫切れによる自律作成）
+
+| PH     | タイトル                                                   | 種別     | 優先度 |
+| ------ | ---------------------------------------------------------- | -------- | ------ |
+| PH-123 | library-search / library-detail.spec.ts に @smoke タグ追加 | 改善系   | medium |
+| PH-124 | WidgetSettingsDialog 保存成功時にトースト通知追加          | 改善系   | medium |
+| PH-125 | WorkspaceLayout 選択ウィジェット視覚フィードバック改善     | 改善系   | medium |
+| PH-126 | E2E waitForTimeout を安定した待機条件に置き換え            | 品質防衛 | medium |
+| PH-127 | format-target.ts の edge case テスト追加                   | 整理系   | low    |
+
+実行順序: PH-123 / PH-124 / PH-125 / PH-126 / PH-127（全 parallel_safe: true）
