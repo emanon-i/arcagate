@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Package, Plus, Search } from '@lucide/svelte';
+import { Package, Plus, Search, X as XIcon } from '@lucide/svelte';
 import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
@@ -30,6 +30,7 @@ async function handleDeleteItem(id: string) {
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
+let searchInputEl = $state<HTMLInputElement | null>(null);
 
 // 150ms デバウンス: キーストロークごとの IPC を抑制
 $effect(() => {
@@ -78,6 +79,18 @@ let filteredItems = $derived.by(() => {
 });
 </script>
 
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === '/') {
+			const target = e.target as HTMLElement;
+			if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
+				e.preventDefault();
+				searchInputEl?.focus();
+			}
+		}
+	}}
+/>
+
 <main class="min-h-full">
 	<div
 		class="min-h-full p-5"
@@ -104,7 +117,18 @@ let filteredItems = $derived.by(() => {
 				placeholder="ライブラリを検索"
 				autocomplete="off"
 				bind:value={searchQuery}
+				bind:this={searchInputEl}
 			/>
+			{#if searchQuery}
+				<button
+					type="button"
+					class="rounded-full p-0.5 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+					aria-label="検索をクリア"
+					onclick={() => { searchQuery = ''; searchInputEl?.focus(); }}
+				>
+					<XIcon class="h-4 w-4" />
+				</button>
+			{/if}
 		</div>
 		<button
 			type="button"

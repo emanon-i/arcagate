@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-034
 title: Library 検索バー `/` キーショートカット追加
 depends_on: []
@@ -74,9 +74,9 @@ let searchInputEl = $state<HTMLInputElement | null>(null);
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（svelte-check WARNING 0）
-- [ ] Library タブで `/` キーを押すと検索バーにフォーカスが当たること
-- [ ] 検索バーや他の入力欄にフォーカス中は `/` で二重発動しないこと
+- [x] `pnpm verify` 通過（svelte-check WARNING 0）
+- [x] Library タブで `/` キーを押すと検索バーにフォーカスが当たること
+- [x] 検索バーや他の入力欄にフォーカス中は `/` で二重発動しないこと
 
 ## 停止条件
 

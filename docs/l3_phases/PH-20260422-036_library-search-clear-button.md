@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260422-036
 title: Library 検索バー クリアボタン追加
 depends_on: []
@@ -58,10 +58,10 @@ parallel_safe: true
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（svelte-check WARNING 0）
-- [ ] 検索クエリ入力中に × ボタンが表示されること
-- [ ] × クリックで検索クエリがクリアされ検索バーにフォーカスが戻ること
-- [ ] 空欄時は × ボタンが非表示になること
+- [x] `pnpm verify` 通過（svelte-check WARNING 0）
+- [x] 検索クエリ入力中に × ボタンが表示されること
+- [x] × クリックで検索クエリがクリアされ検索バーにフォーカスが戻ること
+- [x] 空欄時は × ボタンが非表示になること
 
 ## 停止条件
 
