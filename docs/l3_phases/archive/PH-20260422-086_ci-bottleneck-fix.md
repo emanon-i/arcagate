@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-086
 title: CI ボトルネック解消（lint/test/build 分割 + path filter）
-status: todo
+status: done
 batch: 17
 priority: high
 created: 2026-04-22
