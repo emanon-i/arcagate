@@ -923,3 +923,17 @@ Obsidian Canvas から採用する要素:
 
 - PR #52: `feature/batch-20260422-24` → `main`（CI 全通過・rebase merge 完了）
 - PH-108〜112 全 5 件を archive/ に移動
+
+---
+
+## 2026-04-23 [batch-25] Plan 作成完了（在庫切れによる自律作成）
+
+| PH     | タイトル                                                         | 種別     | 優先度 |
+| ------ | ---------------------------------------------------------------- | -------- | ------ |
+| PH-113 | WorkspaceSidebar ドラッグゴースト追加                            | 改善系   | medium |
+| PH-114 | WidgetSettingsDialog に Escape/backdrop-click クローズ追加       | 改善系   | medium |
+| PH-115 | LibraryDetailPanel Enter キー起動の E2E テスト追加               | 改善系   | medium |
+| PH-116 | workspace-editing.spec.ts に @smoke タグ + Delete キー削除フロー | 品質防衛 | medium |
+| PH-117 | tests/helpers/ipc.ts に addWidget ヘルパー追加                   | 整理系   | low    |
+
+実行順序: PH-113 / PH-114 / PH-115 / PH-116（parallel_safe: true）→ PH-117
