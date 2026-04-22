@@ -209,4 +209,73 @@ describe('paletteStore', () => {
 
 		paletteStore.close();
 	});
+
+	it('search("") が recent + frequent を取得して重複排除すること', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		// getRecentItems → [mockItem], getFrequentItems → [mockItem, mockItem2]
+		// mockItem は両方に現れるが重複排除後は 2 件
+		mockInvoke
+			.mockResolvedValueOnce([mockItem]) // getRecentItems
+			.mockResolvedValueOnce([mockItem, mockItem2]); // getFrequentItems
+
+		const { paletteStore } = await import('./palette.svelte');
+
+		await paletteStore.search('');
+
+		expect(paletteStore.results).toHaveLength(2);
+		expect(paletteStore.results.every((e) => e.kind === 'item')).toBe(true);
+	});
+
+	it('launch() clipboard エントリはテキストをクリップボードに書き込みパレットを閉じること', async () => {
+		const clipboardModule = await import('@tauri-apps/plugin-clipboard-manager');
+		vi.mocked(clipboardModule.writeText).mockResolvedValueOnce(undefined);
+
+		const { paletteStore } = await import('./palette.svelte');
+
+		paletteStore.open();
+		await paletteStore.launch({ kind: 'clipboard', text: 'copied text', index: 0 });
+
+		expect(vi.mocked(clipboardModule.writeText)).toHaveBeenCalledWith('copied text');
+		expect(paletteStore.isOpen).toBe(false);
+	});
+
+	it('search("= 0") で計算結果 "0" が返ること', async () => {
+		const { paletteStore } = await import('./palette.svelte');
+
+		await paletteStore.search('= 0');
+
+		expect(paletteStore.results).toHaveLength(1);
+		const entry = paletteStore.results[0];
+		expect(entry.kind).toBe('calc');
+		if (entry.kind === 'calc') {
+			expect(entry.result).toBe('0');
+		}
+	});
+
+	it('search("= (1+2)*3") で計算結果 "9" が返ること', async () => {
+		const { paletteStore } = await import('./palette.svelte');
+
+		await paletteStore.search('= (1+2)*3');
+
+		const entry = paletteStore.results[0];
+		expect(entry.kind).toBe('calc');
+		if (entry.kind === 'calc') {
+			expect(entry.result).toBe('9');
+		}
+	});
+
+	it('search("= 1/0") で Infinity は拒否され "..." が返ること', async () => {
+		const { paletteStore } = await import('./palette.svelte');
+
+		await paletteStore.search('= 1/0');
+
+		const entry = paletteStore.results[0];
+		expect(entry.kind).toBe('calc');
+		if (entry.kind === 'calc') {
+			// Infinity は Number.isFinite(false) → null → '...'
+			expect(entry.result).toBe('...');
+		}
+	});
 });
