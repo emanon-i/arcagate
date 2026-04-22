@@ -195,7 +195,12 @@ function handleFormClose() {
 					onclick={() => hiddenStore.toggleDirect()}
 				/>
 			{:else}
-				<TitleAction icon={EyeOff} label="Safe mode" tone="warm" />
+				<TitleAction
+					icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
+					label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示中' : '非表示アイテム: 非表示'}
+					tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
+					onclick={() => hiddenStore.toggleDirect()}
+				/>
 			{/if}
 			<TitleAction icon={Search} label="Palette" tone="accent" onclick={() => (paletteOpen = true)} />
 		{/snippet}

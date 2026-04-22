@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-027
 title: PaletteResultRow の itemType 渡し + WorkspaceLayout Safe mode 除去
 depends_on: []
@@ -75,7 +75,7 @@ parallel_safe: true
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] パレットで folder/url/command アイテムのアイコン読み込み失敗時に適切なフォールバックアイコンが表示されること
-- [ ] Workspace ビューの「Safe mode」が機能するトグルボタンになること
-- [ ] Library ビューの動作に影響がないこと
+- [x] `pnpm verify` 通過
+- [x] パレットで folder/url/command アイテムのアイコン読み込み失敗時に適切なフォールバックアイコンが表示されること
+- [x] Workspace ビューの「Safe mode」が機能するトグルボタンになること
+- [x] Library ビューの動作に影響がないこと
