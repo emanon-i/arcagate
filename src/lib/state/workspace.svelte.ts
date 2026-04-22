@@ -7,6 +7,8 @@ let widgets = $state<WorkspaceWidget[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 
+const activeWorkspace = $derived(workspaces.find((w) => w.id === activeWorkspaceId) ?? null);
+
 /** AABB overlap check: does rect (x, y, w, h) overlap any widget in the list? */
 function isOverlapping(
 	x: number,
@@ -274,6 +276,9 @@ export const workspaceStore = {
 	},
 	get activeWorkspaceId() {
 		return activeWorkspaceId;
+	},
+	get activeWorkspace() {
+		return activeWorkspace;
 	},
 	get widgets() {
 		return widgets;
