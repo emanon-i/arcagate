@@ -1024,3 +1024,29 @@ Obsidian Canvas から採用する要素:
 | PH-137 | lessons.md 更新（batch-28 知見記録）             | 整理系   | low    |
 
 実行順序: PH-133 → PH-134（depends_on PH-133）/ PH-135 / PH-136 / PH-137（並列安全）
+
+---
+
+## 2026-04-23 [batch-29] 完了 → PR #57 merge 済み
+
+- PR #57: `feature/batch-20260422-24` → `main`（CI 3回失敗 → 4回目通過・rebase merge 完了）
+- PH-133〜137 全 5 件を archive/ に移動
+- CI デバッグ中に判明した追加修正（PR #57 hotfix として同一 branch に含む）:
+  - `globalTimeout: 300_000 → 600_000`（16テスト × 60s では 300s が全く不足）
+  - `webServer.timeout: 60_000 → 120_000`（CI Windows runner Vite 起動が 60s 超）
+  - `starred-badge @smoke` 永久除外確定（3回試みてすべて失敗）
+  - `items.spec.ts`: `waitForSelector(15s)` + `toBeVisible(5s)` → `toBeVisible(30s)` 統合
+
+---
+
+## 2026-04-23 [batch-30] Plan 作成完了
+
+| PH     | タイトル                                                | 種別     | 優先度 |
+| ------ | ------------------------------------------------------- | -------- | ------ |
+| PH-138 | lessons.md に batch-29 CI デバッグ知見を追記            | 整理系   | high   |
+| PH-139 | waitForLibraryReady ヘルパー追加（reload 後の安定待機） | 改善系   | high   |
+| PH-140 | items.spec.ts に waitForLibraryReady を適用             | 改善系   | medium |
+| PH-141 | starred-badge テストの nightly 安定化（timeout 明示）   | 品質防衛 | medium |
+| PH-142 | reload パターン全テスト監査・waitForLibraryReady 適用   | 改善系   | medium |
+
+実行順序: PH-138 / PH-139 → PH-140, PH-142（depends_on PH-139）/ PH-141（並列安全）
