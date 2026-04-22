@@ -104,7 +104,7 @@ async function handleSave() {
 	>
     <div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]">
       <h3 class="mb-4 text-base font-semibold text-[var(--ag-text-primary)]">ウィジェット設定</h3>
-
+      <form onsubmit={(e) => { e.preventDefault(); void handleSave(); }}>
       <div class="space-y-4">
         <div class="space-y-1">
           <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数</label>
@@ -184,8 +184,9 @@ async function handleSave() {
 
       <div class="mt-6 flex justify-end gap-2">
         <Button type="button" variant="outline" onclick={onClose}>キャンセル</Button>
-        <Button type="button" onclick={handleSave}>保存</Button>
+        <Button type="submit">保存</Button>
       </div>
+      </form>
     </div>
   </div>
 {/if}

@@ -1,6 +1,12 @@
 import { expect, test } from '../fixtures/tauri.js';
 import { waitForAppReady } from '../helpers/app-ready.js';
-import { createItem, deleteItem, invoke } from '../helpers/ipc.js';
+import {
+	addWidget,
+	createItem,
+	createWorkspace,
+	deleteItem,
+	deleteWorkspace,
+} from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('ウィジェット右クリック詳細パネル（PH-20260422-004 Esc ハンドラ検証）', () => {
@@ -79,18 +85,20 @@ test.describe('ウィジェット右クリック詳細パネル（PH-20260422-00
 		await expect(panel).not.toBeVisible();
 	});
 
-	test('Workspace ウィジェット右クリックで詳細パネルが表示され Esc で閉じること', async ({
+	test('FavoritesWidget のアイテムを右クリックすると詳細パネルが表示され Esc で閉じること', async ({
 		page,
 	}) => {
-		// folder アイテムを作成して起動 → FavoritesWidget に表示させる
-		const item = await createItem(page, {
-			item_type: 'folder',
-			label: 'E2E-右クリックテスト',
-			target: 'C:\\Windows',
-		});
+		await resizeWindow(page, 1280, 800);
 
-		// cmd_launch_item で launch_count を記録（explorer.exe が spawn されるが CI では無害）
-		await invoke<void>(page, 'cmd_launch_item', { itemId: item.id });
+		// ★付きアイテムを作成（FavoritesWidget に表示されるよう sys-starred タグ付き）
+		const workspace = await createWorkspace(page, '右クリックテストWS');
+		await addWidget(page, workspace.id, 'favorites');
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'E2E-右クリックテスト',
+			target: 'https://rightclick-test.example.com',
+			tag_ids: ['sys-starred'],
+		});
 
 		try {
 			await page.reload();
@@ -99,17 +107,11 @@ test.describe('ウィジェット右クリック詳細パネル（PH-20260422-00
 
 			// Workspace タブに切り替え
 			await page.getByRole('button', { name: 'Workspace' }).click();
-			await page.waitForTimeout(300);
+			await expect(page.getByText('右クリックテストWS')).toBeVisible();
 
-			// FavoritesWidget にアイテムが表示されているか確認
+			// FavoritesWidget にアイテムが表示されること
 			const widgetItem = page.getByText('E2E-右クリックテスト').first();
-			const isVisible = await widgetItem.isVisible({ timeout: 2000 }).catch(() => false);
-
-			if (!isVisible) {
-				// FavoritesWidget に表示されていない場合はスキップ（CI 環境依存）
-				test.skip();
-				return;
-			}
+			await expect(widgetItem).toBeVisible({ timeout: 5000 });
 
 			// 右クリックで詳細パネルが表示されること
 			await widgetItem.click({ button: 'right' });
@@ -123,6 +125,7 @@ test.describe('ウィジェット右クリック詳細パネル（PH-20260422-00
 			await expect(detailPanel).not.toBeVisible();
 		} finally {
 			await deleteItem(page, item.id);
+			await deleteWorkspace(page, workspace.id);
 		}
 	});
 });

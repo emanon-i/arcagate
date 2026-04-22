@@ -113,6 +113,45 @@ test.describe('コマンドパレット', () => {
 		await page.keyboard.press('Escape');
 	});
 
+	test('Tab キーで補完が適用されること', { tag: '@smoke' }, async ({ page }) => {
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'Tab補完テスト',
+			target: 'https://tab-complete-test.example.com',
+		});
+
+		try {
+			await page.getByRole('button', { name: 'Palette' }).click();
+
+			const input = page.getByRole('textbox').first();
+			await input.fill('Tab補完');
+
+			// 検索結果に "Tab補完テスト" が表示されること
+			await expect(page.getByTestId('palette-results').getByText('Tab補完テスト')).toBeVisible();
+
+			// Tab キーで補完 → 入力欄がアイテムラベルで埋まること
+			await page.keyboard.press('Tab');
+			await expect(input).toHaveValue('Tab補完テスト');
+		} finally {
+			await page.keyboard.press('Escape');
+			await deleteItem(page, item.id);
+		}
+	});
+
+	test('cb: プレフィックスでクリップボード履歴モードが起動すること', async ({ page }) => {
+		await page.getByRole('button', { name: 'Palette' }).click();
+
+		const input = page.getByRole('textbox').first();
+		await input.fill('cb:');
+		await page.waitForTimeout(200);
+
+		// 結果エリアが表示されること（空の場合は「一致する結果がありません」）
+		const results = page.getByTestId('palette-results');
+		await expect(results).toBeVisible();
+
+		await page.keyboard.press('Escape');
+	});
+
 	test('ArrowDown でキーボードナビゲーションできること', async ({ page }) => {
 		// テスト用アイテムを複数作成
 		const item1 = await createItem(page, {
