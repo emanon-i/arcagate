@@ -979,3 +979,24 @@ Obsidian Canvas から採用する要素:
 | PH-127 | format-target.ts の edge case テスト追加                   | 整理系   | low    |
 
 実行順序: PH-123 / PH-124 / PH-125 / PH-126 / PH-127（全 parallel_safe: true）
+
+---
+
+## 2026-04-23 [batch-27] 完了 → PR #55 merge 済み
+
+- PR #55: `feature/batch-20260422-24` → `main`（CI 全通過・rebase merge 完了）
+- PH-123〜127 全 5 件を archive/ に移動
+
+---
+
+## 2026-04-23 [batch-28] Plan 作成完了（在庫切れによる自律作成）
+
+| PH     | タイトル                                                         | 種別     | 優先度 |
+| ------ | ---------------------------------------------------------------- | -------- | ------ |
+| PH-128 | library-tag-filter.spec.ts @smoke + waitForTimeout 削減          | 改善系   | medium |
+| PH-129 | widget-zoom.spec.ts @smoke + waitForTimeout 削減                 | 改善系   | medium |
+| PH-130 | palette.spec.ts cb: テスト waitForTimeout 除去 + debounce 見直し | 改善系   | medium |
+| PH-131 | library-empty-starred.spec.ts @smoke + waitForTimeout 削減       | 品質防衛 | medium |
+| PH-132 | visual.spec.ts / layout.spec.ts waitForTimeout 削減              | 整理系   | low    |
+
+実行順序: PH-128 / PH-129 / PH-130 / PH-131 / PH-132（全 parallel_safe: true）
