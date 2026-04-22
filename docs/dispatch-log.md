@@ -876,3 +876,13 @@ Obsidian Canvas から採用する要素:
 
 - PH-107（WorkspaceLayout 分割）は PH-104 依存 → 次バッチに持越し
 - PR #49: `feature/batch-20260422-23` → `main`（CI 全通過・rebase merge 完了）
+
+---
+
+## 2026-04-22 [batch-23] PH-107 実装完了 → PR #51 CI 待ち
+
+| PH     | タイトル                              | 実装結果                                                                    |
+| ------ | ------------------------------------- | --------------------------------------------------------------------------- |
+| PH-107 | WorkspaceLayout.svelte 分割リファクタ | WorkspaceWidgetGrid.svelte 切り出し（514→393行）、biome/svelte-check 全通過 |
+
+- PR #51: `feature/batch-20260422-24` → `main`（CI 待ち）
