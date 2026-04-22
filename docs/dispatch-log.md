@@ -823,3 +823,17 @@ Obsidian Canvas から採用する要素:
 - 無限キャンバス（CSS Grid 固定レイアウトを維持）
 - ズームイン/アウト（既存 widgetZoom で代替）
 - フリー配置（グリッドスナップ維持）
+
+---
+
+## 2026-04-22 [batch-21] 実装完了 → PR #43 CI 待ち
+
+| PH     | タイトル                                 | 実装結果                               |
+| ------ | ---------------------------------------- | -------------------------------------- |
+| PH-098 | Workspace 編集モード Canvas 風 UX 再設計 | ドットグリッド・選択ring・ゴースト実装 |
+| PH-099 | Settings ボタン統一 + Config 画面洗練    | 2箇所削除・SettingsPanel 4セクション化 |
+| PH-100 | ウィジェット実機体感の底上げ             | hover shadow・transition・空状態案内   |
+
+- 変更ファイル: WorkspaceLayout / WorkspaceSidebar / LibrarySidebar / LibraryLayout / WidgetShell / FavoritesWidget / RecentLaunchesWidget / ProjectsWidget / SettingsPanel / +page.svelte
+- `pnpm verify` 全通過（biome/dprint/clippy/rustfmt/svelte-check/cargo test/smoke/vitest/tauri build）
+- PR #43: `feature/batch-20260422-21` → `main`（CI 確認後 rebase merge 予定）
