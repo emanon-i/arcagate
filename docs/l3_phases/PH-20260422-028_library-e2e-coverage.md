@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-028
 title: Library E2E テストカバレッジ拡充（空状態・タグフィルタ・starred）
 depends_on: []
@@ -70,9 +70,9 @@ test('DetailPanel で ★ ボタンを押すとカードに星バッジが表示
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（既存 E2E テスト含む）
-- [ ] 3本以上の新規 E2E テストが追加されていること
-- [ ] 新規テストがすべて GREEN であること
+- [x] `pnpm verify` 通過（既存 E2E テスト含む）
+- [x] 3本以上の新規 E2E テストが追加されていること
+- [x] 新規テストがすべて GREEN であること
 
 ## 停止条件
 
