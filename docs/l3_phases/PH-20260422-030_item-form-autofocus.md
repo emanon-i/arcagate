@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-030
 title: ItemForm autofocus + URL フィールド type="url" 対応
 depends_on: []
@@ -78,9 +78,9 @@ URL トグル選択時の target 入力フィールドを `type="url"` に変更
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過
-- [ ] フォームを開いた際にラベル入力欄が自動フォーカスされること
-- [ ] URL モードで `https://` 不正 URL 入力時にブラウザ検証エラーが出ること
+- [x] `pnpm verify` 通過
+- [x] フォームを開いた際にラベル入力欄が自動フォーカスされること
+- [x] URL モードで `https://` 不正 URL 入力時にブラウザ検証エラーが出ること
 
 ## 停止条件
 

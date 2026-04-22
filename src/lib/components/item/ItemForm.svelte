@@ -204,6 +204,7 @@ async function handleSelectIcon() {
 
   <div class="space-y-1">
     <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-label">ラベル <span class="text-destructive">*</span></label>
+    <!-- svelte-ignore a11y_autofocus -->
     <input
       id="item-label"
       type="text"
@@ -211,6 +212,7 @@ async function handleSelectIcon() {
       class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
       bind:value={label}
       required
+      autofocus
       placeholder="表示名"
     />
   </div>
@@ -221,7 +223,7 @@ async function handleSelectIcon() {
     {#if typeMode === 'url'}
       <input
         id="item-target"
-        type="text"
+        type="url"
         autocomplete="off"
         class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
         bind:value={target}
