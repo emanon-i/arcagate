@@ -199,8 +199,10 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 		}
 	});
 
-	test('編集モードでゴミ箱ボタンをクリックするとウィジェットが削除されること', async ({ page }) => {
-		const workspace = await createWorkspace(page, '削除テストWS');
+	test('編集モードでゴミ箱ボタンをクリックすると確認ダイアログが表示されること', async ({
+		page,
+	}) => {
+		const workspace = await createWorkspace(page, '削除確認ダイアログテストWS');
 
 		try {
 			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
@@ -219,7 +221,7 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			await page.waitForLoadState('domcontentloaded');
 			await waitForAppReady(page);
 			await page.getByRole('button', { name: 'Workspace' }).click();
-			await expect(page.getByText('削除テストWS')).toBeVisible();
+			await expect(page.getByText('削除確認ダイアログテストWS')).toBeVisible();
 
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
@@ -227,11 +229,60 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			const beforeCount = await page.getByLabel('ウィジェットを移動').count();
 			expect(beforeCount).toBeGreaterThan(0);
 
+			// ゴミ箱ボタンクリック → 確認ダイアログが表示される（即削除しない）
 			await page.getByRole('button', { name: 'ウィジェットを削除' }).first().click();
+			await expect(page.getByRole('dialog')).toBeVisible();
+			await expect(page.getByText('ウィジェットを削除しますか？')).toBeVisible();
 
+			// まだ削除されていないことを確認
+			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount);
+
+			// 「削除」ボタンで確定 → ウィジェットが消える
+			await page.getByRole('button', { name: '削除' }).click();
 			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount - 1, {
 				timeout: 3000,
 			});
+		} finally {
+			await deleteWorkspace(page, workspace.id);
+		}
+	});
+
+	test('削除確認ダイアログでキャンセルするとウィジェットが残ること', async ({ page }) => {
+		const workspace = await createWorkspace(page, '削除キャンセルテストWS');
+
+		try {
+			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
+				workspaceId: workspace.id,
+				widgetType: 'recent',
+			});
+			await invoke<Widget>(page, 'cmd_update_widget_position', {
+				id: widget.id,
+				positionX: 0,
+				positionY: 0,
+				width: 1,
+				height: 1,
+			});
+
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+			await page.getByRole('button', { name: 'Workspace' }).click();
+			await expect(page.getByText('削除キャンセルテストWS')).toBeVisible();
+
+			await page.getByLabel('編集モード').click();
+			await expect(page.getByLabel('編集を確定')).toBeVisible();
+
+			const beforeCount = await page.getByLabel('ウィジェットを移動').count();
+			expect(beforeCount).toBeGreaterThan(0);
+
+			// ゴミ箱ボタンクリック → 確認ダイアログ表示
+			await page.getByRole('button', { name: 'ウィジェットを削除' }).first().click();
+			await expect(page.getByRole('dialog')).toBeVisible();
+
+			// 「キャンセル」クリック → ダイアログが閉じ、ウィジェットは残る
+			await page.getByRole('button', { name: 'キャンセル' }).click();
+			await expect(page.getByRole('dialog')).not.toBeVisible();
+			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount);
 		} finally {
 			await deleteWorkspace(page, workspace.id);
 		}

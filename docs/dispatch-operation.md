@@ -142,15 +142,105 @@ Batch 4 以降は**バッチ単位で 1 PR** に集約する。
 1. `git switch develop && git pull --ff-only`
 2. `git switch -c feature/batch-YYYYMMDD-N`
 3. 各 Plan を順番に実装。1 Plan 完了ごとに commit（コミットメッセージは通常規約に従う）
-4. 全 Plan 完了後に PR を 1 本作成: `gh pr create --base develop`
-5. CI 緑 → `gh pr merge --rebase --delete-branch`（rebase merge でコミット履歴を保持）
-6. `git switch develop && git pull --ff-only`
-7. 全 Plan ドキュメントを一括アーカイブ:
-   `git mv docs/l3_phases/PH-*.md docs/l3_phases/archive/`
-   コミット: `chore(batch-YYYYMMDD-N): archive all plans`
-8. push して完了
+4. 全 Plan 実装後に `pnpm verify` 全通過を確認
+5. `git push -u origin feature/batch-YYYYMMDD-N`
+6. PR を 1 本作成: `gh pr create --base develop --title "<概要>" --body "$(cat <<'EOF' ... EOF)"`
+7. CI 緑 → `gh pr merge --rebase --delete-branch`（rebase merge でコミット履歴を保持）
+8. `git switch develop && git pull --ff-only`
+9. 全 Plan ドキュメントを一括アーカイブ:
+   ```bash
+   for f in PH-YYYYMMDD-N*; do
+     sed -i 's/^status: wip$/status: done/' "docs/l3_phases/$f"
+     mv "docs/l3_phases/$f" docs/l3_phases/archive/
+   done
+   git add -u docs/l3_phases/
+   git add docs/l3_phases/archive/PH-YYYYMMDD-N*
+   git commit -m "chore: Batch YYYYMMDD-N Plan アーカイブ + dispatch-log 更新"
+   ```
+10. `git push`
 
-**PR タイトル**: `[Batch YYYYMMDD-N] <バッチの主要テーマ>`
+**PR タイトル**: `feat: Batch N - <バッチの主要テーマ> (PH-XXX〜YYY)`
+
+**バッチ PR 本文テンプレート**:
+
+```markdown
+## Summary
+
+- **PH-XXX**: <1行説明>
+- **PH-YYY**: <1行説明>
+  ...
+
+## Test plan
+
+- [x] `pnpm verify` 全通過
+- [ ] 実機確認（実機が必要な受け入れ条件）
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+**アーカイブ時の注意**:
+
+- `git mv` ではなく `mv` + `git add -u` で移動する（MINGW で `git mv` がパス変換干渉する場合あり）
+- 移動後は `git status` で deleted/created が正しく追跡されているか確認してからコミット
+- アーカイブコミットと dispatch-log 更新は同一コミットにまとめてよい
+
+**バッチ設計の指針**:
+
+- 1 バッチ = 3〜5 Plan が最適（PR が大きすぎず、小さすぎない）
+- 実機確認不要な Plan（コード品質・テスト・整備系）はロック中でも進められる
+- 実機確認が必要な Plan は `status: wip` のまま止め、ロック解錠後に確認 → `done` の順で消化
+
+---
+
+## 4b. PC ロック中の運用ルール
+
+PC がスリープ・ロック状態（Arcagate の実機確認ができない）でも以下の条件で作業を継続する。
+
+### 継続できる作業
+
+- コード実装（ビルドが通れば完了とみなせる変更）
+- E2E テストの追加・修正（CDP 経由で自動実行できるもの）
+- ユニットテスト・smoke-test の追加
+- ドキュメント整備（dispatch-operation.md / lessons.md / dispatch-log.md）
+- リファクタリング・依存整理（ビジュアル変更なし）
+
+### 停止する作業（解錠後まで保留）
+
+- 受け入れ条件に「実機スクショ」「目視確認」が含まれる Plan の `done` 昇格
+- コードインスペクション代替による `[x]` 付け（lessons.md 原則: 実機確認した項目のみ）
+
+### ロック中 Plan の扱い
+
+1. 実装は完了させてよい（コミット・PR まで可）
+2. Plan の frontmatter は `status: wip` のまま維持
+3. Plan 末尾の「受け入れ条件」の実機確認項目は `[ ]` のまま残す
+4. Plan 末尾に以下セクションを追加:
+
+```markdown
+### ロック解錠後 TODO
+
+- [ ] <未確認の実機確認項目>
+```
+
+5. dispatch-log.md の「PC 解錠後 実機確認 TODO」セクションに追記する
+
+---
+
+## 4c. Plan 自律作成の許可条件
+
+以下の状況では**ディスパッチが自律的に Plan を作成してよい**:
+
+1. Plan 在庫が 2 件以下になった
+2. CI 待ち中で作業スロットが空いている
+3. 実機確認中に新たな問題を発見した（その場で Plan 化）
+4. 実機フィードバックで明確な粗が見つかった
+
+**作成ルール**:
+
+- 1 回のセッションで最大 5 Plan まで（暴走防止）
+- 既存 Plan と `scope_files` が重複する場合は統合を検討
+- ユーザ確認は不要（dispatch-log に「自律作成: PH-YYYYMMDD-NNN」と記録する）
+- Plan ID は既存の最大 ID + 1 から採番
 
 ---
 
@@ -231,6 +321,8 @@ Batch 4 以降は**バッチ単位で 1 PR** に集約する。
 - pre-commit hook のバイパス（`--no-verify`）
 - main ブランチへの push / PR / force push
 - ユーザの明示指示なしの config / settings.json / CLAUDE.md の改変
-- 自分で新規 Plan を作成（§6 参照）
+- 実機確認なしで受け入れ条件を `[x]` にマーク（コードインスペクション代替は禁止）
 
 以上に抵触する判断は**即停止**してログに残す。
+
+> **注**: Plan 自律作成は §4c で条件付き許可。禁止事項から除外済み（2026-04-22 改訂）。
