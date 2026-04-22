@@ -104,3 +104,11 @@ export async function updateItem(
 export async function isSetupComplete(page: Page): Promise<boolean> {
 	return invoke<boolean>(page, 'cmd_is_setup_complete');
 }
+
+export async function addWidget(
+	page: Page,
+	workspaceId: string,
+	widgetType: string,
+): Promise<void> {
+	return invoke<void>(page, 'cmd_add_widget', { workspaceId, widgetType });
+}

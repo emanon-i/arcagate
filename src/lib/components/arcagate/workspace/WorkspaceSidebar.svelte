@@ -18,10 +18,21 @@ const availableWidgets: { type: WidgetType; label: string; icon: Component }[] =
 	{ type: 'projects', label: 'Projects', icon: GitBranch },
 ];
 
+function makeDragGhost(): HTMLDivElement {
+	const ghost = document.createElement('div');
+	ghost.style.cssText =
+		'position:fixed;top:-200px;left:-200px;width:72px;height:36px;background:var(--ag-accent);opacity:0.75;border-radius:8px;pointer-events:none;';
+	return ghost;
+}
+
 // Imperative dragstart action (Svelte 5 delegation may interfere with dataTransfer)
 function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 	let handler = (e: DragEvent) => {
 		e.dataTransfer?.setData('widget-type', widgetType);
+		const ghost = makeDragGhost();
+		document.body.appendChild(ghost);
+		e.dataTransfer?.setDragImage(ghost, 36, 18);
+		requestAnimationFrame(() => ghost.remove());
 	};
 	node.addEventListener('dragstart', handler);
 	return {
@@ -29,6 +40,10 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 			node.removeEventListener('dragstart', handler);
 			handler = (e: DragEvent) => {
 				e.dataTransfer?.setData('widget-type', newType);
+				const ghost = makeDragGhost();
+				document.body.appendChild(ghost);
+				e.dataTransfer?.setDragImage(ghost, 36, 18);
+				requestAnimationFrame(() => ghost.remove());
 			};
 			node.addEventListener('dragstart', handler);
 		},

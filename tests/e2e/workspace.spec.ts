@@ -1,12 +1,6 @@
 import { expect, test } from '../fixtures/tauri.js';
 import { waitForAppReady } from '../helpers/app-ready.js';
-import {
-	createWorkspace,
-	deleteWorkspace,
-	invoke,
-	listWorkspaces,
-	type Widget,
-} from '../helpers/ipc.js';
+import { addWidget, createWorkspace, deleteWorkspace, listWorkspaces } from '../helpers/ipc.js';
 
 test.describe('ワークスペース', () => {
 	test('ワークスペースを作成すると UI に表示されること', { tag: '@smoke' }, async ({ page }) => {
@@ -62,10 +56,7 @@ test.describe('ワークスペース', () => {
 
 		try {
 			// IPC でウィジェットを追加
-			await invoke(page, 'cmd_add_widget', {
-				workspaceId: workspace.id,
-				widgetType: 'favorites',
-			});
+			await addWidget(page, workspace.id, 'favorites');
 
 			// リロードして Store に反映
 			await page.reload();
@@ -131,10 +122,7 @@ test.describe('ワークスペース', () => {
 
 		try {
 			// ウィジェットを IPC で追加
-			await invoke<Widget>(page, 'cmd_add_widget', {
-				workspaceId: workspace.id,
-				widgetType: 'recent',
-			});
+			await addWidget(page, workspace.id, 'recent');
 
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');

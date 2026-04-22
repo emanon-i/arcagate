@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-113
 title: WorkspaceSidebar ドラッグゴースト追加
-status: todo
+status: done
 batch: 25
 priority: medium
 created: 2026-04-23

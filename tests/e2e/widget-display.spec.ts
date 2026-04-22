@@ -2,19 +2,16 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/tauri.js';
 import { waitForAppReady } from '../helpers/app-ready.js';
 import {
+	addWidget,
 	createItem,
 	createWorkspace,
 	deleteItem,
 	deleteWorkspace,
-	invoke,
 } from '../helpers/ipc.js';
 
 async function setupWorkspaceWithWidget(page: Page, workspaceName: string, widgetType: string) {
 	const workspace = await createWorkspace(page, workspaceName);
-	await invoke(page, 'cmd_add_widget', {
-		workspaceId: workspace.id,
-		widgetType,
-	});
+	await addWidget(page, workspace.id, widgetType);
 	await page.reload();
 	await page.waitForLoadState('domcontentloaded');
 	await waitForAppReady(page);

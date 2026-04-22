@@ -1,7 +1,7 @@
 ---
 id: PH-20260423-116
 title: workspace-editing.spec.ts に @smoke タグ追加 + Delete キー削除フロー防衛
-status: todo
+status: done
 batch: 25
 priority: medium
 created: 2026-04-23
