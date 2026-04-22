@@ -9,6 +9,7 @@ import { artMap, typeLabel } from '$lib/constants/item-type';
 import { getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
 
 interface Props {
@@ -150,6 +151,13 @@ $effect(() => {
 
 <svelte:window
 	onkeydown={(e) => {
+		if (e.key === 'Enter' && selectedItem) {
+			const target = e.target as HTMLElement;
+			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+			void launchItem(selectedItem.id).then(() =>
+				toastStore.add(`${selectedItem.label} を起動しました`, 'success'),
+			);
+		}
 		if (e.key === 'Escape') {
 			if (showTagSelect) {
 				showTagSelect = false;

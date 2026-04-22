@@ -114,6 +114,34 @@ test.describe('ライブラリ詳細パネル', () => {
 		}
 	});
 
+	test('DetailPanel 表示中に Enter キーでトーストが表示されること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'Enter起動テスト',
+			target: 'https://enter-launch-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			// カードをクリックして DetailPanel を開く
+			await page.getByTestId(`library-card-${item.id}`).click();
+			await expect(page.getByTestId('library-detail-panel')).toBeVisible();
+
+			// Enter キーを押す
+			await page.keyboard.press('Enter');
+
+			// 「〜 を起動しました」トーストが表示されること
+			await expect(page.getByText('Enter起動テスト を起動しました')).toBeVisible({ timeout: 5000 });
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
+
 	test('タグフィルタ + 検索入力で結果が絞り込まれること', async ({ page }) => {
 		await resizeWindow(page, 1280, 800);
 

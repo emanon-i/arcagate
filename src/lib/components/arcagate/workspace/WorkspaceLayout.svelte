@@ -39,7 +39,6 @@ let dropZone = $state<HTMLDivElement | null>(null);
 let renameOpen = $state(false);
 let renameValue = $state('');
 let deleteConfirmId = $state<string | null>(null);
-// S-6-6: Right-click detail panel
 let contextItemId = $state<string | null>(null);
 
 // Reference to workspace container for dynamic column calculation
@@ -107,12 +106,10 @@ const widgetComponents = {
 	projects: ProjectsWidget,
 } as const;
 
-// S-6-6: Handle right-click on items in widgets
 function handleItemContext(itemId: string) {
 	contextItemId = itemId;
 }
 
-// S-6-2: Ctrl+wheel zoom handler
 function handleWheel(e: WheelEvent) {
 	if (!e.ctrlKey) return;
 	e.preventDefault();
@@ -128,7 +125,6 @@ $effect(() => {
 	return () => el.removeEventListener('wheel', handleWheel);
 });
 
-// S-7-2: Calculate grid position from drop coordinates
 function calcGridPosition(e: DragEvent): { x: number; y: number } {
 	const ref = dropZone;
 	if (!ref) return { x: 0, y: 0 };
@@ -258,6 +254,14 @@ function clampWidget(widget: { position_x: number; width: number }, cols: number
 // Compute grid rows needed
 let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
 </script>
+
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape' && editMode && !deleteConfirmId && !renameOpen) {
+			cancelEdit();
+		}
+	}}
+/>
 
 <div class="flex h-full">
 	<WorkspaceSidebar
@@ -398,7 +402,6 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 				{/if}
 			</div>
 
-			<!-- S-6-6: Right-click detail panel -->
 			{#if contextItemId}
 				<div class="w-80 shrink-0">
 					<LibraryDetailPanel

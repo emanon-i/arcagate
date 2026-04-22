@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Search } from '@lucide/svelte';
+import { Search, X as XIcon } from '@lucide/svelte';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
 
 interface Props {
@@ -8,6 +8,8 @@ interface Props {
 }
 
 let { query = $bindable(''), onSearch }: Props = $props();
+
+let inputEl = $state<HTMLInputElement | null>(null);
 
 function handleInput(e: Event) {
 	const target = e.target as HTMLInputElement;
@@ -30,8 +32,19 @@ function handleInput(e: Event) {
 			aria-autocomplete="list"
 			aria-controls="palette-results"
 			bind:value={query}
+			bind:this={inputEl}
 			oninput={handleInput}
 		/>
+		{#if query}
+			<button
+				type="button"
+				class="rounded-full p-0.5 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+				aria-label="検索をクリア"
+				onclick={() => { query = ''; onSearch?.(''); inputEl?.focus(); }}
+			>
+				<XIcon class="h-4 w-4" />
+			</button>
+		{/if}
 	</div>
 
 	<Chip tone="accent">Arcagate 全体を検索</Chip>
