@@ -63,6 +63,13 @@ function handleKeydown(e: KeyboardEvent) {
 			void paletteStore.launch(selected);
 			close();
 		}
+	} else if (e.key === 'Tab') {
+		e.preventDefault();
+		const completed = paletteStore.tabComplete();
+		if (completed !== null) {
+			searchQuery = completed;
+			void paletteStore.search(completed);
+		}
 	}
 }
 </script>
@@ -120,7 +127,7 @@ function handleKeydown(e: KeyboardEvent) {
 					<!-- 2-column grid: results + context -->
 					<div class="mt-5 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
 						<!-- Left: results + guide chips -->
-						<div class="space-y-2" data-testid="palette-results" role="listbox" aria-label="検索結果">
+						<div id="palette-results" class="space-y-2" data-testid="palette-results" role="listbox" aria-label="検索結果">
 							{#each paletteStore.results as entry, index (index)}
 								<PaletteResultRow
 									{entry}

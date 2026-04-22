@@ -47,7 +47,7 @@ function formatRelativeTime(iso: string): string {
 }
 </script>
 
-<div class="space-y-4 rounded-[24px] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4">
+<div class="space-y-4 rounded-[24px] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4" role="region" aria-label="選択アイテムの詳細">
 	{#if selected?.kind === 'item'}
 		<div>
 			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">Quick context</div>
