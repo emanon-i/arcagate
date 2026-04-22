@@ -128,6 +128,24 @@ let moreMenuItems = $derived.by(() => {
 // タグ追加ドロップダウンの表示制御
 let showTagSelect = $state(false);
 let tagDropdownEl = $state<HTMLElement | null>(null);
+let focusedTagIndex = $state(-1);
+
+// ドロップダウンを開いたとき最初のアイテムにフォーカス
+$effect(() => {
+	if (showTagSelect) {
+		focusedTagIndex = 0;
+	} else {
+		focusedTagIndex = -1;
+	}
+});
+
+// focusedTagIndex 変化時にボタンにフォーカスを移動
+$effect(() => {
+	if (showTagSelect && focusedTagIndex >= 0 && tagDropdownEl) {
+		const buttons = tagDropdownEl.querySelectorAll<HTMLButtonElement>('button');
+		buttons[focusedTagIndex]?.focus();
+	}
+});
 </script>
 
 <svelte:window
@@ -223,11 +241,21 @@ let tagDropdownEl = $state<HTMLElement | null>(null);
 					</button>
 					{#if showTagSelect}
 						<div bind:this={tagDropdownEl} class="absolute left-0 top-full z-10 mt-1 max-h-32 overflow-y-auto rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-lg">
-							{#each availableTags as tag (tag.id)}
+							{#each availableTags as tag, i (tag.id)}
 								<button
 									type="button"
 									class="block w-full rounded-md px-3 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
+									tabindex={focusedTagIndex === i ? 0 : -1}
 									onclick={() => { void handleAddTag(tag.id); showTagSelect = false; }}
+									onkeydown={(e) => {
+										if (e.key === 'ArrowDown') {
+											e.preventDefault();
+											focusedTagIndex = Math.min(i + 1, availableTags.length - 1);
+										} else if (e.key === 'ArrowUp') {
+											e.preventDefault();
+											focusedTagIndex = Math.max(i - 1, 0);
+										}
+									}}
 								>
 									{tag.name}
 								</button>

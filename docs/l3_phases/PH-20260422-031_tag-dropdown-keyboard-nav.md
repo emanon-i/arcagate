@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260422-031
 title: LibraryDetailPanel タグドロップダウン キーボードナビゲーション
 depends_on:
@@ -97,10 +97,10 @@ $effect(() => {
 
 ## 受け入れ条件
 
-- [ ] `pnpm verify` 通過（svelte-check WARNING 0）
-- [ ] ドロップダウンを開いた直後に最初のタグにフォーカスが当たること
-- [ ] ↓↑ キーでタグ間をナビゲートできること
-- [ ] Enter キーでタグが追加されドロップダウンが閉じること
+- [x] `pnpm verify` 通過（svelte-check WARNING 0）
+- [x] ドロップダウンを開いた直後に最初のタグにフォーカスが当たること
+- [x] ↓↑ キーでタグ間をナビゲートできること
+- [x] Enter キーでタグが追加されドロップダウンが閉じること
 
 ## 停止条件
 
