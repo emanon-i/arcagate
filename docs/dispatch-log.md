@@ -916,3 +916,10 @@ Obsidian Canvas から採用する要素:
 - svelte-check 0 errors / 0 warnings
 - vitest 114 passed
 - biome 0 errors
+
+---
+
+## 2026-04-23 [batch-24] 完了 → PR #52 merge 済み
+
+- PR #52: `feature/batch-20260422-24` → `main`（CI 全通過・rebase merge 完了）
+- PH-108〜112 全 5 件を archive/ に移動
