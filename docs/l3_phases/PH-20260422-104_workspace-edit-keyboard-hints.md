@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-104
 title: Workspace 編集モード キーボードヒントバー
-status: todo
+status: done
 batch: 23
 priority: medium
 created: 2026-04-22

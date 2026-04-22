@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-103
 title: HotkeyInput UX 磨き込み（日本語化 + ag トークン置換）
-status: todo
+status: done
 batch: 23
 priority: medium
 created: 2026-04-22

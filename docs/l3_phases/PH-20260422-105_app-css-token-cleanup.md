@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-105
 title: app.css 未使用 shadcn トークン除去
-status: todo
+status: done
 batch: 23
 priority: low
 created: 2026-04-22
