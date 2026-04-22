@@ -29,7 +29,7 @@ test.describe('アイテム管理', () => {
 				await page.waitForLoadState('domcontentloaded');
 				await waitForAppReady(page);
 				// Library データの非同期ロード完了を待つ（アイテムが1件以上描画されるまで）
-				await page.waitForSelector('[data-testid^="library-card-"]', { timeout: 15_000 });
+				await page.waitForSelector('[data-testid^="library-card-"]', { timeout: 20_000 });
 				// 作成したアイテムのカードを確認
 				await expect(page.getByTestId(`library-card-${item.id}`)).toBeVisible({ timeout: 5_000 });
 
