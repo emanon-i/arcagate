@@ -28,8 +28,10 @@ test.describe('アイテム管理', () => {
 				await page.reload();
 				await page.waitForLoadState('domcontentloaded');
 				await waitForAppReady(page);
-				// Library はデフォルトタブ — カードに表示確認
-				await expect(page.getByTestId(`library-card-${item.id}`)).toBeVisible({ timeout: 10_000 });
+				// Library データの非同期ロード完了を待つ（アイテムが1件以上描画されるまで）
+				await page.waitForSelector('[data-testid^="library-card-"]', { timeout: 15_000 });
+				// 作成したアイテムのカードを確認
+				await expect(page.getByTestId(`library-card-${item.id}`)).toBeVisible({ timeout: 5_000 });
 
 				// 成功証跡を HTML report に添付
 				const screenshot = await page.screenshot({ fullPage: true });

@@ -331,7 +331,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						</div>
 
 						<!-- Widget grid (absolute overlay on top of grid lines) -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
 						<div
 							class="absolute inset-0 z-10"
 							style="display: grid; grid-template-columns: repeat({dynamicCols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
@@ -341,7 +341,8 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 								{@const WidgetComp = widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
 								{@const clamped = clampWidget(widget, dynamicCols)}
 								{#if WidgetComp}
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
 									<div
 										class="relative transition-opacity"
 										class:opacity-60={movingWidget === widget.id}
