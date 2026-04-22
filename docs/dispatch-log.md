@@ -848,3 +848,17 @@ Obsidian Canvas から採用する要素:
 | PH-102 | WorkspaceLayout a11y 警告抑制 | svelte-ignore 2件追加 → 0 WARNINGS                 |
 
 - PR #46: `feature/batch-20260422-22` → `main`（CI 全通過・rebase merge 完了）
+
+---
+
+## 2026-04-22 [batch-23] Plan 作成完了（在庫切れによる自律作成）
+
+| PH     | タイトル                                              | 種別     | 優先度 |
+| ------ | ----------------------------------------------------- | -------- | ------ |
+| PH-103 | HotkeyInput UX 磨き込み（日本語化 + ag トークン置換） | 改善系   | medium |
+| PH-104 | Workspace 編集モード キーボードヒントバー             | 改善系   | medium |
+| PH-105 | app.css 未使用 shadcn トークン除去                    | 改善系   | low    |
+| PH-106 | SettingsPanel E2E テスト追加                          | 品質防衛 | medium |
+| PH-107 | WorkspaceLayout.svelte 分割リファクタ                 | 整理系   | low    |
+
+実行順序: PH-103 / PH-105 / PH-106（並列安全）→ PH-104 → PH-107（PH-104 依存）
