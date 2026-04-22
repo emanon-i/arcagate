@@ -104,7 +104,7 @@ describe('paletteStore', () => {
 		expect(paletteStore.selectedIndex).toBe(1);
 	});
 
-	it('selectNext() clamps at results.length - 1', async () => {
+	it('selectNext() が末尾から先頭に循環する', async () => {
 		const { invoke } = await import('@tauri-apps/api/core');
 		const mockInvoke = vi.mocked(invoke);
 		mockInvoke.mockResolvedValueOnce([mockItem, mockItem2]);
@@ -112,9 +112,9 @@ describe('paletteStore', () => {
 		const { paletteStore } = await import('./palette.svelte');
 
 		await paletteStore.search('note');
-		paletteStore.selectNext(); // index = 1
-		paletteStore.selectNext(); // clamp at 1 (length - 1 = 1)
-		expect(paletteStore.selectedIndex).toBe(1);
+		paletteStore.selectNext(); // index = 1 (last)
+		paletteStore.selectNext(); // wrap → 0
+		expect(paletteStore.selectedIndex).toBe(0);
 	});
 
 	it('selectPrev() decrements selectedIndex', async () => {
@@ -130,16 +130,17 @@ describe('paletteStore', () => {
 		expect(paletteStore.selectedIndex).toBe(0);
 	});
 
-	it('selectPrev() clamps at 0', async () => {
+	it('selectPrev() が先頭から末尾に循環する', async () => {
 		const { invoke } = await import('@tauri-apps/api/core');
 		const mockInvoke = vi.mocked(invoke);
-		mockInvoke.mockResolvedValueOnce([mockItem]);
+		mockInvoke.mockResolvedValueOnce([mockItem, mockItem2]);
 
 		const { paletteStore } = await import('./palette.svelte');
 
 		await paletteStore.search('note');
-		paletteStore.selectPrev(); // already 0
-		expect(paletteStore.selectedIndex).toBe(0);
+		// selectedIndex = 0 (先頭)
+		paletteStore.selectPrev(); // wrap → 1 (last)
+		expect(paletteStore.selectedIndex).toBe(1);
 	});
 
 	it('launch() calls launchItem IPC and closes the palette', async () => {
@@ -277,5 +278,34 @@ describe('paletteStore', () => {
 			// Infinity は Number.isFinite(false) → null → '...'
 			expect(entry.result).toBe('...');
 		}
+	});
+
+	it('tabComplete() は item エントリの label を返す', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		vi.mocked(invoke).mockResolvedValueOnce([mockItem, mockItem2]);
+
+		const { paletteStore } = await import('./palette.svelte');
+		await paletteStore.search('note');
+		// selectedIndex = 0, results[0] = { kind: 'item', item: mockItem }
+
+		expect(paletteStore.tabComplete()).toBe('Notepad');
+	});
+
+	it('tabComplete() は calc エントリで null を返す', async () => {
+		const { paletteStore } = await import('./palette.svelte');
+		await paletteStore.search('= 2+3');
+		// results[0] = { kind: 'calc', ... }
+
+		expect(paletteStore.tabComplete()).toBeNull();
+	});
+
+	it('tabComplete() は results が空のとき null を返す', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		vi.mocked(invoke).mockResolvedValueOnce([]); // 空の検索結果
+
+		const { paletteStore } = await import('./palette.svelte');
+		await paletteStore.search('no-match');
+
+		expect(paletteStore.tabComplete()).toBeNull();
 	});
 });

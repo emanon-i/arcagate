@@ -51,4 +51,23 @@ describe('toastStore', () => {
 		const ids = toastStore.toasts.map((t) => t.id);
 		expect(new Set(ids).size).toBe(ids.length);
 	});
+
+	it('2999ms では自動削除されない（境界値）', async () => {
+		const { toastStore } = await import('./toast.svelte');
+		toastStore.add('境界値テスト', 'info');
+		vi.advanceTimersByTime(2999);
+		expect(toastStore.toasts.find((t) => t.message === '境界値テスト')).toBeDefined();
+	});
+
+	it('各トーストは独立したタイムアウトを持つ', async () => {
+		const { toastStore } = await import('./toast.svelte');
+		toastStore.add('先に追加', 'info');
+		vi.advanceTimersByTime(1500);
+		toastStore.add('後から追加', 'success');
+		vi.advanceTimersByTime(1500);
+		// 先のトースト: 3000ms 経過 → 削除
+		// 後のトースト: 1500ms 経過 → まだ残る
+		expect(toastStore.toasts.find((t) => t.message === '先に追加')).toBeUndefined();
+		expect(toastStore.toasts.find((t) => t.message === '後から追加')).toBeDefined();
+	});
 });

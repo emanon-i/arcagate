@@ -26,6 +26,9 @@ function handleInput(e: Event) {
 			class="flex-1 bg-transparent text-base text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
 			placeholder="検索..."
 			autocomplete="off"
+			aria-label="コマンドを検索"
+			aria-autocomplete="list"
+			aria-controls="palette-results"
 			bind:value={query}
 			oninput={handleInput}
 		/>
