@@ -109,8 +109,8 @@ $effect(() => {
 	{/if}
 
 	{#if configStore.error}
-		<div class="mx-5 mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2">
-			<p class="text-sm text-destructive">{configStore.error}</p>
+		<div class="mx-5 mb-4 rounded-md border border-[var(--ag-error-border)] bg-[var(--ag-error-bg)] px-3 py-2">
+			<p class="text-sm text-[var(--ag-error-text)]">{configStore.error}</p>
 		</div>
 	{/if}
 </div>
