@@ -1135,3 +1135,18 @@ Obsidian Canvas から採用する要素:
 - E2E @smoke + @nightly 分離（Batch 17 以降）
 - waitForTimeout → 安定待機条件への移行（Batch 28〜29）
 - afterEach `page.mouse.up()` ガード全スペックに適用
+
+---
+
+## 2026-04-23 batch-30 完了（PH-138〜142）
+
+| Plan ID         | タイトル                                 | 成果                                                                                          |
+| --------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| PH-20260423-138 | WorkspaceLayout コンポーネント分割       | WorkspaceHintBar / WorkspaceDeleteConfirmDialog / WorkspaceRenameDialog 切り出し（387→309行） |
+| PH-20260423-139 | Enter キー確定ショートカット追加         | 編集モード中 Enter → confirmEdit() + ヒントバー更新 + E2E テスト追加                          |
+| PH-20260423-140 | SettingsPanel ag-\* トークン統一         | --ag-error-\* トークン追加、destructive 置き換え、dprint worktree 除外                        |
+| PH-20260423-141 | playwright globalTimeout CI/ローカル分岐 | process.env.CI ? 600_000 : 300_000（前バッチ完了済み）                                        |
+| PH-20260423-142 | lessons.md CI 知見追記                   | webServer.timeout / globalTimeout / waitForSelector 3 項目（前バッチ完了済み）                |
+
+- ブランチ: `feature/batch-20260422-30` → PR #58
+- pnpm verify: 全通過（150 Rust / 119 vitest / smoke / tauri build）
