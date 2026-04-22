@@ -25,12 +25,14 @@ Settings ボタンが TitleBar / LibrarySidebar / WorkspaceSidebar の3箇所に
 ### Part A: Settings ボタン削除（2箇所）
 
 **LibrarySidebar.svelte**
+
 - `onOpenSettings` prop を削除
 - Settings2 import 削除
 - Settings ボタン要素を削除
 - 呼び出し元（+page.svelte 等）から `onOpenSettings` prop 渡しを削除
 
 **WorkspaceSidebar.svelte**
+
 - 同上（`onOpenSettings` prop 削除、Settings2 import 削除、ボタン削除）
 
 ### Part B: Settings パネル UI 洗練

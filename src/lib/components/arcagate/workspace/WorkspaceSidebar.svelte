@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Clock3, GitBranch, Grip, Pencil, Settings2, Star, X } from '@lucide/svelte';
+import { Check, Clock3, GitBranch, Grip, Pencil, Star, X } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import type { WidgetType } from '$lib/types/workspace';
 
@@ -8,10 +8,9 @@ interface Props {
 	onToggleEdit: () => void;
 	onConfirmEdit: () => void;
 	onCancelEdit: () => void;
-	onOpenSettings: () => void;
 }
 
-let { editMode, onToggleEdit, onConfirmEdit, onCancelEdit, onOpenSettings }: Props = $props();
+let { editMode, onToggleEdit, onConfirmEdit, onCancelEdit }: Props = $props();
 
 const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = [
 	{ type: 'favorites', label: 'Favorites', icon: Star },
@@ -95,14 +94,6 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 				onclick={onToggleEdit}
 			>
 				<Pencil class="h-4 w-4" />
-			</button>
-			<button
-				type="button"
-				class="mt-auto rounded-lg p-2 text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-4)]"
-				aria-label="設定"
-				onclick={onOpenSettings}
-			>
-				<Settings2 class="h-4 w-4" />
 			</button>
 		</div>
 	{/if}

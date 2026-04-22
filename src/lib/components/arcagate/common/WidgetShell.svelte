@@ -18,7 +18,7 @@ interface Props {
 let { title, icon: Icon, menuItems = [], children }: Props = $props();
 </script>
 
-<div class="flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+<div class="flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-shadow duration-150 hover:shadow-md">
 	<div class="mb-3 shrink-0 flex items-center justify-between">
 		<div class="flex min-w-0 items-center gap-2">
 			<div class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5">
