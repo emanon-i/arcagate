@@ -1000,3 +1000,27 @@ Obsidian Canvas から採用する要素:
 | PH-132 | visual.spec.ts / layout.spec.ts waitForTimeout 削減              | 整理系   | low    |
 
 実行順序: PH-128 / PH-129 / PH-130 / PH-131 / PH-132（全 parallel_safe: true）
+
+---
+
+## 2026-04-23 [batch-28] 完了 → PR #56 merge 済み
+
+- PR #56: `feature/batch-20260422-24` → `main`（CI 全通過・rebase merge 完了）
+- PH-128〜132 全 5 件を archive/ に移動
+- 注: PH-131 starred バッジテストは `expect.timeout=5s` CI フレークのため
+  @smoke を「空タグ選択」テストに変更（starred バッジは nightly のみ）
+  → PH-133/134 で根本修正予定
+
+---
+
+## 2026-04-23 [batch-29] Plan 作成完了（在庫切れによる自律作成）
+
+| PH     | タイトル                                         | 種別     | 優先度 |
+| ------ | ------------------------------------------------ | -------- | ------ |
+| PH-133 | Playwright expect.timeout 10s 設定（CI 安定化）  | 改善系   | high   |
+| PH-134 | library-empty-starred starred バッジ @smoke 復活 | 品質防衛 | medium |
+| PH-135 | widget-context-panel.spec.ts @smoke タグ追加     | 改善系   | low    |
+| PH-136 | layout.spec.ts @smoke タグ追加                   | 改善系   | medium |
+| PH-137 | lessons.md 更新（batch-28 知見記録）             | 整理系   | low    |
+
+実行順序: PH-133 → PH-134（depends_on PH-133）/ PH-135 / PH-136 / PH-137（並列安全）
