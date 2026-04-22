@@ -157,6 +157,95 @@ describe('itemStore', () => {
 		expect(mockInvoke).toHaveBeenCalledWith('cmd_get_library_stats');
 	});
 
+	it('updateItem() updates the item in the list', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const original = {
+			id: 'item-1',
+			item_type: 'exe' as const,
+			label: 'Notepad',
+			target: 'notepad.exe',
+			args: null,
+			working_dir: null,
+			icon_path: null,
+			icon_type: null,
+			aliases: [],
+			sort_order: 0,
+			is_enabled: true,
+			is_tracked: true,
+			default_app: null,
+			created_at: '2024-01-01T00:00:00Z',
+			updated_at: '2024-01-01T00:00:00Z',
+		};
+		const updated = { ...original, label: 'メモ帳', updated_at: '2024-06-01T00:00:00Z' };
+
+		mockInvoke
+			.mockResolvedValueOnce([original]) // loadItems
+			.mockResolvedValueOnce(updated); // updateItem
+
+		const { itemStore } = await import('./items.svelte');
+
+		await itemStore.loadItems();
+		await itemStore.updateItem('item-1', {
+			label: 'メモ帳',
+			target: 'notepad.exe',
+			args: null,
+			working_dir: null,
+			icon_path: null,
+			aliases: [],
+			tag_ids: [],
+		});
+
+		const found = itemStore.items.find((i) => i.id === 'item-1');
+		expect(found?.label).toBe('メモ帳');
+	});
+
+	it('loadTags() fetches and stores tags', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const mockInvoke = vi.mocked(invoke);
+
+		const mockTags = [
+			{ id: 'tag-1', name: 'dev', is_system: false, prefix: 'dev', icon: null },
+			{ id: 'tag-2', name: 'game', is_system: false, prefix: 'g', icon: null },
+		];
+		mockInvoke.mockResolvedValueOnce(mockTags);
+
+		const { itemStore } = await import('./items.svelte');
+		await itemStore.loadTags();
+
+		expect(itemStore.tags.some((t) => t.id === 'tag-1')).toBe(true);
+		expect(itemStore.tags.some((t) => t.id === 'tag-2')).toBe(true);
+	});
+
+	it('loadItems() IPC エラー時に error state が設定される', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('DB unavailable'));
+
+		const { itemStore } = await import('./items.svelte');
+		await itemStore.loadItems();
+
+		expect(itemStore.error).toContain('DB unavailable');
+	});
+
+	it('updateItem() IPC エラー時に error state が設定される', async () => {
+		const { invoke } = await import('@tauri-apps/api/core');
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('not found'));
+
+		const { itemStore } = await import('./items.svelte');
+		await itemStore.updateItem('nonexistent', {
+			label: 'x',
+			target: 'x',
+			args: null,
+			working_dir: null,
+			icon_path: null,
+			aliases: [],
+			tag_ids: [],
+		});
+
+		expect(itemStore.error).toContain('not found');
+	});
+
 	it('loadTagWithCounts() fetches and stores tags with counts', async () => {
 		const { invoke } = await import('@tauri-apps/api/core');
 		const mockInvoke = vi.mocked(invoke);
