@@ -1,7 +1,7 @@
 ---
 id: PH-20260422-096
 title: WorkspaceLayout の Spec 参照コメント除去
-status: wip
+status: done
 batch: 20
 priority: low
 created: 2026-04-22
