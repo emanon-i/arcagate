@@ -9,6 +9,9 @@ import FavoritesWidget from './FavoritesWidget.svelte';
 import PageTabBar from './PageTabBar.svelte';
 import ProjectsWidget from './ProjectsWidget.svelte';
 import RecentLaunchesWidget from './RecentLaunchesWidget.svelte';
+import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
+import WorkspaceHintBar from './WorkspaceHintBar.svelte';
+import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
 import WorkspaceSidebar from './WorkspaceSidebar.svelte';
 import WorkspaceWidgetGrid from './WorkspaceWidgetGrid.svelte';
 
@@ -18,10 +21,8 @@ interface Props {
 
 let { onEditItem }: Props = $props();
 
-// Base widget dimensions (at 100% zoom)
 const BASE_W = 320;
 const BASE_H = 180;
-// Computed pixel sizes from zoom
 let widgetW = $derived(Math.round(BASE_W * (configStore.widgetZoom / 100)));
 let widgetH = $derived(Math.round(BASE_H * (configStore.widgetZoom / 100)));
 
@@ -35,14 +36,9 @@ let dragOverCell = $state<{ x: number; y: number } | null>(null);
 let movingWidget = $state<string | null>(null);
 let dropZone = $state<HTMLDivElement | null>(null);
 let renameOpen = $state(false);
-let renameValue = $state('');
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
-
-// Reference to workspace container for dynamic column calculation
 let workspaceContainer = $state<HTMLDivElement | null>(null);
-
-// Track container width reactively via ResizeObserver
 let containerWidth = $state(0);
 
 $effect(() => {
@@ -58,26 +54,22 @@ $effect(() => {
 	return () => ro.disconnect();
 });
 
-// Calculate dynamic column count from tracked container width
 let dynamicCols = $derived(
 	containerWidth > 0 && widgetW > 0 ? Math.max(1, Math.floor(containerWidth / widgetW)) : 4,
+);
+
+let currentWorkspaceName = $derived(
+	workspaceStore.workspaces.find((w) => w.id === workspaceStore.activeWorkspaceId)?.name ?? '',
 );
 
 function handleSelectWorkspace(id: string) {
 	void workspaceStore.selectWorkspace(id);
 }
 
-function handleRenameWorkspace() {
+function confirmRename(name: string) {
 	const ws = workspaceStore.workspaces.find((w) => w.id === workspaceStore.activeWorkspaceId);
-	if (!ws) return;
-	renameValue = ws.name;
-	renameOpen = true;
-}
-
-function confirmRename() {
-	const ws = workspaceStore.workspaces.find((w) => w.id === workspaceStore.activeWorkspaceId);
-	if (ws && renameValue.trim() && renameValue !== ws.name) {
-		void workspaceStore.updateWorkspace(ws.id, renameValue.trim());
+	if (ws && name.trim() && name !== ws.name) {
+		void workspaceStore.updateWorkspace(ws.id, name.trim());
 	}
 	renameOpen = false;
 }
@@ -118,7 +110,7 @@ function handleWheel(e: WheelEvent) {
 	configStore.setWidgetZoom(configStore.widgetZoom + delta);
 }
 
-// Attach wheel listener with { passive: false } to allow preventDefault
+// passive: false required for preventDefault in wheel handler
 $effect(() => {
 	const el = workspaceContainer;
 	if (!el) return;
@@ -179,7 +171,6 @@ $effect(() => {
 	};
 });
 
-// Compute grid rows needed
 let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
 </script>
 
@@ -189,7 +180,12 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		if (e.key === 'Escape' && !deleteConfirmId && !renameOpen) {
 			cancelEdit();
 		}
-		if ((e.key === 'Delete' || e.key === 'Backspace') && selectedWidgetId && !deleteConfirmId && !renameOpen) {
+		if (
+			(e.key === 'Delete' || e.key === 'Backspace') &&
+			selectedWidgetId &&
+			!deleteConfirmId &&
+			!renameOpen
+		) {
 			e.preventDefault();
 			deleteConfirmId = selectedWidgetId;
 		}
@@ -197,20 +193,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 />
 
 <div class="relative flex h-full">
-	<!-- 編集モード キーボードヒントバー -->
-	{#if editMode}
-		<div class="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2">
-			<div class="flex items-center gap-3 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)]/95 px-4 py-1.5 text-xs text-[var(--ag-text-muted)] shadow-[var(--ag-shadow-dialog)] backdrop-blur-sm">
-				<span><kbd class="font-mono">Esc</kbd> 終了</span>
-				<span class="opacity-30">|</span>
-				<span><kbd class="font-mono">Del</kbd> 削除</span>
-				{#if selectedWidgetId}
-					<span class="opacity-30">|</span>
-					<span class="text-[var(--ag-accent)]">1件選択中</span>
-				{/if}
-			</div>
-		</div>
-	{/if}
+	<WorkspaceHintBar {editMode} {selectedWidgetId} />
 
 	<WorkspaceSidebar
 		{editMode}
@@ -245,7 +228,6 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		<div class="flex gap-4">
 			<div class="min-w-0 flex-1">
 				{#if editMode}
-					<!-- 編集モード操作ガイド -->
 					<div class="mb-4">
 						<Tip tone="accent" tipId="workspace-edit-guide">
 							クリックで選択、ドラッグで移動、右下のハンドルでリサイズ、ゴミ箱で削除できます。
@@ -263,23 +245,24 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						{deleteConfirmId}
 						{dragOverCell}
 						onItemContext={handleItemContext}
-						onSelectedWidgetIdChange={(id) => { selectedWidgetId = id; }}
-						onMovingWidgetChange={(id) => { movingWidget = id; }}
-						onDeleteConfirmIdChange={(id) => { deleteConfirmId = id; }}
-						onDragOverCellChange={(cell) => { dragOverCell = cell; }}
-						onDropZoneElChange={(el) => { dropZone = el; }}
+						onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
+						onMovingWidgetChange={(id) => (movingWidget = id)}
+						onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
+						onDragOverCellChange={(cell) => (dragOverCell = cell)}
+						onDropZoneElChange={(el) => (dropZone = el)}
 					/>
 				{:else if workspaceStore.widgets.length > 0}
-					<!-- Normal view: CSS Grid layout with auto-fill -->
 					<div
 						style="display: grid; grid-template-columns: repeat({dynamicCols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
 					>
 						{#each workspaceStore.widgets as widget (widget.id)}
-							{@const WidgetComp = widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
+							{@const WidgetComp =
+								widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
 							{@const clamped = clampWidget(widget, dynamicCols)}
 							{#if WidgetComp}
 								<div
-									style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
+									style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y +
+										1} / span {widget.height};"
 								>
 									<WidgetComp {widget} onItemContext={handleItemContext} />
 								</div>
@@ -289,7 +272,9 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 				{:else}
 					<div class="flex flex-col items-center justify-center gap-2 py-20">
 						<p class="text-sm text-[var(--ag-text-muted)]">ウィジェットがまだ追加されていません</p>
-						<p class="text-xs text-[var(--ag-text-faint)]">左の編集ボタンを押してウィジェットをドラッグで追加できます</p>
+						<p class="text-xs text-[var(--ag-text-faint)]">
+							左の編集ボタンを押してウィジェットをドラッグで追加できます
+						</p>
 					</div>
 				{/if}
 			</div>
@@ -299,7 +284,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 					<LibraryDetailPanel
 						selectedItemId={contextItemId}
 						{onEditItem}
-						onClose={() => { contextItemId = null; }}
+						onClose={() => (contextItemId = null)}
 					/>
 				</div>
 			{/if}
@@ -307,81 +292,18 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	</div>
 </div>
 
-<!-- ウィジェット削除確認ダイアログ -->
-{#if deleteConfirmId}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-		role="dialog"
-		aria-modal="true"
-		tabindex="-1"
-		onclick={(e) => { if (e.target === e.currentTarget) deleteConfirmId = null; }}
-		onkeydown={(e) => { if (e.key === 'Escape') deleteConfirmId = null; }}
-	>
-		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-6 shadow-[var(--ag-shadow-dialog)]">
-			<h3 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">ウィジェットを削除しますか？</h3>
-			<p class="mb-5 text-sm text-[var(--ag-text-muted)]">この操作は元に戻せません。</p>
-			<div class="flex justify-end gap-2">
-				<button
-					type="button"
-					class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
-					onclick={() => (deleteConfirmId = null)}
-				>
-					キャンセル
-				</button>
-				<button
-					type="button"
-					class="rounded-lg bg-destructive px-4 py-2 text-sm text-white hover:opacity-90"
-					onclick={() => {
-						if (deleteConfirmId) void workspaceStore.removeWidget(deleteConfirmId);
-						deleteConfirmId = null;
-					}}
-				>
-					削除
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<WorkspaceDeleteConfirmDialog
+	widgetId={deleteConfirmId}
+	onConfirm={() => {
+		if (deleteConfirmId) void workspaceStore.removeWidget(deleteConfirmId);
+		deleteConfirmId = null;
+	}}
+	onCancel={() => (deleteConfirmId = null)}
+/>
 
-<!-- ワークスペース名変更ダイアログ -->
-{#if renameOpen}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-		role="dialog"
-		aria-modal="true"
-		tabindex="-1"
-		onclick={(e) => { if (e.target === e.currentTarget) renameOpen = false; }}
-		onkeydown={(e) => { if (e.key === 'Escape') renameOpen = false; }}
-	>
-		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-6 shadow-[var(--ag-shadow-dialog)]">
-			<h3 class="mb-4 text-lg font-semibold text-[var(--ag-text-primary)]">ワークスペース名を変更</h3>
-			<form onsubmit={(e) => { e.preventDefault(); confirmRename(); }}>
-				<!-- svelte-ignore a11y_autofocus -->
-				<input
-					type="text"
-					class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
-					bind:value={renameValue}
-					placeholder="ワークスペース名"
-					autofocus
-				/>
-				<div class="mt-4 flex justify-end gap-2">
-					<button
-						type="button"
-						class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
-						onclick={() => (renameOpen = false)}
-					>
-						キャンセル
-					</button>
-					<button
-						type="submit"
-						class="rounded-lg bg-[var(--ag-accent)] px-4 py-2 text-sm text-white hover:opacity-90"
-					>
-						変更
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
+<WorkspaceRenameDialog
+	open={renameOpen}
+	currentName={currentWorkspaceName}
+	onConfirm={confirmRename}
+	onCancel={() => (renameOpen = false)}
+/>
