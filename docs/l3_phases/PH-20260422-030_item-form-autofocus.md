@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260422-030
 title: ItemForm autofocus + URL フィールド type="url" 対応
 depends_on: []
