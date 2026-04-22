@@ -6,6 +6,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 describe('hiddenStore', () => {
 	beforeEach(() => {
+		vi.resetModules();
 		vi.resetAllMocks();
 	});
 
