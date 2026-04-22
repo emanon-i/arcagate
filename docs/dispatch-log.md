@@ -790,3 +790,35 @@ dev ビルドは Start menu 未登録で `request_access` 不可。
 | 1 | Workspace 編集モード中        | Esc で編集モードが終了する                       | キャンセル時に変更が巻き戻るか（UI がチラつかないか）     | 未確認 |
 | 2 | コマンドパレット 検索バー     | クエリ入力中に X ボタンが出る / クリックでクリア | X ボタンの位置・サイズ感・押しやすさ                      | 未確認 |
 | 3 | ライブラリ DetailPanel 表示中 | Enter キーでアイテムが起動しトーストが出る       | INPUT にフォーカスある状態で Enter しても起動されないこと | 未確認 |
+
+---
+
+## 2026-04-22 [batch-21] start (PH-098/099/100)
+
+**dispatch state reconcile (PH-097, PR #42) 完了後に batch-21 を開始。**
+
+- PR #42 CI: lint/test/build/changes/e2e 全 pass → rebase merge 済み
+- main ベース運用を正式採用（dispatch-operation.md §4 更新済み）
+- `feature/batch-20260422-21` ブランチを origin/main から作成
+
+### batch-21 Plan 構成
+
+| PH    | タイトル                                | 優先度 |
+| ----- | --------------------------------------- | ------ |
+| PH-098 | Workspace 編集モード Canvas 風 UX 再設計 | high   |
+| PH-099 | Settings ボタン統一 + Config 画面洗練    | high   |
+| PH-100 | ウィジェット実機体感の底上げ             | medium |
+
+### Canvas UX 参考整理
+
+Obsidian Canvas から採用する要素:
+
+- **ドットグリッド背景**: `radial-gradient` で CSS のみ実現。グリッドピッチはウィジェットサイズの 1/4
+- **選択アウトライン**: `ring-2 ring-accent` で active ウィジェットを明示
+- **4隅リサイズハンドル**: 現在は右下のみ。PointerEvents + 方向フラグで4隅対応
+- **ドラッグゴースト**: `dataTransfer.setDragImage()` でデフォルト半透明コピーを差し替え
+
+採用しない要素（スコープ外）:
+- 無限キャンバス（CSS Grid 固定レイアウトを維持）
+- ズームイン/アウト（既存 widgetZoom で代替）
+- フリー配置（グリッドスナップ維持）
