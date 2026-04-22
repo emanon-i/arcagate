@@ -92,6 +92,8 @@ jobs:
   # changes: detect whether src code changed (skip build for docs-only PRs)
   changes:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     outputs:
       src: ${{ steps.filter.outputs.src }}
     steps:
