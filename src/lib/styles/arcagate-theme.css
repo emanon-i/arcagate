@@ -46,6 +46,7 @@
 	/* Radii */
 	--ag-radius-chip: 9999px;
 	--ag-radius-button: 1rem;
+	--ag-radius-input: 0.5rem;
 	--ag-radius-card: 22px;
 	--ag-radius-widget: 24px;
 	--ag-radius-window: 28px;
