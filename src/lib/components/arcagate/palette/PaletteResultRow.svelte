@@ -68,7 +68,7 @@ let display = $derived(getDisplay(entry));
 			class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br {display.accent} ring-1 ring-white/10"
 		>
 			{#if entry.kind === 'item' && entry.item.icon_path}
-				<ItemIcon iconPath={entry.item.icon_path} alt="" class="h-6 w-6 object-contain" />
+				<ItemIcon iconPath={entry.item.icon_path} itemType={entry.item.item_type} alt="" class="h-6 w-6 object-contain" />
 			{:else}
 				<display.icon class="h-5 w-5 text-white" />
 			{/if}
