@@ -78,10 +78,8 @@ test.describe('コマンドパレット', () => {
 		const input = page.getByRole('textbox').first();
 		await input.fill('テスト検索キーワード');
 
-		// 少し待ってから入力クリア（debounce の完了を確認するため）
-		await page.waitForTimeout(300);
+		// 入力クリア後も debounce が完了すれば結果エリアが表示されること
 		await input.fill('');
-		await page.waitForTimeout(300);
 
 		// 入力が空の状態で結果エリアが表示されること（空状態メッセージ or 結果）
 		const results = page.getByTestId('palette-results');
@@ -143,7 +141,6 @@ test.describe('コマンドパレット', () => {
 
 		const input = page.getByRole('textbox').first();
 		await input.fill('cb:');
-		await page.waitForTimeout(200);
 
 		// 結果エリアが表示されること（空の場合は「一致する結果がありません」）
 		const results = page.getByTestId('palette-results');
