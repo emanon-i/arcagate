@@ -78,7 +78,6 @@ test.describe('ウィジェット右クリック詳細パネル（PH-20260422-00
 	test('Workspace タブ初期表示で右クリックパネルが表示されていないこと', async ({ page }) => {
 		// Workspace に切り替えた直後はパネルが閉じた状態であることを確認
 		await page.getByRole('button', { name: 'Workspace' }).click();
-		await page.waitForTimeout(300);
 
 		// data-testid="library-detail-panel" は存在しないこと
 		const panel = page.getByTestId('library-detail-panel');
@@ -115,7 +114,6 @@ test.describe('ウィジェット右クリック詳細パネル（PH-20260422-00
 
 			// 右クリックで詳細パネルが表示されること
 			await widgetItem.click({ button: 'right' });
-			await page.waitForTimeout(300);
 
 			const detailPanel = page.getByTestId('library-detail-panel');
 			await expect(detailPanel).toBeVisible();

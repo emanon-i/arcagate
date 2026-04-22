@@ -154,7 +154,7 @@ $effect(() => {
 					class:opacity-60={movingWidget === widget.id}
 					role="group"
 					aria-label={widget.widget_type}
-					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};{selectedWidgetId === widget.id ? ' outline: 2px solid var(--ag-accent); outline-offset: 3px; border-radius: var(--ag-radius-widget);' : ''}"
+					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};{selectedWidgetId === widget.id ? ' box-shadow: 0 0 0 2px var(--ag-surface), 0 0 0 4px var(--ag-accent); border-radius: var(--ag-radius-widget);' : ''}"
 					onclick={(e) => { e.stopPropagation(); onSelectedWidgetIdChange(widget.id); }}
 				>
 					<WidgetComp {widget} {onItemContext} />

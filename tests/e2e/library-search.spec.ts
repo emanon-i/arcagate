@@ -4,7 +4,7 @@ import { createItem, deleteItem } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('Library 検索バー（PH-20260422-034/036 回帰防衛）', () => {
-	test('/ キーで検索バーにフォーカスが移ること', async ({ page }) => {
+	test('/ キーで検索バーにフォーカスが移ること', { tag: '@smoke' }, async ({ page }) => {
 		await resizeWindow(page, 1280, 800);
 
 		await page.reload();

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { open } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
+import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 
@@ -82,8 +83,13 @@ async function handleSave() {
 		newConfig.watched_folder = watchedFolder;
 		newConfig.auto_add = autoAdd;
 	}
-	await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(newConfig));
-	onClose();
+	try {
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(newConfig));
+		toastStore.add('設定を保存しました', 'success');
+		onClose();
+	} catch {
+		toastStore.add('保存に失敗しました', 'error');
+	}
 }
 </script>
 
