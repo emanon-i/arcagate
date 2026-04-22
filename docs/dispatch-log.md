@@ -403,3 +403,33 @@ PH-20260422-013〜018 全 6 Plan 処理完了。
 - PR #28: `feature/batch-20260422-7` → `develop`（rebase マージ）
 - `pnpm verify` 全通過
 - Plan files アーカイブ: `docs/l3_phases/archive/` に移動
+
+## 2026-04-22 Workspace 実機確認（pre-batch8）
+
+PC がロック画面（Windows PIN 要求）のため computer-use での実機確認は不可。
+代替としてコードインスペクション（Explore サブエージェント）で Workspace コンポーネント群を精査し、問題点を特定した。
+
+### 主要検出事項
+
+| 優先度 | 問題                                    | 対応 PH |
+| ------ | --------------------------------------- | ------- |
+| P0     | dragMoveWidget に dragend ハンドラ欠落  | PH-039  |
+| P0     | ウィジェット削除が即時実行（確認なし）  | PH-040  |
+| P1     | 編集確定/キャンセルボタンがアイコンのみ | PH-041  |
+| P1     | 空状態テキストが誤解を招く              | PH-041  |
+| P1     | vitest が CI（ci.yml）に未追加          | PH-042  |
+| P2     | shadcn ↔ ag-* トークン系が独立・不整合  | PH-043  |
+
+## 2026-04-22 Batch 8 完了
+
+| Phase | タイトル                                             | PR  | 結果 |
+| ----- | ---------------------------------------------------- | --- | ---- |
+| 039   | D&D 完全性強化（dragend + cursor-grabbing + shadow） | #29 | ✅   |
+| 040   | ウィジェット削除確認ダイアログ                       | #29 | ✅   |
+| 041   | 編集モード状態視認性改善（テキストラベル + 空状態）  | #29 | ✅   |
+| 042   | vitest を CI に追加（品質防衛）                      | #29 | ✅   |
+| 043   | shadcn ↔ ag-* bridge CSS 整理                        | #29 | ✅   |
+
+- PR #29: `feature/batch-20260422-8` → `develop`（rebase マージ予定）
+- `pnpm verify` 全通過
+- Plan files アーカイブ: `docs/l3_phases/archive/` に移動
