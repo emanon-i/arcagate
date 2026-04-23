@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-148
 title: "クリック SE 再生基盤 (Web Audio API)"
 depends_on: [PH-20260423-147]
