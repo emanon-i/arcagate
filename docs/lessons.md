@@ -376,6 +376,37 @@ globalTimeout: process.env.CI ? 600_000 : 300_000,
 
 ---
 
+## E2E: Playwright CDP mode で `browser.close()` は WebView2 プロセスを終了させる（Batch 37 e2e CI 修正）
+
+- **問題**: `connectOverCDP` で取得した `browser` オブジェクトの `.close()` を呼ぶと `Browser.close` CDP コマンドが送信され、WebView2 プロセス自体が終了する
+- **症状**: 1テスト目は通過するが、2テスト目以降の page fixture setup で `connectOverCDP` が 60s タイムアウト（CDP ポートが消滅するため）
+- **修正パターン**: `browser` を **worker-scoped fixture** にして Worker 全体で 1 回だけ接続/切断する
+
+```ts
+// NG: テストごとに browser.close() を呼ぶ（WebView2 プロセスが死ぬ）
+page: async ({}, use) => {
+    const browser = await chromium.connectOverCDP(...);
+    await use(page);
+    await browser.close(); // ← これが WebView2 を殺す
+},
+
+// OK: worker-scoped で接続を保持
+sharedBrowser: [
+    async ({}, use) => {
+        const browser = await chromium.connectOverCDP(...);
+        await use(browser);
+        await browser.close(); // Worker 終了時のみ呼ばれる
+    },
+    { scope: 'worker' },
+],
+page: async ({ sharedBrowser }, use) => {
+    // sharedBrowser を使って page を取得
+    ...
+},
+```
+
+---
+
 ## E2E: `waitForTimeout` → `waitForSelector` / `expect().toBeVisible()` への移行パターン（Batch 28〜29 の教訓）
 
 - **`waitForTimeout` の問題**: 固定待機は環境依存でフレーキーを招く。ローカル高速・CI 低速の差が顕著
