@@ -58,7 +58,7 @@ mod tests {
     fn test_get_hotkey_returns_default() {
         let db = initialize_in_memory();
         let hotkey = get_hotkey(&db).unwrap();
-        assert_eq!(hotkey, "CmdOrCtrl+Space");
+        assert_eq!(hotkey, "Ctrl+Shift+Space");
     }
 
     #[test]

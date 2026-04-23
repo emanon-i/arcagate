@@ -1,6 +1,6 @@
 import * as configIpc from '$lib/ipc/config';
 
-let hotkey = $state('CmdOrCtrl+Space');
+let hotkey = $state('Ctrl+Shift+Space');
 let autostart = $state(false);
 let setupComplete = $state(false);
 let loading = $state(false);
