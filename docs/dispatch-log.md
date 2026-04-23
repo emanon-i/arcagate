@@ -801,7 +801,7 @@ dev ビルドは Start menu 未登録で `request_access` 不可。
 | 2 | Settings > サウンド  | ボリュームスライダーで音量が変わる         | 0.1〜1.0 の範囲で音量差が体感できるか             | 未確認 |
 | 3 | コマンドパレット起動 | アイテム選択 Enter で「ぽっ」とクリック SE | 音が鳴るか・音色が自然か                          | 未確認 |
 
-### Batch 33 確認項目（PR #61 CI 待ち）
+### Batch 33 確認項目（PR #61 マージ済み）
 
 | # | 対象 UI                          | 期待動作                                    | 見てほしいポイント                           | 結果   |
 | - | -------------------------------- | ------------------------------------------- | -------------------------------------------- | ------ |
@@ -811,6 +811,17 @@ dev ビルドは Start menu 未登録で `request_access` 不可。
 | 4 | コマンドパレット閉               | 閉時: fade アウト 120ms                     | 消えるのが素早くスッキリ感があるか           | 未確認 |
 | 5 | WidgetSettings / RenameDialog 等 | 開時: scale 0.96→1 + fade in（200ms）       | ダイアログが「ぽわっ」と広がって現れるか     | 未確認 |
 | 6 | Toast 通知                       | 右から 200ms でスライドイン、120ms フェード | 自然な速度か・前より速くなった体感があるか   | 未確認 |
+
+### Batch 34 確認項目（PR #62 CI 待ち）
+
+| # | 対象 UI                            | 期待動作                                            | 見てほしいポイント                                      | 結果   |
+| - | ---------------------------------- | --------------------------------------------------- | ------------------------------------------------------- | ------ |
+| 1 | WorkspaceHintBar（編集モード入場） | 編集モードON時にヒントバーが下から fly-up で現れる  | 8px 上昇 200ms でスッと出てくる自然さ                   | 未確認 |
+| 2 | WorkspaceHintBar（編集モード退場） | 編集モードOFF時に fade 120ms で消える               | スッと消えるか・fade の速さが自然か                     | 未確認 |
+| 3 | LibraryCard ホバー                 | hover 時に border/bg が CSS var トランジション      | `transition-all` 廃止で余分なプロパティが変化しないこと | 未確認 |
+| 4 | WidgetGrid ドラッグハンドル        | ホバー時に bg が 120ms でトランジション             | 色変化が滑らかで瞬時ではないこと                        | 未確認 |
+| 5 | WidgetGrid 削除ボタン              | クリック時に `scale(0.95)` プレス感がある           | 「ぐっ」と押し込まれる感覚があるか                      | 未確認 |
+| 6 | PageTabBar `+ ページを追加`        | ホバー時に border/text が accent 色へトランジション | Tab フォーカス時に cyan リングが出るか                  | 未確認 |
 
 ---
 
@@ -1215,14 +1226,16 @@ Obsidian Canvas から採用する要素:
 
 ---
 
-## 2026-04-23 batch-34 開始（PH-156〜160）
+## 2026-04-23 batch-34 完了（PH-156〜160）
 
-| Plan ID         | タイトル                                         | 成果 |
-| --------------- | ------------------------------------------------ | ---- |
-| PH-20260423-156 | LibraryCard `transition-all` → CSS 変数修正      | WIP  |
-| PH-20260423-157 | Chip.svelte トランジション標準化 + active 状態   | WIP  |
-| PH-20260423-158 | WorkspaceHintBar 入場アニメーション              | WIP  |
-| PH-20260423-159 | WidgetGrid ボタン polish + PageTabBar 追加ボタン | WIP  |
-| PH-20260423-160 | E2E: サウンド設定トグルテスト追加                | WIP  |
+| Plan ID         | タイトル                                         | 成果                                                                                          |
+| --------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| PH-20260423-156 | LibraryCard `transition-all` → CSS 変数修正      | `transition-[border-color,background-color,transform,box-shadow]` に変更                      |
+| PH-20260423-157 | Chip.svelte トランジション標準化 + active 状態   | bare `transition` 廃止 + `active:scale-[0.97]` + `focus-visible:ring`                         |
+| PH-20260423-158 | WorkspaceHintBar 入場アニメーション              | `fly y:8 200ms cubicOut` 入場 / `fade 120ms` 退場                                             |
+| PH-20260423-159 | WidgetGrid ボタン polish + PageTabBar 追加ボタン | 3 ボタンに `transition-colors/transform` + `motion-reduce`; PageTabBar に hover/focus-visible |
+| PH-20260423-160 | E2E: サウンド設定トグルテスト追加                | `SettingsPanel` に `role="group"` 付与 + E2E テスト 2 件追加                                  |
 
 - ブランチ: `feature/batch-20260423-34`
+- PR: #62（CI 待ち）
+- `pnpm verify` 全通過（biome/dprint/clippy/svelte-check/cargo test 150件/smoke-test/vitest 148件/tauri build）
