@@ -217,25 +217,36 @@ Layer 0 (最背面): ソリッド背景色（フォールバック）
 - `light` / `dark` の 2 モード（CSS クラス `.dark` のトグル）
 - カスタムテーマは CSS variables の JSON を DB に保存（`theme_repository`）
 
-### 6-2. 拡張方針
+### 6-2. 拡張方針（実装済み 2026-04-24）
 
 ```
-BuiltinTheme (CSS クラス)
-  ├── dark (現行)
-  ├── light (現行)
-  ├── endfield (新: Arknights Endfield 調)
-  └── frosted (新: Ubuntu 透過調)
+BaseTheme (CSS クラス)
+  ├── dark  → .dark クラスをトグル
+  └── light → .dark クラスを除去
 
-CustomTheme (DB 保存)
-  └── ユーザが色を編集したテーマ（現行機能）
+BuiltinCustomTheme (DB 保存 + CSS 構造オーバーライド)
+  ├── Endfield      (dark ベース: Arknights Endfield 調)
+  ├── Ubuntu Frosted (dark ベース: Ubuntu Yaru/Frost 調)
+  └── Liquid Glass  (dark ベース: Apple Liquid Glass 調 / backdrop-filter)
+
+UserCustomTheme (DB 保存)
+  └── ユーザが CSS 変数を編集したテーマ（テーマエディタ: batch-49+ 実装予定）
 ```
 
-### 6-3. プリセット実装方針
+### 6-3. プリセット実装方針（実装済み）
 
-- 各プリセットは CSS ファイルまたは `:root.theme-endfield { ... }` クラスで管理
-- `themeStore.activePreset` でプリセット名を管理
-- プリセット切替時: `:root` に `data-theme="endfield"` 属性を付与 → CSS セレクタが切替
-- カスタムテーマは `data-theme` を無視して CSS variables を直接上書き
+- 組み込みカスタムテーマは `src-tauri/migrations/01N_*.sql` で `INSERT OR IGNORE` として DB に seed
+- `applyTheme()` がカスタムテーマの `css_vars` JSON を `el.style.setProperty()` で `:root` に展開
+- 同時に `el.dataset.theme = activeMode` を設定 → `arcagate-theme.css` の `[data-theme="..."]` セレクタが構造 CSS を適用
+- `backdrop-filter` など CSS 変数だけでは設定できないプロパティは `[data-theme]` セレクタ側で定義
+- `--ag-backdrop: none` を `:root` のデフォルト値として設定（既存テーマへの影響ゼロ）
+
+### 6-4. テーマエディタ MVP（batch-49+ 実装予定）
+
+- Settings > 外観 パネルに「テーマを編集」セクションを追加
+- 選択中テーマの `css_vars` を color picker / slider で調整
+- 変更は即時プレビュー（`applyTheme()` を debounce で呼び出し）
+- 「新しいテーマとして保存」で `createTheme()` → DB 永続化
 
 ---
 
