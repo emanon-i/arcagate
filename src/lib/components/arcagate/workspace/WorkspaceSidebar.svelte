@@ -68,7 +68,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 			<div class="flex items-center gap-1">
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
+					class="flex min-w-[4rem] items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
 					aria-label="編集を確定"
 					onclick={onConfirmEdit}
 				>
@@ -77,7 +77,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 				</button>
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
+					class="flex min-w-[4rem] items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
 					aria-label="編集をキャンセル"
 					onclick={onCancelEdit}
 				>

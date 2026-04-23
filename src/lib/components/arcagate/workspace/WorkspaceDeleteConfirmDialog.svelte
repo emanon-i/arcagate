@@ -32,7 +32,7 @@ const dNormal = rm ? 0 : 200;
 		}}
 	>
 		<div
-			class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-6 shadow-[var(--ag-shadow-dialog)]"
+			class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
 			transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
 		>
 			<h3 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">
