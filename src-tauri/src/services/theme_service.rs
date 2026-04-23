@@ -161,7 +161,7 @@ mod tests {
     fn test_list_themes() {
         let db = initialize_in_memory();
         let themes = list_themes(&db).unwrap();
-        assert_eq!(themes.len(), 4); // builtin dark + light + endfield + ubuntu-frosted
+        assert_eq!(themes.len(), 5); // builtin dark + light + endfield + ubuntu-frosted + liquid-glass
     }
 
     #[test]
@@ -271,7 +271,7 @@ mod tests {
 
         delete_theme(&db, &theme.id).unwrap();
         let all = list_themes(&db).unwrap();
-        assert_eq!(all.len(), 4); // only builtins
+        assert_eq!(all.len(), 5); // only builtins
     }
 
     #[test]

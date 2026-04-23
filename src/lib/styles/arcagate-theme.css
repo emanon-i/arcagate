@@ -90,6 +90,9 @@
 	--ag-ease-out: cubic-bezier(0, 0, 0.2, 1);
 	--ag-ease-in: cubic-bezier(0.4, 0, 1, 1);
 	--ag-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+	/* Backdrop filter (Liquid Glass theme overrides this) */
+	--ag-backdrop: none;
 }
 
 .dark {
@@ -154,4 +157,49 @@
 		--ag-duration-normal: 0ms;
 		--ag-duration-slow: 0ms;
 	}
+}
+
+/* =====================================================================
+   Liquid Glass Theme — global structural overrides
+   Applied when data-theme="theme-builtin-liquid-glass" is set on <html>
+   ===================================================================== */
+[data-theme="theme-builtin-liquid-glass"] body {
+	background: var(--ag-bg);
+}
+
+/* Cards, panels, and surface containers get glass effect */
+[data-theme="theme-builtin-liquid-glass"] [role="dialog"] > div,
+[data-theme="theme-builtin-liquid-glass"] aside {
+	backdrop-filter: var(--ag-backdrop);
+	-webkit-backdrop-filter: var(--ag-backdrop);
+}
+
+/* Sidebar nav panel */
+[data-theme="theme-builtin-liquid-glass"] .ag-sidebar {
+	backdrop-filter: var(--ag-backdrop);
+	-webkit-backdrop-filter: var(--ag-backdrop);
+}
+
+/* Library cards — elevated glass look */
+[data-theme="theme-builtin-liquid-glass"] [data-testid^="library-card-"] {
+	backdrop-filter: var(--ag-backdrop);
+	-webkit-backdrop-filter: var(--ag-backdrop);
+	box-shadow: var(--ag-shadow-sm);
+	transition:
+		border-color var(--ag-duration-fast) var(--ag-ease-in-out),
+		background-color var(--ag-duration-fast) var(--ag-ease-in-out),
+		transform var(--ag-duration-fast) var(--ag-ease-in-out),
+		box-shadow var(--ag-duration-fast) var(--ag-ease-in-out);
+}
+
+[data-theme="theme-builtin-liquid-glass"] [data-testid^="library-card-"]:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--ag-shadow-md);
+}
+
+/* Palette overlay panel */
+[data-theme="theme-builtin-liquid-glass"] [role="dialog"][aria-modal="true"] > div {
+	backdrop-filter: var(--ag-backdrop);
+	-webkit-backdrop-filter: var(--ag-backdrop);
+	box-shadow: var(--ag-shadow-dialog);
 }
