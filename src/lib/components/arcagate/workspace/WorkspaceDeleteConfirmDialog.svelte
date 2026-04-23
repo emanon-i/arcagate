@@ -42,14 +42,14 @@ const dNormal = rm ? 0 : 200;
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
-					class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+					class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
 					onclick={onCancel}
 				>
 					キャンセル
 				</button>
 				<button
 					type="button"
-					class="rounded-lg bg-destructive px-4 py-2 text-sm text-white hover:opacity-90"
+					class="rounded-lg bg-destructive px-4 py-2 text-sm text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:opacity-90"
 					onclick={onConfirm}
 				>
 					削除

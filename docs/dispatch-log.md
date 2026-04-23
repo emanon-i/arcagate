@@ -1275,4 +1275,19 @@ Obsidian Canvas から採用する要素:
 | PH-20260423-164 | workspace.spec.ts: ページタブ追加テスト・Esc キャンセルテスト 2 件追加                                            |
 | PH-20260423-165 | WorkspaceSidebar: inline width transition → motion-reduce 対応 + WidgetShell/MoreMenu/Tip/PaletteSearchBar polish |
 
-- PR: #63（CI 待ち）
+- PR: #63（rebase マージ済み）
+- `pnpm verify` 全通過
+
+---
+
+## 2026-04-23 batch-36 開始（PH-166〜170）
+
+| Plan ID         | タイトル                                      | 成果 |
+| --------------- | --------------------------------------------- | ---- |
+| PH-20260423-166 | ダイアログアクションボタン トランジション統一 | WIP  |
+| PH-20260423-167 | ItemForm + DropZone ボタン トランジション統一 | WIP  |
+| PH-20260423-168 | ToastContainer + ExportImport ボタン polish   | WIP  |
+| PH-20260423-169 | E2E: Library タグフィルター操作テスト         | WIP  |
+| PH-20260423-170 | デッドコンポーネント削除（6 ファイル）        | WIP  |
+
+- ブランチ: `feature/batch-20260423-36`
