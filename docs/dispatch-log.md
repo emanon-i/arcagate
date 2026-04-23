@@ -1210,5 +1210,19 @@ Obsidian Canvas から採用する要素:
 | PH-20260423-154 | Toast アニメーション duration 揃え        | 250→200ms / 150→120ms + prefers-reduced-motion 対応        |
 | PH-20260423-155 | ダイアログ開閉アニメーション              | 4 ダイアログに scale(0.96→1)+fade 入場追加                 |
 
-- ブランチ: `feature/batch-20260423-33` → PR #61 (CI pending)
+- ブランチ: `feature/batch-20260423-33` → PR #61 (rebase マージ済み)
 - pnpm verify: 全通過（Rust 150 / vitest 148 / tauri build）
+
+---
+
+## 2026-04-23 batch-34 開始（PH-156〜160）
+
+| Plan ID         | タイトル                                         | 成果 |
+| --------------- | ------------------------------------------------ | ---- |
+| PH-20260423-156 | LibraryCard `transition-all` → CSS 変数修正      | WIP  |
+| PH-20260423-157 | Chip.svelte トランジション標準化 + active 状態   | WIP  |
+| PH-20260423-158 | WorkspaceHintBar 入場アニメーション              | WIP  |
+| PH-20260423-159 | WidgetGrid ボタン polish + PageTabBar 追加ボタン | WIP  |
+| PH-20260423-160 | E2E: サウンド設定トグルテスト追加                | WIP  |
+
+- ブランチ: `feature/batch-20260423-34`
