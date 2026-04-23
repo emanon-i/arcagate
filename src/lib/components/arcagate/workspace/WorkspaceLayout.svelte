@@ -157,8 +157,14 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 <svelte:window
 	onkeydown={(e) => {
 		if (!editMode) return;
-		if (e.key === 'Escape' && !deleteConfirmId && !renameOpen) {
-			cancelEdit();
+		if (e.key === 'Escape') {
+			if (deleteConfirmId) {
+				// 削除確認ダイアログが開いている場合はダイアログを閉じる（cancelEdit はしない）
+				deleteConfirmId = null;
+			} else if (!renameOpen) {
+				cancelEdit();
+			}
+			// renameOpen の場合はダイアログ内 autofocus input が ESC を処理
 		} else if (e.key === 'Enter' && !deleteConfirmId && !renameOpen) {
 			e.preventDefault();
 			confirmEdit();
