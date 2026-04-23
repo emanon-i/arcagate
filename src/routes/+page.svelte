@@ -155,16 +155,18 @@ function handleFormClose() {
 		onclick={(e) => { if (e.target === e.currentTarget) showSettings = false; }}
 		onkeydown={(e) => { if (e.key === 'Escape') showSettings = false; }}
 	>
-		<div class="relative w-full max-w-lg rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
+		<div class="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
 			<button
 				type="button"
-				class="absolute right-3 top-3 rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
+				class="absolute right-3 top-3 z-10 rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
 				aria-label="設定を閉じる"
 				onclick={() => (showSettings = false)}
 			>
 				<X class="h-4 w-4" />
 			</button>
-			<SettingsPanel />
+			<div class="overflow-y-auto">
+				<SettingsPanel />
+			</div>
 		</div>
 	</div>
 {/if}
