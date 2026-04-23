@@ -219,7 +219,9 @@ async function handleSelectIcon() {
 
   <!-- J-3: ターゲット readonly 化 -->
   <div class="space-y-1">
-    <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-target">ターゲット <span class="text-destructive">*</span></label>
+    <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-target">
+      {typeMode === 'url' ? 'URL' : 'ファイル / フォルダのパス'} <span class="text-destructive">*</span>
+    </label>
     {#if typeMode === 'url'}
       <input
         id="item-target"
@@ -230,6 +232,7 @@ async function handleSelectIcon() {
         required
         placeholder="https://example.com"
       />
+      <p class="text-xs text-[var(--ag-text-muted)]">ブラウザで開く URL を入力</p>
     {:else}
       <input
         id="item-target"
@@ -239,8 +242,9 @@ async function handleSelectIcon() {
         value={target}
         readonly
         required
-        placeholder="D&D またはファイル選択で設定"
+        placeholder="ドラッグ＆ドロップ または 下のボタンで選択"
       />
+      <p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス（直接入力不可）</p>
     {/if}
   </div>
 
@@ -260,9 +264,9 @@ async function handleSelectIcon() {
   <div class="space-y-1">
     <span class="text-sm font-medium text-[var(--ag-text-primary)]">アイコン</span>
     <div class="flex items-center gap-3">
-      <div class="flex h-12 w-12 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]">
+      <div class="flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]">
         {#if iconPath}
-          <ItemIcon iconPath={iconPath} alt="アイコン" class="h-10 w-10 object-contain" />
+          <ItemIcon iconPath={iconPath} alt="アイコン" class="h-16 w-16 object-contain" />
         {:else}
           <span class="text-xs text-[var(--ag-text-muted)]">なし</span>
         {/if}
