@@ -12,6 +12,7 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 		'編集モードでサイドバーから Recent ウィジェットを D&D 追加できること',
 		{ tag: '@smoke' },
 		async ({ page }) => {
+			await resizeWindow(page, 1280, 800);
 			const workspace = await createWorkspace(page, 'D&D追加テストWS');
 
 			try {
@@ -19,25 +20,51 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 				await page.waitForLoadState('domcontentloaded');
 				await waitForAppReady(page);
 				await page.getByRole('button', { name: 'Workspace' }).click();
+				// 新規 WS タブを明示的に選択（loadWorkspaces は workspaces[0] をアクティブにするため）
+				await page.getByTestId(`workspace-tab-${workspace.id}`).click();
 				await expect(page.getByText('D&D追加テストWS')).toBeVisible();
 
-				// 編集モードに入る
 				await page.getByLabel('編集モード').click();
 				await expect(page.getByLabel('編集を確定')).toBeVisible();
+				// サイドバーアニメーション（--ag-duration-fast=120ms）完了を待つ
+				await page.waitForTimeout(200);
 
-				// D&D 前のウィジェット数
 				const beforeCount = await page.getByLabel('ウィジェットを移動').count();
 
-				// サイドバーの Recent ボタン（data-widget-type="recent"）からドロップゾーンへ D&D
-				await page
-					.locator('[data-widget-type="recent"]')
-					.dragTo(page.locator('[data-testid="workspace-drop-zone"]'), {
-						targetPosition: { x: 60, y: 60 },
-					});
+				// PointerEvent ベース D&D（evaluate 内で getBoundingClientRect で座標取得）
+				// サイドバーアニメーション完了後に坐標を計算することで isOverDropZone と一致させる
+				await page.evaluate(async () => {
+					const src = document.querySelector('[data-widget-type="recent"]') as HTMLElement | null;
+					const dropZone = document.querySelector(
+						'[data-testid="workspace-drop-zone"]',
+					) as HTMLElement | null;
+					if (!src || !dropZone) throw new Error('required elements not found');
 
-				// ウィジェットが追加されたことを確認（ドラッグハンドルが 1 増加）
+					const srcRect = src.getBoundingClientRect();
+					const dzRect = dropZone.getBoundingClientRect();
+					const sx = srcRect.left + srcRect.width / 2;
+					const sy = srcRect.top + srcRect.height / 2;
+					const tx = dzRect.left + 60;
+					const ty = dzRect.top + 60;
+
+					const mkPtr = (type: string, x: number, y: number) =>
+						new PointerEvent(type, {
+							bubbles: true,
+							cancelable: true,
+							pointerId: 1,
+							pointerType: 'mouse',
+							clientX: x,
+							clientY: y,
+						});
+					src.dispatchEvent(mkPtr('pointerdown', sx, sy));
+					// $effect がドキュメントリスナーを登録するまでマイクロタスクを yield
+					await new Promise((r) => setTimeout(r, 100));
+					document.dispatchEvent(mkPtr('pointermove', tx, ty));
+					document.dispatchEvent(mkPtr('pointerup', tx, ty));
+				});
+
 				await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount + 1, {
-					timeout: 3000,
+					timeout: 5000,
 				});
 			} finally {
 				await deleteWorkspace(page, workspace.id);
@@ -75,13 +102,21 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			// ドラッグハンドルがあることを確認
 			await expect(page.getByLabel('ウィジェットを移動').first()).toBeVisible();
 
-			// ドラッグハンドルをドロップゾーンの別セル（右端）へ移動
-			await page
+			// ドラッグハンドルをドロップゾーンの別セル（右端）へ移動（PointerEvent ベース）
+			const handleBox = await page
 				.locator('[aria-label="ウィジェットを移動"]')
 				.first()
-				.dragTo(page.locator('[data-testid="workspace-drop-zone"]'), {
-					targetPosition: { x: 400, y: 60 },
-				});
+				.boundingBox();
+			const dropZoneBox = await page.locator('[data-testid="workspace-drop-zone"]').boundingBox();
+			if (!handleBox || !dropZoneBox) throw new Error('bounding boxes not found');
+			const hx = handleBox.x + handleBox.width / 2;
+			const hy = handleBox.y + handleBox.height / 2;
+			const tx = dropZoneBox.x + 400;
+			const ty = dropZoneBox.y + 60;
+			await page.mouse.move(hx, hy);
+			await page.mouse.down();
+			await page.mouse.move(tx, ty, { steps: 10 });
+			await page.mouse.up();
 
 			// 確定して編集モード終了
 			await page.getByLabel('編集を確定').click();
