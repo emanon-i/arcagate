@@ -91,7 +91,7 @@ $effect(() => {
 					</button>
 					<button
 						type="button"
-						class="rounded-lg border px-4 py-2 text-sm transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {themeStore.activeMode === 'light'
+						class="rounded-lg border px-4 py-2 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode === 'light'
 							? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
 							: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 						onclick={() => void themeStore.setThemeMode('light')}

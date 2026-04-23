@@ -52,7 +52,7 @@ let menuItems = $derived(
 		{#each visibleFavorites as item (item.id)}
 			<button
 				type="button"
-				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-surface-4)] motion-reduce:transition-none"
+				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
 				onclick={() => void launchItem(item.id)}
 				oncontextmenu={(e) => {
 					if (onItemContext) {
