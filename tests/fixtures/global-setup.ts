@@ -71,8 +71,8 @@ export default async function globalSetup(): Promise<void> {
 		}
 
 		// ページをリロードして SetupWizard をバイパスした状態にする
-		await page.reload();
-		await page.waitForLoadState('domcontentloaded');
+		await page.reload({ timeout: 60_000 });
+		await page.waitForLoadState('domcontentloaded', { timeout: 60_000 });
 	} finally {
 		await browser.close();
 	}
