@@ -148,28 +148,36 @@ function handleNavKeydown(e: KeyboardEvent) {
 						外観
 					</h3>
 					<div>
-						<p class="mb-2 text-sm font-medium text-[var(--ag-text-primary)]">カラーモード</p>
-						<div class="flex gap-2">
+						<p class="mb-3 text-sm font-medium text-[var(--ag-text-primary)]">テーマ</p>
+						<div class="grid grid-cols-2 gap-2">
+							<!-- フラット Dark / Light -->
 							<button
 								type="button"
-								class="rounded-lg border px-4 py-2 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
-								'dark'
-									? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
-									: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+								class="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode === 'dark' ? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]' : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 								onclick={() => void themeStore.setThemeMode('dark')}
 							>
-								ダーク
+								<span class="font-medium">フラット ダーク</span>
+								<span class="text-xs opacity-70">デフォルト</span>
 							</button>
 							<button
 								type="button"
-								class="rounded-lg border px-4 py-2 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
-								'light'
-									? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
-									: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+								class="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode === 'light' ? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]' : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 								onclick={() => void themeStore.setThemeMode('light')}
 							>
-								ライト
+								<span class="font-medium">フラット ライト</span>
+								<span class="text-xs opacity-70">デフォルト</span>
 							</button>
+							<!-- DB テーマ（組み込みプリセット + カスタム） -->
+							{#each themeStore.themes.filter((t) => t.id !== 'theme-builtin-dark' && t.id !== 'theme-builtin-light') as theme (theme.id)}
+								<button
+									type="button"
+									class="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode === theme.id ? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]' : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+									onclick={() => void themeStore.setThemeMode(theme.id)}
+								>
+									<span class="font-medium">{theme.name}</span>
+									<span class="text-xs opacity-70">{theme.is_builtin ? '組み込み' : 'カスタム'}</span>
+								</button>
+							{/each}
 						</div>
 					</div>
 				</div>
