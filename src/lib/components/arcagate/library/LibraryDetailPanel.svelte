@@ -62,11 +62,9 @@ async function handleRemoveTag(tagId: string) {
 }
 
 async function handleToggleStar() {
-	if (isStarred) {
-		await handleRemoveTag(SYS_STARRED_ID);
-	} else {
-		await handleAddTag(SYS_STARRED_ID);
-	}
+	if (!selectedItem) return;
+	await itemStore.toggleStar(selectedItem.id, !isStarred);
+	itemTags = await getItemTags(selectedItem.id);
 }
 
 function handleLaunch() {

@@ -48,6 +48,15 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
 	}
 }
 
+async function toggleStar(id: string, starred: boolean): Promise<void> {
+	try {
+		const updated = await itemsIpc.toggleStar(id, starred);
+		items = items.map((item) => (item.id === id ? updated : item));
+	} catch (e) {
+		error = String(e);
+	}
+}
+
 async function deleteItem(id: string): Promise<void> {
 	loading = true;
 	error = null;
@@ -148,6 +157,7 @@ export const itemStore = {
 	loadItemsByTag,
 	createItem,
 	updateItem,
+	toggleStar,
 	deleteItem,
 	loadTags,
 	createTag,

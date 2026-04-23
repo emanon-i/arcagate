@@ -207,6 +207,17 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
     Ok(registered)
 }
 
+/// sys-starred タグを付与または解除する。
+pub fn toggle_star(db: &DbState, item_id: &str, starred: bool) -> Result<Item, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    if starred {
+        item_repository::add_system_tag(&conn, item_id, "sys-starred")?;
+    } else {
+        item_repository::remove_system_tag(&conn, item_id, "sys-starred")?;
+    }
+    item_repository::find_by_id(&conn, item_id)
+}
+
 /// 起動時に必須システムタグを upsert する（べき等）。
 pub fn ensure_system_tags(db: &DbState) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;

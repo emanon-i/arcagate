@@ -99,6 +99,15 @@ pub fn cmd_count_hidden_items(db: State<DbState>) -> Result<i64, AppError> {
 }
 
 #[tauri::command]
+pub fn cmd_toggle_star(
+    db: State<DbState>,
+    item_id: String,
+    starred: bool,
+) -> Result<Item, AppError> {
+    item_service::toggle_star(&db, &item_id, starred)
+}
+
+#[tauri::command]
 pub fn cmd_auto_register_folder_items(
     db: State<DbState>,
     root_path: String,

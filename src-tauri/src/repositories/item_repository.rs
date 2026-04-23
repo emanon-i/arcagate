@@ -262,6 +262,15 @@ pub fn add_system_tag(conn: &Connection, item_id: &str, tag_id: &str) -> Result<
     Ok(())
 }
 
+/// システムタグリンクを削除（sys-starred など手動トグル可能なシステムタグ用）
+pub fn remove_system_tag(conn: &Connection, item_id: &str, tag_id: &str) -> Result<(), AppError> {
+    conn.execute(
+        "DELETE FROM item_tags WHERE item_id = ?1 AND tag_id = ?2",
+        params![item_id, tag_id],
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

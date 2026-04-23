@@ -61,3 +61,7 @@ export async function getTagWithCounts(): Promise<TagWithCount[]> {
 export async function autoRegisterFolderItems(rootPath: string): Promise<Item[]> {
 	return invoke<Item[]>('cmd_auto_register_folder_items', { rootPath });
 }
+
+export async function toggleStar(itemId: string, starred: boolean): Promise<Item> {
+	return invoke<Item>('cmd_toggle_star', { itemId, starred });
+}
