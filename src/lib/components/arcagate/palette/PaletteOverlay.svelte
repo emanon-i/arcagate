@@ -1,5 +1,7 @@
 <script lang="ts">
 import { Command } from '@lucide/svelte';
+import { cubicOut } from 'svelte/easing';
+import { fade, fly } from 'svelte/transition';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
@@ -17,6 +19,11 @@ interface Props {
 }
 
 let { open = $bindable(), mode = 'inline', onClose }: Props = $props();
+
+const rm =
+	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dFast = rm ? 0 : 120;
+const dNormal = rm ? 0 : 200;
 
 let searchQuery = $state('');
 
@@ -87,12 +94,15 @@ function handleKeydown(e: KeyboardEvent) {
 				aria-label="パレットを閉じる"
 				onclick={close}
 				tabindex="-1"
+				transition:fade={{ duration: dFast }}
 			></button>
 		{/if}
 
 		<!-- Palette card -->
 		<div
 			class="relative mx-auto mt-[5vh] max-w-5xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/92 shadow-[0_40px_120px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:mt-[10vh]"
+			in:fly={{ y: -12, duration: dNormal, easing: cubicOut }}
+			out:fade={{ duration: dFast }}
 		>
 			<!-- Radial gradient overlay -->
 			<div

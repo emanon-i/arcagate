@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260423-154
 scope_files:
   - src/lib/components/arcagate/common/ToastContainer.svelte

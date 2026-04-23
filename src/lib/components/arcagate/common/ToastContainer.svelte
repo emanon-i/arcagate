@@ -3,6 +3,11 @@ import { X } from '@lucide/svelte';
 import { fade, fly } from 'svelte/transition';
 import { toastStore } from '$lib/state/toast.svelte';
 
+const rm =
+	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dFast = rm ? 0 : 120;
+const dNormal = rm ? 0 : 200;
+
 const typeStyles: Record<string, string> = {
 	success:
 		'border-[var(--ag-success-border)] bg-[var(--ag-success-bg)] text-[var(--ag-success-text)]',
@@ -19,8 +24,8 @@ const typeStyles: Record<string, string> = {
 					toast.type
 				]}"
 				data-testid="toast-{toast.type}"
-				in:fly={{ x: 100, duration: 250 }}
-				out:fade={{ duration: 150 }}
+				in:fly={{ x: 100, duration: dNormal }}
+				out:fade={{ duration: dFast }}
 			>
 				<span class="flex-1">{toast.message}</span>
 				<button

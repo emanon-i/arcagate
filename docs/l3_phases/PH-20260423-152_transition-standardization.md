@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260423-152
 scope_files:
   - src/lib/components/arcagate/common/SidebarRow.svelte

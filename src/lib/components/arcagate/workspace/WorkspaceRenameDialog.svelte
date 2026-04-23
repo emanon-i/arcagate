@@ -1,4 +1,7 @@
 <script lang="ts">
+import { cubicOut } from 'svelte/easing';
+import { fade, scale } from 'svelte/transition';
+
 interface Props {
 	open: boolean;
 	currentName: string;
@@ -13,6 +16,11 @@ let renameValue = $state('');
 $effect(() => {
 	if (open) renameValue = currentName;
 });
+
+const rm =
+	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dFast = rm ? 0 : 120;
+const dNormal = rm ? 0 : 200;
 </script>
 
 {#if open}
@@ -22,6 +30,7 @@ $effect(() => {
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
+		transition:fade={{ duration: dFast }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) onCancel();
 		}}
@@ -31,6 +40,7 @@ $effect(() => {
 	>
 		<div
 			class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-6 shadow-[var(--ag-shadow-dialog)]"
+			transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
 		>
 			<h3 class="mb-4 text-lg font-semibold text-[var(--ag-text-primary)]">
 				ワークスペース名を変更
