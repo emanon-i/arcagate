@@ -2,21 +2,12 @@ import { expect, test } from '../fixtures/tauri.js';
 import { createItem, deleteItem } from '../helpers/ipc.js';
 
 test.describe('コマンドパレット', () => {
-	test('パレットが開閉できること', { tag: '@smoke' }, async ({ page }) => {
-		// "Palette" ボタンでパレットを開く
-		await page.getByRole('button', { name: 'Palette' }).click();
-
-		// パレットダイアログが表示されることを確認
-		const dialog = page.locator('[role="dialog"]');
-		await expect(dialog).toBeVisible();
-
-		// パレット内の検索入力にフォーカスして Escape で閉じる
-		const paletteInput = dialog.getByRole('textbox').first();
-		await paletteInput.focus();
-		await page.keyboard.press('Escape');
-
-		// パレットが閉じることを確認
-		await expect(dialog).not.toBeVisible();
+	// batch-46 でパレットが常時フローティングウィンドウ化された
+	// メインウィンドウの E2E では別ウィンドウのパレットを直接操作できないため
+	// TitleBar のボタン存在確認に変更
+	test('パレットボタンが TitleBar に存在すること', { tag: '@smoke' }, async ({ page }) => {
+		const paletteButton = page.getByRole('button', { name: 'Palette' });
+		await expect(paletteButton).toBeVisible();
 	});
 
 	test('パレットでアイテムを検索できること', async ({ page }, testInfo) => {
@@ -111,7 +102,7 @@ test.describe('コマンドパレット', () => {
 		await page.keyboard.press('Escape');
 	});
 
-	test('Tab キーで補完が適用されること', { tag: '@smoke' }, async ({ page }) => {
+	test('Tab キーで補完が適用されること', async ({ page }) => {
 		const item = await createItem(page, {
 			item_type: 'url',
 			label: 'Tab補完テスト',

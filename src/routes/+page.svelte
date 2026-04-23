@@ -1,13 +1,13 @@
 <script lang="ts">
 import { Archive, Eye, EyeOff, LayoutDashboard, Search, Settings2, X } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { onDestroy } from 'svelte';
 import TitleAction from '$lib/components/arcagate/common/TitleAction.svelte';
 import TitleBar from '$lib/components/arcagate/common/TitleBar.svelte';
 import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
 import ToastContainer from '$lib/components/arcagate/common/ToastContainer.svelte';
 import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte';
-import PaletteOverlay from '$lib/components/arcagate/palette/PaletteOverlay.svelte';
 import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
@@ -23,7 +23,6 @@ import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 type ActiveView = 'library' | 'workspace';
 
 let activeView = $state<ActiveView>('library');
-let paletteOpen = $state(false);
 let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
 let droppedPaths = $state<string[] | undefined>(undefined);
@@ -59,14 +58,6 @@ $effect(() => {
 		toastStore.add(err, 'error');
 	}
 	prevWorkspaceError = err;
-});
-
-// ホットキーイベントリスナー
-let unlisten: (() => void) | null = null;
-listen('hotkey-triggered', () => {
-	paletteOpen = true;
-}).then((fn) => {
-	unlisten = fn;
 });
 
 // D&D: Library タブ & フォーム未表示のときだけ ItemFormDialog を開く
@@ -105,12 +96,20 @@ listen<string>('item://path-not-found', (e) => {
 });
 
 onDestroy(() => {
-	unlisten?.();
 	unlistenDragDrop?.();
 	unlistenDragOver?.();
 	unlistenDragLeave?.();
 	unlistenPathNotFound?.();
 });
+
+async function openFloatingPalette() {
+	const palette = await WebviewWindow.getByLabel('palette');
+	if (palette) {
+		await palette.show();
+		await palette.setFocus();
+		await palette.emit('palette-open', null);
+	}
+}
 
 async function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
 	if (editingItem) {
@@ -134,7 +133,6 @@ function handleFormClose() {
 
 <!-- オーバーレイ層 -->
 <SetupWizard />
-<PaletteOverlay bind:open={paletteOpen} />
 <ItemFormDialog
 	open={showItemForm}
 	item={editingItem ?? undefined}
@@ -207,7 +205,7 @@ function handleFormClose() {
 					onclick={() => hiddenStore.toggleDirect()}
 				/>
 			{/if}
-			<TitleAction icon={Search} label="Palette" tone="accent" onclick={() => (paletteOpen = true)} />
+			<TitleAction icon={Search} label="Palette" tone="accent" onclick={openFloatingPalette} />
 		{/snippet}
 		{#snippet centerSlot()}
 			<div class="flex items-center gap-2">
