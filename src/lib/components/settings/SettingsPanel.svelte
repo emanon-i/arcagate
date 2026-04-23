@@ -1,5 +1,6 @@
 <script lang="ts">
 import { configStore } from '$lib/state/config.svelte';
+import { soundStore } from '$lib/state/sound.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
@@ -97,6 +98,54 @@ $effect(() => {
 					>
 						ライト
 					</button>
+				</div>
+			</section>
+
+			<!-- サウンド -->
+			<section class="px-5 py-4">
+				<h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">サウンド</h3>
+				<div class="space-y-4">
+					<div class="flex items-center justify-between gap-4">
+						<div class="min-w-0">
+							<p class="text-sm font-medium text-[var(--ag-text-primary)]">クリック効果音</p>
+							<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">ボタン・パレット実行時にクリック音を鳴らす</p>
+						</div>
+						<div class="shrink-0">
+							<button
+								type="button"
+								role="switch"
+								aria-checked={soundStore.soundEnabled}
+								aria-label="クリック効果音を{soundStore.soundEnabled ? '無効' : '有効'}にする"
+								class="relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none {soundStore.soundEnabled
+									? 'bg-[var(--ag-accent)]'
+									: 'bg-[var(--ag-surface-4)]'}"
+								onclick={() => soundStore.setSoundEnabled(!soundStore.soundEnabled)}
+							>
+								<span
+									class="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-[var(--ag-duration-fast)] motion-reduce:transition-none {soundStore.soundEnabled
+										? 'translate-x-6'
+										: 'translate-x-1'}"
+								></span>
+							</button>
+						</div>
+					</div>
+					{#if soundStore.soundEnabled}
+						<div>
+							<div class="mb-2 flex items-center justify-between">
+								<p class="text-sm font-medium text-[var(--ag-text-primary)]">音量</p>
+								<span class="text-sm tabular-nums text-[var(--ag-text-secondary)]">{Math.round(soundStore.soundVolume * 100)}%</span>
+							</div>
+							<input
+								type="range"
+								min="0"
+								max="1"
+								step="0.05"
+								value={soundStore.soundVolume}
+								oninput={(e) => soundStore.setSoundVolume(Number(e.currentTarget.value))}
+								class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent-text)]"
+							/>
+						</div>
+					{/if}
 				</div>
 			</section>
 
