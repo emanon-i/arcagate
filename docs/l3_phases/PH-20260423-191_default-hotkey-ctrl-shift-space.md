@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-191
 title: デフォルトホットキーを Ctrl+Shift+Space に変更
 category: 改善

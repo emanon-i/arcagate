@@ -3,7 +3,6 @@ import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
-import type { WidgetType } from '$lib/types/workspace';
 import { clampWidget } from '$lib/utils/widget-grid';
 import FavoritesWidget from './FavoritesWidget.svelte';
 import PageTabBar from './PageTabBar.svelte';
@@ -32,9 +31,6 @@ $effect(() => {
 
 let editMode = $state(false);
 let selectedWidgetId = $state<string | null>(null);
-let dragOverCell = $state<{ x: number; y: number } | null>(null);
-let movingWidget = $state<string | null>(null);
-let dropZone = $state<HTMLDivElement | null>(null);
 let renameOpen = $state(false);
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
@@ -118,59 +114,6 @@ $effect(() => {
 	return () => el.removeEventListener('wheel', handleWheel);
 });
 
-function calcGridPosition(e: DragEvent): { x: number; y: number } {
-	const ref = dropZone;
-	if (!ref) return { x: 0, y: 0 };
-	const rect = ref.getBoundingClientRect();
-	const relX = e.clientX - rect.left;
-	const relY = e.clientY - rect.top;
-	const gap = 16;
-	const cellW = widgetW + gap;
-	const cellH = widgetH + gap;
-	const x = Math.max(0, Math.min(dynamicCols - 1, Math.floor(relX / cellW)));
-	const y = Math.max(0, Math.floor(relY / cellH));
-	return { x, y };
-}
-
-function handleDragOver(e: DragEvent) {
-	e.preventDefault();
-	const pos = calcGridPosition(e);
-	dragOverCell = pos;
-}
-
-function handleDragLeave() {
-	dragOverCell = null;
-}
-
-function handleDrop(e: DragEvent) {
-	e.preventDefault();
-	dragOverCell = null;
-	const pos = calcGridPosition(e);
-	const widgetType = e.dataTransfer?.getData('widget-type') as WidgetType | undefined;
-	const moveId = e.dataTransfer?.getData('widget-move-id');
-
-	if (moveId) {
-		void workspaceStore.moveWidget(moveId, pos.x, pos.y);
-	} else if (widgetType && widgetType in widgetComponents) {
-		void workspaceStore.addWidgetAt(widgetType, pos.x, pos.y);
-	}
-	movingWidget = null;
-}
-
-// Imperative drag event listeners (Svelte 5 delegation may break preventDefault for dragover)
-$effect(() => {
-	const el = dropZone;
-	if (!el) return;
-	el.addEventListener('dragover', handleDragOver);
-	el.addEventListener('drop', handleDrop);
-	el.addEventListener('dragleave', handleDragLeave);
-	return () => {
-		el.removeEventListener('dragover', handleDragOver);
-		el.removeEventListener('drop', handleDrop);
-		el.removeEventListener('dragleave', handleDragLeave);
-	};
-});
-
 let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
 </script>
 
@@ -244,15 +187,10 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						{widgetH}
 						{widgetComponents}
 						{selectedWidgetId}
-						{movingWidget}
 						{deleteConfirmId}
-						{dragOverCell}
 						onItemContext={handleItemContext}
 						onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
-						onMovingWidgetChange={(id) => (movingWidget = id)}
 						onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
-						onDragOverCellChange={(cell) => (dragOverCell = cell)}
-						onDropZoneElChange={(el) => (dropZone = el)}
 					/>
 				{:else if workspaceStore.widgets.length > 0}
 					<div

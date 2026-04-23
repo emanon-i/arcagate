@@ -44,8 +44,10 @@ pub fn launch_url(url: &str) -> Result<(), AppError> {
 
 /// フォルダをエクスプローラーで開く
 pub fn launch_folder(path: &str) -> Result<(), AppError> {
-    Command::new("explorer.exe")
-        .arg(path)
+    // Use cmd /c start to let the shell resolve the path and manage the window correctly.
+    // explorer.exe launched directly can silently fail on paths with spaces or unicode.
+    Command::new("cmd")
+        .args(["/c", "start", "", path])
         .spawn()
         .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
     Ok(())

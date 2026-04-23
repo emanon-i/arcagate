@@ -7,18 +7,18 @@ function getContext(): AudioContext {
 	if (!ctx) {
 		ctx = new AudioContext();
 	}
-	// suspended 状態（オートプレイポリシー）の場合は resume する
-	if (ctx.state === 'suspended') {
-		void ctx.resume();
-	}
 	return ctx;
 }
 
-export function playClick(volume: number): void {
+export async function playClick(volume: number): Promise<void> {
 	if (volume <= 0) return;
 
 	try {
 		const ac = getContext();
+		// Resume if suspended (autoplay policy — must be called in user gesture context)
+		if (ac.state === 'suspended') {
+			await ac.resume();
+		}
 		const now = ac.currentTime;
 
 		const osc = ac.createOscillator();

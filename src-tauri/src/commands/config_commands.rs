@@ -1,4 +1,5 @@
 use tauri::State;
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 use crate::db::DbState;
 use crate::services::config_service;
@@ -20,8 +21,20 @@ pub fn cmd_get_hotkey(db: State<DbState>) -> Result<String, AppError> {
 }
 
 #[tauri::command]
-pub fn cmd_set_hotkey(db: State<DbState>, hotkey: String) -> Result<(), AppError> {
-    config_service::set_hotkey(&db, &hotkey)
+pub fn cmd_set_hotkey(
+    app: tauri::AppHandle,
+    db: State<DbState>,
+    hotkey: String,
+) -> Result<(), AppError> {
+    // Unregister old hotkey before saving (ignore failure — may not be registered)
+    if let Ok(old) = config_service::get_hotkey(&db) {
+        let _ = app.global_shortcut().unregister(old.as_str());
+    }
+    config_service::set_hotkey(&db, &hotkey)?;
+    app.global_shortcut()
+        .register(hotkey.as_str())
+        .map_err(|e| AppError::InvalidInput(e.to_string()))?;
+    Ok(())
 }
 
 #[tauri::command]
