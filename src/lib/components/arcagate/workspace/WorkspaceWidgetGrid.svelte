@@ -161,7 +161,7 @@ $effect(() => {
 					<!-- ドラッグハンドル -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
-						class="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--ag-surface-4)]/80 hover:bg-[var(--ag-surface-4)]"
+						class="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--ag-surface-4)]/80 transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
 						class:cursor-grab={movingWidget !== widget.id}
 						class:cursor-grabbing={movingWidget === widget.id}
 						draggable="true"
@@ -174,7 +174,7 @@ $effect(() => {
 					<!-- 削除ボタン -->
 					<button
 						type="button"
-						class="absolute right-1 top-1 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
+						class="absolute right-1 top-1 rounded-full bg-destructive/80 p-1 text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-destructive active:scale-[0.95]"
 						aria-label="ウィジェットを削除"
 						onclick={() => onDeleteConfirmIdChange(widget.id)}
 					>
@@ -183,7 +183,7 @@ $effect(() => {
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<!-- L-4: Resize handle (SE corner) -->
 					<div
-						class="absolute bottom-1 right-1 flex h-6 w-6 cursor-se-resize items-center justify-center rounded bg-[var(--ag-accent)]/50 shadow hover:bg-[var(--ag-accent)]"
+						class="absolute bottom-1 right-1 flex h-6 w-6 cursor-se-resize items-center justify-center rounded bg-[var(--ag-accent)]/50 shadow transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-accent)]"
 						aria-label="リサイズ"
 						onpointerdown={(e) => handleResizeStart(e, widget.id)}
 						ondragstart={(e) => { e.preventDefault(); e.stopPropagation(); }}

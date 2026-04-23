@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260423-160
 scope_files:
   - tests/e2e/settings.spec.ts

@@ -102,8 +102,8 @@ $effect(() => {
 			</section>
 
 			<!-- サウンド -->
-			<section class="px-5 py-4">
-				<h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">サウンド</h3>
+			<section role="group" aria-labelledby="sound-section-label" class="px-5 py-4">
+				<h3 id="sound-section-label" class="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">サウンド</h3>
 				<div class="space-y-4">
 					<div class="flex items-center justify-between gap-4">
 						<div class="min-w-0">

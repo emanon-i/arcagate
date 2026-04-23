@@ -32,7 +32,7 @@ let { tone = 'default', size = 'sm', children, onclick, ...restProps }: Props = 
 {#if onclick}
 	<button
 		type="button"
-		class="rounded-full border transition {sizeClasses[size]} {toneClasses[tone]}"
+		class="rounded-full border transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {sizeClasses[size]} {toneClasses[tone]}"
 		{onclick}
 		{...restProps}
 	>
