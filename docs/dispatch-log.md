@@ -1348,3 +1348,26 @@ Obsidian Canvas から採用する要素:
 - batch-39: MoreMenu ドットボタンにフォーカスするとアクセントカラーのリングが表示されること
 - batch-39: 設定画面のテーマ切替ボタンをクリックするとスケールアニメーションが発生すること
 - batch-39: Workspace タブをダブルクリックするとリネームダイアログが開くこと（PH-185）
+
+---
+
+## 2026-04-23 batch-40 完了（PH-186〜190）
+
+| Plan ID         | タイトル                                                  | 成果                                                                                     |
+| --------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| PH-20260423-186 | WorkspaceSidebar ボタン focus-visible + active:scale 追加 | 編集/確定/キャンセルボタンに active:scale + focus-visible + transition 完全形            |
+| PH-20260423-187 | Setup + ExportImport ボタン focus-visible / active:scale  | StepAutostart/StepHotkey/ExportImport を ag-tokens + active:scale + focus-visible に統一 |
+| PH-20260423-188 | LibraryMainArea + PaletteSearchBar ボタン polish          | クリアボタン・アイテム追加ボタンに focus-visible + transform 追加                        |
+| PH-20260423-189 | E2E: Workspace タブダブルクリックでリネームダイアログ防衛 | workspace-editing.spec.ts に @smoke テスト追加（PH-185 退行防衛）                        |
+| PH-20260423-190 | WidgetSettings + FavoritesWidget + ProjectsWidget polish  | SettingsPanel ライトテーマボタン修正 + ウィジェットボタンに active:scale + focus-visible |
+
+- ブランチ: `feature/batch-20260423-40`
+- `pnpm verify` 全通過（biome/dprint/clippy/svelte-check/Rust 150件/smoke/vitest 148件/tauri build）
+
+## 手動確認依頼
+
+- batch-40: WorkspaceSidebar の「編集」「確定」「キャンセル」ボタンをクリックするとスケールアニメーション（0.97）が発生すること
+- batch-40: Tab キーで WorkspaceSidebar ボタンにフォーカスするとアクセントカラーのリングが表示されること
+- batch-40: Setup 画面の「次へ」「戻る」ボタンに active:scale + focus-visible が付いていること
+- batch-40: FavoritesWidget のアイテムボタンをクリックするとスケールアニメーションが発生すること
+- batch-40: ProjectsWidget のプロジェクトカードをクリックするとスケールアニメーションが発生すること

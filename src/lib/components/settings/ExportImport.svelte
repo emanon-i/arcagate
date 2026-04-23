@@ -54,14 +54,14 @@ async function handleImport() {
     <button
       onclick={handleExport}
       disabled={exporting || importing}
-      class="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] disabled:opacity-50 hover:opacity-90"
+      class="rounded-md bg-[var(--ag-accent)] px-3 py-1.5 text-sm text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:opacity-50 hover:opacity-90"
     >
       {exporting ? "エクスポート中..." : "エクスポート"}
     </button>
     <button
       onclick={handleImport}
       disabled={exporting || importing}
-      class="rounded-md border px-3 py-1.5 text-sm transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] disabled:opacity-50 hover:bg-[var(--ag-surface-3)]"
+      class="rounded-md border border-[var(--ag-border)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:opacity-50 hover:bg-[var(--ag-surface-4)]"
     >
       {importing ? "インポート中..." : "インポート"}
     </button>

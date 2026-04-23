@@ -68,7 +68,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 			<div class="flex items-center gap-1">
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] hover:text-green-500"
+					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
 					aria-label="編集を確定"
 					onclick={onConfirmEdit}
 				>
@@ -77,7 +77,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 				</button>
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] hover:text-red-500"
+					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
 					aria-label="編集をキャンセル"
 					onclick={onCancelEdit}
 				>
@@ -91,7 +91,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 				{@const Icon = aw.icon}
 				<button
 					type="button"
-					class="flex w-full cursor-grab items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
+					class="flex w-full cursor-grab items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
 					draggable="true"
 					data-widget-type={aw.type}
 					use:dragWidget={aw.type}
@@ -107,7 +107,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 		<div class="flex flex-1 flex-col items-center py-3">
 			<button
 				type="button"
-				class="rounded-lg p-2 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
+				class="rounded-lg p-2 text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
 				aria-label="編集モード"
 				onclick={onToggleEdit}
 			>

@@ -464,4 +464,28 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			}
 		},
 	);
+
+	test(
+		'ワークスペースタブをダブルクリックするとリネームダイアログが開くこと（PH-185 退行防衛）',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			const workspace = await createWorkspace(page, 'Rename Trigger Smoke WS');
+			try {
+				await page.reload();
+				await page.waitForLoadState('domcontentloaded');
+				await waitForAppReady(page);
+				await page.getByRole('button', { name: 'Workspace' }).click();
+
+				const tab = page.getByTestId(`workspace-tab-${workspace.id}`);
+				await expect(tab).toBeVisible();
+				await tab.dblclick();
+
+				await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
+				await page.getByRole('dialog').getByRole('button', { name: 'キャンセル' }).click();
+				await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3000 });
+			} finally {
+				await deleteWorkspace(page, workspace.id);
+			}
+		},
+	);
 });
