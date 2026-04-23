@@ -1282,12 +1282,27 @@ Obsidian Canvas から採用する要素:
 
 ## 2026-04-23 batch-36 開始（PH-166〜170）
 
-| Plan ID         | タイトル                                      | 成果 |
-| --------------- | --------------------------------------------- | ---- |
-| PH-20260423-166 | ダイアログアクションボタン トランジション統一 | WIP  |
-| PH-20260423-167 | ItemForm + DropZone ボタン トランジション統一 | WIP  |
-| PH-20260423-168 | ToastContainer + ExportImport ボタン polish   | WIP  |
-| PH-20260423-169 | E2E: Library タグフィルター操作テスト         | WIP  |
-| PH-20260423-170 | デッドコンポーネント削除（6 ファイル）        | WIP  |
+| Plan ID         | タイトル                                      | 成果                                                                                     |
+| --------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| PH-20260423-166 | ダイアログアクションボタン トランジション統一 | DeleteConfirmDialog/RenameDialog cancel+confirm に transition + active:scale 追加        |
+| PH-20260423-167 | ItemForm + DropZone ボタン トランジション統一 | アイコン選択・削除・DropZone 2ボタンに transition-colors 追加                            |
+| PH-20260423-168 | ToastContainer + ExportImport ボタン polish   | ToastContainer transition-opacity + ExportImport transition-[background-color,transform] |
+| PH-20260423-169 | E2E: Library タグフィルター操作テスト         | library-tag-filter.spec.ts として既存実装済み（done 扱い）                               |
+| PH-20260423-170 | デッドコンポーネント削除（6 ファイル）        | CommandPalette/ResultList/ResultItem/WatchedPathsManager/ItemList/TagManager 削除        |
 
-- ブランチ: `feature/batch-20260423-36`
+- ブランチ: `feature/batch-20260423-36` → PR #64（rebase マージ済み）
+- `pnpm verify` 全通過（biome/dprint/clippy/svelte-check/Rust 150件/smoke/vitest 148件/tauri build）
+
+---
+
+## 2026-04-23 batch-37 開始（PH-171〜175）
+
+| Plan ID         | タイトル                                           | 成果 |
+| --------------- | -------------------------------------------------- | ---- |
+| PH-20260423-171 | HotkeyInput + SensitiveControl ボタン polish       | WIP  |
+| PH-20260423-172 | QuickRegisterDropZone transition 標準化            | WIP  |
+| PH-20260423-173 | ItemForm タイプトグルボタン transition 標準化      | WIP  |
+| PH-20260423-174 | E2E: Library SensitiveControl + QuickRegister      | WIP  |
+| PH-20260423-175 | 裸の transition-colors 残留箇所 CSS 変数化（整理） | WIP  |
+
+- ブランチ: `feature/batch-20260423-37`

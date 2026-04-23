@@ -82,7 +82,7 @@ $effect(() => {
 				<div class="flex gap-2">
 					<button
 						type="button"
-						class="rounded-lg border px-4 py-2 text-sm transition-colors {themeStore.activeMode === 'dark'
+						class="rounded-lg border px-4 py-2 text-sm transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {themeStore.activeMode === 'dark'
 							? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
 							: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 						onclick={() => void themeStore.setThemeMode('dark')}
@@ -91,7 +91,7 @@ $effect(() => {
 					</button>
 					<button
 						type="button"
-						class="rounded-lg border px-4 py-2 text-sm transition-colors {themeStore.activeMode === 'light'
+						class="rounded-lg border px-4 py-2 text-sm transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {themeStore.activeMode === 'light'
 							? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
 							: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 						onclick={() => void themeStore.setThemeMode('light')}

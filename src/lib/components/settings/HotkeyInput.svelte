@@ -51,7 +51,7 @@ function handleBlur() {
   />
   <button
     type="button"
-    class="rounded-md border px-3 py-2 text-sm {recording
+    class="rounded-md border px-3 py-2 text-sm transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {recording
       ? 'border-destructive bg-destructive/10 text-destructive'
       : 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-4)]'}"
     onclick={startRecording}
