@@ -1174,5 +1174,19 @@ Obsidian Canvas から採用する要素:
 | PH-20260423-149 | 品質防衛テスト                                 | CSS トークン存在確認 + motion-reduce + soundStore + sfx = +29 vitest tests                                      |
 | PH-20260423-150 | ハードコード transition 値置換                 | duration-100/150 → CSS 変数 + motion-reduce:transition-none 全追加                                              |
 
-- ブランチ: `feature/batch-20260423-32` → PR #60 (CI pending)
+- ブランチ: `feature/batch-20260423-32` → PR #60 (rebase マージ済み)
 - pnpm verify: 全通過（Rust 150 / vitest 148 / tauri build）
+
+---
+
+## 2026-04-23 batch-33 開始（PH-151〜155）
+
+| Plan ID         | タイトル                                  | 成果 |
+| --------------- | ----------------------------------------- | ---- |
+| PH-20260423-151 | ActionButton マイクロインタラクション追加 | WIP  |
+| PH-20260423-152 | SidebarRow / PaletteResultRow 標準化      | WIP  |
+| PH-20260423-153 | PaletteOverlay 開閉アニメーション         | WIP  |
+| PH-20260423-154 | Toast アニメーション duration 揃え        | WIP  |
+| PH-20260423-155 | ダイアログ開閉アニメーション              | WIP  |
+
+- ブランチ: `feature/batch-20260423-33`
