@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-208
 title: Settings 2ペイン E2E テスト追加（batch-44 防衛）
-status: todo
+status: done
 priority: medium
 parallel_safe: true
 scope_files:

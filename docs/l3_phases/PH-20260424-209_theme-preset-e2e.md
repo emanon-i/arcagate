@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-209
 title: 組み込みテーマプリセット E2E テスト（batch-45 防衛）
-status: todo
+status: done
 priority: medium
 parallel_safe: true
 scope_files:

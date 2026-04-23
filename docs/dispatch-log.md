@@ -1545,3 +1545,29 @@ Obsidian Canvas から採用する要素:
 | 18 | アイテム/ワークスペース間の罫線       | 🛠    | 未実装（batch-47 予定）                     |
 | 19 | ItemForm Target= ラベル               | ✅   | batch-43(PH-200) ヒントテキスト追加         |
 | 20 | アイコンサイズ                        | ✅   | batch-43(PH-200) h-12→h-20 拡大             |
+
+---
+
+## 2026-04-24 セッション4回目継続: batch-47 実装完了
+
+### PR #76（batch-46）対応
+
+palette.spec.ts の @smoke テスト 2件修正（フローティングウィンドウ化対応）:
+
+1. `パレットが開閉できること @smoke` → `パレットボタンが TitleBar に存在すること @smoke`（ダイアログ確認廃止）
+2. `Tab キーで補完が適用されること @smoke` → @smoke タグ削除（nightly のみ）
+
+### batch-47 実装内容（PR #77 予定）
+
+| Plan   | タイトル                         | 実装内容                                                             |
+| ------ | -------------------------------- | -------------------------------------------------------------------- |
+| PH-207 | Library リスト/グリッド表示切替  | LibraryCard list mode + LibraryMainArea viewMode toggle + divide-y   |
+| PH-208 | Settings 2ペイン E2E（batch-44） | settings.spec.ts 2ペインナビ @smoke テスト追加                       |
+| PH-209 | テーマプリセット E2E（batch-45） | settings.spec.ts Endfield/Ubuntu Frosted 表示・CSS変数確認テスト追加 |
+| PH-210 | パレット UX polish               | PaletteSearchBar に autofocus 追加                                   |
+| PH-211 | lessons.md + dispatch-log 更新   | batch-43〜46 知見 4件追記                                            |
+
+### フィードバック #18 対応完了
+
+- **内容**: アイテム/ワークスペース間の罫線追加
+- **実装**: Library リスト表示で `divide-y` コンテナ、グリッド表示は既存カード border で代替

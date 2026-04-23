@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-211
 title: lessons.md 更新 + dispatch-log batch-47 完了記録
-status: todo
+status: done
 priority: low
 parallel_safe: true
 scope_files:

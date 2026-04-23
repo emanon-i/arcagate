@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-210
 title: パレット UX polish（自動フォーカス・Esc 挙動・表示位置）
-status: todo
+status: done
 priority: medium
 parallel_safe: true
 scope_files:

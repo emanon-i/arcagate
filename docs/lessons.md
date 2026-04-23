@@ -415,3 +415,35 @@ page: async ({ sharedBrowser }, use) => {
   - 要素テキスト変化待ち: `await expect(el).toHaveText('expected', { timeout: 15_000 })`
   - ネットワーク/IPC 完了待ち: IPC 完了を示す DOM 変化（ボタン状態・バッジ出現）で間接的に待つ
 - **タイムアウト明示**: 各 `waitForSelector` に `{ timeout: 20_000 }` を付けると `expect.timeout` との整合が取れる
+
+---
+
+## UI: HintBar のフローティング pill → 全幅バー移行パターン（Batch 43 の教訓）
+
+- **問題**: `absolute bottom-4` の pill スタイルは親の `overflow-hidden` に切られる。Workspace コンテナが overflow-hidden を持つため pill が見切れる
+- **解決**: `fixed bottom-0 left-0 right-0 w-full` で親の制約を飛び越える。または親コンテナの外側に移動してレイアウトを組み直す
+- **教訓**: インタラクション用 UI は absolute より fixed の方が overflow の影響を受けにくい
+
+---
+
+## Settings: 2ペイン化のパターン（Batch 44 の教訓）
+
+- **`activeCategory` 状態管理**: コンポーネントトップレベルの `$state` で管理し、各セクションを `{#if activeCategory === '...'}` で切り替える
+- **aria ロール**: 左ナビは `role="tablist"`、各ボタンは `role="tab"`、右コンテンツは `role="tabpanel"` + `id` 属性
+- **E2E テスト注意**: `aria-labelledby` が参照する `id` が存在しない場合 `getByRole('tabpanel', { name })` は機能しない。`page.locator('#settings-panel-{id}')` で id 直接指定する方が確実
+
+---
+
+## DB: 組み込みデータ INSERT には `INSERT OR IGNORE` を使う（Batch 45 の教訓）
+
+- **問題**: マイグレーション SQL で `INSERT INTO themes ...` とすると、マイグレーションが再実行された場合に UNIQUE 制約違反が起きる
+- **解決**: `INSERT OR IGNORE INTO themes ...` で既存レコードをスキップする
+- **適用場面**: 初期シードデータの投入（組み込みテーマ・デフォルト設定値など）
+
+---
+
+## Global Shortcut: 常時フローティングパレットのホットキー管理（Batch 46 の教訓）
+
+- **登録タイミング**: `global_shortcut().register()` はアプリ起動時の `setup` 内で一度だけ呼ぶ
+- **変更時の手順**: `cmd_set_hotkey` でホットキーを変更する際は、旧ホットキーを `unregister()` してから新ホットキーを `register()` する（二重登録防止）
+- **E2E 制限**: パレットがフローティングウィンドウ化されると、メインウィンドウの CDP コンテキストからは palette UI を操作できない。@smoke テストはボタン存在確認に留め、palette 操作テストは nightly のみにする
