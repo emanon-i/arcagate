@@ -1150,3 +1150,29 @@ Obsidian Canvas から採用する要素:
 
 - ブランチ: `feature/batch-20260422-30` → PR #58
 - pnpm verify: 全通過（150 Rust / 119 vitest / smoke / tauri build）
+
+## 2026-04-23 batch-31 完了（PH-143〜145）
+
+| Plan ID         | タイトル                      | 成果                                            |
+| --------------- | ----------------------------- | ----------------------------------------------- |
+| PH-20260423-143 | ux_design_vision.md 作成      | UX ビジョン・ゲーム UI 原則・エフェクト採用方針 |
+| PH-20260423-144 | design_system_architecture.md | トークン階層・モーション・背景レイヤ設計        |
+| PH-20260423-145 | visual-language-moodboard.md  | ムードボード・ビジュアル言語リファレンス        |
+
+- ブランチ: `feature/batch-20260423-31` → PR #59 (rebase マージ済み)
+- ユーザフィードバック反映コミット (49d3e8b 相当) も含めてマージ済み
+
+---
+
+## 2026-04-23 batch-32 開始（PH-146〜150）
+
+| Plan ID         | タイトル                                       | 成果                                                                                                            |
+| --------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| PH-20260423-146 | ux_standards.md 作成 (L1)                      | 検証可能 UX 基準文書 300+ 行（メトリクス・モーション・コントラスト）                                            |
+| PH-20260423-147 | CSS モーション・シャドウ・プリミティブトークン | --ag-duration-_(4) / --ag-ease-_(4) / --ag-shadow-_(5) / --prim-_(13) + shadow-dialog 定義修正 + reduced-motion |
+| PH-20260423-148 | クリック SE 再生基盤 (Web Audio API)           | sfx.ts + soundStore + SettingsPanel UI + パレット実行フック                                                     |
+| PH-20260423-149 | 品質防衛テスト                                 | CSS トークン存在確認 + motion-reduce + soundStore + sfx = +29 vitest tests                                      |
+| PH-20260423-150 | ハードコード transition 値置換                 | duration-100/150 → CSS 変数 + motion-reduce:transition-none 全追加                                              |
+
+- ブランチ: `feature/batch-20260423-32` → PR #60 (CI pending)
+- pnpm verify: 全通過（Rust 150 / vitest 148 / tauri build）
