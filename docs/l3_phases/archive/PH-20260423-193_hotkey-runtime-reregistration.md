@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-193
 title: ホットキー変更時のランタイム再登録
 category: バグ修正
