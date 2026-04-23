@@ -56,7 +56,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 
 <aside
 	class="flex h-full flex-col border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)]"
-	style="width: {editMode ? '200px' : '48px'}; transition: width 150ms ease;"
+	style="width: {editMode ? '200px' : '48px'}; transition: width var(--ag-duration-fast) var(--ag-ease-in-out);"
 >
 	{#if editMode}
 		<!-- 編集モード: ウィジェットリスト -->

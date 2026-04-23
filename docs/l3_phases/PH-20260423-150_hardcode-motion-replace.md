@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-150
 title: "ハードコード transition 値 → CSS 変数置換 + motion-reduce 適用"
 depends_on: [PH-20260423-147]

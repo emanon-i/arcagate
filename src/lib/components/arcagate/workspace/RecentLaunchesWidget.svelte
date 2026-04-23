@@ -51,7 +51,7 @@ let menuItems = $derived(
 		{#each visibleRecentItems as item (item.id)}
 			<button
 				type="button"
-				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm transition-colors duration-100 hover:bg-[var(--ag-surface-4)]"
+				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-surface-4)] motion-reduce:transition-none"
 				onclick={() => void launchItem(item.id)}
 				oncontextmenu={(e) => {
 					if (onItemContext) {
