@@ -30,7 +30,7 @@ const typeStyles: Record<string, string> = {
 				<span class="flex-1">{toast.message}</span>
 				<button
 					type="button"
-					class="shrink-0 opacity-60 hover:opacity-100"
+					class="shrink-0 opacity-60 transition-opacity duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:opacity-100"
 					aria-label="閉じる"
 					onclick={() => toastStore.dismiss(toast.id)}
 				>

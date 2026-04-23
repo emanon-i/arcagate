@@ -269,7 +269,7 @@ async function handleSelectIcon() {
       </div>
       <button
         type="button"
-        class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+        class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
         onclick={handleSelectIcon}
       >
         アイコンを選択
@@ -277,7 +277,7 @@ async function handleSelectIcon() {
       {#if iconPath}
         <button
           type="button"
-          class="text-xs text-[var(--ag-text-muted)] hover:text-destructive"
+          class="text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:text-destructive"
           onclick={() => { iconPath = ''; }}
         >
           削除

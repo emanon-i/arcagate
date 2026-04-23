@@ -74,14 +74,14 @@ async function handleClickFolder() {
   <div class="flex gap-2">
     <button
       type="button"
-      class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+      class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
       onclick={handleClickFile}
     >
       ファイルを選択
     </button>
     <button
       type="button"
-      class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+      class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
       onclick={handleClickFolder}
     >
       フォルダを選択
