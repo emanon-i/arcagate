@@ -132,7 +132,7 @@ let menuItems = $derived(
 			{@const gs = gitStatuses[item.id]}
 			<button
 				type="button"
-				class="rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-4 text-left transition-colors duration-100 hover:bg-[var(--ag-surface-4)]"
+				class="rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-4 text-left transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-surface-4)] motion-reduce:transition-none"
 				onclick={() => void launchItem(item.id)}
 				oncontextmenu={(e) => {
 					if (onItemContext) {
