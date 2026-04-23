@@ -222,6 +222,38 @@ test.describe('ライブラリ詳細パネル', () => {
 		}
 	});
 
+	test('Toast 閉じるボタンで通知が消えること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'Toast閉じるテスト',
+			target: 'https://toast-dismiss-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			// カードをクリックして DetailPanel を開く
+			await page.getByTestId(`library-card-${item.id}`).click();
+			await expect(page.getByTestId('library-detail-panel')).toBeVisible();
+
+			// Enter キーで起動してトースト表示
+			await page.locator('body').press('Enter');
+			await expect(page.getByTestId('toast-container')).toBeVisible();
+
+			// Toast の閉じるボタン（aria-label="閉じる"）をクリック
+			await page.getByRole('button', { name: '閉じる' }).first().click();
+
+			// Toast が消えること
+			await expect(page.getByTestId('toast-container')).not.toBeVisible({ timeout: 3000 });
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
+
 	test('INPUT フォーカス時は Enter キーで起動しないこと', async ({ page }) => {
 		await resizeWindow(page, 1280, 800);
 

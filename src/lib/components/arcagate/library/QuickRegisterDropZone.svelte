@@ -49,7 +49,7 @@ async function handleClick() {
 
 <button
 	type="button"
-	class="w-full rounded-[var(--ag-radius-widget)] border border-dashed p-4 text-left transition-colors {isDragging
+	class="w-full rounded-[var(--ag-radius-widget)] border border-dashed p-4 text-left transition-[border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {isDragging
 		? 'border-[var(--ag-accent)] bg-[var(--ag-accent)]/10'
 		: 'border-[var(--ag-border-dashed)] bg-[var(--ag-surface-2)] hover:border-[var(--ag-accent)]/50'}"
 	onclick={handleClick}

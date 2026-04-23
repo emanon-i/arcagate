@@ -91,7 +91,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 				{@const Icon = aw.icon}
 				<button
 					type="button"
-					class="flex w-full cursor-grab items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--ag-text-secondary)] transition-colors hover:bg-[var(--ag-surface-4)]"
+					class="flex w-full cursor-grab items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
 					draggable="true"
 					data-widget-type={aw.type}
 					use:dragWidget={aw.type}
@@ -107,7 +107,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 		<div class="flex flex-1 flex-col items-center py-3">
 			<button
 				type="button"
-				class="rounded-lg p-2 text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-4)]"
+				class="rounded-lg p-2 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
 				aria-label="編集モード"
 				onclick={onToggleEdit}
 			>

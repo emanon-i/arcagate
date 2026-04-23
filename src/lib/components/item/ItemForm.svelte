@@ -176,7 +176,7 @@ async function handleSelectIcon() {
     <div class="flex gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-1">
       <button
         type="button"
-        class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors {typeMode === 'local'
+        class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {typeMode === 'local'
           ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
           : 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
         disabled={!!item}
@@ -186,7 +186,7 @@ async function handleSelectIcon() {
       </button>
       <button
         type="button"
-        class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors {typeMode === 'url'
+        class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {typeMode === 'url'
           ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
           : 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
         disabled={!!item}

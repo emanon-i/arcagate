@@ -60,7 +60,7 @@ async function handleClickFolder() {
 </script>
 
 <div
-  class="flex min-h-32 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors {isDragging
+  class="flex min-h-32 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {isDragging
     ? 'border-primary bg-primary/5'
     : 'border-muted-foreground/30 hover:border-muted-foreground/50'}"
 >
