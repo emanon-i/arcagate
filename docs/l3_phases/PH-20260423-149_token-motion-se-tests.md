@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-149
 title: "品質防衛: トークン存在 / motion-reduce / SE ミュートテスト"
 depends_on: [PH-20260423-147, PH-20260423-148]
