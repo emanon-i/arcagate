@@ -155,16 +155,19 @@ function handleFormClose() {
 		onclick={(e) => { if (e.target === e.currentTarget) showSettings = false; }}
 		onkeydown={(e) => { if (e.key === 'Escape') showSettings = false; }}
 	>
-		<div class="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
-			<button
-				type="button"
-				class="absolute right-3 top-3 z-10 rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
-				aria-label="設定を閉じる"
-				onclick={() => (showSettings = false)}
-			>
-				<X class="h-4 w-4" />
-			</button>
-			<div class="overflow-y-auto">
+		<div class="relative flex h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
+			<div class="flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
+				<h2 class="text-base font-semibold text-[var(--ag-text-primary)]">設定</h2>
+				<button
+					type="button"
+					class="rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
+					aria-label="設定を閉じる"
+					onclick={() => (showSettings = false)}
+				>
+					<X class="h-4 w-4" />
+				</button>
+			</div>
+			<div class="min-h-0 flex-1 overflow-hidden">
 				<SettingsPanel />
 			</div>
 		</div>

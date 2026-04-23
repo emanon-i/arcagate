@@ -1477,3 +1477,26 @@ Obsidian Canvas から採用する要素:
 - batch-42: 編集モード中、サイドバーのウィジェット種別ハンドルをグリッドにドラッグ → ウィジェットが追加されること
 - batch-42: 編集モード中、既存ウィジェットの移動ハンドル（左上グリップ）をドラッグ → 別セルに移動できること
 - batch-42: ドラッグ中、カーソルに半透明ゴーストが追従しドロップ先にハイライトが出ること
+
+---
+
+## 2026-04-24 batch-43 完了（UX ポリッシュ）
+
+| 変更                        | 内容                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `WorkspaceHintBar`          | フローティング pill → 全幅ボトムバー。Esc/Enter/Del キーバインド常時表示        |
+| `WorkspaceSidebar`          | ボタンに `whitespace-nowrap` + `shrink-0` でレイアウト崩れ防止                  |
+| `ItemForm`                  | アイコンプレビュー拡大（h-12→h-20）、ターゲットラベル動的化、ヒントテキスト追加 |
+| `workspace-editing.spec.ts` | zoom slider CSS 変数確認テスト追加（PH-202 退行防衛）                           |
+
+- ブランチ: `feature/batch-20260424-43-ux-polish` → PR #73
+- `pnpm verify` 全通過（clippy/cargo test 22/smoke/148 vitest/tauri build）
+- 対応フィードバック: #7（ズーム確認）、#13（HintBar）、#15/#19/#20（ItemForm）、#18（サイドバー）
+- パレット ↑↓ 選択（#3）は既実装済み（PaletteOverlay.svelte ArrowDown/Up）
+
+## 手動確認依頼（batch-43 追加分）
+
+- batch-43: 編集モードで下部に HintBar が全幅で表示され Esc/Enter/Del キーバインドが見えること
+- batch-43: ItemForm でアイコン選択後に 80×80px プレビューが表示されること
+- batch-43: ターゲット欄の下にヒントテキスト（URL/ローカル別）が表示されること
+- batch-43: Settings のズームスライダーを動かすとリアルタイムでウィジェットサイズが変わること
