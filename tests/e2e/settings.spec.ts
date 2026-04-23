@@ -51,4 +51,45 @@ test.describe('設定パネル', () => {
 			await page.getByRole('button', { name: 'ライト' }).click();
 		}
 	});
+
+	test('サウンド ON/OFF トグルが切り替わること', async ({ page }) => {
+		await openSettings(page);
+
+		const soundSection = page.getByRole('group', { name: 'サウンド' });
+		await expect(soundSection).toBeVisible();
+
+		const toggle = soundSection.getByRole('switch');
+		const initialChecked = await toggle.getAttribute('aria-checked');
+
+		await toggle.click();
+		const newChecked = await toggle.getAttribute('aria-checked');
+		expect(newChecked).not.toBe(initialChecked);
+
+		if (newChecked === 'false') {
+			await expect(soundSection.getByRole('slider')).not.toBeVisible();
+		} else {
+			await expect(soundSection.getByRole('slider')).toBeVisible();
+		}
+	});
+
+	test('サウンド ON 時に音量スライダーが表示されること', async ({ page }) => {
+		await openSettings(page);
+
+		const soundSection = page.getByRole('group', { name: 'サウンド' });
+		const toggle = soundSection.getByRole('switch');
+
+		const isOn = (await toggle.getAttribute('aria-checked')) === 'true';
+		if (!isOn) {
+			await toggle.click();
+			await expect(toggle).toHaveAttribute('aria-checked', 'true');
+		}
+
+		const slider = soundSection.getByRole('slider');
+		await expect(slider).toBeVisible();
+
+		const val = await slider.getAttribute('value');
+		const num = parseFloat(val ?? '0');
+		expect(num).toBeGreaterThanOrEqual(0);
+		expect(num).toBeLessThanOrEqual(1);
+	});
 });
