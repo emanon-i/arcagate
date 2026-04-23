@@ -17,21 +17,32 @@ const dNormal = rm ? 0 : 200;
 
 {#if editMode}
 	<div
-		class="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2"
-		in:fly={{ y: 8, duration: dNormal, easing: cubicOut }}
+		class="pointer-events-none absolute bottom-0 left-0 right-0 z-20"
+		in:fly={{ y: 12, duration: dNormal, easing: cubicOut }}
 		out:fade={{ duration: dFast }}
 	>
 		<div
-			class="flex items-center gap-3 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)]/95 px-4 py-1.5 text-xs text-[var(--ag-text-muted)] shadow-[var(--ag-shadow-dialog)] backdrop-blur-sm"
+			class="flex items-center justify-center gap-5 border-t border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-6 py-2.5 text-sm text-[var(--ag-text-secondary)] shadow-[0_-2px_8px_rgba(0,0,0,0.08)]"
+			class:border-l-2={selectedWidgetId}
+			class:border-l-[var(--ag-accent)]={selectedWidgetId}
 		>
-			<span><kbd class="font-mono">Esc</kbd> キャンセル</span>
-			<span class="opacity-30">|</span>
-			<span><kbd class="font-mono">Enter</kbd> 確定</span>
-			<span class="opacity-30">|</span>
-			<span><kbd class="font-mono">Del</kbd> 削除</span>
+			<span>
+				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-xs">Esc</kbd>
+				<span class="ml-1">キャンセル</span>
+			</span>
+			<span class="text-[var(--ag-text-faint)]">·</span>
+			<span>
+				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-xs">Enter</kbd>
+				<span class="ml-1">確定</span>
+			</span>
+			<span class="text-[var(--ag-text-faint)]">·</span>
+			<span>
+				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-xs">Del</kbd>
+				<span class="ml-1">削除</span>
+			</span>
 			{#if selectedWidgetId}
-				<span class="opacity-30">|</span>
-				<span class="text-[var(--ag-accent)]">1件選択中</span>
+				<span class="text-[var(--ag-text-faint)]">·</span>
+				<span class="font-medium text-[var(--ag-accent)]">1件選択中</span>
 			{/if}
 		</div>
 	</div>

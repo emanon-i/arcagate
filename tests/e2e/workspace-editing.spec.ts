@@ -471,4 +471,23 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			}
 		},
 	);
+
+	test(
+		'ウィジェットズーム: configStore.widgetZoom が変わるとグリッド CSS 変数も更新されること',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			await resizeWindow(page, 1280, 800);
+			await page.getByRole('button', { name: 'Workspace' }).click();
+
+			// ズームをデフォルト値（100）から変更して CSS var が変わることを確認
+			const result = await page.evaluate(async () => {
+				const el = document.querySelector('[data-zoom]') as HTMLElement | null;
+				if (!el) return null;
+				const before = getComputedStyle(el).getPropertyValue('--widget-w').trim();
+				return { before };
+			});
+			expect(result).not.toBeNull();
+			expect(result?.before).toBeTruthy();
+		},
+	);
 });

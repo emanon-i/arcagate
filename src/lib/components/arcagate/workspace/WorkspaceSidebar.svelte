@@ -35,25 +35,25 @@ function startDrag(e: PointerEvent, widgetType: WidgetType) {
 >
 	{#if editMode}
 		<!-- 編集モード: ウィジェットリスト -->
-		<div class="flex items-center justify-between border-b border-[var(--ag-border)] px-3 py-2">
-			<span class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">ウィジェット</span>
-			<div class="flex items-center gap-1">
+		<div class="flex flex-nowrap items-center justify-between border-b border-[var(--ag-border)] px-3 py-2">
+			<span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">追加</span>
+			<div class="flex shrink-0 items-center gap-1">
 				<button
 					type="button"
-					class="flex min-w-[4rem] items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
+					class="flex min-w-[3.5rem] shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
 					aria-label="編集を確定"
 					onclick={onConfirmEdit}
 				>
-					<Check class="h-3.5 w-3.5" />
+					<Check class="h-3.5 w-3.5 shrink-0" />
 					完了
 				</button>
 				<button
 					type="button"
-					class="flex min-w-[4rem] items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
+					class="flex min-w-[3.5rem] shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
 					aria-label="編集をキャンセル"
 					onclick={onCancelEdit}
 				>
-					<X class="h-3.5 w-3.5" />
+					<X class="h-3.5 w-3.5 shrink-0" />
 					戻す
 				</button>
 			</div>
