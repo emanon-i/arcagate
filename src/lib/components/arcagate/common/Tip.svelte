@@ -45,7 +45,7 @@ function dismiss() {
 			<button
 				type="button"
 				aria-label="閉じる"
-				class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
+				class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
 				onclick={dismiss}
 			>
 				<X class="h-4 w-4" />

@@ -4,9 +4,10 @@ import { workspaceStore } from '$lib/state/workspace.svelte';
 
 interface Props {
 	onSelectWorkspace?: (id: string) => void;
+	onRenameActive?: () => void;
 }
 
-let { onSelectWorkspace }: Props = $props();
+let { onSelectWorkspace, onRenameActive }: Props = $props();
 
 let isAdding = $state(false);
 let newName = $state('');
@@ -48,6 +49,7 @@ function handleKeydown(e: KeyboardEvent) {
 			tone={ws.id === workspaceStore.activeWorkspaceId ? "accent" : "default"}
 			size="md"
 			onclick={() => onSelectWorkspace?.(ws.id)}
+			ondblclick={ws.id === workspaceStore.activeWorkspaceId ? () => onRenameActive?.() : undefined}
 			data-testid="workspace-tab-{ws.id}"
 		>
 			{ws.name}

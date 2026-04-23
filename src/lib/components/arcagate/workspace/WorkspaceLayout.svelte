@@ -217,7 +217,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		bind:this={workspaceContainer}
 	>
 		<div class="mb-5" class:pointer-events-none={editMode} class:opacity-50={editMode}>
-			<PageTabBar onSelectWorkspace={handleSelectWorkspace} />
+			<PageTabBar onSelectWorkspace={handleSelectWorkspace} onRenameActive={() => (renameOpen = true)} />
 		</div>
 
 		{#if !editMode}

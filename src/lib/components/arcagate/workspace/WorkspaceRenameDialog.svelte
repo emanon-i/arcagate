@@ -69,7 +69,7 @@ const dNormal = rm ? 0 : 200;
 					</button>
 					<button
 						type="submit"
-						class="rounded-lg bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:opacity-90"
+						class="rounded-lg bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-90"
 					>
 						変更
 					</button>
