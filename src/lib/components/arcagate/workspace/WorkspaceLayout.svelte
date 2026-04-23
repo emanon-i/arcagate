@@ -3,6 +3,7 @@ import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import * as workspaceIpc from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
+import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import FavoritesWidget from './FavoritesWidget.svelte';
@@ -180,6 +181,22 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		}
 	}}
 />
+
+<!-- Pointer drag ghost (follows cursor while dragging sidebar widget or moving widget) -->
+{#if pointerDrag.active}
+	<div
+		class="pointer-events-none fixed z-[999] flex items-center justify-center rounded-lg opacity-80 shadow-lg"
+		style="
+			background: var(--ag-accent);
+			width: 72px;
+			height: 36px;
+			left: {pointerDrag.clientX - 36}px;
+			top: {pointerDrag.clientY - 18}px;
+			transform: scale({pointerDrag.dropCell ? 1.08 : 1});
+			transition: transform 80ms ease;
+		"
+	></div>
+{/if}
 
 <div class="relative flex h-full">
 	<WorkspaceHintBar {editMode} {selectedWidgetId} />

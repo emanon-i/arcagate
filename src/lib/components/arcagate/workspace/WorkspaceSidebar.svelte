@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Check, Clock3, GitBranch, Grip, Pencil, Star, X } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import type { WidgetType } from '$lib/types/workspace';
 
 interface Props {
@@ -21,39 +22,10 @@ const availableWidgets: { type: WidgetType; label: string; icon: Component }[] =
 	{ type: 'projects', label: 'Projects', icon: GitBranch },
 ];
 
-function makeDragGhost(): HTMLDivElement {
-	const ghost = document.createElement('div');
-	ghost.style.cssText =
-		'position:fixed;top:-200px;left:-200px;width:72px;height:36px;background:var(--ag-accent);opacity:0.75;border-radius:8px;pointer-events:none;';
-	return ghost;
-}
-
-// Imperative dragstart action (Svelte 5 delegation may interfere with dataTransfer)
-function dragWidget(node: HTMLElement, widgetType: WidgetType) {
-	let handler = (e: DragEvent) => {
-		e.dataTransfer?.setData('widget-type', widgetType);
-		const ghost = makeDragGhost();
-		document.body.appendChild(ghost);
-		e.dataTransfer?.setDragImage(ghost, 36, 18);
-		requestAnimationFrame(() => ghost.remove());
-	};
-	node.addEventListener('dragstart', handler);
-	return {
-		update(newType: WidgetType) {
-			node.removeEventListener('dragstart', handler);
-			handler = (e: DragEvent) => {
-				e.dataTransfer?.setData('widget-type', newType);
-				const ghost = makeDragGhost();
-				document.body.appendChild(ghost);
-				e.dataTransfer?.setDragImage(ghost, 36, 18);
-				requestAnimationFrame(() => ghost.remove());
-			};
-			node.addEventListener('dragstart', handler);
-		},
-		destroy() {
-			node.removeEventListener('dragstart', handler);
-		},
-	};
+function startDrag(e: PointerEvent, widgetType: WidgetType) {
+	e.preventDefault();
+	(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+	pointerDrag.start({ kind: 'add', widgetType }, e.clientX, e.clientY);
 }
 </script>
 
@@ -89,12 +61,15 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 		<div class="space-y-1 p-3">
 			{#each availableWidgets as aw (aw.type)}
 				{@const Icon = aw.icon}
+				{@const isDragging = pointerDrag.active?.kind === 'add' && pointerDrag.active.widgetType === aw.type}
 				<button
 					type="button"
-					class="flex w-full cursor-grab items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-					draggable="true"
+					class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
+					class:cursor-grab={!isDragging}
+					class:cursor-grabbing={isDragging}
+					class:opacity-50={isDragging}
 					data-widget-type={aw.type}
-					use:dragWidget={aw.type}
+					onpointerdown={(e) => startDrag(e, aw.type)}
 				>
 					<Grip class="h-3.5 w-3.5 text-[var(--ag-text-faint)]" />
 					<Icon class="h-4 w-4" />
