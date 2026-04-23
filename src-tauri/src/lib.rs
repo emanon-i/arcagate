@@ -18,7 +18,7 @@ use commands::item_commands::{
     cmd_auto_register_folder_items, cmd_check_is_directory, cmd_count_hidden_items,
     cmd_create_item, cmd_create_tag, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon,
     cmd_get_item_tags, cmd_get_library_stats, cmd_get_tag_counts, cmd_get_tags, cmd_list_items,
-    cmd_search_items, cmd_search_items_in_tag, cmd_update_item, cmd_update_tag,
+    cmd_search_items, cmd_search_items_in_tag, cmd_toggle_star, cmd_update_item, cmd_update_tag,
     cmd_update_tag_prefix,
 };
 use commands::launch_commands::{
@@ -247,6 +247,7 @@ pub fn run() {
             cmd_git_status,
             cmd_get_library_stats,
             cmd_count_hidden_items,
+            cmd_toggle_star,
             cmd_auto_register_folder_items,
             cmd_get_item_stats,
             cmd_list_themes,
