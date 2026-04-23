@@ -52,16 +52,8 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
                     if event.state() == ShortcutState::Pressed {
-                        let main_visible = app
-                            .get_webview_window("main")
-                            .and_then(|w| w.is_visible().ok())
-                            .unwrap_or(false);
-
-                        if main_visible {
-                            // メインウィンドウ表示中 → インラインパレットを開く
-                            app.emit("hotkey-triggered", ()).ok();
-                        } else if let Some(palette) = app.get_webview_window("palette") {
-                            // メインウィンドウ非表示 → フローティングパレット
+                        // 常にフローティングパレットウィンドウを使用（main 表示状態に依存しない）
+                        if let Some(palette) = app.get_webview_window("palette") {
                             let is_visible = palette.is_visible().unwrap_or(false);
                             if is_visible {
                                 let _ = palette.hide();
