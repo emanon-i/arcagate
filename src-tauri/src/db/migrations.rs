@@ -11,6 +11,7 @@ const MIGRATION_007: &str = include_str!("../../migrations/007_drop_mcp_permissi
 const MIGRATION_008: &str = include_str!("../../migrations/008_category_to_tag.sql");
 const MIGRATION_009: &str = include_str!("../../migrations/009_add_is_tracked.sql");
 const MIGRATION_010: &str = include_str!("../../migrations/010_folder_default_app.sql");
+const MIGRATION_011: &str = include_str!("../../migrations/011_builtin_theme_presets.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -24,6 +25,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_008),
         M::up(MIGRATION_009),
         M::up(MIGRATION_010),
+        M::up(MIGRATION_011),
     ])
 }
 
