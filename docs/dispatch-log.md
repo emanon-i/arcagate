@@ -1237,5 +1237,19 @@ Obsidian Canvas から採用する要素:
 | PH-20260423-160 | E2E: サウンド設定トグルテスト追加                | `SettingsPanel` に `role="group"` 付与 + E2E テスト 2 件追加                                  |
 
 - ブランチ: `feature/batch-20260423-34`
-- PR: #62（CI 待ち）
+- PR: #62（rebase マージ済み）
 - `pnpm verify` 全通過（biome/dprint/clippy/svelte-check/cargo test 150件/smoke-test/vitest 148件/tauri build）
+
+---
+
+## 2026-04-23 batch-35 開始（PH-161〜165）
+
+| Plan ID         | タイトル                                           | 成果 |
+| --------------- | -------------------------------------------------- | ---- |
+| PH-20260423-161 | TitleAction + TitleTab トランジション標準化        | WIP  |
+| PH-20260423-162 | TitleBar ウィンドウコントロール ボタン polish      | WIP  |
+| PH-20260423-163 | LibraryDetailPanel / LibraryMainArea ボタン polish | WIP  |
+| PH-20260423-164 | E2E: Workspace ページタブ操作テスト追加            | WIP  |
+| PH-20260423-165 | WorkspaceSidebar + 小アイコンボタン polish（整理） | WIP  |
+
+- ブランチ: `feature/batch-20260423-35`
