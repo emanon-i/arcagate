@@ -1,12 +1,23 @@
-import { test as base, chromium, type Page } from '@playwright/test';
+import { type Browser, test as base, chromium, type Page } from '@playwright/test';
 import { findMainPage, waitForAppReady } from '../helpers/app-ready.js';
 
-export const test = base.extend<{ page: Page }>({
-	// biome-ignore lint/correctness/noEmptyPattern: Playwright requires object destructuring
-	page: async ({}, use) => {
-		const port = process.env.ARCAGATE_TEST_CDP_PORT ?? '9515';
-		const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
-		const ctx = browser.contexts()[0];
+export const test = base.extend<{ page: Page }, { sharedBrowser: Browser }>({
+	// Worker-scoped: CDP 接続を Worker 全体で 1 回だけ確立する。
+	// browser.close() は CDP mode で WebView2 プロセス自体を終了させるため、
+	// テストごとに接続/切断すると 2 テスト目以降で CDP ポートが消える。
+	sharedBrowser: [
+		// biome-ignore lint/correctness/noEmptyPattern: Playwright requires object destructuring
+		async ({}, use) => {
+			const port = process.env.ARCAGATE_TEST_CDP_PORT ?? '9515';
+			const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
+			await use(browser);
+			await browser.close();
+		},
+		{ scope: 'worker' },
+	],
+
+	page: async ({ sharedBrowser }, use) => {
+		const ctx = sharedBrowser.contexts()[0];
 		// メインウィンドウを URL で特定（パレットウィンドウ /palette を除外）
 		let page = findMainPage(ctx);
 		if (!page) {
@@ -28,8 +39,6 @@ export const test = base.extend<{ page: Page }>({
 		} catch {
 			// ページが閉じている場合は無視
 		}
-		// connection のみ切断。WebView2 プロセスは継続
-		await browser.close();
 	},
 });
 
