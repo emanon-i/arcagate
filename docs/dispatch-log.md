@@ -1315,14 +1315,29 @@ Obsidian Canvas から採用する要素:
 
 | Plan ID         | タイトル                                                               | 成果 |
 | --------------- | ---------------------------------------------------------------------- | ---- |
-| PH-20260423-176 | TitleBar ウィンドウコントロールボタン focus-visible 追加               | WIP  |
-| PH-20260423-177 | SidebarRow + ToastContainer focus-visible 追加                         | WIP  |
-| PH-20260423-178 | LibraryDetailPanel + Dialog cancel ボタン focus-visible / active:scale | WIP  |
-| PH-20260423-179 | E2E キーボードアクセシビリティ防衛テスト                               | WIP  |
-| PH-20260423-180 | Dead コンポーネント4件削除（整理）                                     | WIP  |
+| PH-20260423-176 | TitleBar ウィンドウコントロールボタン focus-visible 追加               | ✅   |
+| PH-20260423-177 | SidebarRow + ToastContainer focus-visible 追加                         | ✅   |
+| PH-20260423-178 | LibraryDetailPanel + Dialog cancel ボタン focus-visible / active:scale | ✅   |
+| PH-20260423-179 | E2E キーボードアクセシビリティ防衛テスト                               | ✅   |
+| PH-20260423-180 | Dead コンポーネント4件削除（整理）                                     | ✅   |
 
-- ブランチ: `feature/batch-20260423-38`
-- PR #66: CI 待ち
+- ブランチ: `feature/batch-20260423-38` → PR #66（rebase マージ済み）
+- `pnpm verify` 全通過（biome/dprint/clippy/svelte-check/Rust 150件/smoke/vitest 148件/tauri build）
+
+---
+
+## 2026-04-23 batch-39 開始（PH-181〜185）
+
+| Plan ID         | タイトル                                                                         | 成果 |
+| --------------- | -------------------------------------------------------------------------------- | ---- |
+| PH-20260423-181 | MoreMenu + WorkspaceRenameDialog submit ボタン focus-visible / active:scale 追加 | ✅   |
+| PH-20260423-182 | SettingsPanel テーマボタン + Tip 閉じるボタン focus-visible / active:scale 追加  | ✅   |
+| PH-20260423-183 | RecentLaunchesWidget + StepComplete ボタン polish                                | ✅   |
+| PH-20260423-184 | E2E: WorkspaceDeleteConfirmDialog キャンセル退行防衛テスト                       | ✅   |
+| PH-20260423-185 | WorkspaceRenameDialog rename トリガー（PageTabBar ダブルクリック）整理           | ✅   |
+
+- ブランチ: `feature/batch-20260423-39`
+- `pnpm verify` 全通過（biome/dprint/clippy/svelte-check/Rust 150件/smoke/vitest 148件/tauri build）
 
 ## 手動確認依頼
 
@@ -1330,3 +1345,6 @@ Obsidian Canvas から採用する要素:
 - batch-38: Tab キーでサイドバーボタンにフォーカスするとリングが表示されること
 - batch-38: Library で詳細パネルを開き「パネルを閉じる」ボタンをクリックするとパネルが閉じること（focus-visible リング確認含む）
 - batch-38: WorkspaceDeleteConfirmDialog の「キャンセル」ボタンをクリックするとスケールアニメーションが発生すること
+- batch-39: MoreMenu ドットボタンにフォーカスするとアクセントカラーのリングが表示されること
+- batch-39: 設定画面のテーマ切替ボタンをクリックするとスケールアニメーションが発生すること
+- batch-39: Workspace タブをダブルクリックするとリネームダイアログが開くこと（PH-185）
