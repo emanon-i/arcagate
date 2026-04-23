@@ -1308,3 +1308,25 @@ Obsidian Canvas から採用する要素:
 - ブランチ: `feature/batch-20260423-37`
 - PR #65: rebase-merge 済み（main: a806bed）
 - e2e CI 修正: `browser.close()` が CDP mode で WebView2 を終了させる問題 → worker-scoped fixture 化 (d347d7a)
+
+---
+
+## 2026-04-23 batch-38 開始（PH-176〜180）
+
+| Plan ID         | タイトル                                                               | 成果 |
+| --------------- | ---------------------------------------------------------------------- | ---- |
+| PH-20260423-176 | TitleBar ウィンドウコントロールボタン focus-visible 追加               | WIP  |
+| PH-20260423-177 | SidebarRow + ToastContainer focus-visible 追加                         | WIP  |
+| PH-20260423-178 | LibraryDetailPanel + Dialog cancel ボタン focus-visible / active:scale | WIP  |
+| PH-20260423-179 | E2E キーボードアクセシビリティ防衛テスト                               | WIP  |
+| PH-20260423-180 | Dead コンポーネント4件削除（整理）                                     | WIP  |
+
+- ブランチ: `feature/batch-20260423-38`
+- PR #66: CI 待ち
+
+## 手動確認依頼
+
+- batch-38: Tab キーで TitleBar ボタン（最小化/最大化/閉じる）にフォーカスするとアクセントカラーのリングが表示されること
+- batch-38: Tab キーでサイドバーボタンにフォーカスするとリングが表示されること
+- batch-38: Library で詳細パネルを開き「パネルを閉じる」ボタンをクリックするとパネルが閉じること（focus-visible リング確認含む）
+- batch-38: WorkspaceDeleteConfirmDialog の「キャンセル」ボタンをクリックするとスケールアニメーションが発生すること
