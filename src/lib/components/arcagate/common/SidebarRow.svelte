@@ -16,7 +16,7 @@ let { icon: Icon, label, meta, active = false, iconOnly = false, onclick }: Prop
 {#if iconOnly}
 	<button
 		type="button"
-		class="flex items-center justify-center rounded-lg p-2 transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {active
+		class="flex items-center justify-center rounded-lg p-2 transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {active
 			? 'bg-[var(--ag-accent-active-bg)] text-[var(--ag-text-primary)] ring-1 ring-[var(--ag-accent-active-border)]'
 			: 'text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 		title={label}
@@ -28,7 +28,7 @@ let { icon: Icon, label, meta, active = false, iconOnly = false, onclick }: Prop
 {:else}
 	<button
 		type="button"
-		class="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-sm transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {active
+		class="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-sm transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {active
 			? 'bg-[var(--ag-accent-active-bg)] text-[var(--ag-text-primary)] ring-1 ring-[var(--ag-accent-active-border)]'
 			: 'text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 		{onclick}
