@@ -1181,12 +1181,13 @@ Obsidian Canvas から採用する要素:
 
 ## 2026-04-23 batch-33 開始（PH-151〜155）
 
-| Plan ID         | タイトル                                  | 成果 |
-| --------------- | ----------------------------------------- | ---- |
-| PH-20260423-151 | ActionButton マイクロインタラクション追加 | WIP  |
-| PH-20260423-152 | SidebarRow / PaletteResultRow 標準化      | WIP  |
-| PH-20260423-153 | PaletteOverlay 開閉アニメーション         | WIP  |
-| PH-20260423-154 | Toast アニメーション duration 揃え        | WIP  |
-| PH-20260423-155 | ダイアログ開閉アニメーション              | WIP  |
+| Plan ID         | タイトル                                  | 成果                                                       |
+| --------------- | ----------------------------------------- | ---------------------------------------------------------- |
+| PH-20260423-151 | ActionButton マイクロインタラクション追加 | transition/active:scale/focus-visible:ring 追加            |
+| PH-20260423-152 | SidebarRow / PaletteResultRow 標準化      | 裸 transition → CSS 変数 + motion-reduce:transition-none   |
+| PH-20260423-153 | PaletteOverlay 開閉アニメーション         | 開: fly 200ms + バックドロップ fade 120ms / 閉: fade 120ms |
+| PH-20260423-154 | Toast アニメーション duration 揃え        | 250→200ms / 150→120ms + prefers-reduced-motion 対応        |
+| PH-20260423-155 | ダイアログ開閉アニメーション              | 4 ダイアログに scale(0.96→1)+fade 入場追加                 |
 
-- ブランチ: `feature/batch-20260423-33`
+- ブランチ: `feature/batch-20260423-33` → PR #61 (CI pending)
+- pnpm verify: 全通過（Rust 150 / vitest 148 / tauri build）
