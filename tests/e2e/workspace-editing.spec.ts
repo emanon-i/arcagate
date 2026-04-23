@@ -3,57 +3,6 @@ import { waitForAppReady } from '../helpers/app-ready.js';
 import { createWorkspace, deleteWorkspace, invoke, type Widget } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
-/**
- * Simulate HTML5 drag-and-drop via synthetic DragEvents.
- * Shares a DataTransfer instance across the event chain so setData/getData works correctly.
- */
-async function simulateDragDrop(
-	page: import('@playwright/test').Page,
-	fromSelector: string,
-	toSelector: string,
-): Promise<boolean> {
-	return page.evaluate(
-		({ from, to }) => {
-			const src = document.querySelector(from);
-			const dst = document.querySelector(to);
-			if (!src || !dst) return false;
-			const sR = src.getBoundingClientRect();
-			const dR = dst.getBoundingClientRect();
-			const dt = new DataTransfer();
-			src.dispatchEvent(
-				new DragEvent('dragstart', {
-					bubbles: true,
-					cancelable: true,
-					dataTransfer: dt,
-					clientX: sR.left + sR.width / 2,
-					clientY: sR.top + sR.height / 2,
-				}),
-			);
-			dst.dispatchEvent(
-				new DragEvent('dragover', {
-					bubbles: true,
-					cancelable: true,
-					dataTransfer: dt,
-					clientX: dR.left + 60,
-					clientY: dR.top + 60,
-				}),
-			);
-			dst.dispatchEvent(
-				new DragEvent('drop', {
-					bubbles: true,
-					cancelable: true,
-					dataTransfer: dt,
-					clientX: dR.left + 60,
-					clientY: dR.top + 60,
-				}),
-			);
-			src.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
-			return true;
-		},
-		{ from: fromSelector, to: toSelector },
-	);
-}
-
 test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッション防衛）', () => {
 	test.afterEach(async ({ page }) => {
 		await page.mouse.up().catch(() => {});
@@ -80,12 +29,11 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 				const beforeCount = await page.getByLabel('ウィジェットを移動').count();
 
 				// サイドバーの Recent ボタン（data-widget-type="recent"）からドロップゾーンへ D&D
-				const dropped = await simulateDragDrop(
-					page,
-					'[data-widget-type="recent"]',
-					'[data-testid="workspace-drop-zone"]',
-				);
-				expect(dropped).toBe(true);
+				await page
+					.locator('[data-widget-type="recent"]')
+					.dragTo(page.locator('[data-testid="workspace-drop-zone"]'), {
+						targetPosition: { x: 60, y: 60 },
+					});
 
 				// ウィジェットが追加されたことを確認（ドラッグハンドルが 1 増加）
 				await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount + 1, {
@@ -128,12 +76,12 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッショ
 			await expect(page.getByLabel('ウィジェットを移動').first()).toBeVisible();
 
 			// ドラッグハンドルをドロップゾーンの別セル（右端）へ移動
-			const dropped = await simulateDragDrop(
-				page,
-				'[aria-label="ウィジェットを移動"]',
-				'[data-testid="workspace-drop-zone"]',
-			);
-			expect(dropped).toBe(true);
+			await page
+				.locator('[aria-label="ウィジェットを移動"]')
+				.first()
+				.dragTo(page.locator('[data-testid="workspace-drop-zone"]'), {
+					targetPosition: { x: 400, y: 60 },
+				});
 
 			// 確定して編集モード終了
 			await page.getByLabel('編集を確定').click();

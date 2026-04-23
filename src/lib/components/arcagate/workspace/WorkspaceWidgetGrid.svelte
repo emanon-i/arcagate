@@ -2,6 +2,7 @@
 import { GripVertical, Trash2 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import type { WidgetType } from '$lib/types/workspace';
 import { clampWidget } from '$lib/utils/widget-grid';
 
 interface Props {
@@ -11,16 +12,10 @@ interface Props {
 	widgetH: number;
 	widgetComponents: Record<string, Component>;
 	selectedWidgetId: string | null;
-	movingWidget: string | null;
 	deleteConfirmId: string | null;
-	dragOverCell: { x: number; y: number } | null;
-	dropZoneEl?: HTMLDivElement | null;
 	onItemContext: (itemId: string) => void;
 	onSelectedWidgetIdChange: (id: string | null) => void;
-	onMovingWidgetChange: (id: string | null) => void;
 	onDeleteConfirmIdChange: (id: string | null) => void;
-	onDragOverCellChange: (cell: { x: number; y: number } | null) => void;
-	onDropZoneElChange: (el: HTMLDivElement | null) => void;
 }
 
 const MAX_SPAN = 4;
@@ -32,16 +27,61 @@ let {
 	widgetH,
 	widgetComponents,
 	selectedWidgetId,
-	movingWidget,
 	deleteConfirmId,
-	dragOverCell,
 	onItemContext,
 	onSelectedWidgetIdChange,
-	onMovingWidgetChange,
 	onDeleteConfirmIdChange,
-	onDragOverCellChange,
-	onDropZoneElChange,
 }: Props = $props();
+
+// Drag state (local — no need to lift to parent)
+let movingWidget = $state<string | null>(null);
+let dragOverCell = $state<{ x: number; y: number } | null>(null);
+let dropZoneEl = $state<HTMLDivElement | null>(null);
+
+function calcGridPosition(e: DragEvent): { x: number; y: number } {
+	const ref = dropZoneEl;
+	if (!ref) return { x: 0, y: 0 };
+	const rect = ref.getBoundingClientRect();
+	const relX = e.clientX - rect.left;
+	const relY = e.clientY - rect.top;
+	const gap = 16;
+	const cellW = widgetW + gap;
+	const cellH = widgetH + gap;
+	const x = Math.max(0, Math.min(dynamicCols - 1, Math.floor(relX / cellW)));
+	const y = Math.max(0, Math.floor(relY / cellH));
+	return { x, y };
+}
+
+function handleDragOver(e: DragEvent) {
+	e.preventDefault();
+	if (e.dataTransfer) {
+		// types is available during dragover (unlike getData which is security-restricted)
+		e.dataTransfer.dropEffect = e.dataTransfer.types.includes('widget-move-id') ? 'move' : 'copy';
+	}
+	dragOverCell = calcGridPosition(e);
+}
+
+function handleDragLeave(e: DragEvent) {
+	// Only clear when cursor truly leaves the drop zone (not just moving between children)
+	if (!dropZoneEl?.contains(e.relatedTarget as Node)) {
+		dragOverCell = null;
+	}
+}
+
+function handleDrop(e: DragEvent) {
+	e.preventDefault();
+	dragOverCell = null;
+	const pos = calcGridPosition(e);
+	const widgetType = e.dataTransfer?.getData('widget-type') as WidgetType | undefined;
+	const moveId = e.dataTransfer?.getData('widget-move-id');
+
+	if (moveId) {
+		void workspaceStore.moveWidget(moveId, pos.x, pos.y);
+	} else if (widgetType && widgetType in widgetComponents) {
+		void workspaceStore.addWidgetAt(widgetType, pos.x, pos.y);
+	}
+	movingWidget = null;
+}
 
 function handleResizeStart(e: PointerEvent, widgetId: string) {
 	e.preventDefault();
@@ -77,8 +117,11 @@ function handleResizeStart(e: PointerEvent, widgetId: string) {
 
 function dragMoveWidget(node: HTMLElement, widgetId: string) {
 	let startHandler = (e: DragEvent) => {
-		e.dataTransfer?.setData('widget-move-id', widgetId);
-		onMovingWidgetChange(widgetId);
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('widget-move-id', widgetId);
+		}
+		movingWidget = widgetId;
 		const ghost = document.createElement('div');
 		ghost.style.cssText =
 			'position:fixed;top:-200px;left:-200px;width:72px;height:36px;background:var(--ag-accent);opacity:0.75;border-radius:8px;pointer-events:none;';
@@ -87,7 +130,7 @@ function dragMoveWidget(node: HTMLElement, widgetId: string) {
 		requestAnimationFrame(() => ghost.remove());
 	};
 	let endHandler = () => {
-		onMovingWidgetChange(null);
+		movingWidget = null;
 	};
 	node.addEventListener('dragstart', startHandler);
 	node.addEventListener('dragend', endHandler);
@@ -96,11 +139,14 @@ function dragMoveWidget(node: HTMLElement, widgetId: string) {
 			node.removeEventListener('dragstart', startHandler);
 			node.removeEventListener('dragend', endHandler);
 			startHandler = (e: DragEvent) => {
-				e.dataTransfer?.setData('widget-move-id', newId);
-				onMovingWidgetChange(newId);
+				if (e.dataTransfer) {
+					e.dataTransfer.effectAllowed = 'move';
+					e.dataTransfer.setData('widget-move-id', newId);
+				}
+				movingWidget = newId;
 			};
 			endHandler = () => {
-				onMovingWidgetChange(null);
+				movingWidget = null;
 			};
 			node.addEventListener('dragstart', startHandler);
 			node.addEventListener('dragend', endHandler);
@@ -111,18 +157,17 @@ function dragMoveWidget(node: HTMLElement, widgetId: string) {
 		},
 	};
 }
-
-let dropZoneEl = $state<HTMLDivElement | null>(null);
-$effect(() => {
-	onDropZoneElChange(dropZoneEl);
-});
 </script>
 
 <!-- L-3: Grid with overlay -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="relative"
 	data-testid="workspace-drop-zone"
 	bind:this={dropZoneEl}
+	ondragover={handleDragOver}
+	ondrop={handleDrop}
+	ondragleave={handleDragLeave}
 >
 	<!-- Grid lines overlay (in flow — defines drop zone height) -->
 	<div
@@ -167,7 +212,6 @@ $effect(() => {
 						draggable="true"
 						use:dragMoveWidget={widget.id}
 						aria-label="ウィジェットを移動"
-						ondragstart={(e) => e.stopPropagation()}
 					>
 						<GripVertical class="h-3 w-3 text-[var(--ag-text-muted)]" />
 					</div>

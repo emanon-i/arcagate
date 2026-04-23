@@ -69,7 +69,7 @@ function handleKeydown(e: KeyboardEvent) {
 		e.preventDefault();
 		const selected = paletteStore.results[paletteStore.selectedIndex];
 		if (selected) {
-			if (soundStore.soundEnabled) playClick(soundStore.soundVolume);
+			if (soundStore.soundEnabled) void playClick(soundStore.soundVolume);
 			void paletteStore.launch(selected);
 			close();
 		}
@@ -147,7 +147,7 @@ function handleKeydown(e: KeyboardEvent) {
 									{index}
 									active={index === paletteStore.selectedIndex}
 									onclick={() => {
-										if (soundStore.soundEnabled) playClick(soundStore.soundVolume);
+										if (soundStore.soundEnabled) void playClick(soundStore.soundVolume);
 										void paletteStore.launch(entry);
 										close();
 									}}
