@@ -24,7 +24,7 @@ const dNormal = rm ? 0 : 200;
 		<div
 			class="flex items-center gap-3 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)]/95 px-4 py-1.5 text-xs text-[var(--ag-text-muted)] shadow-[var(--ag-shadow-dialog)] backdrop-blur-sm"
 		>
-			<span><kbd class="font-mono">Esc</kbd> 終了</span>
+			<span><kbd class="font-mono">Esc</kbd> キャンセル</span>
 			<span class="opacity-30">|</span>
 			<span><kbd class="font-mono">Enter</kbd> 確定</span>
 			<span class="opacity-30">|</span>

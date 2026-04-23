@@ -1,6 +1,7 @@
 <script lang="ts">
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
+import * as workspaceIpc from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
@@ -29,8 +30,11 @@ $effect(() => {
 	void workspaceStore.loadWorkspaces();
 });
 
+type WidgetSnapshot = { id: string; x: number; y: number; w: number; h: number };
+
 let editMode = $state(false);
 let selectedWidgetId = $state<string | null>(null);
+let editSnapshot = $state<WidgetSnapshot[]>([]);
 let renameOpen = $state(false);
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
@@ -50,8 +54,17 @@ $effect(() => {
 	return () => ro.disconnect();
 });
 
+// ウィジェットが占める最大列数（ウィンドウが狭くなっても下回らせない）
+let minGridCols = $derived(
+	workspaceStore.widgets.length > 0
+		? Math.max(1, ...workspaceStore.widgets.map((w) => w.position_x + w.width))
+		: 1,
+);
+
 let dynamicCols = $derived(
-	containerWidth > 0 && widgetW > 0 ? Math.max(1, Math.floor(containerWidth / widgetW)) : 4,
+	containerWidth > 0 && widgetW > 0
+		? Math.max(minGridCols, Math.floor(containerWidth / widgetW))
+		: Math.max(minGridCols, 4),
 );
 
 let currentWorkspaceName = $derived(
@@ -73,17 +86,41 @@ function confirmRename(name: string) {
 function startEdit() {
 	editMode = true;
 	selectedWidgetId = null;
+	editSnapshot = workspaceStore.widgets.map((w) => ({
+		id: w.id,
+		x: w.position_x,
+		y: w.position_y,
+		w: w.width,
+		h: w.height,
+	}));
 }
 
 function confirmEdit() {
 	editMode = false;
 	selectedWidgetId = null;
+	editSnapshot = [];
 }
 
 function cancelEdit() {
 	editMode = false;
 	selectedWidgetId = null;
-	// DB と同期して不整合を防ぐ（編集中の操作は即座に DB 反映されるため）
+	void doRestoreSnapshot();
+}
+
+async function doRestoreSnapshot() {
+	const snapshot = editSnapshot;
+	editSnapshot = [];
+	const snapshotIds = new Set(snapshot.map((s) => s.id));
+	// 編集中に追加されたウィジェットを削除
+	for (const w of workspaceStore.widgets) {
+		if (!snapshotIds.has(w.id)) {
+			await workspaceIpc.removeWidget(w.id);
+		}
+	}
+	// 元の位置・サイズに戻す
+	for (const snap of snapshot) {
+		await workspaceIpc.updateWidgetPosition(snap.id, snap.x, snap.y, snap.w, snap.h);
+	}
 	if (workspaceStore.activeWorkspaceId) {
 		void workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
 	}

@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-195
 title: 編集モード ESC キーでキャンセル（現状は確定になっている）
 category: バグ修正
