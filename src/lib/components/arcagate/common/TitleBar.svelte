@@ -66,7 +66,7 @@ function handleClose() {
 	<div class="flex">
 		<button
 			type="button"
-			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
+			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
 			aria-label="最小化"
 			onclick={handleMinimize}
 		>
@@ -74,7 +74,7 @@ function handleClose() {
 		</button>
 		<button
 			type="button"
-			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
+			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
 			aria-label={isMaximized ? '元に戻す' : '最大化'}
 			onclick={handleToggleMaximize}
 		>
@@ -86,7 +86,7 @@ function handleClose() {
 		</button>
 		<button
 			type="button"
-			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] hover:bg-red-500/80 hover:text-white"
+			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-red-500/80 hover:text-white"
 			aria-label="閉じる"
 			onclick={handleClose}
 		>

@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 phase_id: PH-20260423-164
 scope_files:
   - tests/e2e/workspace.spec.ts

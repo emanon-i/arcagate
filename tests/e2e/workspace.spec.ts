@@ -147,3 +147,53 @@ test.describe('ワークスペース', () => {
 		}
 	});
 });
+
+test.describe('ページタブ操作', () => {
+	test('+ ページを追加 でワークスペースが作成されること', async ({ page }) => {
+		await page.getByRole('button', { name: 'Workspace' }).click();
+
+		const addButton = page.getByRole('button', { name: '+ ページを追加' });
+		await expect(addButton).toBeVisible();
+
+		const tabsBefore = await page.locator('[data-testid^="workspace-tab-"]').count();
+
+		await addButton.click();
+
+		const input = page.locator('input[placeholder="名前"]');
+		await expect(input).toBeVisible();
+
+		await input.fill('テストページ追加');
+		await input.press('Enter');
+
+		// 新しいタブが増えていること
+		await expect(page.locator('[data-testid^="workspace-tab-"]')).toHaveCount(tabsBefore + 1);
+
+		// cleanup
+		const workspaces = await listWorkspaces(page);
+		const newWs = workspaces.find((w) => w.name === 'テストページ追加');
+		if (newWs) await deleteWorkspace(page, newWs.id);
+	});
+
+	test('Esc キーでページ追加をキャンセルできること', async ({ page }) => {
+		await page.getByRole('button', { name: 'Workspace' }).click();
+
+		const addButton = page.getByRole('button', { name: '+ ページを追加' });
+		await expect(addButton).toBeVisible();
+
+		const tabsBefore = await page.locator('[data-testid^="workspace-tab-"]').count();
+
+		await addButton.click();
+
+		const input = page.locator('input[placeholder="名前"]');
+		await expect(input).toBeVisible();
+
+		await input.press('Escape');
+		await expect(input).not.toBeVisible();
+
+		// + ページを追加ボタンが再表示される
+		await expect(addButton).toBeVisible();
+
+		// タブ数が変化していないこと
+		await expect(page.locator('[data-testid^="workspace-tab-"]')).toHaveCount(tabsBefore);
+	});
+});
