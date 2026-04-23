@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-204
 title: Settings 2ペイン化（Obsidian 風）
-status: wip
+status: done
 priority: high
 parallel_safe: false
 scope_files:

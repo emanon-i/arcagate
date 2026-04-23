@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-203
 title: E2E 防衛テスト追加（PointerEvent D&D + ズームスライダー）
-status: wip
+status: done
 priority: medium
 parallel_safe: true
 scope_files:

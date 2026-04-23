@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-192
 title: D&D ドロップハンドラをインライン化（リグレッション修正）
 category: バグ修正

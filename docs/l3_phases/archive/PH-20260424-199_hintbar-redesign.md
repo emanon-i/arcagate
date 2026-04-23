@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-199
 title: WorkspaceHintBar 再デザイン（視認性・存在感向上）
-status: wip
+status: done
 priority: medium
 parallel_safe: true
 scope_files:

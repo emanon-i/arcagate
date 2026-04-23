@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-202
 title: ウィジェットズームスライダー動作確認と修正
-status: wip
+status: done
 priority: high
 parallel_safe: true
 scope_files:

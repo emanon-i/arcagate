@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-200
 title: ItemForm UX 改善（アイコンプレビュー拡大・ターゲットヒント追加）
-status: wip
+status: done
 priority: medium
 parallel_safe: true
 scope_files:

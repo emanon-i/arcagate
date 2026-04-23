@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-194
 title: サウンド再生・ズームスライダー・フォルダ起動 修正調査
 category: バグ修正

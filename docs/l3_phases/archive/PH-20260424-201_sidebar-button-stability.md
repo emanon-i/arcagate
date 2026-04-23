@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-201
 title: WorkspaceSidebar ボタン幅安定化（改行・ガタつき防止）
-status: wip
+status: done
 priority: low
 parallel_safe: true
 scope_files:
