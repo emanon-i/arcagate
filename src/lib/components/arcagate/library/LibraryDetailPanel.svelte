@@ -197,7 +197,7 @@ $effect(() => {
 				<MoreMenu items={moreMenuItems} ariaLabel="アイテム操作メニュー" />
 				<button
 					type="button"
-					class="rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)]"
+					class="rounded-lg p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
 					aria-label="パネルを閉じる"
 					onclick={() => onClose?.()}
 				>
@@ -232,7 +232,7 @@ $effect(() => {
 						{tag.name}
 						<button
 							type="button"
-							class="ml-0.5 rounded-full p-0.5 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+							class="ml-0.5 rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
 							aria-label="タグ {tag.name} を解除"
 							onclick={() => void handleRemoveTag(tag.id)}
 						>
@@ -249,7 +249,7 @@ $effect(() => {
 					<button
 						bind:this={tagTriggerEl}
 						type="button"
-						class="rounded-full border border-dashed border-[var(--ag-border)] px-2.5 py-1 text-xs text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)]"
+						class="rounded-full border border-dashed border-[var(--ag-border)] px-2.5 py-1 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
 						onclick={() => (showTagSelect = !showTagSelect)}
 					>
 						+ タグを追加
@@ -259,7 +259,7 @@ $effect(() => {
 							{#each availableTags as tag, i (tag.id)}
 								<button
 									type="button"
-									class="block w-full rounded-md px-3 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
+									class="block w-full rounded-md px-3 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
 									tabindex={focusedTagIndex === i ? 0 : -1}
 									onclick={() => { void handleAddTag(tag.id); closeTagDropdown(); }}
 									onkeydown={(e) => {
@@ -287,7 +287,7 @@ $effect(() => {
 				<DetailRow label="デフォルトアプリ" value={selectedItem.default_app || 'Explorer（既定）'} />
 				<button
 					type="button"
-					class="flex items-center gap-2 rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+					class="flex items-center gap-2 rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
 					onclick={() => void handlePickDefaultApp()}
 				>
 					<FolderOpen class="h-3.5 w-3.5" />
@@ -303,7 +303,7 @@ $effect(() => {
 			<button
 				type="button"
 				aria-label={isStarred ? 'スターを外す' : 'スターを付ける'}
-				class="flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition-colors
+				class="flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97]
 					{isStarred
 					? 'border-[var(--ag-accent)]/60 bg-[var(--ag-accent)]/15 text-[var(--ag-accent)] hover:bg-[var(--ag-accent)]/25'
 					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
@@ -314,7 +314,7 @@ $effect(() => {
 			</button>
 			<button
 				type="button"
-				class="flex items-center justify-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm text-destructive hover:bg-destructive/20"
+				class="flex items-center justify-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm text-destructive transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:bg-destructive/20"
 				onclick={handleDelete}
 				data-testid="delete-item-button"
 			>

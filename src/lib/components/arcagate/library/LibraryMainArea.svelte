@@ -122,7 +122,7 @@ let filteredItems = $derived.by(() => {
 			{#if searchQuery}
 				<button
 					type="button"
-					class="rounded-full p-0.5 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+					class="rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
 					aria-label="検索をクリア"
 					onclick={() => { searchQuery = ''; searchInputEl?.focus(); }}
 				>
@@ -132,7 +132,7 @@ let filteredItems = $derived.by(() => {
 		</div>
 		<button
 			type="button"
-			class="flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-3 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+			class="flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-3 text-sm text-[var(--ag-text-secondary)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:bg-[var(--ag-surface-4)]"
 			data-testid="add-item-button"
 			onclick={() => onAddItem?.()}
 		>
@@ -181,7 +181,7 @@ let filteredItems = $derived.by(() => {
 						</div>
 						<button
 							type="button"
-							class="flex items-center gap-2 rounded-[var(--ag-radius-card)] bg-[var(--ag-accent)] px-4 py-2 text-sm text-white hover:opacity-90"
+							class="flex items-center gap-2 rounded-[var(--ag-radius-card)] bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[opacity,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:opacity-90"
 							onclick={() => onAddItem?.()}
 						>
 							<Plus class="h-4 w-4" />

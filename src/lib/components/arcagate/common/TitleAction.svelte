@@ -22,7 +22,7 @@ let { icon: Icon, label, tone = 'default', onclick }: Props = $props();
 
 <button
 	type="button"
-	class="inline-flex items-center justify-center rounded-lg border p-1.5 transition {toneClasses[tone]}"
+	class="inline-flex items-center justify-center rounded-lg border p-1.5 transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {toneClasses[tone]}"
 	aria-label={label}
 	title={label}
 	{onclick}

@@ -28,7 +28,7 @@ let { title, icon: Icon, menuItems = [], children }: Props = $props();
 		</div>
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger
-				class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)]"
+				class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
 				aria-label="{title} メニュー"
 			>
 				<MoreHorizontal class="h-4 w-4" />

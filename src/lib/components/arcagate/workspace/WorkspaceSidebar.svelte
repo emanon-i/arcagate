@@ -12,6 +12,9 @@ interface Props {
 
 let { editMode, onToggleEdit, onConfirmEdit, onCancelEdit }: Props = $props();
 
+const rm =
+	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = [
 	{ type: 'favorites', label: 'Favorites', icon: Star },
 	{ type: 'recent', label: 'Recent', icon: Clock3 },
@@ -56,7 +59,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 
 <aside
 	class="flex h-full flex-col border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)]"
-	style="width: {editMode ? '200px' : '48px'}; transition: width var(--ag-duration-fast) var(--ag-ease-in-out);"
+	style="width: {editMode ? '200px' : '48px'};{rm ? '' : ' transition: width var(--ag-duration-fast) var(--ag-ease-in-out);'}"
 >
 	{#if editMode}
 		<!-- 編集モード: ウィジェットリスト -->
@@ -65,7 +68,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 			<div class="flex items-center gap-1">
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-green-500"
+					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] hover:text-green-500"
 					aria-label="編集を確定"
 					onclick={onConfirmEdit}
 				>
@@ -74,7 +77,7 @@ function dragWidget(node: HTMLElement, widgetType: WidgetType) {
 				</button>
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)] hover:text-red-500"
+					class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] hover:text-red-500"
 					aria-label="編集をキャンセル"
 					onclick={onCancelEdit}
 				>
