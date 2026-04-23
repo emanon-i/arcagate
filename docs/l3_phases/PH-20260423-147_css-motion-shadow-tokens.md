@@ -1,5 +1,5 @@
 ---
-status: todo
+status: wip
 phase_id: PH-20260423-147
 title: "CSS モーション・シャドウ・プリミティブトークン追加"
 depends_on: []
