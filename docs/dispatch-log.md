@@ -1299,10 +1299,12 @@ Obsidian Canvas から採用する要素:
 
 | Plan ID         | タイトル                                           | 成果 |
 | --------------- | -------------------------------------------------- | ---- |
-| PH-20260423-171 | HotkeyInput + SensitiveControl ボタン polish       | WIP  |
-| PH-20260423-172 | QuickRegisterDropZone transition 標準化            | WIP  |
-| PH-20260423-173 | ItemForm タイプトグルボタン transition 標準化      | WIP  |
-| PH-20260423-174 | E2E: Library SensitiveControl + QuickRegister      | WIP  |
-| PH-20260423-175 | 裸の transition-colors 残留箇所 CSS 変数化（整理） | WIP  |
+| PH-20260423-171 | HotkeyInput + SensitiveControl ボタン polish       | ✅   |
+| PH-20260423-172 | QuickRegisterDropZone transition 標準化            | ✅   |
+| PH-20260423-173 | ItemForm タイプトグルボタン transition 標準化      | ✅   |
+| PH-20260423-174 | E2E: Toast 閉じるボタン dismiss テスト             | ✅   |
+| PH-20260423-175 | 裸の transition-colors 残留箇所 CSS 変数化（整理） | ✅   |
 
 - ブランチ: `feature/batch-20260423-37`
+- PR #65: rebase-merge 済み（main: a806bed）
+- e2e CI 修正: `browser.close()` が CDP mode で WebView2 を終了させる問題 → worker-scoped fixture 化 (d347d7a)
