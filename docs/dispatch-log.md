@@ -1253,3 +1253,15 @@ Obsidian Canvas から採用する要素:
 | PH-20260423-165 | WorkspaceSidebar + 小アイコンボタン polish（整理） | WIP  |
 
 - ブランチ: `feature/batch-20260423-35`
+
+### batch-35 成果詳細
+
+| Plan ID         | 成果                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| PH-20260423-161 | TitleAction/TitleTab: bare `transition` → CSS vars + `active:scale-[0.97]` + `focus-visible:ring`                 |
+| PH-20260423-162 | TitleBar 3 ボタン: `transition-colors` + `motion-reduce:transition-none` 追加                                     |
+| PH-20260423-163 | LibraryDetailPanel/MainArea: 全 hover ボタンに transition + active:scale 追加（7箇所）                            |
+| PH-20260423-164 | workspace.spec.ts: ページタブ追加テスト・Esc キャンセルテスト 2 件追加                                            |
+| PH-20260423-165 | WorkspaceSidebar: inline width transition → motion-reduce 対応 + WidgetShell/MoreMenu/Tip/PaletteSearchBar polish |
+
+- PR: #63（CI 待ち）
