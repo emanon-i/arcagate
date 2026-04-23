@@ -1,5 +1,7 @@
 <script lang="ts">
 import { open } from '@tauri-apps/plugin-dialog';
+import { cubicOut } from 'svelte/easing';
+import { fade, scale } from 'svelte/transition';
 import { Button } from '$lib/components/ui/button';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -72,6 +74,11 @@ async function handlePickFolder() {
 	config = { ...config, watched_folder: selected };
 }
 
+const rm =
+	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dFast = rm ? 0 : 120;
+const dNormal = rm ? 0 : 200;
+
 async function handleSave() {
 	const newConfig: WidgetConfig = {
 		max_items: maxItems,
@@ -101,6 +108,7 @@ async function handleSave() {
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
+		transition:fade={{ duration: dFast }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) onClose();
 		}}
@@ -108,7 +116,10 @@ async function handleSave() {
 			if (e.key === 'Escape') onClose();
 		}}
 	>
-    <div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]">
+    <div
+      class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
+      transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
+    >
       <h3 class="mb-4 text-base font-semibold text-[var(--ag-text-primary)]">ウィジェット設定</h3>
       <form onsubmit={(e) => { e.preventDefault(); void handleSave(); }}>
       <div class="space-y-4">

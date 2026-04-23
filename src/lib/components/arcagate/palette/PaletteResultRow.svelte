@@ -54,7 +54,7 @@ let display = $derived(getDisplay(entry));
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
-	class="flex items-center justify-between gap-3 rounded-[22px] border px-4 py-3 transition {active
+	class="flex items-center justify-between gap-3 rounded-[22px] border px-4 py-3 transition-[border-color,background-color,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {active
 		? 'border-cyan-400/25 bg-cyan-400/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
 		: 'border-[var(--ag-border)] bg-white/[0.03]'}"
 	role="option"
