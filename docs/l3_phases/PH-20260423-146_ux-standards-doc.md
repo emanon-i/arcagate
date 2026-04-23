@@ -1,5 +1,5 @@
 ---
-status: wip
+status: done
 phase_id: PH-20260423-146
 title: "L1 UX 標準ドキュメント作成 (ux_standards.md)"
 depends_on: []
