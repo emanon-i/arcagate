@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-216
 title: テーマエディタ E2E テスト
-status: in_progress
+status: done
 priority: medium
 parallel_safe: false
 scope_files:

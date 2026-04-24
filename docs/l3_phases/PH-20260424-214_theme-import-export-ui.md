@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-214
 title: テーマ JSON インポート/エクスポート UI
-status: in_progress
+status: done
 priority: medium
 parallel_safe: false
 scope_files:

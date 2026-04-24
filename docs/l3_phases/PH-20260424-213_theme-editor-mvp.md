@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-213
 title: テーマエディタ MVP
-status: in_progress
+status: done
 priority: high
 parallel_safe: false
 scope_files:
