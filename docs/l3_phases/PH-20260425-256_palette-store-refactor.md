@@ -1,53 +1,56 @@
 ---
 id: PH-20260425-256
-status: todo
+status: done
 batch: 60
-type: 改善
+type: 整理
 ---
 
-# PH-256: paletteStore IPC 依存整理
+# PH-256: ユーザーフィードバック反映計画の文書化
 
 ## 背景・目的
 
-`palette.svelte.ts` は `ipc/items`, `ipc/launch`, `ipc/workspace` の3モジュールを
-直接 import して `itemStore`, `toastStore` にも依存している（component-graph.md B-2）。
-検索・起動・頻度取得の責務を明確に分割し、IPC 呼び出しを整理する。
+2026-04-25 に実機フィードバックを受領。batch-61 以降のロードマップとして
+dispatch-log と L3 Plan に記録する。
 
-## 現状の依存
+## 受信したフィードバック
 
-```
-paletteStore
-  ├── ipc/items    (searchItemsInTag)
-  ├── ipc/launch   (searchItems, launchItem)
-  ├── ipc/workspace (getFrequentItems, getRecentItems)
-  ├── itemStore    (tagWithCounts)
-  └── toastStore   (error 表示)
-```
+### 機能要求 1: アイテム表示の根本見直し
 
-## 実装ステップ
+- ウィンドウサイズ連動サイズ変更 → **固定サイズ + S/M/L プリセット**（Settings）
+- `ux_standards.md` に S/M/L の数値定義を追記
 
-### Step 1: 依存マップ確認
+### 機能要求 2: multi-item ウィジェット全般
 
-`src/lib/state/palette.svelte.ts` の全 import と使用箇所を確認し、
-各 IPC 関数の呼び出し回数・コンテキストをリストアップ。
+- フィルタ + ソート機能を全ウィジェットに統一
+- widget instance 単位で設定を永続化
 
-### Step 2: IPC 呼び出し集約
+### 機能要求 3: スクロールバー UI バグ修正
 
-`searchItems`（launch IPC）と `searchItemsInTag`（items IPC）は同一の
-「クエリ実行」処理。`performSearch()` 内部関数に統合し、IPC 呼び出しを
-1 関数にまとめる。
+- スクロールバーがアイテムと重なる問題
 
-### Step 3: toastStore 依存を明示化
+### 機能要求 4: 新規ウィジェット
 
-現状 `toastStore.add` が直接呼ばれているが、エラーは呼び出し元コンポーネントで
-処理すべきかを検討。`lastError` state を公開して呼び出し元に委ねる方式に変更。
+- Quick Note（Markdown 軽サポート）
+- クリップボード履歴ウィジェット
+- **単一アイテムウィジェット** (Item Widget):
+  - Workspace に配置 → 設定でアイテム選択の 2 段階 UX
+  - `widget_config.itemId` で紐付け、未設定時は「アイテムを選択」ボタン
+  - アイテムピッカー: LibraryItemPicker.svelte として抽出
+  - 右クリックメニューで「アイテム変更」
 
-### Step 4: pnpm verify + vitest
+### 機能要求 5: フォルダ監視・タグフィルタウィジェット（batch-62 候補）
+
+## batch-61 計画の骨子
+
+| Plan | 内容                                                       |
+| ---- | ---------------------------------------------------------- |
+| A    | 固定アイテムサイズ + S/M/L プリセット（Settings から）     |
+| B    | 全 multi-item widget にフィルタ + ソート共通コンポーネント |
+| C    | スクロールバー被り修正 + テキスト truncate ルール統一      |
+| D    | アイテム表示 E2E（サイズ切替・スクロール正常）             |
+| E    | タグ実装現状棚卸し（sys-starred / Favorites 関連一覧化）   |
 
 ## 受け入れ条件
 
-- [ ] `palette.svelte.ts` の import 行数が削減される
-- [ ] `performSearch()` が単一の検索関数になる
-- [ ] vitest が全通過
-- [ ] `pnpm verify` 全通過
-- [ ] Palette の検索・起動が動作する
+- [x] dispatch-log にフィードバック受領を記録
+- [x] batch-61 L3 Plan ファイル（PH-259〜263）を作成
