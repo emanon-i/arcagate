@@ -127,6 +127,51 @@ test.describe('設定パネル', () => {
 		}
 	});
 
+	test(
+		'現在のテーマを複製でカスタムテーマが作成されること',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			await openSettingsTab(page, '外観');
+			const appearancePanel = page.locator('#settings-panel-appearance');
+
+			// テーマ複製ボタンをクリック
+			await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
+
+			// 「のコピー」を含むボタンが外観パネルに現れる（カスタムテーマ作成確認）
+			await expect(appearancePanel.getByRole('button', { name: /のコピー/ })).toBeVisible();
+
+			// テーマエディタが開く（編集UIが表示される）
+			await expect(appearancePanel.getByText('を編集')).toBeVisible();
+
+			// 後始末: フラット ダークに戻す（削除は手動確認が必要なため省略）
+			await appearancePanel.getByRole('button', { name: 'フラット ダーク' }).click();
+		},
+	);
+
+	test('カスタムテーマの編集ボタンでエディタが開閉できること', async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		// 複製してカスタムテーマを作成
+		await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
+		await expect(appearancePanel.getByText('を編集')).toBeVisible();
+
+		// 閉じるボタンで閉じる
+		await appearancePanel.getByRole('button', { name: '閉じる' }).click();
+		await expect(appearancePanel.getByText('を編集')).not.toBeVisible();
+
+		// フラット ダークに戻す
+		await appearancePanel.getByRole('button', { name: 'フラット ダーク' }).click();
+	});
+
+	test('JSON からインポートリンクがクリックできること', { tag: '@smoke' }, async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		await appearancePanel.getByText('JSON からインポート').click();
+		await expect(appearancePanel.getByRole('textbox')).toBeVisible();
+	});
+
 	test('サウンド ON 時に音量スライダーが表示されること', async ({ page }) => {
 		await openSettingsTab(page, 'サウンド');
 
