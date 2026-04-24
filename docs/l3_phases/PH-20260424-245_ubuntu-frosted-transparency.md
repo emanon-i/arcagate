@@ -1,7 +1,7 @@
 # PH-20260424-245 Ubuntu Frosted 透明化強化
 
 - **フェーズ**: batch-58 Plan B（改善 2）
-- **status**: todo
+- **status**: done
 - **開始日**: -
 
 ## 目的

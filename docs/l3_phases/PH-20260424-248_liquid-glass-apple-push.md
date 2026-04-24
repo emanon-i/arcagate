@@ -1,7 +1,7 @@
 # PH-20260424-248 Liquid Glass Apple 寄り強化 + トークン命名整理
 
 - **フェーズ**: batch-58 Plan E（整理系）
-- **status**: todo
+- **status**: done
 - **開始日**: -
 
 ## 目的
