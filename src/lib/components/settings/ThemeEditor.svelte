@@ -7,19 +7,96 @@ let { theme, onClose }: { theme: Theme; onClose: () => void } = $props();
 
 type VarEntry = { key: string; value: string };
 
-function parseVars(cssVars: string): VarEntry[] {
+// 全標準 --ag-* 変数リスト（arcagate-theme.css の :root 変数に対応）
+const ALL_AG_VARS: string[] = [
+	// bg
+	'--ag-bg',
+	// surface
+	'--ag-surface-page',
+	'--ag-surface-0',
+	'--ag-surface-1',
+	'--ag-surface-2',
+	'--ag-surface-3',
+	'--ag-surface-4',
+	'--ag-surface-opaque',
+	// border
+	'--ag-border',
+	'--ag-border-hover',
+	'--ag-border-dashed',
+	// accent
+	'--ag-accent',
+	'--ag-accent-text',
+	'--ag-accent-bg',
+	'--ag-accent-border',
+	'--ag-accent-active-bg',
+	'--ag-accent-active-border',
+	// text
+	'--ag-text-primary',
+	'--ag-text-secondary',
+	'--ag-text-muted',
+	'--ag-text-faint',
+	// error
+	'--ag-error-bg',
+	'--ag-error-border',
+	'--ag-error-text',
+	// warm
+	'--ag-warm-bg',
+	'--ag-warm-border',
+	'--ag-warm-text',
+	// success
+	'--ag-success-bg',
+	'--ag-success-border',
+	'--ag-success-text',
+	// shadow
+	'--ag-shadow-none',
+	'--ag-shadow-sm',
+	'--ag-shadow-md',
+	'--ag-shadow-dialog',
+	'--ag-shadow-palette',
+	// radius
+	'--ag-radius-chip',
+	'--ag-radius-button',
+	'--ag-radius-input',
+	'--ag-radius-card',
+	'--ag-radius-widget',
+	'--ag-radius-window',
+	'--ag-radius-palette',
+	'--ag-radius-keyhint',
+	// backdrop
+	'--ag-backdrop',
+	// duration
+	'--ag-duration-instant',
+	'--ag-duration-fast',
+	'--ag-duration-normal',
+	'--ag-duration-slow',
+	// ease
+	'--ag-ease-in-out',
+	'--ag-ease-out',
+	'--ag-ease-in',
+	'--ag-ease-bounce',
+];
+
+function parseCssVarsMap(cssVars: string): Map<string, string> {
 	try {
 		const obj = JSON.parse(cssVars) as Record<string, string>;
-		return Object.entries(obj).map(([key, value]) => ({ key, value }));
+		return new Map(Object.entries(obj));
 	} catch {
-		return [];
+		return new Map();
 	}
 }
 
-const initialCssVars = theme.css_vars;
-let entries = $state<VarEntry[]>(parseVars(initialCssVars));
+function initEntries(): VarEntry[] {
+	const overrides = parseCssVarsMap(theme.css_vars);
+	const style = getComputedStyle(document.documentElement);
+	return ALL_AG_VARS.map((key) => ({
+		key,
+		value: overrides.get(key) ?? style.getPropertyValue(key).trim(),
+	}));
+}
+
+let entries = $state<VarEntry[]>(initEntries());
 // 保存済み変数リスト（保存成功時に更新し、unmount 時の CSS リセットに使う）
-let savedCssVars = $state<VarEntry[]>(parseVars(initialCssVars));
+let savedCssVars = $state<VarEntry[]>(initEntries());
 let saving = $state(false);
 let saveError = $state<string | null>(null);
 let savedSuccess = $state(false);
@@ -55,10 +132,7 @@ function handleNameKeydown(e: KeyboardEvent) {
 	}
 }
 
-const isDirty = $derived(
-	entries.length !== savedCssVars.length ||
-		entries.some((e, i) => e.value !== savedCssVars[i]?.value),
-);
+const isDirty = $derived(entries.some((e, i) => e.value !== savedCssVars[i]?.value));
 
 // unmount 時に未保存の CSS vars をリセットする
 // $effect の return は cleanup（unmount 時に呼ばれる）
@@ -199,7 +273,7 @@ const grouped = $derived.by(() => {
 			<button
 				type="button"
 				disabled={saving || !isDirty}
-				class="flex items-center gap-1.5 rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+				class="flex items-center gap-1.5 rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 				onclick={handleSave}
 			>
 				<Check class="h-3.5 w-3.5" />

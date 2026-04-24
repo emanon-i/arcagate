@@ -57,11 +57,26 @@ async function cloneCurrentTheme() {
 
 async function handleExport(id: string) {
 	const json = await themeStore.exportTheme(id);
-	if (json) {
-		await navigator.clipboard.writeText(json);
-		copySuccess = true;
-		setTimeout(() => (copySuccess = false), 2000);
-	}
+	if (!json) return;
+	// クリップボードにコピー
+	await navigator.clipboard.writeText(json);
+	copySuccess = true;
+	setTimeout(() => (copySuccess = false), 2000);
+}
+
+function handleExportDownload(id: string) {
+	void themeStore.exportTheme(id).then((json) => {
+		if (!json) return;
+		const theme = themeStore.themes.find((t) => t.id === id);
+		const filename = `${theme?.name ?? 'theme'}.json`;
+		const blob = new Blob([json], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		a.click();
+		URL.revokeObjectURL(url);
+	});
 }
 
 async function handleImport() {
@@ -73,6 +88,17 @@ async function handleImport() {
 	} else {
 		importError = themeStore.error ?? 'インポートに失敗しました';
 	}
+}
+
+function handleFileImport(e: Event) {
+	const file = (e.currentTarget as HTMLInputElement).files?.[0];
+	if (!file) return;
+	const reader = new FileReader();
+	reader.onload = () => {
+		importJson = reader.result as string;
+		showImportArea = true;
+	};
+	reader.readAsText(file);
 }
 
 function handleNavKeydown(e: KeyboardEvent) {
@@ -263,7 +289,14 @@ function handleNavKeydown(e: KeyboardEvent) {
 											onclick={() => void handleExport(theme.id)}
 										>
 											<Copy class="h-3 w-3" />
-											{copySuccess ? '✓ コピー済' : 'エクスポート'}
+											{copySuccess ? '✓ コピー済' : 'コピー'}
+										</button>
+										<button
+											type="button"
+											class="rounded px-2 py-0.5 text-[11px] text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+											onclick={() => handleExportDownload(theme.id)}
+										>
+											DL
 										</button>
 									</div>
 								</div>
@@ -283,13 +316,26 @@ function handleNavKeydown(e: KeyboardEvent) {
 
 						<!-- JSON インポート -->
 						<div class="mt-4 border-t border-[var(--ag-border)] pt-4">
-							<button
-								type="button"
-								class="text-xs text-[var(--ag-text-muted)] underline-offset-2 hover:text-[var(--ag-text-secondary)] hover:underline focus-visible:outline-none"
-								onclick={() => { showImportArea = !showImportArea; importError = null; }}
-							>
-								JSON からインポート
-							</button>
+							<div class="flex items-center gap-3">
+								<button
+									type="button"
+									class="text-xs text-[var(--ag-text-muted)] underline-offset-2 hover:text-[var(--ag-text-secondary)] hover:underline focus-visible:outline-none"
+									onclick={() => { showImportArea = !showImportArea; importError = null; }}
+								>
+									JSON からインポート
+								</button>
+								<label
+									class="cursor-pointer text-xs text-[var(--ag-text-muted)] underline-offset-2 hover:text-[var(--ag-text-secondary)] hover:underline"
+								>
+									ファイルを選択
+									<input
+										type="file"
+										accept=".json"
+										class="sr-only"
+										onchange={handleFileImport}
+									/>
+								</label>
+							</div>
 							{#if showImportArea}
 								<div class="mt-2 space-y-2">
 									<textarea
@@ -304,7 +350,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 									<button
 										type="button"
 										disabled={!importJson.trim()}
-										class="rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+										class="rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 										onclick={handleImport}
 									>
 										インポート
