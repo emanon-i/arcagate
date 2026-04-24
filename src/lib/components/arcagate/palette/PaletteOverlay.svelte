@@ -98,9 +98,9 @@ function handleKeydown(e: KeyboardEvent) {
 			></button>
 		{/if}
 
-		<!-- Palette card -->
+		<!-- Palette card (3-section flex column: header / scrollable body / footer) -->
 		<div
-			class="relative mx-auto mt-[5vh] max-w-5xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/92 shadow-[0_40px_120px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:mt-[10vh]"
+			class="relative mx-auto mt-[5vh] flex max-h-[90vh] max-w-5xl flex-col overflow-hidden rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/92 shadow-[0_40px_120px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:mt-[10vh]"
 			in:fly={{ y: -12, duration: dNormal, easing: cubicOut }}
 			out:fade={{ duration: dFast }}
 		>
@@ -109,8 +109,8 @@ function handleKeydown(e: KeyboardEvent) {
 				class="pointer-events-none absolute inset-0 rounded-[var(--ag-radius-palette)] bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,0.10),_transparent_28%)]"
 			></div>
 
-			<!-- Header bar -->
-			<div class="relative flex items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
+			<!-- Header bar (fixed) -->
+			<div class="relative flex flex-shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
 				<div class="flex items-center gap-2 text-xs text-[var(--ag-text-muted)]">
 					<Command class="h-4 w-4" />
 					<span>Desktop Overlay Palette</span>
@@ -121,16 +121,16 @@ function handleKeydown(e: KeyboardEvent) {
 				</div>
 			</div>
 
-			<!-- Content area -->
+			<!-- Content area (scrollable) -->
 			<div
-				class="relative overflow-hidden bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-1)_100%)] p-4 md:p-8"
+				class="relative min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-1)_100%)] p-4 md:p-8"
 			>
 				<!-- Inner gradient -->
 				<div
 					class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,0.10),_transparent_28%)]"
 				></div>
 
-				<!-- Nested container -->
+				<!-- Inner container -->
 				<div
 					class="relative mx-auto max-w-4xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl"
 				>
@@ -165,10 +165,12 @@ function handleKeydown(e: KeyboardEvent) {
 						<!-- Right: quick context -->
 						<PaletteQuickContext />
 					</div>
-
-					<!-- Bottom keyboard hints -->
-					<PaletteKeyGuide variant="bar" />
 				</div>
+			</div>
+
+			<!-- Footer bar (fixed) -->
+			<div class="relative flex-shrink-0 border-t border-[var(--ag-border)] px-5 py-3">
+				<PaletteKeyGuide variant="bar" />
 			</div>
 		</div>
 	</div>

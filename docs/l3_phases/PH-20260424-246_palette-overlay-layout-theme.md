@@ -1,7 +1,7 @@
 # PH-20260424-246 Palette Overlay レイアウト修正 + テーマ追従
 
 - **フェーズ**: batch-58 Plan C（改善 3）
-- **status**: todo
+- **status**: done
 - **開始日**: -
 
 ## 目的
