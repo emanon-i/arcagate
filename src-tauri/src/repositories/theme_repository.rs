@@ -110,7 +110,7 @@ mod tests {
         let conn = db.0.lock().unwrap();
 
         let themes = find_all(&conn).unwrap();
-        assert_eq!(themes.len(), 4);
+        assert_eq!(themes.len(), 5);
         assert!(themes.iter().all(|t| t.is_builtin));
         assert!(themes.iter().any(|t| t.id == "theme-builtin-dark"));
         assert!(themes.iter().any(|t| t.id == "theme-builtin-light"));
@@ -118,6 +118,7 @@ mod tests {
         assert!(themes
             .iter()
             .any(|t| t.id == "theme-builtin-ubuntu-frosted"));
+        assert!(themes.iter().any(|t| t.id == "theme-builtin-liquid-glass"));
     }
 
     #[test]
@@ -143,10 +144,10 @@ mod tests {
         insert(&conn, &make_theme("custom-001", "Custom", "light", false)).unwrap();
 
         let themes = find_all(&conn).unwrap();
-        assert_eq!(themes.len(), 5);
+        assert_eq!(themes.len(), 6);
         // builtin first (is_builtin DESC), then custom
-        assert!(themes[..4].iter().all(|t| t.is_builtin));
-        assert!(!themes[4].is_builtin);
+        assert!(themes[..5].iter().all(|t| t.is_builtin));
+        assert!(!themes[5].is_builtin);
     }
 
     #[test]

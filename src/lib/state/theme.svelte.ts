@@ -49,7 +49,7 @@ function applyTheme(): void {
 		el.classList.remove('dark');
 	}
 
-	// 3. Apply custom theme CSS variables
+	// 3. Apply custom theme CSS variables + data-theme attribute
 	if (activeMode !== 'dark' && activeMode !== 'light' && activeMode !== 'system') {
 		const theme = themes.find((t) => t.id === activeMode);
 		if (theme) {
@@ -62,6 +62,9 @@ function applyTheme(): void {
 				// Invalid JSON — ignore
 			}
 		}
+		el.dataset.theme = activeMode;
+	} else {
+		delete el.dataset.theme;
 	}
 
 	// 4. System mode listener
