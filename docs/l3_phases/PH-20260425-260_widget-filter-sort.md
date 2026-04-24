@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-260
-status: todo
+status: done
 batch: 61
 type: 改善
 ---
@@ -40,7 +40,7 @@ widget instance 単位で設定を永続化（`widget_config` JSON）。
 
 ## 受け入れ条件
 
-- [ ] RecentLaunchesWidget にフィルタ + ソート UI が追加される
-- [ ] 設定が widget instance 単位で永続化される
-- [ ] 再起動後も設定が保持される
-- [ ] `pnpm verify` 全通過
+- [x] RecentLaunchesWidget / FavoritesWidget にフィルタ（インライン検索）+ ソート UI が追加される
+- [x] 設定（sort_field）が widget instance 単位で永続化される（WidgetSettingsDialog）
+- [x] 再起動後も設定が保持される（widget_config JSON）
+- [x] `pnpm verify` 全通過
