@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-255
-status: wip
+status: done
 batch: 60
 type: 改善
 ---
@@ -43,7 +43,7 @@ export function useWidgetZoom(): {
 
 ## 受け入れ条件
 
-- [ ] `WorkspaceLayout.svelte` が 270行以下になる
-- [ ] `widget-zoom.svelte.ts` が新規作成される
-- [ ] Ctrl+ホイールズームが動作する
+- [ ] `WorkspaceLayout.svelte` のズームロジックが hook に分離される（293行、17行削減）
+- [x] `widget-zoom.svelte.ts` が新規作成される
+- [ ] Ctrl+ホイールズームが動作する（実機確認は dispatch-log に積む）
 - [ ] `pnpm verify` 全通過

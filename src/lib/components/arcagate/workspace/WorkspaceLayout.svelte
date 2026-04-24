@@ -4,6 +4,7 @@ import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPa
 import * as workspaceIpc from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
+import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import FavoritesWidget from './FavoritesWidget.svelte';
@@ -22,10 +23,7 @@ interface Props {
 
 let { onEditItem }: Props = $props();
 
-const BASE_W = 320;
-const BASE_H = 180;
-let widgetW = $derived(Math.round(BASE_W * (configStore.widgetZoom / 100)));
-let widgetH = $derived(Math.round(BASE_H * (configStore.widgetZoom / 100)));
+const zoom = useWidgetZoom(() => workspaceContainer);
 
 $effect(() => {
 	void workspaceStore.loadWorkspaces();
@@ -63,8 +61,8 @@ let minGridCols = $derived(
 );
 
 let dynamicCols = $derived(
-	containerWidth > 0 && widgetW > 0
-		? Math.max(minGridCols, Math.floor(containerWidth / widgetW))
+	containerWidth > 0 && zoom.widgetW > 0
+		? Math.max(minGridCols, Math.floor(containerWidth / zoom.widgetW))
 		: Math.max(minGridCols, 4),
 );
 
@@ -137,21 +135,6 @@ function handleItemContext(itemId: string) {
 	contextItemId = itemId;
 }
 
-function handleWheel(e: WheelEvent) {
-	if (!e.ctrlKey) return;
-	e.preventDefault();
-	const delta = e.deltaY > 0 ? -10 : 10;
-	configStore.setWidgetZoom(configStore.widgetZoom + delta);
-}
-
-// passive: false required for preventDefault in wheel handler
-$effect(() => {
-	const el = workspaceContainer;
-	if (!el) return;
-	el.addEventListener('wheel', handleWheel, { passive: false });
-	return () => el.removeEventListener('wheel', handleWheel);
-});
-
 let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
 </script>
 
@@ -211,7 +194,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="min-w-0 flex-1 overflow-auto p-5"
-		style="--widget-w: {widgetW}px; --widget-h: {widgetH}px; background-image: {editMode
+		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
 			? 'radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
 			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
 			? '24px 24px, 100% 100%'
@@ -243,8 +226,8 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 					<WorkspaceWidgetGrid
 						{dynamicCols}
 						{maxRow}
-						{widgetW}
-						{widgetH}
+						widgetW={zoom.widgetW}
+						widgetH={zoom.widgetH}
 						{widgetComponents}
 						{selectedWidgetId}
 						{deleteConfirmId}
