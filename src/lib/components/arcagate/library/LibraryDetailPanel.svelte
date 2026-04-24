@@ -68,9 +68,11 @@ async function handleToggleStar() {
 }
 
 function handleLaunch() {
-	if (selectedItem) {
-		void launchItem(selectedItem.id);
-	}
+	if (!selectedItem) return;
+	const label = selectedItem.label;
+	void launchItem(selectedItem.id)
+		.then(() => toastStore.add(`${label} を起動しました`, 'success'))
+		.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
 }
 
 async function handleDelete() {
@@ -158,9 +160,10 @@ $effect(() => {
 		if (e.key === 'Enter' && selectedItem) {
 			const target = e.target as HTMLElement;
 			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-			void launchItem(selectedItem.id).then(() =>
-				toastStore.add(`${selectedItem.label} を起動しました`, 'success'),
-			);
+			const label = selectedItem.label;
+			void launchItem(selectedItem.id)
+				.then(() => toastStore.add(`${label} を起動しました`, 'success'))
+				.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
 		}
 		if (e.key === 'Escape') {
 			if (showTagSelect) {

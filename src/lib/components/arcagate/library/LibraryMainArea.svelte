@@ -5,6 +5,7 @@ import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import LibraryCard from './LibraryCard.svelte';
 
 interface Props {
@@ -183,7 +184,13 @@ let filteredItems = $derived.by(() => {
 					{viewMode}
 					isStarred={starredIds.has(item.id)}
 					onclick={() => onSelectItem?.(item.id)}
-					ondblclick={() => void launchItem(item.id)}
+					ondblclick={() => {
+						void launchItem(item.id)
+							.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+							.catch((e: unknown) =>
+								toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
+							);
+					}}
 				/>
 			{/each}
 			{#if filteredItems.length === 0}
@@ -225,7 +232,13 @@ let filteredItems = $derived.by(() => {
 					{item}
 					isStarred={starredIds.has(item.id)}
 					onclick={() => onSelectItem?.(item.id)}
-					ondblclick={() => void launchItem(item.id)}
+					ondblclick={() => {
+						void launchItem(item.id)
+							.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+							.catch((e: unknown) =>
+								toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
+							);
+					}}
 				/>
 			{/each}
 			{#if filteredItems.length === 0}

@@ -5,6 +5,7 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
 import { hiddenStore } from '$lib/state/hidden.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { formatTarget } from '$lib/utils/format-target';
@@ -52,7 +53,13 @@ let menuItems = $derived(
 			<button
 				type="button"
 				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-				onclick={() => void launchItem(item.id)}
+				onclick={() => {
+					void launchItem(item.id)
+						.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+						.catch((e: unknown) =>
+							toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
+						);
+				}}
 				oncontextmenu={(e) => {
 					if (onItemContext) {
 						e.preventDefault();
