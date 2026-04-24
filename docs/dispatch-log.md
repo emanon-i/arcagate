@@ -1834,3 +1834,17 @@ Plan A から着手。
 | C    | PH-246 | Palette overlay 3段 flex + テーマ追従修正           |
 | D    | PH-247 | テーマ視覚差分 E2E                                  |
 | E    | PH-248 | Liquid Glass Apple 寄り + トークン整理              |
+
+---
+
+## batch-58 完了 (2026-04-25)
+
+| Plan | PH     | 状態 | commit  |
+| ---- | ------ | ---- | ------- |
+| A    | PH-244 | done | 55d2658 |
+| B    | PH-245 | done | 55d2658 |
+| C    | PH-246 | done | dc0a8ad |
+| D    | PH-247 | done | 6d6aea3 |
+| E    | PH-248 | done | 55d2658 |
+
+pnpm verify 全通過（Rust 150+22 tests / vitest 全 ✓ / tauri build 完了）。
