@@ -32,15 +32,8 @@ $effect(() => {
 	configStore.loadConfig();
 });
 
-async function cloneCurrentTheme() {
-	const activeId = themeStore.activeMode;
-	// 'dark'/'light'/'system' は DB テーマではないので対応する builtin を探す
-	const builtinFallback = activeId === 'light' ? 'theme-builtin-light' : 'theme-builtin-dark';
-	const themeIdToClone =
-		activeId === 'dark' || activeId === 'light' || activeId === 'system'
-			? builtinFallback
-			: activeId;
-	const source = themeStore.themes.find((t) => t.id === themeIdToClone);
+async function cloneTheme(sourceId: string) {
+	const source = themeStore.themes.find((t) => t.id === sourceId);
 	const cssVars = source ? source.css_vars : '{}';
 	const baseTheme = source ? source.base_theme : 'dark';
 	const baseName = source ? source.name : 'テーマ';
@@ -49,6 +42,17 @@ async function cloneCurrentTheme() {
 		await themeStore.setThemeMode(created.id);
 		editingThemeId = created.id;
 	}
+}
+
+async function cloneCurrentTheme() {
+	const activeId = themeStore.activeMode;
+	// 'dark'/'light'/'system' は DB テーマではないので対応する builtin を探す
+	const builtinFallback = activeId === 'light' ? 'theme-builtin-light' : 'theme-builtin-dark';
+	const sourceId =
+		activeId === 'dark' || activeId === 'light' || activeId === 'system'
+			? builtinFallback
+			: activeId;
+	await cloneTheme(sourceId);
 }
 
 async function handleExport(id: string) {
@@ -243,6 +247,14 @@ function handleNavKeydown(e: KeyboardEvent) {
 												onclick={() => (editingThemeId = editingThemeId === theme.id ? null : theme.id)}
 											>
 												{editingThemeId === theme.id ? '閉じる' : '編集'}
+											</button>
+										{:else}
+											<button
+												type="button"
+												class="flex items-center gap-0.5 rounded px-2 py-0.5 text-[11px] text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+												onclick={() => void cloneTheme(theme.id)}
+											>
+												コピーして編集
 											</button>
 										{/if}
 										<button

@@ -79,6 +79,43 @@ test.describe('設定パネル', () => {
 		await expect(appearancePanel.getByRole('button', { name: 'Ubuntu Frosted' })).toBeVisible();
 	});
 
+	test(
+		'ビルトインテーマに「コピーして編集」ボタンが表示されること',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			await openSettingsTab(page, '外観');
+			const appearancePanel = page.locator('#settings-panel-appearance');
+
+			// Endfield のカードに「コピーして編集」ボタンがある
+			await expect(
+				appearancePanel.getByRole('button', { name: 'コピーして編集' }).first(),
+			).toBeVisible();
+		},
+	);
+
+	test('Endfield の「コピーして編集」でテーマエディタが開くこと', async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		// Endfield を選択してからそのカードの「コピーして編集」をクリック
+		await appearancePanel.getByRole('button', { name: 'Endfield' }).click();
+		// Endfield カード直下の「コピーして編集」ボタン（最初のもの）
+		const cloneBtn = appearancePanel.getByRole('button', { name: 'コピーして編集' }).first();
+		await cloneBtn.click();
+
+		// ThemeEditor が開いて「Endfield のコピー を編集」が表示される
+		await expect(appearancePanel.getByText('Endfield のコピー を編集')).toBeVisible({
+			timeout: 5000,
+		});
+
+		// 後始末
+		await appearancePanel.getByRole('button', { name: '削除' }).click();
+		await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
+		await expect(
+			appearancePanel.getByRole('button', { name: 'Endfield のコピー' }),
+		).not.toBeVisible();
+	});
+
 	test('テーマプリセット選択後に CSS 変数が切り替わること', async ({ page }) => {
 		await openSettingsTab(page, '外観');
 
