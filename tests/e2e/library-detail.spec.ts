@@ -254,6 +254,26 @@ test.describe('ライブラリ詳細パネル', () => {
 		}
 	});
 
+	test('存在しないパスの exe アイテムをダブルクリックしたときエラートーストが表示されること', async ({
+		page,
+	}) => {
+		await resizeWindow(page, 1280, 800);
+		const item = await createItem(page, {
+			item_type: 'exe',
+			label: '起動失敗テスト',
+			target: 'C:\\NONEXISTENT_ARCAGATE_E2E_TEST\\app.exe',
+		});
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+			await page.getByTestId(`library-card-${item.id}`).dblclick();
+			await expect(page.getByTestId('toast-error')).toBeVisible({ timeout: 5000 });
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
+
 	test('INPUT フォーカス時は Enter キーで起動しないこと', async ({ page }) => {
 		await resizeWindow(page, 1280, 800);
 

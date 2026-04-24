@@ -153,4 +153,25 @@ test.describe('アイテム管理', () => {
 		const found = items.find((i) => i.id === item.id);
 		expect(found).toBeUndefined();
 	});
+
+	test('ItemForm ローカル/URL トグルで入力フィールドが切り替わること', async ({ page }) => {
+		await page.getByTestId('add-item-button').click();
+
+		const dialog = page.getByRole('dialog');
+
+		// デフォルトは「ローカル」モード
+		await expect(dialog.getByText('ファイル / フォルダのパス')).toBeVisible();
+
+		// 「URL」ボタンをクリック → URL モードに切り替わる
+		await dialog.getByRole('button', { name: 'URL' }).click();
+		await expect(dialog.getByText('ブラウザで開く URL を入力')).toBeVisible();
+		await expect(dialog.getByText('ファイル / フォルダのパス')).not.toBeVisible();
+
+		// 「ローカル」ボタンをクリック → ファイルパス入力に戻る
+		await dialog.getByRole('button', { name: 'ローカル' }).click();
+		await expect(dialog.getByText('ファイル / フォルダのパス')).toBeVisible();
+		await expect(dialog.getByText('ブラウザで開く URL を入力')).not.toBeVisible();
+
+		await page.keyboard.press('Escape');
+	});
 });
