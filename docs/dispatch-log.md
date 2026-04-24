@@ -1794,3 +1794,17 @@ Plan 5 本の採番確定。`feature/batch-20260424-57` ブランチ作成。
 | PH-243  | E    | `docs/lessons.md` 整理 + 小清掃                                                  |
 
 Plan A から着手。
+
+---
+
+## batch-57 進捗 (2026-04-24)
+
+Plan A/B/D/E 実装完了。Plan C（engineering-principles.md 新設）は Dispatch ドラフト受領待ち。
+
+| Plan                                      | 状態                               | commit  |
+| ----------------------------------------- | ---------------------------------- | ------- |
+| A (dispatch-operation.md canonical 化)    | done                               | 29c3d2e |
+| B (CLAUDE.md 誘導明確化)                  | done                               | 045cdd0 |
+| C (engineering-principles.md 新設)        | **待機中** — Dispatch ドラフト待ち | —       |
+| D (vision.md / concept.md 品質バー再定義) | done                               | 6cfe8db |
+| E (lessons.md 整理)                       | done                               | 6cfe8db |
