@@ -16,10 +16,30 @@ function parseVars(cssVars: string): VarEntry[] {
 	}
 }
 
-let entries = $state<VarEntry[]>(parseVars(theme.css_vars));
+const initialCssVars = theme.css_vars;
+let entries = $state<VarEntry[]>(parseVars(initialCssVars));
+// 保存済み変数リスト（保存成功時に更新し、unmount 時の CSS リセットに使う）
+let savedCssVars = $state<VarEntry[]>(parseVars(initialCssVars));
 let saving = $state(false);
 let saveError = $state<string | null>(null);
+let savedSuccess = $state(false);
 let confirmDelete = $state(false);
+
+const isDirty = $derived(
+	entries.length !== savedCssVars.length ||
+		entries.some((e, i) => e.value !== savedCssVars[i]?.value),
+);
+
+// unmount 時に未保存の CSS vars をリセットする
+// $effect の return は cleanup（unmount 時に呼ばれる）
+// effect body では savedCssVars を参照しないため reactive 依存なし → unmount 専用
+$effect(() => {
+	return () => {
+		for (const { key, value } of savedCssVars) {
+			document.documentElement.style.setProperty(key, value);
+		}
+	};
+});
 
 function isHex(value: string): boolean {
 	return /^#[0-9a-f]{6}$/i.test(value);
@@ -38,9 +58,7 @@ async function handleSave() {
 	saving = true;
 	saveError = null;
 	const cssVars: Record<string, string> = {};
-	for (const { key, value } of entries) {
-		cssVars[key] = value;
-	}
+	for (const { key, value } of entries) cssVars[key] = value;
 	const updated = await themeStore.updateTheme(
 		theme.id,
 		undefined,
@@ -48,7 +66,13 @@ async function handleSave() {
 		JSON.stringify(cssVars),
 	);
 	saving = false;
-	if (!updated) {
+	if (updated) {
+		savedCssVars = entries.map((e) => ({ ...e }));
+		savedSuccess = true;
+		setTimeout(() => {
+			savedSuccess = false;
+		}, 2000);
+	} else {
 		saveError = themeStore.error ?? '保存に失敗しました';
 	}
 }
@@ -93,7 +117,7 @@ const grouped = $derived.by(() => {
 				break;
 			}
 		}
-		if (!matched) groups['その他'].push(entry);
+		if (!matched) groups.その他.push(entry);
 	}
 	return Object.entries(groups).filter(([, vs]) => vs.length > 0);
 });
@@ -101,8 +125,18 @@ const grouped = $derived.by(() => {
 
 <div class="mt-4 rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-4">
 	<div class="mb-3 flex items-center justify-between">
-		<p class="text-sm font-semibold text-[var(--ag-text-primary)]">{theme.name} を編集</p>
 		<div class="flex items-center gap-2">
+			<p class="text-sm font-semibold text-[var(--ag-text-primary)]">{theme.name} を編集</p>
+			{#if isDirty}
+				<span class="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--ag-warm-text)]">
+					● 未保存
+				</span>
+			{/if}
+		</div>
+		<div class="flex items-center gap-2">
+			{#if savedSuccess}
+				<span class="text-xs text-[var(--ag-success-text)]">✓ 保存しました</span>
+			{/if}
 			{#if !theme.is_builtin}
 				<button
 					type="button"
@@ -115,7 +149,7 @@ const grouped = $derived.by(() => {
 			{/if}
 			<button
 				type="button"
-				disabled={saving}
+				disabled={saving || !isDirty}
 				class="flex items-center gap-1.5 rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 				onclick={handleSave}
 			>
@@ -136,10 +170,13 @@ const grouped = $derived.by(() => {
 					{groupKey.replace('--ag-', '')}
 				</p>
 				<div class="space-y-1.5">
-					{#each vars as entry, i (entry.key)}
+					{#each vars as entry (entry.key)}
 						{@const entryIdx = entries.indexOf(entry)}
 						<div class="flex items-center gap-2">
-							<span class="w-48 shrink-0 truncate text-[11px] text-[var(--ag-text-muted)]" title={entry.key}>
+							<span
+								class="w-48 shrink-0 truncate text-[11px] text-[var(--ag-text-muted)]"
+								title={entry.key}
+							>
 								{entry.key.replace('--ag-', '')}
 							</span>
 							{#if isHex(entry.value)}

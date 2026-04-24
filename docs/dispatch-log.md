@@ -1548,8 +1548,6 @@ Obsidian Canvas から採用する要素:
 
 ---
 
-<<<<<<< HEAD
-
 ## 2026-04-24 セッション4回目継続: batch-47 実装完了
 
 ### PR #76（batch-46）対応
@@ -1559,7 +1557,7 @@ palette.spec.ts の @smoke テスト 2件修正（フローティングウィン
 1. `パレットが開閉できること @smoke` → `パレットボタンが TitleBar に存在すること @smoke`（ダイアログ確認廃止）
 2. `Tab キーで補完が適用されること @smoke` → @smoke タグ削除（nightly のみ）
 
-### batch-47 実装内容（PR #77 予定）
+### batch-47 実装内容（PR #77）
 
 | Plan   | タイトル                         | 実装内容                                                             |
 | ------ | -------------------------------- | -------------------------------------------------------------------- |
@@ -1572,7 +1570,9 @@ palette.spec.ts の @smoke テスト 2件修正（フローティングウィン
 ### フィードバック #18 対応完了
 
 - **内容**: アイテム/ワークスペース間の罫線追加
-- # **実装**: Library リスト表示で `divide-y` コンテナ、グリッド表示は既存カード border で代替
+- **実装**: Library リスト表示で `divide-y` コンテナ、グリッド表示は既存カード border で代替
+
+---
 
 ## セッション 5 (2026-04-24) — batch-46 マージ・batch-47/48 PR 作成
 
@@ -1599,4 +1599,51 @@ palette.spec.ts の @smoke テスト 2件修正（フローティングウィン
 - `arcagate-theme.css`: `--ag-backdrop: none` + `[data-theme="theme-builtin-liquid-glass"]` 構造 CSS
 - `design_system_architecture.md`: 6-2/6-3 を実装済み方針に更新 + 6-4 テーマエディタ計画追記
 
->>>>>>> 03a3591 (chore(batch-48): dispatch-log 更新 + design_system_architecture テーマ設計刷新)
+---
+
+## セッション 5 継続 (2026-04-24) — batch-49 実装・PR #79
+
+### idle 違反修正
+
+batch-48 merge 後に「自律開始できます」と報告して停止した（idle 禁止ルール違反）。
+lessons.md に「前バッチ merge 後は 60 秒以内に次バッチ Plan 着手」ルールを追記。
+
+### batch-49 実装内容（PR #79）
+
+| Plan   | タイトル                               | 実装内容                                                                 |
+| ------ | -------------------------------------- | ------------------------------------------------------------------------ |
+| PH-213 | テーマエディタ MVP                     | ThemeEditor.svelte 新規作成（グループ表示・カラーピッカー・保存/削除）   |
+| PH-214 | テーマ JSON インポート/エクスポート UI | SettingsPanel に cloneCurrentTheme・export・import UI 追加               |
+| PH-215 | Liquid Glass コントラスト確認          | 静的 CSS 確認（コントラスト値 OK）                                       |
+| PH-216 | テーマエディタ E2E                     | settings.spec.ts に 3テスト追加（複製・編集開閉・JSON インポートリンク） |
+| PH-217 | lessons.md + dispatch-log 更新         | idle 防止ルール追記                                                      |
+
+### bug fix（PR #79 再プッシュ）
+
+- `cloneCurrentTheme()`: `activeMode='dark'` → `theme-builtin-dark` へのマッピング修正
+- E2E テスト後始末: 削除ボタン 2クリック方式でリトライ時 DB 重複を防止
+
+### PR 状況
+
+| PR  | batch    | 状態              |
+| --- | -------- | ----------------- |
+| #77 | batch-47 | ✅ squash merge   |
+| #78 | batch-48 | ✅ squash merge   |
+| #79 | batch-49 | 🔄 CI in_progress |
+
+---
+
+## セッション 5 継続 (2026-04-24) — batch-50 実装
+
+### batch-50 実装内容（PR #80 予定）
+
+| Plan   | タイトル                       | 実装内容                                                             |
+| ------ | ------------------------------ | -------------------------------------------------------------------- |
+| PH-218 | ThemeEditor polish             | isDirty バッジ・保存成功フィードバック・unmount 時 CSS vars リセット |
+| PH-219 | テーマ E2E 追加                | リアルタイム反映・DB 永続化・JSON インポート完成 3テスト追加         |
+| PH-220 | Liquid Glass コントラスト確認  | CSS 静的確認済み（実機 QA は次回手動確認）                           |
+| PH-221 | lessons.md + dispatch-log 更新 | conflict markers 修正 + 本記録追記                                   |
+
+### dispatch-log conflict markers 修正
+
+batch-48 PR merge 時に残存した `<<<<<<< HEAD` / `>>>>>>>` マーカーを解消。
