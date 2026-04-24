@@ -1,6 +1,6 @@
 import { expect, test } from '../fixtures/tauri.js';
 import { waitForAppReady } from '../helpers/app-ready.js';
-import { createItem, deleteItem } from '../helpers/ipc.js';
+import { createItem, createTag, deleteItem, deleteTag, toggleStar } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
 test.describe('ライブラリ詳細パネル', () => {
@@ -301,6 +301,167 @@ test.describe('ライブラリ詳細パネル', () => {
 			await page.keyboard.press('Enter');
 			await page.waitForTimeout(300);
 			await expect(page.getByTestId('toast-container')).not.toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
+
+	test('スターを付けるとボタンの aria-label が切り替わること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'スター付けテスト',
+			target: 'https://star-add-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			await page.getByTestId(`library-card-${item.id}`).click();
+			const detailPanel = page.getByTestId('library-detail-panel');
+			await expect(detailPanel).toBeVisible();
+
+			// 初期状態: スターを付けるボタン
+			const starBtn = detailPanel.getByRole('button', { name: 'スターを付ける' });
+			await expect(starBtn).toBeVisible();
+
+			await starBtn.click();
+
+			// スターを外すボタンに変わる
+			await expect(detailPanel.getByRole('button', { name: 'スターを外す' })).toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
+
+	test('スターを外すとボタンの aria-label が戻ること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'スター外しテスト',
+			target: 'https://star-remove-test.example.com',
+		});
+
+		// IPC でスター付け
+		await toggleStar(page, item.id, true);
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			await page.getByTestId(`library-card-${item.id}`).click();
+			const detailPanel = page.getByTestId('library-detail-panel');
+
+			// 初期状態: スター付き
+			const starBtn = detailPanel.getByRole('button', { name: 'スターを外す' });
+			await expect(starBtn).toBeVisible();
+
+			await starBtn.click();
+
+			// スターを付けるボタンに戻る
+			await expect(detailPanel.getByRole('button', { name: 'スターを付ける' })).toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+		}
+	});
+
+	test('タグ追加でタグチップが表示されること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const tag = await createTag(page, { name: 'E2Eタグ追加', is_hidden: false });
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'タグ追加テスト',
+			target: 'https://tag-add-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			await page.getByTestId(`library-card-${item.id}`).click();
+			const detailPanel = page.getByTestId('library-detail-panel');
+			await expect(detailPanel).toBeVisible();
+
+			// "+ タグを追加" ボタンをクリック
+			await detailPanel.getByRole('button', { name: '+ タグを追加' }).click();
+
+			// ドロップダウン内のタグを選択
+			await detailPanel.getByRole('button', { name: 'E2Eタグ追加' }).click();
+
+			// タグチップが表示される
+			await expect(detailPanel.getByText('E2Eタグ追加')).toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+			await deleteTag(page, tag.id);
+		}
+	});
+
+	test('タグ削除でタグチップが消えること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const tag = await createTag(page, { name: 'E2Eタグ削除', is_hidden: false });
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: 'タグ削除テスト',
+			target: 'https://tag-remove-test.example.com',
+			tag_ids: [tag.id],
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			await page.getByTestId(`library-card-${item.id}`).click();
+			const detailPanel = page.getByTestId('library-detail-panel');
+			await expect(detailPanel).toBeVisible();
+
+			// タグチップが表示されている
+			await expect(detailPanel.getByText('E2Eタグ削除')).toBeVisible();
+
+			// 解除ボタンをクリック
+			await detailPanel.getByRole('button', { name: 'タグ E2Eタグ削除 を解除' }).click();
+
+			// タグチップが消える
+			await expect(detailPanel.getByText('E2Eタグ削除')).not.toBeVisible();
+		} finally {
+			await deleteItem(page, item.id);
+			await deleteTag(page, tag.id);
+		}
+	});
+
+	test('起動ボタンでトーストが表示されること', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+
+		const item = await createItem(page, {
+			item_type: 'url',
+			label: '起動ボタンテスト',
+			target: 'https://launch-button-test.example.com',
+		});
+
+		try {
+			await page.reload();
+			await page.waitForLoadState('domcontentloaded');
+			await waitForAppReady(page);
+
+			await page.getByTestId(`library-card-${item.id}`).click();
+			const detailPanel = page.getByTestId('library-detail-panel');
+			await expect(detailPanel).toBeVisible();
+
+			// 起動ボタンをクリック
+			await detailPanel.getByRole('button', { name: '起動' }).click();
+
+			// トーストが表示される
+			await expect(page.getByText('起動ボタンテスト を起動しました')).toBeVisible({
+				timeout: 5000,
+			});
 		} finally {
 			await deleteItem(page, item.id);
 		}

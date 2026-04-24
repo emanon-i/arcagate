@@ -112,3 +112,29 @@ export async function addWidget(
 ): Promise<void> {
 	return invoke<void>(page, 'cmd_add_widget', { workspaceId, widgetType });
 }
+
+export interface Tag {
+	id: string;
+	name: string;
+	is_system: boolean;
+	is_hidden: boolean;
+	prefix: string | null;
+	icon: string | null;
+	sort_order: number;
+	created_at: string;
+}
+
+export async function createTag(
+	page: Page,
+	input: { name: string; is_hidden: boolean },
+): Promise<Tag> {
+	return invoke<Tag>(page, 'cmd_create_tag', { input });
+}
+
+export async function deleteTag(page: Page, id: string): Promise<void> {
+	return invoke<void>(page, 'cmd_delete_tag', { id });
+}
+
+export async function toggleStar(page: Page, itemId: string, starred: boolean): Promise<Item> {
+	return invoke<Item>(page, 'cmd_toggle_star', { itemId, starred });
+}

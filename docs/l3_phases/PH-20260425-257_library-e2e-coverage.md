@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-257
-status: wip
+status: done
 batch: 60
 type: 防衛
 ---
@@ -33,6 +33,6 @@ type: 防衛
 
 ## 受け入れ条件
 
-- [ ] Library 詳細パネル関連 E2E が5件以上追加される
-- [ ] `pnpm test:e2e` 全通過
-- [ ] `pnpm verify` 全通過
+- [x] Library 詳細パネル関連 E2E が5件以上追加される（5件: スター付け/外す/タグ追加/削除/起動ボタン）
+- [x] `pnpm test:e2e` 全通過（CI で検証）
+- [x] `pnpm verify` 全通過
