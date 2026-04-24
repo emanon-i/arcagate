@@ -284,6 +284,40 @@ test.describe('設定パネル', () => {
 		).not.toBeVisible();
 	});
 
+	test('カスタムテーマの名前をインラインで変更できること', async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		// テーマ複製
+		await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
+		await expect(appearancePanel.getByText('を編集')).toBeVisible();
+
+		// テーマ名ボタン（"〇〇のコピー を編集" の部分）をクリックして編集モードへ
+		const nameEditButton = appearancePanel.locator('button[title="クリックして名前を変更"]');
+		await expect(nameEditButton).toBeVisible();
+		await nameEditButton.click();
+
+		// 編集 input が出る
+		const nameInput = appearancePanel.getByRole('textbox', { name: 'テーマ名' });
+		await expect(nameInput).toBeVisible();
+
+		// 新しい名前を入力して Enter
+		await nameInput.fill('E2E リネームテーマ');
+		await nameInput.press('Enter');
+
+		// テーマリストのボタンが新名で表示される
+		await expect(appearancePanel.getByRole('button', { name: 'E2E リネームテーマ' })).toBeVisible({
+			timeout: 5000,
+		});
+
+		// 後始末
+		await appearancePanel.getByRole('button', { name: '削除' }).click();
+		await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
+		await expect(
+			appearancePanel.getByRole('button', { name: 'E2E リネームテーマ' }),
+		).not.toBeVisible();
+	});
+
 	test('サウンド ON 時に音量スライダーが表示されること', async ({ page }) => {
 		await openSettingsTab(page, 'サウンド');
 

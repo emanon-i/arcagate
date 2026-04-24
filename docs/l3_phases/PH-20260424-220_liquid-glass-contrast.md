@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-220
 title: Liquid Glass コントラスト確認・polish
-status: todo
+status: done
 priority: low
 parallel_safe: false
 scope_files:

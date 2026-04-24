@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-218
 title: ThemeEditor polish（isDirty インジケータ・保存成功・閉じ時リセット）
-status: wip
+status: done
 priority: high
 parallel_safe: false
 scope_files:
