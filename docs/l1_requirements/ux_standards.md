@@ -401,6 +401,34 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 
 ---
 
+## 9. テキスト truncate ルール
+
+テキストが親コンテナを超える場合は以下のルールに従う。
+
+| パターン | Tailwind クラス | 用途                                         |
+| -------- | --------------- | -------------------------------------------- |
+| 1行省略  | `truncate`      | ラベル・タイトル・パス表示（一般）           |
+| 2行省略  | `line-clamp-2`  | カード説明文・メタ情報など複数行が必要な場合 |
+| 6行省略  | `line-clamp-6`  | クイックノート・長文プレビュー               |
+
+**原則:**
+
+- 省略されたテキストには `title={value}` 属性を付けてホバーで全文表示
+- `line-clamp-*` と `truncate` の混在禁止（親コンテナ単位で統一）
+- 必要な場合は `break-all` を追加するが、原則は `break-words`
+
+## 10. スクロール・レイアウトルール
+
+スクロール可能なコンテナには `[scrollbar-gutter:stable]` を付与し、スクロールバーとコンテンツの重なりを防ぐ。
+
+| コンポーネント           | 適用箇所                                        |
+| ------------------------ | ----------------------------------------------- |
+| `LibraryLayout.svelte`   | sidebar-wrapper / main-wrapper / detail-wrapper |
+| `WorkspaceLayout.svelte` | ワークスペースコンテナ                          |
+| ウィジェット内リスト     | `overflow-y-auto` を持つコンテナすべて          |
+
+---
+
 ## 参照
 
 - `docs/l1_requirements/ux_design_vision.md` — UX ビジョン・ゲーム UI 原則

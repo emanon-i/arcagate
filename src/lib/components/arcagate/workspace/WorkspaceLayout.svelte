@@ -193,7 +193,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="min-w-0 flex-1 overflow-auto p-5"
+		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] p-5"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
 			? 'radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
 			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
