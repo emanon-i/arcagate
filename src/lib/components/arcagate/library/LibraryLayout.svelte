@@ -42,14 +42,14 @@ let gridClass = $derived.by(() => {
 </script>
 
 <div class={gridClass}>
-	<div class="hidden min-h-0 overflow-y-auto md:block" data-testid="library-sidebar-wrapper">
+	<div class="hidden min-h-0 overflow-y-auto [scrollbar-gutter:stable] md:block" data-testid="library-sidebar-wrapper">
 		<LibrarySidebar expanded={sidebarExpanded} {activeTag} onSelectTag={handleTagSelect} />
 	</div>
-	<div class="min-h-0 overflow-y-auto" data-testid="library-main-wrapper">
+	<div class="min-h-0 overflow-y-auto [scrollbar-gutter:stable]" data-testid="library-main-wrapper">
 		<LibraryMainArea {activeTag} onSelectItem={(id: string | null) => (selectedItemId = id)} {onAddItem} {onEditItem} />
 	</div>
 	{#if selectedItemId}
-		<div class="hidden min-h-0 overflow-y-auto lg:block" data-testid="library-detail-wrapper">
+		<div class="hidden min-h-0 overflow-y-auto [scrollbar-gutter:stable] lg:block" data-testid="library-detail-wrapper">
 			<LibraryDetailPanel {selectedItemId} {onEditItem} onClose={() => (selectedItemId = null)} />
 		</div>
 	{/if}
