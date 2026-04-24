@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-259
-status: todo
+status: done
 batch: 61
 type: 改善
 ---
@@ -40,8 +40,8 @@ configStore に `itemSize: 'S' | 'M' | 'L'` を追加して永続化。
 
 ## 受け入れ条件
 
-- [ ] Settings から S/M/L を切り替えられる
-- [ ] Library のアイテムカードがサイズに追従する
-- [ ] Workspace のウィジェット内アイテムもサイズに追従する
-- [ ] 再起動後もサイズ設定が保持される
-- [ ] `pnpm verify` 全通過
+- [x] Settings から S/M/L を切り替えられる
+- [x] Library のアイテムカードがサイズに追従する
+- [x] Workspace のウィジェット内アイテムもサイズに追従する（FavoritesWidget / RecentLaunchesWidget アイコン）
+- [x] 再起動後もサイズ設定が保持される（DB config `item_size` キー）
+- [x] `pnpm verify` 全通過

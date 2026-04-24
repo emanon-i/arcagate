@@ -4,6 +4,7 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
+import { configStore } from '$lib/state/config.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -32,6 +33,14 @@ $effect(() => {
 
 let visibleFavorites = $derived(
 	hiddenStore.isHiddenVisible ? favorites : favorites.filter((i) => i.is_enabled),
+);
+
+let widgetIconClass = $derived(
+	configStore.itemSize === 'S'
+		? 'h-4 w-4 shrink-0 object-cover'
+		: configStore.itemSize === 'L'
+			? 'h-6 w-6 shrink-0 object-cover'
+			: 'h-5 w-5 shrink-0 object-cover',
 );
 
 let menuItems = $derived(
@@ -69,7 +78,7 @@ let menuItems = $derived(
 				}}
 			>
 				<span class="flex min-w-0 flex-1 items-center gap-2">
-					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-5 w-5 shrink-0 object-cover" />
+					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class={widgetIconClass} />
 					<span class="truncate">{item.label}</span>
 				</span>
 				<ChevronRight class="h-4 w-4 shrink-0 text-[var(--ag-text-faint)]" />

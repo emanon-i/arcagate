@@ -213,6 +213,21 @@ function handleNavKeydown(e: KeyboardEvent) {
 						/>
 						<p class="mt-1.5 text-xs text-[var(--ag-text-muted)]">Ctrl+ホイールでも変更できます</p>
 					</div>
+					<div>
+						<p class="mb-2 text-sm font-medium text-[var(--ag-text-primary)]">ライブラリカードサイズ</p>
+						<p class="mb-3 text-xs text-[var(--ag-text-muted)]">Library のグリッド表示に適用されます</p>
+						<div class="flex gap-2">
+							{#each (['S', 'M', 'L'] as const) as size (size)}
+								<button
+									type="button"
+									class="flex-1 rounded-md border px-3 py-2 text-sm transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {configStore.itemSize === size ? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] font-medium text-[var(--ag-accent-text)]' : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+									onclick={() => void configStore.saveItemSize(size)}
+								>
+									{size}
+								</button>
+							{/each}
+						</div>
+					</div>
 				</div>
 			{:else if activeCategory === 'appearance'}
 				<div
