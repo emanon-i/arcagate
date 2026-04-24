@@ -13,6 +13,14 @@ async function openSettingsTab(page: Page, tabLabel: string) {
 }
 
 test.describe('設定パネル', () => {
+	// Settings ダイアログを開いたままにするテストがあるため、各テスト後に確実に閉じる
+	test.afterEach(async ({ page }) => {
+		const closeBtn = page.getByRole('button', { name: '設定を閉じる' });
+		if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+			await closeBtn.click();
+		}
+	});
+
 	test('設定パネルが TitleBar から開閉できること', { tag: '@smoke' }, async ({ page }) => {
 		await openSettings(page);
 		// ✕ ボタンで閉じる（keyboard Escape は dialog div がフォーカスを持つ必要があるため button を使用）
@@ -125,6 +133,56 @@ test.describe('設定パネル', () => {
 		} else {
 			await expect(soundPanel.getByRole('slider')).toBeVisible();
 		}
+	});
+
+	test(
+		'現在のテーマを複製でカスタムテーマが作成されること',
+		{ tag: '@smoke' },
+		async ({ page }) => {
+			await openSettingsTab(page, '外観');
+			const appearancePanel = page.locator('#settings-panel-appearance');
+
+			// テーマ複製ボタンをクリック
+			await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
+
+			// 「のコピー」を含むボタンが外観パネルに現れる（カスタムテーマ作成確認）
+			await expect(appearancePanel.getByRole('button', { name: /のコピー/ })).toBeVisible();
+
+			// テーマエディタが開く（編集UIが表示される）
+			await expect(appearancePanel.getByText('を編集')).toBeVisible();
+
+			// 後始末: ThemeEditor の削除ボタンで作成テーマを削除（リトライ時の重複防止）
+			await appearancePanel.getByRole('button', { name: '削除' }).click();
+			await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
+			// 削除後 activeMode が 'dark' にリセットされる
+			await expect(appearancePanel.getByRole('button', { name: /のコピー/ })).not.toBeVisible();
+		},
+	);
+
+	test('カスタムテーマの編集ボタンでエディタが開閉できること', async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		// 複製してカスタムテーマを作成
+		await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
+		await expect(appearancePanel.getByText('を編集')).toBeVisible();
+
+		// 閉じるボタンで閉じる
+		await appearancePanel.getByRole('button', { name: '閉じる' }).click();
+		await expect(appearancePanel.getByText('を編集')).not.toBeVisible();
+
+		// 後始末: 編集ボタンで再度開いて削除
+		await appearancePanel.getByRole('button', { name: '編集' }).click();
+		await appearancePanel.getByRole('button', { name: '削除' }).click();
+		await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
+	});
+
+	test('JSON からインポートリンクがクリックできること', { tag: '@smoke' }, async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		await appearancePanel.getByText('JSON からインポート').click();
+		await expect(appearancePanel.getByRole('textbox')).toBeVisible();
 	});
 
 	test('サウンド ON 時に音量スライダーが表示されること', async ({ page }) => {
