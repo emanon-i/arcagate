@@ -506,3 +506,25 @@ page: async ({ sharedBrowser }, use) => {
   });
   ```
 - **教訓**: Settings テストを追加する際は、テストが dialog を開きっぱなしにしていないか確認する。また afterEach で後始末するか、各テストの末尾で `await page.getByRole('button', { name: '設定を閉じる' }).click()` を明示的に呼ぶ
+
+---
+
+## E2E: getByText / getByRole の strict mode 違反パターン（batch-53 の教訓）
+
+### getByText の部分一致に注意
+
+- **問題**: `getByText('radius')` は `radius-chip`, `radius-button` 等、テキストに `radius` を含む全要素にマッチする
+- **症状**: `strict mode violation: locator resolved to N elements`
+- **修正**: `getByText('radius', { exact: true })` を使い、完全一致のみにする
+- **教訓**: グループ見出しなど一意のテキストでも、子要素が同テキストを含む場合は `{ exact: true }` を指定する
+
+### not.toBeVisible() にも strict mode が適用される
+
+- **問題**: 削除後に `expect(locator).not.toBeVisible()` を呼んだ際、locator が複数要素にマッチすると strict mode 違反になる
+  - 例: テーマカードボタン + ThemeEditor タイトルボタンが両方 `/のコピー/` にマッチ
+- **症状**: `strict mode violation` (not.toBeVisible でも発生する)
+- **修正**: `.first()` を追加して最初の要素のみ対象にする
+  ```typescript
+  await expect(locator.first()).not.toBeVisible();
+  ```
+- **教訓**: `toBeVisible()` だけでなく `not.toBeVisible()` でも strict mode が適用される。複数マッチの可能性がある locator には `.first()` or `nth(0)` を使う
