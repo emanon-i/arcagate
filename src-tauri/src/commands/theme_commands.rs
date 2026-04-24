@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 use crate::db::DbState;
 use crate::models::theme::{CreateThemeInput, Theme, UpdateThemeInput};
@@ -62,8 +62,14 @@ pub fn cmd_get_active_theme_mode(db: State<DbState>) -> Result<String, AppError>
 }
 
 #[tauri::command]
-pub fn cmd_set_active_theme_mode(db: State<DbState>, mode: String) -> Result<(), AppError> {
-    theme_service::set_active_theme_mode(&db, &mode)
+pub fn cmd_set_active_theme_mode(
+    app: AppHandle,
+    db: State<DbState>,
+    mode: String,
+) -> Result<(), AppError> {
+    theme_service::set_active_theme_mode(&db, &mode)?;
+    let _ = app.emit("theme-changed", &mode);
+    Ok(())
 }
 
 #[tauri::command]

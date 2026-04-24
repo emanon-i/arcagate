@@ -1,3 +1,4 @@
+import { listen } from '@tauri-apps/api/event';
 import * as themeIpc from '$lib/ipc/theme';
 import type { Theme, ThemeMode } from '$lib/types/theme';
 
@@ -8,6 +9,7 @@ let error = $state<string | null>(null);
 
 let systemMediaQuery: MediaQueryList | null = null;
 let systemListener: ((e: MediaQueryListEvent) => void) | null = null;
+let themeChangedUnlisten: (() => void) | null = null;
 
 function resolveMode(mode: ThemeMode): 'dark' | 'light' {
 	if (mode === 'system') {
@@ -101,6 +103,12 @@ async function loadTheme(): Promise<void> {
 		themes = allThemes;
 		activeMode = mode;
 		applyTheme();
+
+		if (!themeChangedUnlisten) {
+			themeChangedUnlisten = await listen('theme-changed', () => {
+				void loadTheme();
+			});
+		}
 	} catch (e) {
 		error = String(e);
 	}
