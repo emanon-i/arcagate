@@ -1816,3 +1816,21 @@ Plan A から着手。
 - PH-246: Palette overlay レイアウト + テーマ追従修正
 - PH-247: テーマ視覚差分 E2E
 - PH-248: Liquid Glass Apple 寄り強化
+
+---
+
+## batch-57 → batch-58 移行 (2026-04-25)
+
+- PR #88 MERGED (rebase-and-merge)
+- L3 archive: PH-239〜243 を archive/ に移動
+- feature/batch-20260425-58 ブランチ作成
+
+### batch-58 実施計画
+
+| Plan | PH     | 内容                                                |
+| ---- | ------ | --------------------------------------------------- |
+| A    | PH-244 | Endfield 等高線 + ノイズ + CSS vars (migration 013) |
+| B    | PH-245 | Ubuntu Frosted 透明化強化 (migration 014)           |
+| C    | PH-246 | Palette overlay 3段 flex + テーマ追従修正           |
+| D    | PH-247 | テーマ視覚差分 E2E                                  |
+| E    | PH-248 | Liquid Glass Apple 寄り + トークン整理              |
