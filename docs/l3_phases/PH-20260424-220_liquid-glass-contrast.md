@@ -1,0 +1,32 @@
+---
+id: PH-20260424-220
+title: Liquid Glass コントラスト確認・polish
+status: todo
+priority: low
+parallel_safe: false
+scope_files:
+  - src-tauri/migrations/012_liquid_glass_theme.sql
+  - src/lib/styles/arcagate-theme.css
+depends_on: []
+---
+
+## 目的
+
+Liquid Glass テーマ選択時のテキスト可読性・コントラスト比を実機確認し、
+必要なら CSS 変数を調整する。
+
+## 確認項目
+
+- `--ag-text-primary` (rgba(255,255,255,0.92)) on `--ag-surface-0` のコントラスト
+- アクセントカラー `#3b82f6` の視認性
+- backdrop-filter の視覚効果確認
+
+## 実装内容
+
+- `pnpm tauri dev` で起動後 Liquid Glass テーマを選択して目視確認
+- 問題があれば migration SQL または arcagate-theme.css を調整
+
+## 受け入れ条件
+
+- [ ] Liquid Glass テーマでのテキスト可読性が十分（肉眼確認）
+- [ ] `pnpm verify` 全通過
