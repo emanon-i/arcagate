@@ -146,7 +146,8 @@ test.describe('設定パネル', () => {
 			await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
 
 			// 「のコピー」を含むボタンが外観パネルに現れる（カスタムテーマ作成確認）
-			await expect(appearancePanel.getByRole('button', { name: /のコピー/ })).toBeVisible();
+			// .first() でテーマグリッドボタン（ThemeEditor タイトルボタンより前）を指定
+			await expect(appearancePanel.getByRole('button', { name: /のコピー/ }).first()).toBeVisible();
 
 			// テーマエディタが開く（編集UIが表示される）
 			await expect(appearancePanel.getByText('を編集')).toBeVisible();
