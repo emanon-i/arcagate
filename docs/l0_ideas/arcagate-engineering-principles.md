@@ -1,148 +1,558 @@
----
-status: living
----
-
 # Arcagate エンジニアリング原則
 
-設計判断の拠り所となる技術基準。「なぜそうするか」を一言で答えられる水準を目指す。
-`/simplify` 実行時・設計レビュー時はここを参照して取捨選択する。
+## 1. 目的
 
-## 1. アーキテクチャ境界
+本文書は Arcagate 開発時の **技術判断基準** を定める。Plan の受け入れ・リファクタ発動・新規機能提案・テスト設計・依存追加 等、実装に関わる判断すべてに通底する指針を集約する。
 
-### 1.1 レイヤー依存規則
+### 品質バー
+
+> **「他人が使って・配布されて・販売されても問題ない水準」** を目指す。
+
+個人専用のつもりで妥協せず、誰かに手渡したときに恥ずかしくない品質を常に狙う。この基準はすべての判断において最上位にある（§9 で測定可能な条件に落とす）。
+
+GitHub public 状態で既に配布可能、将来的な販売もオプションとして開かれている。現状は開発者自身の毎日の使用を起点に磨き込み、品質バーは常に配布水準。
+
+### 他ドキュメントとの位置関係
+
+- `CLAUDE.md` — プロジェクト規約 / 禁止事項。本文書と矛盾しない
+- `docs/dispatch-operation.md` — 運用フロー（process）。本文書は技術判断基準（technical）
+- `docs/l1_requirements/vision.md` — プロダクト要件 / マイルストーン / 非機能要求。本文書は vision の制約を前提に技術判断を下す
+- `docs/l1_requirements/ux_standards.md` — UX 標準（モーション / 色 / タイポ / Do&Dont）。本文書の §6 テストピラミッドで参照
+- `docs/l0_ideas/arcagate-concept.md` — プロダクト概念 / 競合 / 設計思想。本文書は concept のフォーカスを保つ立場
+- `docs/dispatch-log.md` — 実行ログ。本文書の違反・例外は log に記録
+
+---
+
+## 2. フロント / バックエンド分担の決定基準
+
+### 原則
+
+| 処理種別 | フロント（Svelte / TS） | バックエンド（Rust） |
+| -------------------------------------------- | ----------------------- | -------------------- |
+| UI レンダリング・状態管理 | ✅ | — |
+| ユーザ入力（クリック・キーボード・D&D） | ✅ | — |
+| 軽量データ変換（整形・並び替え・フィルタ、~100 件） | ✅ | — |
+| CSS 変数適用（テーマ切替） | ✅ | — |
+| 即時レスポンスの軽量ロジック（debounce 内の計算等） | ✅ | — |
+| ファイルシステム I/O（watch / scan / read / write） | — | ✅ |
+| SQLite クエリ（`Mutex<Connection>` 単一接続） | — | ✅ |
+| プロセス起動（launchItem） | — | ✅ |
+| 大量データ変換（>100 件 or >16ms 想定） | — | ✅ |
+| 長時間 / ストリーミング処理 | — | ✅ |
+| ネイティブ OS 統合（global hotkey / tray / autostart） | — | ✅ |
+| ファイルフォーマット解析（exe アイコン抽出等） | — | ✅ |
+| スケジュール / 起動時タスク | — | ✅ |
+
+### グレーゾーン判断フロー（新規コード追加時）
 
 ```
-UI（Svelte）
-  └─ IPC（invoke/listen）
-       └─ Commands（Tauri handlers）
-            └─ Services（ビジネスロジック）
-                 └─ Repositories（DB アクセス）
-                      └─ SQLite（rusqlite）
+Q1: OS レベルのアクセスが必要か？ → Yes なら Rust
+Q2: ファイル / DB に触れるか？ → Yes なら Rust
+Q3: 同時に 100 件超を処理するか？ → Yes なら Rust
+Q4: 16ms 以上 UI を止める可能性があるか？ → Yes なら Rust
+Q5: アプリ再起動を跨いで状態が必要か？ → Rust (DB) + フロント (表示)
+上記全部 No → フロント
 ```
 
-- 依存は上から下への一方向のみ。逆参照禁止
-- UI は IPC 経由でのみバックエンドと通信する（直接 Repository 呼び出し不可）
-- Repository 間の相互参照禁止。複数 Repository の結合は Service 層で行う
-- Service 層が全エントリーポイント（UI / CLI）の共通経路
+### IPC 境界の設計原則
 
-### 1.2 フロントエンド / バックエンド分担
+- 要求 / 応答は `invoke`、プッシュ / ストリームは `event`
+- payload / 戻り値は小さく、スキーマを Rust struct ↔ TS interface で同期（候補: `ts-rs` で自動生成）
+- エラーは境界で `AppError` に統一、フロント側は toast に整形
+- 重い処理を 1 回の invoke でやらない（>1s 見込みなら進捗 event で分割）
 
-| 層             | 責務                                   | 禁止事項                         |
-| -------------- | -------------------------------------- | -------------------------------- |
-| Svelte（UI）   | 表示・インタラクション・状態保持       | ビジネスルール実装、直接 DB 操作 |
-| Tauri Commands | IPC 薄膜（型変換・エラー変換のみ）     | ビジネスロジック記述             |
-| Services       | ユースケース実装・トランザクション管理 | UI 依存コードの混入              |
-| Repositories   | SQL 実行・モデル変換                   | 他 Repository の呼び出し         |
+### 具体的数値（目安、超過は実装の異常サイン）
 
-### 1.3 状態管理
+- UI 応答目標: ユーザ入力から視覚フィードバックまで **< 100ms**（16ms × 6 frames ≒ 知覚可能境界）
+- バックエンド呼び出しの見込み時間が **> 50ms** なら非同期 + ローディング UI 必須
+- IPC payload は **< 10KB** 目安、超える場合は分割 or file-based
 
-- グローバル状態は `src/lib/state/*.svelte.ts` に集約（Svelte 5 runes）
-- `$state` / `$derived` / `$effect` を使用。Svelte 4 の `writable` / `derived` は使わない
-- 副作用（IPC 呼び出し）は `$effect` 内か明示的なイベントハンドラで行う。`$derived` に副作用を入れない
+### 実績ベース検証（棚卸しフェーズ後に埋める）
 
----
-
-## 2. エラーハンドリング
-
-- 統一エラー型 `AppError`（`thiserror`）を全レイヤーで使用
-- `anyhow` / `Box<dyn Error>` / `unwrap()` は製品コードで使わない（テストは除く）
-- IPC: `Result<T, AppError>` → Tauri が自動シリアライズ → フロントエンドは文字列として受信
-- フロントエンド側は `try { await invoke(...) } catch (e) { toast.error(String(e)) }` パターン
+- 現状の `cmd_*` コマンド一覧と呼び出し頻度
+- フロント側で重くなってる処理の特定
+- 移譲候補の具体リスト
 
 ---
 
-## 3. データベース
+## 3. エラーハンドリング標準
 
-- `Mutex<Connection>` による単一 DB 接続。WAL モードで読み取り並行性を確保
-- 個人アプリ規模でコネクションプールは過剰 — 追加しない
-- ORM（Diesel / SQLx / SeaORM）は不使用。rusqlite + 生 SQL が意図的な選択
-- マイグレーション SQL は `include_str!` でバイナリに埋め込み（実行時の外部ファイル依存なし）
-- 全 PK は UUID v7（TEXT 型）: 時刻ソート可能 + インポート時の衝突回避
+### エラー種別 × 対応方針
 
----
+| エラー種別 | 発生源 | ユーザ通知 | ログ | リトライ | フォールバック |
+| --------------------- | -------------------------- | -------------------- | ---------- | --------------------------------- | --------------------------------- |
+| IPC 呼び出し失敗 | invoke → Rust Err | Toast（短文） | warn | なし | UI は元の状態維持 |
+| DB lock / busy | `Mutex<Connection>` 競合 | なし（内部） | debug/warn | 自動 3 回 + exponential backoff | 最終失敗で error toast |
+| DB 制約違反 | UNIQUE / FK / NOT NULL | Toast（文脈） | warn | なし | 入力やり直し |
+| ファイル I/O | launchItem / watch / export | Toast（平易） | warn | なし | アイテム灰色化 or 削除提案 |
+| watch 一時エラー | fs_watcher | なし（内部） | warn | 自動 re-subscribe | 上限で warn log + disabled 状態 |
+| 入力 validation | ItemForm / Settings | インライン（赤枠 + hint） | trace | なし | 修正まで保存不可 |
+| Rust panic | unwrap / expect | Toast（一般メッセージ） | error | なし | アプリは生存させる |
+| フロント JS error | Svelte / Promise reject | dev: console / prod: toast | error | なし | 局所に封じ込める |
 
-## 4. 依存予算
+### 原則
 
-**原則**: 依存は「現実の問題を解決する」ときだけ追加する。"nice to have" は追加しない。
+1. **静かに失敗しない**: `let _ = result;` 禁止、ログに残すかユーザに通知
+2. **AppError に統一**（Rust）: `thiserror` で enum、`From` で変換自動化、IPC 境界で `{ code, message, details? }` にシリアライズ
+3. **境界 serializable**: Rust の詳細 error を TS がパニックせずに受け取れる shape
+4. **ユーザ通知は要点のみ**: Toast は短文、スタックトレースは見せない
+5. **リトライは冪等 / 副作用非重複の場合のみ**自動化、それ以外はユーザ判断
 
-| カテゴリ        | 判断基準                                                     |
-| --------------- | ------------------------------------------------------------ |
-| Rust クレート   | cargo audit で脆弱性なし + メンテ継続中 + 目的が明確         |
-| npm パッケージ  | バンドルサイズ影響を確認（`pnpm build` → dist サイズ比較）   |
-| UI ライブラリ   | shadcn-svelte コンポーネント優先。新規 UI lib 追加は原則禁止 |
-| 外部 API / SaaS | ゼロコスト運用が破れる場合は導入禁止                         |
+### 禁止
 
-依存を追加する際は対応する Plan に「追加理由・代替案・サイズ影響」を明記する。
+- `let _ = result;` でエラー握り潰し
+- main thread request 処理で `unwrap()` / `expect()`
+- Toast に英語スタックトレース
+- エラーを state に残したまま UI に滞留
 
----
+### 推奨パターン
 
-## 5. テスト戦略
-
-| テスト種別          | 場所                                                 | 対象                                 |
-| ------------------- | ---------------------------------------------------- | ------------------------------------ |
-| Rust ユニットテスト | `src-tauri/src/**/*.rs`（`#[cfg(test)]` モジュール） | Service・Repository のロジック       |
-| Vitest              | `src/lib/**/*.test.ts`                               | フロントエンド store・ユーティリティ |
-| Playwright E2E      | `tests/*.spec.ts`                                    | ユーザー操作フロー（Tauri + CDP）    |
-
-**E2E の書き方指針**:
-
-- ハッピーパス + 代表的なエラーケース 1〜2 件を最小限でカバー
-- `page.evaluate()` でプライベート状態を直接読まない（公開 API / DOM 経由で検証）
-- フレークを避けるため `waitFor` / `locator` を `setTimeout` より優先
-
-**リファクタ閾値**: 既存テストが通る限り内部実装を変えてよい。テストが壊れたらまず「テスト自体が実装詳細に依存していないか」を確認する。
+- Rust: `Result<T, AppError>` + `?` 伝播 + 境界で `AppError::serialize()`
+- TS: `try { await invoke(...) } catch (e) { toast.error(parseAppError(e).message) }` を共通 helper に寄せる
+- 一時エラー retry: backoff + 「リトライ中」UI
+- undo は基本なし、失敗時は状態説明 + ユーザやり直し
 
 ---
 
-## 6. CSS / デザインシステム
+## 4. 可観測性（ログ）標準
 
-### 6.1 トークン階層
+### 原則: 「ログを見た agent が 1 分以内に原因 / 修正箇所 / 次アクションを特定できる」
+
+ログ 1 行に最低限:
+
+- **どこで**: ファイルパス + 行番号 + 関数名 or span 名
+- **何が**: イベント名 + 関連データ（ID、入力値、期待値 vs 実際値）
+- **なぜ**（分かる範囲で）: 既知エラーパターン or 原因候補
+- **次に何を**: agent / 人間向け next_action（修正箇所ヒント or 参照ドキュメント）
+
+### Rust 側: `tracing` ベース
+
+```rust
+// 悪い例
+tracing::error!("failed to launch");
+
+// 良い例
+tracing::error!(
+    file = file!(),
+    line = line!(),
+    target_id = %item.id,
+    target_path = %item.path,
+    kind = ?item.kind,
+    error = %e,
+    next_action = "check item.path existence; if valid, inspect spawn command assembly in launch.rs",
+    "launchItem failed: target path may not exist or permission denied"
+);
+```
+
+**規約**:
+
+- `#[tracing::instrument]` で function span 自動付与
+- structured fields で ID・パス・状態を必ず添える
+- error log には `next_action` field 必須（agent 読み前提）
+- span 名は `<module>::<function>` で階層を辿れる
+- `AppError::to_tracing_fields()` で統一展開
+
+### フロント側: `console.*` ラッパー
+
+共通 helper `src/lib/log.ts`:
+
+```typescript
+// 悪い例
+console.error('failed to save theme', err);
+
+// 良い例
+logError('themeStore.saveTheme', {
+  file: 'src/lib/state/theme.svelte.ts',
+  line: 142,
+  event: 'theme_save_failed',
+  themeId: theme.id,
+  error: err,
+  nextAction: 'inspect invoke("save_theme") payload; check Rust side cmd_save_theme in theme.rs',
+});
+```
+
+- 本番ビルドでは `cmd_log_frontend` 経由で Rust 側に転送、error / warn レベルを永続化
+- dev ビルドでは `console` のみ
+
+### ログレベル使い分け
+
+| level | 使いどころ |
+| ------- | -------------------------------------------------- |
+| `trace` | 関数の出入り、hot path ステップ（通常 off） |
+| `debug` | 開発中の状態遷移、DB ロック取得・解放 |
+| `info` | ユーザ視点で意味あるイベント（起動成功、設定変更） |
+| `warn` | 一時失敗、retry、既知の非致命 |
+| `error` | 業務不能、ユーザ体験損失 |
+
+### 永続化ログ
+
+- **場所**: `%APPDATA%/arcagate/logs/arcagate-YYYY-MM-DD.log`
+- **フォーマット**: JSON lines（agent が jq / grep しやすい）
+- **保持**: 14 日 daily rotate
+- **sink**: Rust tracing は `tracing-subscriber::fmt::json`、フロント event も Rust 側で同じファイルに吐く
+
+### agent 向け運用
+
+- エラー調査の第一手はこのログ（`/simplify` や修正時に grep / jq で最新 error/warn を見る）
+- Plan 実装中のエラーは `next_action` を実行 → 不足なら span / stack で辿る
+- 再発しそうなエラーは lessons.md に 1 行追記
+
+### 既存コードへの段階的導入
+
+- 新規コミット以降はこの標準に沿う
+- 既存ログは整理系バッチで段階的アップグレード
+- 初回は `src-tauri/src/commands/` の `cmd_*` から着手
+
+---
+
+## 5. 依存予算
+
+### 上位制約（vision.md からの目標）
+
+- 単体 exe（Tauri バンドル含む）: **20MB 以下**
+- Idle メモリ: **100MB 以下**
+- 起動 P95: **2 秒以内**
+
+これを超える依存追加は根本的に不可。この 3 制約からバンドルサイズを逆算。
+
+### 計測ツール（アーキテクチャ棚卸しフェーズで初回計測 → ベースライン化）
+
+| 対象 | ツール | 出力 |
+| --------------------- | --------------------------------------- | -------------- |
+| フロントバンドル | `vite-bundle-visualizer` | treemap |
+| 依存ごとの寄与 | `rollup-plugin-visualizer` | treemap |
+| Rust バイナリ全体 | `ls -la` + `cargo bloat --release` | サイズ + クレート寄与 |
+| Rust 重量クレート | `cargo bloat --release --crates -n 30` | top 30 |
+| フロント未使用 export | `knip` | 削除候補 |
+| Rust 未使用 dep | `cargo-udeps` | 削除候補 |
+| 起動時間 | `performance.now()` + Rust 起動ログ | ms |
+
+ベースライン化後、「これより増やさない」運用。vision 目標を超えなければ OK の判定。
+
+### システム的検知（自動化対象）
+
+| 検知したい現象 | ツール |
+| ----------------------------------------- | --------------------------------------- |
+| **重複版**（同パッケージの異バージョン） | npm: `pnpm ls` + `syncpack` / cargo: `cargo tree --duplicates` |
+| **未使用パッケージ** | npm: `knip` or `depcheck` / cargo: `cargo-udeps` |
+| **セキュリティ脆弱 / ライセンス違反** | npm: `pnpm audit` / cargo: `cargo-deny` |
+| **同役割の複数ライブラリ** | カスタムチェッカ（下記 curated list） |
+| **アーキ違反な import（layer 越境）** | `dependency-cruiser` rules |
+| **直接 import 禁止（deprecated）** | `dependency-cruiser` / ESLint `no-restricted-imports` |
+| **バンドル急増 / バイナリ肥大** | `vite-bundle-visualizer` / `cargo-bloat` 定期実行 |
+
+### 同役割ライブラリの curated list（source of truth）
+
+1 つの役割に対し採用するのは 1 ライブラリまで。該当役割で 2 つ以上検出したら CI で警告 or fail。
+
+| 役割 | 採用可 / 候補 | 備考 |
+| ----------------------- | --------------------------------------- | -------------------------------- |
+| 日付処理 | なし（JS 標準 `Date` / `Intl` で足りる） | 外部 date lib 追加は要議論 |
+| 状態管理（フロント） | Svelte 5 runes（`$state`, `$derived`）のみ | redux / zustand / jotai 等は不可 |
+| HTTP クライアント（フロント） | なし（オフライン完結設計） | axios / ky / got 等は不可 |
+| UUID | `uuid` crate の v7 | Rust 側で生成、フロントは受け取るだけ。他バージョン混在不可 |
+| CSS-in-JS | なし（Tailwind + CSS 変数） | styled-components / emotion 等は不可 |
+| 状態管理（バックエンド） | `Mutex<Connection>` + SQLite | ORM 禁止（CLAUDE.md） |
+
+Rust 側（追加のガード）:
+
+| 役割 | 採用可 / 候補 |
+| ----------------------- | --------------------------------------- |
+| HTTP クライアント | 原則使わない（オフライン完結）、必要時は `reqwest` |
+| シリアライズ | `serde` + `serde_json`、他は不可 |
+| エラー | `thiserror` + `AppError` enum、`anyhow` は使わない |
+| 非同期ランタイム | `tokio`（Tauri が内包）、他不可 |
+| ロガー | `tracing` + `tracing-subscriber`、他不可 |
+
+### CI / 自動化
+
+| チェック | 実行場所 | 違反時 |
+| --------------------- | --------------------- | --------------------- |
+| 重複版 / 未使用 / 同役割 | `pnpm run audit:deps`（PR CI） | fail |
+| ライセンス / 脆弱性 | `pnpm audit` + `cargo-deny` | fail |
+| アーキ違反 import | `dependency-cruiser`（PR CI） | fail |
+| バンドル / バイナリサイズ変動 | 月 1 回 scheduled workflow | 5% 超増加で warning + 整理系バッチに積む |
+
+### 新規依存追加の判断フロー
+
+1. `std` / 既存依存で足りないか（3 分で書けるなら書く）
+2. 最終更新 < 12 ヶ月、週次 downloads > 10k、ライセンス OK
+3. 同役割の既存依存がないか（上記 curated list）
+4. 追加して計測 → exe 20MB / idle 100MB / 起動 2 秒の 3 目標維持できるか
+5. ベースラインを超えそうなら、軽量代替 or Rust 側実装 or 自前実装
+
+### 実装
+
+- `scripts/audit/check-dep-roles.ts` で上記 curated list を source of truth として参照
+- `pnpm run audit:deps` で一括実行、CI 必須
+- 棚卸しフェーズ中のバッチで整理系 1 本として実装
+
+---
+
+## 6. テストピラミッド（観点主導、業界体系ベース）
+
+### 原則: 「観点を言語化 → それに沿って書く」、カバレッジ % は後追い指標
+
+- 業界確立の観点体系を借りる（SFDIPOT / HICCUPPS）
+- 機械探索で人間の思いつかない入力を攻める（Property-based Testing）
+- カバレッジ % は観点漏れの検出器、数値を目的化しない
+
+### Layer 1: SFDIPOT（機能設計時の 7 観点）
+
+| 観点 | 問い |
+| ---- | ---- |
+| **S** Structure | コードはどこ？ 内部構造は？ |
+| **F** Function | 入出力は？ 主要変換は？ |
+| **D** Data | 型 / 範囲 / encoding / 欠損時は？ |
+| **I** Interface | 呼び元 / 呼び先 / IPC 境界は？ |
+| **P** Platform | OS / WebView2 / デバイス固有挙動は？ |
+| **O** Operations | 正しい使い方 / 誤操作は？ |
+| **T** Time | 遅い / 速い / タイムゾーン / 期限は？ |
+
+**運用**: Plan 文書に `## テスト観点（SFDIPOT）` 節必須。7 観点考慮し、重要観点 3 つ以上をテスト化。
+
+### Layer 2: HICCUPPS（受け入れ判定オラクル）
+
+| オラクル | 問い |
+| -------- | ---- |
+| **H** History | 過去挙動と一致 |
+| **I** Image | 業界 / 競合標準と一致 |
+| **C** Comparable products | 類似機能と比較して妥当 |
+| **C** Claims | ドキュメント / UI 主張と一致 |
+| **U** User expectations | ユーザ期待と合致 |
+| **P** Product internal consistency | 製品内他機能と一貫 |
+| **P** Purpose | 機能意図通り |
+| **S** Statutes | 法規 / ライセンス |
+
+**運用**: Plan 文書の「受け入れ条件」各項目に該当オラクルタグ（例: `[Function, User]`）。主観 UX オラクル（User / Image）は手動確認依頼セクション運用。
+
+### Layer 3: Property-based Testing
+
+人間の観点が言語化できない領域をランダム生成で探索:
+
+- **TS**: `fast-check` + vitest
+- **Rust**: `proptest` + cargo test
+
+**向く対象**: パーサ / バリデータ / ソート・フィルタ・マージ（invariant 検証）/ IPC payload round-trip / テーマ JSON round-trip / UUID / タイムスタンプ
+
+**書き方例**:
+
+```typescript
+import { fc } from 'fast-check';
+
+it('theme JSON round-trip preserves variables', () => {
+  fc.assert(fc.property(
+    fc.record({ /* 任意の --ag-* 変数 */ }),
+    (vars) => {
+      const json = exportTheme(vars);
+      const parsed = importTheme(json);
+      expect(parsed).toEqual(vars);
+    }
+  ));
+});
+```
+
+**導入時期**: アーキテクチャ棚卸しフェーズで整理系 1 本、初回 3〜5 箇所に適用。以降新規の決定論的関数に追加。
+
+### ピラミッド構造
 
 ```
---ag-* (Arcagate tokens)  ←  コンポーネントはここだけ参照
-    ↑ bridge
---background / --border 等 (shadcn tokens)
-    ↑ map
-Tailwind utility classes
+   /\   E2E (Playwright CDP)
+  /  \  - Platform / Operations 観点、ユーザストーリー
+ /    \
+/------\
+ /\    Integration（vitest happy-dom / Rust in-memory SQLite）
+/  \   - Interface / Structure 観点
+/----\
+ /\   Unit（vitest + cargo test + property-based）
+/  \  - Function / Data 観点、機械で入力空間探索
+/----\
 ```
 
-- コンポーネントは `--ag-*` トークンを直接参照。Tailwind の色クラス（`bg-gray-900` 等）は使わない
-- `src/lib/components/ui/`（shadcn scaffold）は手動編集原則禁止
-  - ビルドエラー / 型エラー修正は例外（対応する L3 ドキュメントに記録）
+### カバレッジ補助指標
 
-### 6.2 テーマシステム
+- Unit 分岐 70% 目安（下回ったら SFDIPOT 観点漏れ疑い）
+- Integration: 主要 Store / `cmd_*` 全関数に 1 ケース以上
+- E2E: `@smoke` 20 シナリオ以下、`@nightly` 制限なし
 
-- 組み込みテーマ（`is_builtin = 1`）は SQL マイグレーション（`migrations/0xx_*.sql`）で定義
-- テーマは CSS カスタムプロパティ（`--ag-*`）の JSON 集合 + 構造 CSS ルール（`arcagate-theme.css`）の 2 層構成
-  - JSON vars: 色・余白・影の値を上書き
-  - 構造 CSS: テクスチャ・backdrop-filter・特殊効果など `css_vars` で表現できないルール
-- カスタムテーマはユーザーが DB 上で管理。`is_builtin = 0` のレコード
-- クロスウィンドウ（メインウィンドウ ↔ パレットオーバーレイ等）でのテーマ同期は Tauri イベント経由
+カバレッジは観点漏れ検出器、数値目的化しない。
 
-### 6.3 過剰設計を避ける
+### E2E 固有の原則
 
-- 同じスタイルが 3 箇所以上で繰り返されてから抽象化を検討
-- コンポーネント props の増殖（5 超えたら設計を見直す）
-- 不要な JSX / Svelte ラッパー要素は作らない
+- 実機と同じ経路（pointer chain / dragTo native drag、synthetic 禁止）
+- `afterEach` で `mouse.up` / `keyboard.up`（入力キャプチャ残留防止）
+- `globalTimeout: 300s`
+- CDP 経由で WebView2 実接続
 
----
+### 「直った」の判定（3 点揃い）
 
-## 7. パフォーマンス予算
+- E2E 緑
+- agent 自身の CDP 経由実機確認
+- SFDIPOT 重要観点を潰した
 
-| 指標                 | 目標値       |
-| -------------------- | ------------ |
-| Idle 時 Working Set  | 100 MB 以下  |
-| ホットキー → UI 表示 | P95 2 秒以内 |
-| 単体 exe サイズ      | 20 MB 以下   |
-
-ホットパス（起動時・IPC ハンドラ・レンダリングループ）に新たなブロッキング処理を追加する場合は計測値を Plan に記載する。
+主観 UX（User / Image オラクル）は手動確認依頼セクション運用。
 
 ---
 
-## 8. コードスタイル
+## 7. リファクタ発動条件
 
-- コメントは「WHY」のみ。WHAT はコードが語る
-- 関数・変数名に略語を使わない（`btn` → `button`、`cfg` → `config` 等は例外）
-- 型安全: `any` / `unknown` のキャストはシステム境界（IPC 受信値）に限定
-- `console.log` は開発デバッグのみ。マージ前に削除
-- Rust: `clippy` の lint は全通過。`#[allow(...)]` は理由コメント付きでのみ許可
+### 原則: 「計測でトリガ、感覚でやらない」
+
+各指標に閾値を決めて、超えたら整理系バッチで拾う。超過しても「意味ある凝集」で説明できるなら残して OK、例外は lessons.md に記録。
+
+### 自動検知トリガ（計測して閾値判定）
+
+| 指標 | 閾値 | 計測ツール | 違反時アクション |
+| --------------------- | --------------------- | --------------------- | --------------------- |
+| 関数 LoC | 50 warning / 100 refactor | eslint / complexity-report / clippy::too_many_lines | 関数分割、純粋関数抽出 |
+| ファイル LoC | 500 warning / 1000 refactor | cloc / tokei | コンポーネント分割、責務分離 |
+| Cyclomatic complexity | 10 warning / 20 refactor | eslint-plugin-sonarjs / clippy::cognitive_complexity | 早期 return、分岐抽出 |
+| Fan-out | 15 超 warning | madge / cargo depgraph | 責務過多の疑い、分離 |
+| Fan-in | 20 超 warning | 同上 | ホットスポット、ファサード化検討 |
+| Duplicate code | 5 行以上 × 3 箇所以上 | jscpd / 目視 | 共通関数 / utility 抽出 |
+| Deep nesting | 4 レベル以上 | eslint-plugin-sonarjs / clippy | 早期 return、関数抽出 |
+| Parameter count | 4 warning / 6 refactor | clippy::too_many_arguments | options object / struct 化 |
+| Magic number / string | リテラル直書き | eslint-plugin-unicorn / clippy::approx_constant | 名前付き定数化 |
+| Circular deps | 存在で即 fail | madge --circular / cargo depgraph | 境界再設計 |
+| Dead code | 未使用 export / fn | knip / cargo-udeps / `#[warn(dead_code)]` | 削除 |
+| LCOM（凝集度） | 棚卸し後ベースラインから決定 | 棚卸しフェーズで選定 | クラス / モジュール分割 |
+| CBO（結合度） | 同上 | 同上 | 依存削減 |
+
+### 人間判断トリガ
+
+| パターン | 兆候 |
+| -------- | ---- |
+| SRP 違反 | 1 つの module / component に「と」で繋がる複数関心事 |
+| 抽象化しすぎ | 使われない generic、過剰 interface、2 段以上の wrapper |
+| 抽象化が薄い | 同じロジックが複数箇所、変更時 N 箇所直す |
+| Test smells | flaky / slow / 依存強い / setup 肥大 / assertion roulette |
+| Boy scout 違反 | 既存コード周辺を放置したまま通り過ぎる |
+| 負債可視化 | `// TODO` / `// FIXME` 増、期限切れ |
+| レビュー反復違和感 | `/simplify` で同種指摘が複数バッチで出る |
+
+### 実行
+
+- 各バッチの整理系 1 本で上記トリガから 1〜3 件拾う
+- 規模大きいものは独立整理バッチ（5 Plan 全部整理、も許容）
+- Before / After で指標改善を PR 本文に記録
+- 既存機能を壊さない（テスト緑維持、破壊的 API 変更は別 Plan）
+
+### 棚卸しフェーズで確定すること
+
+- 現在のベースライン数値
+- LCOM / CBO の実際の閾値
+- 閾値超過 top 10 を `docs/l2_architecture/refactoring-opportunities.md` に積む
+
+### 参考
+
+Martin Fowler "Refactoring" 2nd ed. のコードスメル辞書 + リファクタ手順カタログ。
+
+---
+
+## 8. 新規機能提案ゲート
+
+### 原則: 「やらないことを決める」
+
+Arcagate のフォーカスを保つため、新機能は以下 10 ゲートを全 Pass した上で Plan 化。
+
+### 必須ゲート
+
+| ゲート | 判定基準 |
+| ------ | -------- |
+| **G1 凍結領域** | vision.md の凍結対象（REQ-012 コンテキストメニュー統合、REQ-013 ファイルマネージャー・AI 連携深化 等）に該当しない。該当するなら凍結解除議論を経てから再提案 |
+| **G2 スコープ外** | vision.md §2.2「スコープ外」（クラウド同期 / Linux・macOS ネイティブ / ターミナル統合 等）に該当しない。理由は「プロダクトフォーカスを保つため」。公開方針 / 配布可否とは独立 |
+| **G3 マイルストーン整合** | M1〜M2c のいずれかに属する、または妥当な延長として説明できる |
+| **G4 パフォーマンス** | exe 20MB / idle 100MB / 起動 P95 2 秒 を悪化させない。悪化見込みなら計測で確認 |
+| **G5 UX 原則整合** | ux_standards.md の Do/Don't、状態定義（hover/focus/active/disabled）、a11y（Reduced Motion / focus ring / キーボード操作）を満たす |
+| **G6 デザインシステム整合** | `--ag-*` トークン使用、shadcn 手動編集なし、テーマ切替で崩れない |
+| **G7 依存予算** | §5 の判断フロー通過、curated list 整合 |
+| **G8 複雑度予算** | 既存コードの cyclomatic / LoC / nesting を悪化させない。増えるなら同時に整理 Plan を付ける |
+| **G9 テスト観点** | SFDIPOT で観点列挙可、HICCUPPS で受け入れ判定可、自動テスト可能範囲が明確 |
+| **G10 コスト妥当性** | 1〜2 Plan で収まる規模。大規模なら段階分解 |
+
+### 判定フロー
+
+```
+新機能アイデア
+  → 10 ゲート全 Pass?
+     → Yes: Plan 化可、Plan 冒頭に「全 Pass 確認済み」を記載
+     → No:  dispatch-log「却下機能リスト」に却下理由と再提案条件を記録
+```
+
+### スコープ拡大の誘惑への構え
+
+Arcagate の価値は「起動の摩擦をゼロ」「毎日使える」に集中。他ツールの機能を真似て追加するより、**既存機能の磨き込み** を優先（UX/一貫性/安定性ポリッシュ原則）。
+
+「**なくても毎日使えるか？**」を問う。Yes なら追加しない。
+
+### 却下後の扱い
+
+dispatch-log.md の「却下機能リスト」に残す。条件（凍結解除、マイルストーン変更、品質バー引き上げ等）が変わったら再提案可能。
+
+---
+
+## 9. 「毎日使える」のオペレーショナル定義
+
+### 品質バー（§1 再掲）
+
+**「他人が使って・配布されて・販売されても問題ない水準」**
+
+ユーザ本人だけでなく、**誰が使っても毎日使える** を測定可能な条件に落とす。
+
+### 主観オラクル → 客観指標の対応
+
+| 主観観点 | 客観指標 | 閾値 |
+| -------- | -------- | ---- |
+| 起動が速い | ホットキー → パレット表示 P95 | 2 秒以内（vision.md） |
+| 気持ちよく動く | モーション違反（ease / duration 外れ） | ux_standards.md 違反ゼロ |
+| ストレスがない | エラートースト発生率（7 日連続使用） | ベースライン計測後に閾値設定 |
+| 壊れない | クラッシュ率（起動 100 回あたり） | 0 件目標、1 件以下 |
+| わかる | 初回起動〜最初のアイテム登録までの手数 | 3 操作以内 |
+| 見やすい | WCAG コントラスト比 | AA 以上（ux_standards.md §3） |
+| 慣れる | キーボード完結率（マウスなしでコア操作） | パレット・Library 検索・起動で 100% |
+| 他人に渡しても困らない | README + 初回セットアップ完走 | 第三者レビュー通過 |
+| 長く使える | CI 緑継続 / regression 発生 | 30 日以上緑、regression 月 1 件以下 |
+
+### 運用
+
+- 数値はアーキテクチャ棚卸しフェーズでベースライン計測、以降 PR 受け入れ条件に反映
+- 各 PR で「配布水準を保っているか」を自問（品質バーは日々の品質ゲート）
+- 手動確認依頼セクションの主観チェックもこの定義を頼りに判定
+- 未計測の指標は「計測する Plan」を棚卸しフェーズ内で立てる
+
+### 違反検知
+
+- 閾値違反が発生したら即座に整理系バッチ or hotfix で対処
+- 繰り返し違反は lessons.md に登録、Plan テンプレにチェック追加
+
+---
+
+## 10. 参照リンク
+
+### プロダクト基盤
+
+- `docs/l0_ideas/arcagate-concept.md` — プロダクト概念・競合・設計思想
+- `docs/l0_ideas/arcagate-visual-language.md` — ビジュアル言語・参照
+- `docs/l1_requirements/vision.md` — 要件・マイルストーン・非機能要求
+- `docs/l1_requirements/ux_design_vision.md` — UX デザインビジョン
+- `docs/l1_requirements/ux_standards.md` — UX 標準（モーション / 色 / タイポ / Do&Dont）
+- `docs/l1_requirements/design_system_architecture.md` — デザインシステム拡張設計
+- `docs/l2_architecture/` — アーキテクチャ棚卸し成果物（post-batch-62）
+
+### 運用 / 規約
+
+- `CLAUDE.md` — プロジェクト規約・禁止事項
+- `docs/dispatch-operation.md` — 運用フロー canonical
+- `docs/dispatch-log.md` — 実行ログ
+- `docs/lessons.md` — 過去の失敗パターン・教訓
+
+### 業界標準・参考
+
+- **SFDIPOT / HICCUPPS** — James Bach, Rapid Software Testing Heuristics
+- **ISO 25010** — ソフトウェア品質モデル
+- **Martin Fowler, "Refactoring" 2nd ed.** — コードスメル・リファクタ手順
+- **fast-check / proptest** — Property-based testing ライブラリ
+
+---
+
+**END OF DOCUMENT**
