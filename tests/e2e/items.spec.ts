@@ -159,15 +159,12 @@ test.describe('アイテム管理', () => {
 
 		const dialog = page.getByRole('dialog');
 
-		// デフォルトは「ローカル」モード
 		await expect(dialog.getByText('ファイル / フォルダのパス')).toBeVisible();
 
-		// 「URL」ボタンをクリック → URL モードに切り替わる
 		await dialog.getByRole('button', { name: 'URL' }).click();
 		await expect(dialog.getByText('ブラウザで開く URL を入力')).toBeVisible();
 		await expect(dialog.getByText('ファイル / フォルダのパス')).not.toBeVisible();
 
-		// 「ローカル」ボタンをクリック → ファイルパス入力に戻る
 		await dialog.getByRole('button', { name: 'ローカル' }).click();
 		await expect(dialog.getByText('ファイル / フォルダのパス')).toBeVisible();
 		await expect(dialog.getByText('ブラウザで開く URL を入力')).not.toBeVisible();
