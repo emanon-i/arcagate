@@ -143,8 +143,11 @@ test.describe('設定パネル', () => {
 			// テーマエディタが開く（編集UIが表示される）
 			await expect(appearancePanel.getByText('を編集')).toBeVisible();
 
-			// 後始末: フラット ダークに戻す（削除は手動確認が必要なため省略）
-			await appearancePanel.getByRole('button', { name: 'フラット ダーク' }).click();
+			// 後始末: ThemeEditor の削除ボタンで作成テーマを削除（リトライ時の重複防止）
+			await appearancePanel.getByRole('button', { name: '削除' }).click();
+			await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
+			// 削除後 activeMode が 'dark' にリセットされる
+			await expect(appearancePanel.getByRole('button', { name: /のコピー/ })).not.toBeVisible();
 		},
 	);
 
@@ -160,8 +163,10 @@ test.describe('設定パネル', () => {
 		await appearancePanel.getByRole('button', { name: '閉じる' }).click();
 		await expect(appearancePanel.getByText('を編集')).not.toBeVisible();
 
-		// フラット ダークに戻す
-		await appearancePanel.getByRole('button', { name: 'フラット ダーク' }).click();
+		// 後始末: 編集ボタンで再度開いて削除
+		await appearancePanel.getByRole('button', { name: '編集' }).click();
+		await appearancePanel.getByRole('button', { name: '削除' }).click();
+		await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
 	});
 
 	test('JSON からインポートリンクがクリックできること', { tag: '@smoke' }, async ({ page }) => {

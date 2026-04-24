@@ -34,11 +34,17 @@ $effect(() => {
 
 async function cloneCurrentTheme() {
 	const activeId = themeStore.activeMode;
-	const source = themeStore.themes.find((t) => t.id === activeId);
+	// 'dark'/'light'/'system' は DB テーマではないので対応する builtin を探す
+	const builtinFallback = activeId === 'light' ? 'theme-builtin-light' : 'theme-builtin-dark';
+	const themeIdToClone =
+		activeId === 'dark' || activeId === 'light' || activeId === 'system'
+			? builtinFallback
+			: activeId;
+	const source = themeStore.themes.find((t) => t.id === themeIdToClone);
 	const cssVars = source ? source.css_vars : '{}';
 	const baseTheme = source ? source.base_theme : 'dark';
-	const name = source ? `${source.name} のコピー` : 'カスタムテーマ';
-	const created = await themeStore.createTheme(name, baseTheme, cssVars);
+	const baseName = source ? source.name : 'テーマ';
+	const created = await themeStore.createTheme(`${baseName} のコピー`, baseTheme, cssVars);
 	if (created) {
 		await themeStore.setThemeMode(created.id);
 		editingThemeId = created.id;
