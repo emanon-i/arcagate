@@ -1797,14 +1797,22 @@ Plan A から着手。
 
 ---
 
-## batch-57 進捗 (2026-04-24)
+## batch-57 完了 (2026-04-24)
 
-Plan A/B/D/E 実装完了。Plan C（engineering-principles.md 新設）は Dispatch ドラフト受領待ち。
+全 Plan 完了。PR 作成予定。
 
-| Plan                                      | 状態                               | commit  |
-| ----------------------------------------- | ---------------------------------- | ------- |
-| A (dispatch-operation.md canonical 化)    | done                               | 29c3d2e |
-| B (CLAUDE.md 誘導明確化)                  | done                               | 045cdd0 |
-| C (engineering-principles.md 新設)        | **待機中** — Dispatch ドラフト待ち | —       |
-| D (vision.md / concept.md 品質バー再定義) | done                               | 6cfe8db |
-| E (lessons.md 整理)                       | done                               | 6cfe8db |
+| Plan                                      | 状態 | commit  |
+| ----------------------------------------- | ---- | ------- |
+| A (dispatch-operation.md canonical 化)    | done | 29c3d2e |
+| B (CLAUDE.md 誘導明確化)                  | done | 045cdd0 |
+| C (engineering-principles.md 新設)        | done | —       |
+| D (vision.md / concept.md 品質バー再定義) | done | 6cfe8db |
+| E (lessons.md 整理)                       | done | 6cfe8db |
+
+実機フィードバックで batch-58（PH-244〜248）を策定:
+
+- PH-244: Endfield 等高線 + ノイズ実装
+- PH-245: Ubuntu Frosted 透明化強化
+- PH-246: Palette overlay レイアウト + テーマ追従修正
+- PH-247: テーマ視覚差分 E2E
+- PH-248: Liquid Glass Apple 寄り強化
