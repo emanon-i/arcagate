@@ -1,10 +1,13 @@
 import * as configIpc from '$lib/ipc/config';
 
+export type ItemSize = 'S' | 'M' | 'L';
+
 let hotkey = $state('Ctrl+Shift+Space');
 let autostart = $state(false);
 let setupComplete = $state(false);
 let loading = $state(false);
 let error = $state<string | null>(null);
+let itemSize = $state<ItemSize>('M');
 
 // Widget zoom (50-200%, persisted in localStorage)
 const ZOOM_STORAGE_KEY = 'widget-zoom';
@@ -40,15 +43,29 @@ async function loadConfig(): Promise<void> {
 	loading = true;
 	error = null;
 	try {
-		[hotkey, autostart, setupComplete] = await Promise.all([
+		const [h, a, sc, is] = await Promise.all([
 			configIpc.getHotkey(),
 			configIpc.getAutostart(),
 			configIpc.isSetupComplete(),
+			configIpc.getConfig('item_size'),
 		]);
+		hotkey = h;
+		autostart = a;
+		setupComplete = sc;
+		if (is === 'S' || is === 'M' || is === 'L') itemSize = is;
 	} catch (e) {
 		error = String(e);
 	} finally {
 		loading = false;
+	}
+}
+
+async function saveItemSize(size: ItemSize): Promise<void> {
+	try {
+		await configIpc.setConfig('item_size', size);
+		itemSize = size;
+	} catch (e) {
+		error = String(e);
 	}
 }
 
@@ -110,9 +127,13 @@ export const configStore = {
 	get widgetZoom() {
 		return widgetZoom;
 	},
+	get itemSize() {
+		return itemSize;
+	},
 	loadConfig,
 	saveHotkey,
 	saveAutostart,
 	completeSetup,
 	setWidgetZoom,
+	saveItemSize,
 };

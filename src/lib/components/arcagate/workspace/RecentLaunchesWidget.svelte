@@ -4,6 +4,7 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
+import { configStore } from '$lib/state/config.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
@@ -31,6 +32,14 @@ $effect(() => {
 
 let visibleRecentItems = $derived(
 	hiddenStore.isHiddenVisible ? recentItems : recentItems.filter((i) => i.is_enabled),
+);
+
+let widgetIconClass = $derived(
+	configStore.itemSize === 'S'
+		? 'h-4 w-4 shrink-0 object-cover'
+		: configStore.itemSize === 'L'
+			? 'h-6 w-6 shrink-0 object-cover'
+			: 'h-5 w-5 shrink-0 object-cover',
 );
 
 let menuItems = $derived(
@@ -68,7 +77,7 @@ let menuItems = $derived(
 				}}
 			>
 				<span class="flex min-w-0 flex-1 items-center gap-2 text-[var(--ag-text-secondary)]">
-					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-5 w-5 shrink-0 object-cover" />
+					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class={widgetIconClass} />
 					<span class="truncate">{item.label}</span>
 				</span>
 				<span class="shrink-0 max-w-[40%] truncate text-xs text-[var(--ag-text-muted)]">{formatTarget(item.target)}</span>

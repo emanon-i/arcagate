@@ -2,6 +2,7 @@
 import { Star } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
+import { configStore } from '$lib/state/config.svelte';
 import type { Item } from '$lib/types/item';
 
 interface Props {
@@ -13,6 +14,18 @@ interface Props {
 }
 
 let { item, isStarred = false, viewMode = 'grid', onclick, ondblclick }: Props = $props();
+
+let iconAreaClass = $derived.by(() => {
+	if (configStore.itemSize === 'S') return 'h-20';
+	if (configStore.itemSize === 'L') return 'h-40';
+	return 'aspect-video';
+});
+
+let iconClass = $derived.by(() => {
+	if (configStore.itemSize === 'S') return 'h-10 w-10 object-contain drop-shadow-lg';
+	if (configStore.itemSize === 'L') return 'h-[72px] w-[72px] object-contain drop-shadow-lg';
+	return 'h-14 w-14 object-contain drop-shadow-lg';
+});
 </script>
 
 {#if viewMode === 'list'}
@@ -49,28 +62,34 @@ let { item, isStarred = false, viewMode = 'grid', onclick, ondblclick }: Props =
 		{onclick}
 		{ondblclick}
 	>
-		<div class="relative flex aspect-video items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
-			<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class="h-14 w-14 object-contain drop-shadow-lg" />
+		<div class="relative flex {iconAreaClass} items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
+			<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class="{iconClass}" />
 			{#if isStarred}
 				<div class="absolute right-2 top-2 rounded-full bg-[var(--ag-accent)]/90 p-1 shadow-sm" data-testid="starred-badge">
 					<Star class="h-3 w-3 fill-white text-white" />
 				</div>
 			{/if}
 		</div>
-		<div class="space-y-3 p-4">
-			<div class="flex items-start justify-between gap-3">
-				<div>
-					<div class="text-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
-					<div class="mt-1 truncate text-xs text-[var(--ag-text-muted)]">
-						{item.target}
-					</div>
-				</div>
-				<span
-					class="rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-4)] px-2 py-1 text-[10px] text-[var(--ag-text-secondary)]"
-				>
-					{typeLabel[item.item_type]}
-				</span>
+		{#if configStore.itemSize === 'S'}
+			<div class="px-3 py-2">
+				<div class="truncate text-xs font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
 			</div>
-		</div>
+		{:else}
+			<div class="space-y-3 p-4">
+				<div class="flex items-start justify-between gap-3">
+					<div>
+						<div class="text-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
+						<div class="mt-1 truncate text-xs text-[var(--ag-text-muted)]">
+							{item.target}
+						</div>
+					</div>
+					<span
+						class="rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-4)] px-2 py-1 text-[10px] text-[var(--ag-text-secondary)]"
+					>
+						{typeLabel[item.item_type]}
+					</span>
+				</div>
+			</div>
+		{/if}
 	</button>
 {/if}

@@ -429,6 +429,22 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 
 ---
 
+## 11. アイテムカードサイズプリセット
+
+Library のグリッド表示で使用するサイズプリセット。Settings から変更可能。
+
+| サイズ | アイコン | ラベル           | メタ情報         |
+| ------ | -------- | ---------------- | ---------------- |
+| S      | 40px     | 1行省略 (xs)     | 非表示           |
+| M      | 56px     | 1行 (sm)         | target + type    |
+| L      | 72px     | 2行 (sm)         | target + type    |
+
+- DB `config` テーブルの `item_size` キーで永続化
+- デフォルト: `M`
+- ウィジェット内リストのアイコンも S/M/L に追従する（S: 16px / M: 20px / L: 24px）
+
+---
+
 ## 参照
 
 - `docs/l1_requirements/ux_design_vision.md` — UX ビジョン・ゲーム UI 原則
