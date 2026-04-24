@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-207
 title: Library アイテム間区切り線追加（feedback #18）
-status: todo
+status: done
 priority: medium
 parallel_safe: true
 scope_files:

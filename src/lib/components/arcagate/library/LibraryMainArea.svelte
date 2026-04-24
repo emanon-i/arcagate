@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Package, Plus, Search, X as XIcon } from '@lucide/svelte';
+import { LayoutGrid, LayoutList, Package, Plus, Search, X as XIcon } from '@lucide/svelte';
 import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
@@ -31,6 +31,7 @@ async function handleDeleteItem(id: string) {
 let searchQuery = $state('');
 let debouncedQuery = $state('');
 let searchInputEl = $state<HTMLInputElement | null>(null);
+let viewMode = $state<'grid' | 'list'>('grid');
 
 // 150ms デバウンス: キーストロークごとの IPC を抑制
 $effect(() => {
@@ -130,15 +131,33 @@ let filteredItems = $derived.by(() => {
 				</button>
 			{/if}
 		</div>
-		<button
-			type="button"
-			class="flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-3 text-sm text-[var(--ag-text-secondary)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-			data-testid="add-item-button"
-			onclick={() => onAddItem?.()}
-		>
-			<Plus class="h-4 w-4" />
-			アイテムを追加
-		</button>
+		<div class="flex items-center gap-2">
+			<button
+				type="button"
+				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {viewMode === 'grid' ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]' : 'bg-[var(--ag-surface-3)]'}"
+				aria-label="グリッド表示"
+				onclick={() => { viewMode = 'grid'; }}
+			>
+				<LayoutGrid class="h-4 w-4" />
+			</button>
+			<button
+				type="button"
+				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {viewMode === 'list' ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]' : 'bg-[var(--ag-surface-3)]'}"
+				aria-label="リスト表示"
+				onclick={() => { viewMode = 'list'; }}
+			>
+				<LayoutList class="h-4 w-4" />
+			</button>
+			<button
+				type="button"
+				class="flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-3 text-sm text-[var(--ag-text-secondary)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
+				data-testid="add-item-button"
+				onclick={() => onAddItem?.()}
+			>
+				<Plus class="h-4 w-4" />
+				アイテムを追加
+			</button>
+		</div>
 	</div>
 
 	<!-- Stat cards -->
@@ -150,11 +169,54 @@ let filteredItems = $derived.by(() => {
 		</div>
 	{/if}
 
-	<!-- Card grid -->
+	<!-- Card grid / list -->
 	{#if itemStore.loading && itemStore.items.length === 0}
 		<div class="flex items-center justify-center py-20">
 			<span class="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--ag-accent)] border-t-transparent"></span>
 			<span class="text-sm text-[var(--ag-text-muted)]">読み込み中...</span>
+		</div>
+	{:else if viewMode === 'list'}
+		<div class="overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] divide-y divide-[var(--ag-border)]">
+			{#each filteredItems as item (item.id)}
+				<LibraryCard
+					{item}
+					{viewMode}
+					isStarred={starredIds.has(item.id)}
+					onclick={() => onSelectItem?.(item.id)}
+					ondblclick={() => void launchItem(item.id)}
+				/>
+			{/each}
+			{#if filteredItems.length === 0}
+				{#if !searchQuery && !activeTag && itemStore.items.length === 0}
+					<div class="flex flex-col items-center justify-center gap-4 py-16">
+						<div class="rounded-full bg-[var(--ag-surface-4)] p-4">
+							<Package class="h-8 w-8 text-[var(--ag-text-muted)]" />
+						</div>
+						<div class="text-center">
+							<p class="text-sm font-medium text-[var(--ag-text-primary)]">ライブラリが空です</p>
+							<p class="mt-1 text-xs text-[var(--ag-text-muted)]">
+								アプリ・フォルダ・URL などのショートカットを追加できます
+							</p>
+						</div>
+						<button
+							type="button"
+							class="flex items-center gap-2 rounded-[var(--ag-radius-card)] bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[opacity,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-90"
+							onclick={() => onAddItem?.()}
+						>
+							<Plus class="h-4 w-4" />
+							アイテムを追加
+						</button>
+					</div>
+				{:else}
+					<div class="py-12 text-center text-sm text-[var(--ag-text-muted)]">
+						{searchQuery
+							? `「${searchQuery}」に一致するアイテムはありません`
+							: activeTag
+								? 'このタグにアイテムがありません'
+								: 'アイテムがまだありません'}
+					</div>
+				{/if}
+			{/if}
 		</div>
 	{:else}
 		<div class="grid gap-4 [&>*]:max-w-sm" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
