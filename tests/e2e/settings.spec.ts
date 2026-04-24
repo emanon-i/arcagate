@@ -13,6 +13,14 @@ async function openSettingsTab(page: Page, tabLabel: string) {
 }
 
 test.describe('設定パネル', () => {
+	// Settings ダイアログを開いたままにするテストがあるため、各テスト後に確実に閉じる
+	test.afterEach(async ({ page }) => {
+		const closeBtn = page.getByRole('button', { name: '設定を閉じる' });
+		if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+			await closeBtn.click();
+		}
+	});
+
 	test('設定パネルが TitleBar から開閉できること', { tag: '@smoke' }, async ({ page }) => {
 		await openSettings(page);
 		// ✕ ボタンで閉じる（keyboard Escape は dialog div がフォーカスを持つ必要があるため button を使用）
