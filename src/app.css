@@ -7,49 +7,37 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  /* ag-* bridge: semantic overlap tokens reference arcagate-theme.css */
+  /* ag-* bridge: arcagate-theme.css の変数を shadcn トークンに透過 */
+  --radius: var(--ag-radius-button);
   --background: var(--ag-surface-page);
   --foreground: var(--ag-text-primary);
+  --card: var(--ag-surface-0);
+  --card-foreground: var(--ag-text-primary);
+  --popover: var(--ag-surface-1);
+  --popover-foreground: var(--ag-text-primary);
+  --muted: var(--ag-surface-2);
+  --muted-foreground: var(--ag-text-muted);
   --border: var(--ag-border);
   --input: var(--ag-border);
   --ring: var(--ag-border-hover);
-  --muted: var(--ag-surface-2);
-  --muted-foreground: var(--ag-text-muted);
-  /* shadcn-only tokens kept as-is */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  /* shadcn-only: hover 輝度・primary の都合で静的値を維持 */
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.577 0.245 27.325);
 }
 
 .dark {
-  /* ag-* bridge: semantic overlap tokens reference arcagate-theme.css */
-  --background: var(--ag-surface-page);
-  --foreground: var(--ag-text-primary);
-  --border: var(--ag-border);
-  --input: var(--ag-border);
-  --ring: var(--ag-border-hover);
-  --muted: var(--ag-surface-2);
-  --muted-foreground: var(--ag-text-muted);
-  /* shadcn-only tokens kept as-is */
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* dark mode 用の静的値（ag-* bridge 対象外の shadcn トークン） */
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.704 0.191 22.216);
 }
 
