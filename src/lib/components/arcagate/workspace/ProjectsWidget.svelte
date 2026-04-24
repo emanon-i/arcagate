@@ -7,6 +7,7 @@ import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { getWatchedPaths } from '$lib/ipc/watched_paths';
 import { getFolderItems, getGitStatus } from '$lib/ipc/workspace';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
 import type { WatchedPath } from '$lib/types/watched_path';
@@ -133,7 +134,13 @@ let menuItems = $derived(
 			<button
 				type="button"
 				class="rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-4 text-left transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-				onclick={() => void launchItem(item.id)}
+				onclick={() => {
+					void launchItem(item.id)
+						.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+						.catch((e: unknown) =>
+							toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
+						);
+				}}
 				oncontextmenu={(e) => {
 					if (onItemContext) {
 						e.preventDefault();
