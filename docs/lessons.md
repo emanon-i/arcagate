@@ -488,3 +488,21 @@ page: async ({ sharedBrowser }, use) => {
 - **発生条件**: `const initialCssVars = theme.css_vars;` のように props を non-reactive な const に格納する
 - **意図的なケース**: ThemeEditor では「マウント時の CSS vars を snapshot として保持」が正しい動作であり、警告は誤検知
 - **対応**: `svelte-check` の warning は errors と区別される。`0 ERRORS N WARNINGS` なら `pnpm verify` は通過する。警告を消したい場合は `$derived` や `untrack()` を使う
+
+---
+
+## E2E: @smoke テスト間で Settings ダイアログが残存するバグ（batch-50 の教訓）
+
+- **問題**: `Settings 2ペインカテゴリナビが機能すること @smoke` 等がダイアログを開いたまま終了すると、次の Settings-開く @smoke テストが `role="dialog"` overlay にブロックされてクリック失敗
+- **症状**: `locator.click: Target page, context or browser has been closed` / dialog intercepts pointer events
+- **根本原因**: Settings spec の複数 @smoke テストがダイアログを閉じずに終了。次テストで Settings ボタンが overlay に隠れる
+- **修正**: `test.afterEach` で Settings ダイアログを閉じるフックを追加
+  ```typescript
+  test.afterEach(async ({ page }) => {
+      const closeBtn = page.getByRole('button', { name: '設定を閉じる' });
+      if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+          await closeBtn.click();
+      }
+  });
+  ```
+- **教訓**: Settings テストを追加する際は、テストが dialog を開きっぱなしにしていないか確認する。また afterEach で後始末するか、各テストの末尾で `await page.getByRole('button', { name: '設定を閉じる' }).click()` を明示的に呼ぶ
