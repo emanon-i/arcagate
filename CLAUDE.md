@@ -2,6 +2,18 @@
 
 PC上に散在する起動元を一箇所に集約する個人用コマンドパレット型コントロールパネル（Tauri v2 + SvelteKit + Rust + SQLite）。
 
+## 必ず読むドキュメント
+
+セッション開始時に以下を読んでから作業を始める:
+
+| ドキュメント                                                           | 役割                                                                  |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `docs/dispatch-operation.md`                                           | 運用フロー（バッチ設計・Plan 実行・コミット規約）                     |
+| `docs/l0_ideas/arcagate-engineering-principles.md`                     | 技術判断基準（フロント/バック分担・テスト・依存予算・リファクタ閾値） |
+| `docs/l0_ideas/arcagate-concept.md` / `docs/l1_requirements/vision.md` | プロダクト概念 / 要件                                                 |
+| `docs/l1_requirements/ux_standards.md` 等                              | デザイン / UX 標準                                                    |
+| `docs/dispatch-log.md`                                                 | 実行ログ（最新 30 行 + 手動確認依頼セクション）                       |
+
 ## 行動規範
 
 ### ワークフロー
@@ -22,6 +34,7 @@ PC上に散在する起動元を一箇所に集約する個人用コマンドパ
 - ユーザーから修正を受けたら必ず `docs/lessons.md` にそのパターンを記録する
 - 同じミスを繰り返さないよう自分へのルールを書き、ミス率が下がるまで改善し続ける
 - セッション開始時に関連する lessons をレビューする
+- `/simplify` 実行時は `docs/l0_ideas/arcagate-engineering-principles.md` を参照し、技術判断基準に照らして指摘を取捨選択する
 
 ### 完了基準
 
