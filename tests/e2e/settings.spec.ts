@@ -185,6 +185,105 @@ test.describe('設定パネル', () => {
 		await expect(appearancePanel.getByRole('textbox')).toBeVisible();
 	});
 
+	test('カスタムテーマの CSS 変数がリアルタイムで反映されること', async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		// テーマ複製（ThemeEditor が自動展開する）
+		await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
+		await expect(appearancePanel.getByText('を編集')).toBeVisible();
+
+		// 変更前は「● 未保存」バッジなし
+		await expect(appearancePanel.locator('text=● 未保存')).not.toBeVisible();
+
+		// ThemeEditor 内の最初のテキスト入力を変更
+		const editorInputs = appearancePanel.locator('.max-h-80 input[type="text"]');
+		const firstInput = editorInputs.first();
+		await firstInput.fill('#ffffff');
+		await firstInput.dispatchEvent('input');
+
+		// isDirty になり「● 未保存」バッジが出る（リアルタイム追跡確認）
+		await expect(appearancePanel.locator('text=● 未保存')).toBeVisible({ timeout: 10_000 });
+
+		// 後始末
+		await appearancePanel.getByRole('button', { name: '削除' }).click();
+		await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
+		await expect(appearancePanel.getByRole('button', { name: /のコピー/ })).not.toBeVisible();
+	});
+
+	test('カスタムテーマの保存後に変更が DB に永続化されること', async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		// テーマ複製
+		await appearancePanel.getByRole('button', { name: '現在のテーマを複製' }).click();
+		await expect(appearancePanel.getByText('を編集')).toBeVisible();
+
+		// ThemeEditor の最初のテキスト入力を変更
+		const editorInputs = appearancePanel.locator('.max-h-80 input[type="text"]');
+		const firstInput = editorInputs.first();
+		await firstInput.fill('#1a2b3c');
+		await firstInput.dispatchEvent('input');
+
+		// 保存
+		await appearancePanel.getByRole('button', { name: '保存' }).click();
+		await expect(appearancePanel.locator('text=✓ 保存しました')).toBeVisible({
+			timeout: 10_000,
+		});
+
+		// ページをリロードしてもカスタムテーマが残っている（DB 永続化確認）
+		await page.reload();
+		await page.waitForURL(/^http:\/\/localhost:5173/);
+		await page.waitForLoadState('domcontentloaded');
+
+		await openSettingsTab(page, '外観');
+		const panel = page.locator('#settings-panel-appearance');
+		await expect(panel.getByRole('button', { name: /のコピー/ })).toBeVisible({
+			timeout: 15_000,
+		});
+
+		// 後始末
+		await panel.getByRole('button', { name: '編集' }).click();
+		await panel.getByRole('button', { name: '削除' }).click();
+		await panel.getByRole('button', { name: '本当に削除' }).click();
+		await expect(panel.getByRole('button', { name: /のコピー/ })).not.toBeVisible();
+	});
+
+	test('JSON インポートで新テーマが一覧に追加されること', async ({ page }) => {
+		await openSettingsTab(page, '外観');
+		const appearancePanel = page.locator('#settings-panel-appearance');
+
+		// JSON インポートエリアを開く
+		await appearancePanel.getByText('JSON からインポート').click();
+		const textarea = appearancePanel.getByRole('textbox');
+		await expect(textarea).toBeVisible();
+
+		// 有効な JSON を入力してインポート
+		const importJson = JSON.stringify({
+			name: 'E2E インポートテーマ',
+			base_theme: 'dark',
+			css_vars: '{}',
+			is_builtin: false,
+			created_at: '',
+			updated_at: '',
+		});
+		await textarea.fill(importJson);
+		await appearancePanel.getByRole('button', { name: 'インポート' }).click();
+
+		// 新テーマボタンが一覧に追加される
+		await expect(appearancePanel.getByRole('button', { name: 'E2E インポートテーマ' })).toBeVisible(
+			{ timeout: 10_000 },
+		);
+
+		// 後始末: 編集 → 削除
+		await appearancePanel.getByRole('button', { name: '編集' }).click();
+		await appearancePanel.getByRole('button', { name: '削除' }).click();
+		await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
+		await expect(
+			appearancePanel.getByRole('button', { name: 'E2E インポートテーマ' }),
+		).not.toBeVisible();
+	});
+
 	test('サウンド ON 時に音量スライダーが表示されること', async ({ page }) => {
 		await openSettingsTab(page, 'サウンド');
 
