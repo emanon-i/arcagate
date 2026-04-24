@@ -241,12 +241,25 @@ UserCustomTheme (DB 保存)
 - `backdrop-filter` など CSS 変数だけでは設定できないプロパティは `[data-theme]` セレクタ側で定義
 - `--ag-backdrop: none` を `:root` のデフォルト値として設定（既存テーマへの影響ゼロ）
 
-### 6-4. テーマエディタ MVP（batch-49+ 実装予定）
+### 6-4. テーマエディタ（batch-49〜53 実装済み）
 
-- Settings > 外観 パネルに「テーマを編集」セクションを追加
-- 選択中テーマの `css_vars` を color picker / slider で調整
-- 変更は即時プレビュー（`applyTheme()` を debounce で呼び出し）
-- 「新しいテーマとして保存」で `createTheme()` → DB 永続化
+- **MVP (batch-49)**: Settings > 外観 に ThemeEditor をインライン展開。`css_vars` を color picker / text input で調整。変更は即時 CSS var に反映。
+- **polish (batch-50)**: isDirty バッジ・"✓ 保存しました" フィードバック・閉じ時 CSS vars リセット（`$effect` cleanup）。
+- **テーマ名インライン編集 (batch-51)**: テーマ名クリックで `<input>` に切替→Enter/blur 保存。
+- **ビルトイン「コピーして編集」(batch-52)**: 組み込みテーマカードに直接「コピーして編集」ボタン追加。
+- **全変数カバレッジ拡張 (batch-53)**: 51 変数すべてを ThemeEditor に表示（css_vars にない変数は `getComputedStyle` でデフォルト値を補完）。カテゴリ: bg/surface/border/accent/text/error/warm/success/shadow/radius/backdrop/duration/ease。
+
+### 6-5. ファイル入出力（batch-53 実装済み）
+
+- **エクスポート**: クリップボードコピー（Copy ボタン）+ JSON ファイルダウンロード（DL ボタン）
+- **インポート**: JSON テキスト貼り付け + ファイル選択（`<input type="file" accept=".json">`）→ FileReader で読み込み
+
+### 6-6. Layer 3 外部テーマスキャン（将来計画）
+
+- `%APPDATA%/arcagate/themes/<name>/manifest.json + theme.css` をスキャン
+- manifest: `name / author / version / compatible_with`
+- CSS: `--ag-*` 変数上書き形式
+- Settings の外観セクションから選択可能に
 
 ---
 
