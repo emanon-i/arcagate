@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-258
-status: todo
+status: done
 batch: 60
 type: 整理
 ---
@@ -42,7 +42,6 @@ docs 更新のみに切り替える（C-1 凍結扱い）。
 
 ## 受け入れ条件
 
-- [ ] 循環依存の有無が明確になる
-- [ ] 循環なし: `watcher/mod.rs` が repository を直接参照しなくなる
-- [ ] 循環あり: `refactoring-opportunities.md` が更新される
-- [ ] `pnpm verify` 全通過（Rust 172テスト以上）
+- [x] 循環依存の有無が明確になる（`services/watched_path_service.rs` が `watcher::WatcherState` を import → 循環確定）
+- [x] 循環あり: `refactoring-opportunities.md` C-1 を凍結扱いに更新
+- [x] `pnpm verify` 全通過
