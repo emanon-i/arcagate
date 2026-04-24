@@ -5,6 +5,7 @@ import ActionButton from '$lib/components/arcagate/common/ActionButton.svelte';
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
+import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
 import { getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
@@ -125,34 +126,6 @@ let moreMenuItems = $derived.by(() => {
 		{ label: 'JSONコピー', onclick: handleExportItem },
 	];
 });
-
-// タグ追加ドロップダウンの表示制御
-let showTagSelect = $state(false);
-let tagDropdownEl = $state<HTMLElement | null>(null);
-let tagTriggerEl = $state<HTMLButtonElement | null>(null);
-let focusedTagIndex = $state(-1);
-
-function closeTagDropdown() {
-	showTagSelect = false;
-	tagTriggerEl?.focus();
-}
-
-// ドロップダウンを開いたとき最初のアイテムにフォーカス
-$effect(() => {
-	if (showTagSelect) {
-		focusedTagIndex = 0;
-	} else {
-		focusedTagIndex = -1;
-	}
-});
-
-// focusedTagIndex 変化時にボタンにフォーカスを移動
-$effect(() => {
-	if (showTagSelect && focusedTagIndex >= 0 && tagDropdownEl) {
-		const buttons = tagDropdownEl.querySelectorAll<HTMLButtonElement>('button');
-		buttons[focusedTagIndex]?.focus();
-	}
-});
 </script>
 
 <svelte:window
@@ -164,18 +137,6 @@ $effect(() => {
 			void launchItem(selectedItem.id)
 				.then(() => toastStore.add(`${label} を起動しました`, 'success'))
 				.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
-		}
-		if (e.key === 'Escape') {
-			if (showTagSelect) {
-				closeTagDropdown();
-			} else {
-				onClose?.();
-			}
-		}
-	}}
-	onpointerdown={(e) => {
-		if (showTagSelect && tagDropdownEl && !tagDropdownEl.contains(e.target as Node)) {
-			closeTagDropdown();
 		}
 	}}
 />
@@ -225,62 +186,13 @@ $effect(() => {
 		</div>
 
 		<!-- Tags section (S-3-5, S-3-6) -->
-		<div class="mt-4 space-y-2">
-			<div class="text-xs font-medium text-[var(--ag-text-muted)]">タグ</div>
-			<div class="flex flex-wrap gap-1.5">
-				{#each itemTags.filter((t) => !t.is_system) as tag (tag.id)}
-					<span class="inline-flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2.5 py-1 text-xs text-[var(--ag-text-secondary)]">
-						{tag.name}
-						<button
-							type="button"
-							class="ml-0.5 rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
-							aria-label="タグ {tag.name} を解除"
-							onclick={() => void handleRemoveTag(tag.id)}
-						>
-							<XIcon class="h-3 w-3" />
-						</button>
-					</span>
-				{/each}
-				{#if itemTags.filter((t) => !t.is_system).length === 0}
-					<span class="text-xs text-[var(--ag-text-muted)]">タグなし</span>
-				{/if}
-			</div>
-			{#if availableTags.length > 0}
-				<div class="relative">
-					<button
-						bind:this={tagTriggerEl}
-						type="button"
-						class="rounded-full border border-dashed border-[var(--ag-border)] px-2.5 py-1 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
-						onclick={() => (showTagSelect = !showTagSelect)}
-					>
-						+ タグを追加
-					</button>
-					{#if showTagSelect}
-						<div bind:this={tagDropdownEl} class="absolute left-0 top-full z-10 mt-1 max-h-32 overflow-y-auto rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-lg">
-							{#each availableTags as tag, i (tag.id)}
-								<button
-									type="button"
-									class="block w-full rounded-md px-3 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
-									tabindex={focusedTagIndex === i ? 0 : -1}
-									onclick={() => { void handleAddTag(tag.id); closeTagDropdown(); }}
-									onkeydown={(e) => {
-										if (e.key === 'ArrowDown') {
-											e.preventDefault();
-											focusedTagIndex = Math.min(i + 1, availableTags.length - 1);
-										} else if (e.key === 'ArrowUp') {
-											e.preventDefault();
-											focusedTagIndex = Math.max(i - 1, 0);
-										}
-									}}
-								>
-									{tag.name}
-								</button>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			{/if}
-		</div>
+		<LibraryItemTagSection
+			{itemTags}
+			{availableTags}
+			onAddTag={(id) => void handleAddTag(id)}
+			onRemoveTag={(id) => void handleRemoveTag(id)}
+			onEscapeWhenClosed={() => onClose?.()}
+		/>
 
 		<!-- Default app for folders (S-3-7) -->
 		{#if selectedItem.item_type === 'folder'}

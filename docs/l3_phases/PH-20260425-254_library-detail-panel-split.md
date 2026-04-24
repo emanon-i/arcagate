@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-254
-status: wip
+status: done
 batch: 60
 type: 改善
 ---
@@ -48,7 +48,7 @@ interface Props {
 
 ## 受け入れ条件
 
-- [ ] `LibraryDetailPanel.svelte` が 290行以下になる
-- [ ] `LibraryItemTagSection.svelte` が新規作成される
-- [ ] `pnpm verify` 全通過
-- [ ] E2E タグ操作テストが通過する
+- [x] `LibraryDetailPanel.svelte` が 290行以下になる（245行）
+- [x] `LibraryItemTagSection.svelte` が新規作成される（114行）
+- [x] `pnpm verify` 全通過
+- [ ] E2E タグ操作テストが通過する（PH-257 で追加予定）
