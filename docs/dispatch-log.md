@@ -1848,3 +1848,17 @@ Plan A から着手。
 | E    | PH-248 | done | 55d2658 |
 
 pnpm verify 全通過（Rust 150+22 tests / vitest 全 ✓ / tauri build 完了）。
+
+---
+
+## batch-59 計画 (2026-04-25 / CI 待ち中)
+
+アーキテクチャ棚卸し調査バッチ（整理系 5 Plan）
+
+| Plan | PH     | 内容                                                  |
+| ---- | ------ | ----------------------------------------------------- |
+| A    | PH-249 | Rust モジュール依存グラフ（cargo-depgraph + Mermaid） |
+| B    | PH-250 | Svelte コンポーネント依存グラフ（madge + LoC 計測）   |
+| C    | PH-251 | フロント/バックエンド処理分類 + IPC 境界調査          |
+| D    | PH-252 | 未使用コード/依存検出（cargo-udeps + knip）           |
+| E    | PH-253 | 改善候補優先度付きレポート作成                        |
