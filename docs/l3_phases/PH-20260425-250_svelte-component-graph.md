@@ -1,7 +1,7 @@
 # PH-20260425-250 Svelte コンポーネント依存グラフ
 
 - **フェーズ**: batch-59 Plan B（整理系 2）
-- **status**: todo
+- **status**: done
 - **開始日**: -
 
 ## 目的
