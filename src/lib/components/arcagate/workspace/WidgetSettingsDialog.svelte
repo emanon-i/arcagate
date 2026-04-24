@@ -24,6 +24,7 @@ interface WidgetConfig {
 	description?: string;
 	watched_folder?: string;
 	auto_add?: boolean;
+	sort_field?: 'default' | 'name';
 }
 
 let config = $state<WidgetConfig>({});
@@ -63,6 +64,7 @@ let watchedFolder = $derived(
 	config.watched_folder ?? defaults[widget.widget_type]?.watched_folder ?? '',
 );
 let autoAdd = $derived(config.auto_add ?? defaults[widget.widget_type]?.auto_add ?? false);
+let sortField = $derived(config.sort_field ?? 'default');
 
 async function handlePickFolder() {
 	const selected = await open({
@@ -82,6 +84,7 @@ const dNormal = rm ? 0 : 200;
 async function handleSave() {
 	const newConfig: WidgetConfig = {
 		max_items: maxItems,
+		sort_field: sortField,
 	};
 	if (widget.widget_type === 'projects') {
 		newConfig.git_poll_interval_sec = gitPollInterval;
@@ -135,6 +138,19 @@ async function handleSave() {
             value={maxItems}
             onchange={(e) => { config = { ...config, max_items: parseInt((e.target as HTMLInputElement).value) || 10 }; }}
           />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sort-field">並び順</label>
+          <select
+            id="ws-sort-field"
+            class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+            value={sortField}
+            onchange={(e) => { config = { ...config, sort_field: (e.target as HTMLSelectElement).value as 'default' | 'name' }; }}
+          >
+            <option value="default">デフォルト（IPC 順）</option>
+            <option value="name">名前順（A-Z）</option>
+          </select>
         </div>
 
         {#if widget.widget_type === 'projects'}

@@ -1,6 +1,5 @@
 <script lang="ts">
-import { ChevronRight, Star } from '@lucide/svelte';
-import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
+import { Star } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
@@ -10,7 +9,9 @@ import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import type { WidgetSortField } from '$lib/types/widget-list';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
+import WidgetItemList from './WidgetItemList.svelte';
 import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
 
 interface Props {
@@ -24,7 +25,7 @@ let favorites = $state<Item[]>([]);
 let settingsOpen = $state(false);
 
 $effect(() => {
-	const _dep = itemStore.items; // スター変更時に再実行させるための依存追跡
+	const _dep = itemStore.items;
 	const { max_items: limit } = parseWidgetConfig(widget?.config, { max_items: 10 });
 	void searchItemsInTag('sys-starred', '').then((items) => {
 		favorites = items.slice(0, limit);
@@ -33,6 +34,10 @@ $effect(() => {
 
 let visibleFavorites = $derived(
 	hiddenStore.isHiddenVisible ? favorites : favorites.filter((i) => i.is_enabled),
+);
+
+let sortField = $derived(
+	parseWidgetConfig(widget?.config, { sort_field: 'default' as WidgetSortField }).sort_field,
 );
 
 let widgetIconClass = $derived(
@@ -55,41 +60,24 @@ let menuItems = $derived(
 			]
 		: [],
 );
+
+async function handleLaunch(id: string) {
+	const item = favorites.find((i) => i.id === id);
+	await launchItem(id)
+		.then(() => toastStore.add(`${item?.label ?? id} を起動しました`, 'success'))
+		.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
+}
 </script>
 
 <WidgetShell title="Favorites" icon={Star} {menuItems}>
-	<div class="space-y-2">
-		{#each visibleFavorites as item (item.id)}
-			<button
-				type="button"
-				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-				onclick={() => {
-					void launchItem(item.id)
-						.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
-						.catch((e: unknown) =>
-							toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
-						);
-				}}
-				oncontextmenu={(e) => {
-					if (onItemContext) {
-						e.preventDefault();
-						onItemContext(item.id);
-					}
-				}}
-			>
-				<span class="flex min-w-0 flex-1 items-center gap-2">
-					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class={widgetIconClass} />
-					<span class="truncate">{item.label}</span>
-				</span>
-				<ChevronRight class="h-4 w-4 shrink-0 text-[var(--ag-text-faint)]" />
-			</button>
-		{/each}
-		{#if visibleFavorites.length === 0}
-			<div class="py-4 text-center text-xs text-[var(--ag-text-muted)]">
-				★ のついたアイテムがここに表示されます
-			</div>
-		{/if}
-	</div>
+	<WidgetItemList
+		items={visibleFavorites}
+		{sortField}
+		iconClass={widgetIconClass}
+		onLaunch={handleLaunch}
+		onContext={onItemContext}
+		emptyMessage="★ のついたアイテムがここに表示されます"
+	/>
 </WidgetShell>
 
 {#if widget}
