@@ -1,0 +1,31 @@
+UPDATE themes
+SET css_vars = '{
+    "--ag-bg": "#1a1122",
+    "--ag-surface-page": "#1a1122",
+    "--ag-surface-0": "rgba(25,18,32,0.60)",
+    "--ag-surface-1": "rgba(30,21,35,0.55)",
+    "--ag-surface-2": "rgba(40,28,50,0.50)",
+    "--ag-surface-3": "rgba(50,35,60,0.45)",
+    "--ag-surface-4": "rgba(60,42,70,0.40)",
+    "--ag-surface-opaque": "#1e1628",
+    "--ag-border": "rgba(233,84,32,0.15)",
+    "--ag-border-hover": "rgba(233,84,32,0.30)",
+    "--ag-border-dashed": "rgba(233,84,32,0.12)",
+    "--ag-accent": "#e95420",
+    "--ag-accent-text": "#f4956a",
+    "--ag-accent-bg": "rgba(233,84,32,0.12)",
+    "--ag-accent-border": "rgba(233,84,32,0.35)",
+    "--ag-accent-active-bg": "rgba(233,84,32,0.18)",
+    "--ag-accent-active-border": "rgba(233,84,32,0.50)",
+    "--ag-text-primary": "rgba(255,255,255,0.92)",
+    "--ag-text-secondary": "rgba(255,255,255,0.65)",
+    "--ag-text-muted": "rgba(255,255,255,0.42)",
+    "--ag-text-faint": "rgba(255,255,255,0.28)",
+    "--ag-error-bg": "rgba(239,68,68,0.12)",
+    "--ag-error-border": "rgba(239,68,68,0.30)",
+    "--ag-error-text": "#f87171",
+    "--ag-backdrop": "blur(24px) saturate(180%)",
+    "--ag-radius-card": "18px",
+    "--ag-radius-widget": "22px"
+}'
+WHERE id = 'theme-builtin-ubuntu-frosted';

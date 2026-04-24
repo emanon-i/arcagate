@@ -13,6 +13,9 @@ const MIGRATION_009: &str = include_str!("../../migrations/009_add_is_tracked.sq
 const MIGRATION_010: &str = include_str!("../../migrations/010_folder_default_app.sql");
 const MIGRATION_011: &str = include_str!("../../migrations/011_builtin_theme_presets.sql");
 const MIGRATION_012: &str = include_str!("../../migrations/012_liquid_glass_theme.sql");
+const MIGRATION_013: &str = include_str!("../../migrations/013_endfield_enhanced.sql");
+const MIGRATION_014: &str = include_str!("../../migrations/014_ubuntu_frosted_enhanced.sql");
+const MIGRATION_015: &str = include_str!("../../migrations/015_liquid_glass_token_fix.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -28,6 +31,9 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_010),
         M::up(MIGRATION_011),
         M::up(MIGRATION_012),
+        M::up(MIGRATION_013),
+        M::up(MIGRATION_014),
+        M::up(MIGRATION_015),
     ])
 }
 

@@ -1,0 +1,30 @@
+UPDATE themes
+SET css_vars = '{
+    "--ag-bg": "#0d1422",
+    "--ag-surface-page": "#0d1422",
+    "--ag-surface-0": "#111929",
+    "--ag-surface-1": "#1a2035",
+    "--ag-surface-2": "#1e2540",
+    "--ag-surface-3": "#232c4a",
+    "--ag-surface-4": "#2a3555",
+    "--ag-surface-opaque": "#1a2035",
+    "--ag-border": "rgba(62,207,207,0.18)",
+    "--ag-border-hover": "rgba(62,207,207,0.35)",
+    "--ag-border-dashed": "rgba(62,207,207,0.12)",
+    "--ag-accent": "#3ecfcf",
+    "--ag-accent-text": "#3ecfcf",
+    "--ag-accent-bg": "rgba(62,207,207,0.12)",
+    "--ag-accent-border": "rgba(62,207,207,0.50)",
+    "--ag-accent-active-bg": "rgba(62,207,207,0.18)",
+    "--ag-accent-active-border": "rgba(62,207,207,0.65)",
+    "--ag-text-primary": "#dce8f0",
+    "--ag-text-secondary": "#8da8bc",
+    "--ag-text-muted": "#5a7a90",
+    "--ag-text-faint": "#3a5570",
+    "--ag-error-bg": "rgba(255,60,60,0.10)",
+    "--ag-error-border": "rgba(255,60,60,0.30)",
+    "--ag-error-text": "#ff6060",
+    "--ag-radius-card": "8px",
+    "--ag-radius-widget": "10px"
+}'
+WHERE id = 'theme-builtin-endfield';
