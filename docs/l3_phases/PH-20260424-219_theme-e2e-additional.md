@@ -1,7 +1,7 @@
 ---
 id: PH-20260424-219
 title: テーマ E2E 追加（保存永続化・JSON インポート完成）
-status: todo
+status: done
 priority: medium
 parallel_safe: false
 scope_files:

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Trash2 } from '@lucide/svelte';
+import { Check, Pencil, Trash2 } from '@lucide/svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import type { Theme } from '$lib/types/theme';
 
@@ -24,6 +24,36 @@ let saving = $state(false);
 let saveError = $state<string | null>(null);
 let savedSuccess = $state(false);
 let confirmDelete = $state(false);
+
+// テーマ名インライン編集
+let editingName = $state(false);
+let nameValue = $state('');
+
+function startNameEdit() {
+	nameValue = theme.name;
+	editingName = true;
+}
+
+async function commitNameEdit() {
+	if (!editingName) return; // Enter → blur の二重発火ガード
+	editingName = false;
+	const trimmed = nameValue.trim();
+	if (!trimmed || trimmed === theme.name) return;
+	await themeStore.updateTheme(theme.id, trimmed);
+}
+
+function cancelNameEdit() {
+	editingName = false;
+}
+
+function handleNameKeydown(e: KeyboardEvent) {
+	if (e.key === 'Enter') {
+		e.preventDefault();
+		void commitNameEdit();
+	} else if (e.key === 'Escape') {
+		cancelNameEdit();
+	}
+}
 
 const isDirty = $derived(
 	entries.length !== savedCssVars.length ||
@@ -126,7 +156,26 @@ const grouped = $derived.by(() => {
 <div class="mt-4 rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-4">
 	<div class="mb-3 flex items-center justify-between">
 		<div class="flex items-center gap-2">
-			<p class="text-sm font-semibold text-[var(--ag-text-primary)]">{theme.name} を編集</p>
+			{#if editingName}
+				<input
+					type="text"
+					bind:value={nameValue}
+					aria-label="テーマ名"
+					onblur={() => void commitNameEdit()}
+					onkeydown={handleNameKeydown}
+					class="rounded border border-[var(--ag-accent)] bg-[var(--ag-surface-2)] px-2 py-0.5 text-sm font-semibold text-[var(--ag-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
+				/>
+			{:else}
+				<button
+					type="button"
+					title="クリックして名前を変更"
+					onclick={startNameEdit}
+					class="flex items-center gap-1.5 rounded px-1 py-0.5 text-sm font-semibold text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+				>
+					{theme.name} を編集
+					<Pencil class="h-3 w-3 opacity-50" />
+				</button>
+			{/if}
 			{#if isDirty}
 				<span class="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--ag-warm-text)]">
 					● 未保存
