@@ -23,9 +23,9 @@ test.describe('テーマエディタ', () => {
 		await expect(appearancePanel.getByText('を編集')).toBeVisible();
 
 		// radius / duration / ease グループが表示される（全変数カバレッジ確認）
-		await expect(appearancePanel.getByText('radius')).toBeVisible();
-		await expect(appearancePanel.getByText('duration')).toBeVisible();
-		await expect(appearancePanel.getByText('ease')).toBeVisible();
+		await expect(appearancePanel.getByText('radius', { exact: true })).toBeVisible();
+		await expect(appearancePanel.getByText('duration', { exact: true })).toBeVisible();
+		await expect(appearancePanel.getByText('ease', { exact: true })).toBeVisible();
 
 		// 後始末
 		await appearancePanel.getByRole('button', { name: '削除' }).click();

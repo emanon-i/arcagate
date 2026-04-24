@@ -193,7 +193,9 @@ test.describe('設定パネル', () => {
 			await appearancePanel.getByRole('button', { name: '削除' }).click();
 			await appearancePanel.getByRole('button', { name: '本当に削除' }).click();
 			// 削除後 activeMode が 'dark' にリセットされる
-			await expect(appearancePanel.getByRole('button', { name: /のコピー/ })).not.toBeVisible();
+			await expect(
+				appearancePanel.getByRole('button', { name: /のコピー/ }).first(),
+			).not.toBeVisible();
 		},
 	);
 
