@@ -1931,3 +1931,19 @@ L3 Plan ファイル（PH-254〜258）作成済み。e2e CI 通過待ち → mer
 
 現行 batch-60（PH-254〜258）はコンポーネント整理系。ユーザー機能要求は batch-61 以降で対応。
 PH-256 をフィードバック文書化に変更し、PH-257/258 は当初計画通り完走する。
+
+---
+
+## batch-60 完了 (2026-04-25)
+
+全 Plan 完了。PR 作成 → CI 待ち。
+
+| Plan | PH     | 状態 | 成果物                                                                |
+| ---- | ------ | ---- | --------------------------------------------------------------------- |
+| A    | PH-254 | done | LibraryItemTagSection.svelte 新設 / LibraryDetailPanel.svelte 245行  |
+| B    | PH-255 | done | widget-zoom.svelte.ts 新設 / WorkspaceLayout.svelte 293行            |
+| C    | PH-256 | done | フィードバック文書化 + batch-61 L3 Plan 5件（PH-259〜263）           |
+| D    | PH-257 | done | library-detail.spec.ts +5件 E2E（スター/タグ/起動） + ipc.ts helpers |
+| E    | PH-258 | done | C-1 循環依存確認 → 凍結（refactoring-opportunities.md 更新）         |
+
+`pnpm verify` 全通過（tauri build 含む）。
