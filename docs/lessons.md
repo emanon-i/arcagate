@@ -456,3 +456,35 @@ page: async ({ sharedBrowser }, use) => {
 - **根本原因**: merge 完了の確認で満足感が生じ、次のトリガーを待ってしまった
 - **防止ルール**: 前バッチ merge を確認した瞬間から 60 秒以内に次バッチの Plan 文書を 1 本以上着手する。「自律開始できます」という報告文は禁止。報告する暇があれば着手する
 - **適用場面**: 全バッチ完了後。停止してよいのは §5 暴走ブレーキ 8 条件のみ
+
+---
+
+## ThemeEditor: $effect cleanup で unmount 時に CSS vars をリセット（batch-50 の知見）
+
+- **パターン**: テーマエディタを閉じても未保存の CSS var が DOM に残存する問題への対処
+- **原因**: `handleValueChange()` が `document.documentElement.style.setProperty()` で直接 DOM を書き換えるため、コンポーネント unmount 後も値が残る
+- **解決**:
+  ```typescript
+  let savedCssVars = $state<VarEntry[]>(parseVars(initialCssVars));
+
+  $effect(() => {
+      return () => {
+          // cleanup は unmount 時のみ呼ばれる（effect body に reactive dep なし）
+          // savedCssVars は $state なので cleanup 時点の最新値が読まれる
+          for (const { key, value } of savedCssVars) {
+              document.documentElement.style.setProperty(key, value);
+          }
+      };
+  });
+  ```
+- **注意**: `$effect` body で reactive な値を**読まない**ことが重要。body に `$state` を読む処理があると effect が再実行され cleanup が unmount 前にも呼ばれる
+- **`savedCssVars` の更新**: 保存成功時に `savedCssVars = entries.map(e => ({ ...e }))` で更新する。cleanup は最後の保存済み状態にリセットする
+
+---
+
+## Svelte 5 $props() の初期値スナップショット警告（batch-50 の観察）
+
+- **警告**: `This reference only captures the initial value of theme. Did you mean to reference it inside a closure instead?`
+- **発生条件**: `const initialCssVars = theme.css_vars;` のように props を non-reactive な const に格納する
+- **意図的なケース**: ThemeEditor では「マウント時の CSS vars を snapshot として保持」が正しい動作であり、警告は誤検知
+- **対応**: `svelte-check` の warning は errors と区別される。`0 ERRORS N WARNINGS` なら `pnpm verify` は通過する。警告を消したい場合は `$derived` や `untrack()` を使う
