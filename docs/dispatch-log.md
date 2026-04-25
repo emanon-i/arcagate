@@ -1982,3 +1982,19 @@ PR #93 CI 待ち中に Plan 策定。改善 3 + 防衛 1 + 整理 1 構成。
 | E    | PH-268 | 防衛 | Workspace ウィジェット E2E 強化（Item Widget + WidgetItemList 操作）      |
 
 PR #93 merge 後に `feature/batch-20260425-62` を main から切って着手。
+
+---
+
+## batch-62 完了 (2026-04-25)
+
+全 Plan 完了。PR 作成予定。
+
+| Plan | PH     | 状態 | 成果物                                                                                  |
+| ---- | ------ | ---- | --------------------------------------------------------------------------------------- |
+| A    | PH-269 | done | Widget Config 型整備（widget-configs.ts 新設・parseWidgetConfig 型制約修正）            |
+| B    | PH-265 | done | Clock ウィジェット（HH:mm[:ss] + 日付・曜日 + 設定メニュー ON/OFF）                     |
+| C    | PH-266 | done | Stats ウィジェット（よく使う Top N・ランク番号表示・WidgetSettingsDialog）              |
+| D    | PH-267 | done | Quick Note ウィジェット（500 文字・500ms デバウンス自動保存・文字数警告）               |
+| E    | PH-268 | done | Workspace ウィジェット E2E（workspace-widget-item / workspace-widget-list 2 spec 追加） |
+
+`pnpm verify` 全通過（tauri build 含む）。
