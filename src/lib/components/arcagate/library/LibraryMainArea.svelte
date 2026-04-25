@@ -229,7 +229,7 @@ let filteredItems = $derived.by(() => {
 	{:else}
 		<div
 			class="library-grid grid"
-			style="grid-template-columns: repeat(auto-fill, var(--ag-card-w)); gap: var(--ag-card-gap); justify-content: center; --ag-card-w: var(--ag-card-w-{configStore.itemSize === 'S' ? 's' : configStore.itemSize === 'L' ? 'l' : 'm'});"
+			style="grid-template-columns: repeat(auto-fill, var(--ag-card-w)); gap: var(--ag-card-gap); justify-content: center; --ag-card-w: var(--ag-card-w-{configStore.itemSize.toLowerCase()});"
 		>
 			{#each filteredItems as item (item.id)}
 				<LibraryCard

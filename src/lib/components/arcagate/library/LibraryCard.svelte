@@ -33,6 +33,17 @@ let resolvedMode = $derived.by(() => {
 	if (bg.mode === 'image' && !item.icon_path) return 'fill';
 	return bg.mode;
 });
+
+// pre-compute size-dependent classes (avoid repeated ternary in template)
+let labelPadClass = $derived(configStore.itemSize === 'S' ? 'px-2 pb-1.5 pt-3' : 'px-3 pb-2 pt-6');
+let labelFontClass = $derived(
+	configStore.itemSize === 'S'
+		? 'text-[11px]'
+		: configStore.itemSize === 'L'
+			? 'text-base'
+			: 'text-sm',
+);
+let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-[11px]');
 </script>
 
 {#if viewMode === 'list'}
@@ -89,7 +100,6 @@ let resolvedMode = $derived.by(() => {
 				/>
 			</div>
 		{:else}
-			<!-- mode === 'none' -->
 			<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
 				<ItemIcon iconPath={undefined} itemType={item.item_type} alt="{item.label} icon" class={iconClass} />
 			</div>
@@ -110,21 +120,11 @@ let resolvedMode = $derived.by(() => {
 		<div
 			class="library-card__label absolute inset-x-0 bottom-0 {style.overlayEnabled
 				? 'bg-gradient-to-t from-black/75 via-black/40 to-transparent'
-				: ''} {configStore.itemSize === 'S' ? 'px-2 pb-1.5 pt-3' : 'px-3 pb-2 pt-6'}"
+				: ''} {labelPadClass}"
 		>
-			<div
-				class="truncate font-semibold {configStore.itemSize === 'S' ? 'text-[11px]' : configStore.itemSize === 'L' ? 'text-base' : 'text-sm'}"
-				style={labelStyle}
-			>
-				{item.label}
-			</div>
+			<div class="truncate font-semibold {labelFontClass}" style={labelStyle}>{item.label}</div>
 			{#if configStore.itemSize !== 'S'}
-				<div
-					class="truncate {configStore.itemSize === 'L' ? 'text-xs' : 'text-[11px]'} opacity-80"
-					style={labelStyle}
-				>
-					{item.target}
-				</div>
+				<div class="truncate {targetFontClass} opacity-80" style={labelStyle}>{item.target}</div>
 			{/if}
 		</div>
 	</button>

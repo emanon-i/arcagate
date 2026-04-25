@@ -75,12 +75,21 @@ function persistLibraryCard(): void {
 	}
 }
 
+function patchEqual<T extends object>(current: T, patch: Partial<T>): boolean {
+	for (const k of Object.keys(patch) as (keyof T)[]) {
+		if (current[k] !== patch[k]) return false;
+	}
+	return true;
+}
+
 function setLibraryCardBackground(patch: Partial<LibraryCardBackgroundConfig>): void {
+	if (patchEqual(libraryCard.background, patch)) return;
 	libraryCard = { ...libraryCard, background: { ...libraryCard.background, ...patch } };
 	persistLibraryCard();
 }
 
 function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
+	if (patchEqual(libraryCard.style, patch)) return;
 	libraryCard = { ...libraryCard, style: { ...libraryCard.style, ...patch } };
 	persistLibraryCard();
 }
