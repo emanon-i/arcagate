@@ -51,9 +51,9 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
 
 fn launch_folder_with_app(path: &str, default_app: Option<&str>) -> Result<(), AppError> {
     match default_app {
-        Some("vscode") => launcher::launch_exe("code", Some(path), None),
-        Some("terminal") => launcher::launch_exe("wt", Some(&format!("-d {}", path)), None),
-        Some(custom) => launcher::launch_exe(custom, Some(path), None),
+        Some("vscode") => launcher::launch_exe_args("code", &[path], None),
+        Some("terminal") => launcher::launch_exe_args("wt", &["-d", path], None),
+        Some(custom) => launcher::launch_exe_args(custom, &[path], None),
         None => launcher::launch_folder(path),
     }
 }

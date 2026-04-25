@@ -78,12 +78,11 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
     let data: ExportData = serde_json::from_str(&json)
         .map_err(|e| AppError::InvalidInput(format!("JSONの解析に失敗しました: {}", e)))?;
 
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-
-    conn.execute_batch("BEGIN")?;
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
 
     for tag in &data.tags {
-        conn.execute(
+        tx.execute(
             "INSERT OR REPLACE INTO tags (id, name, is_hidden, is_system, prefix, icon, sort_order, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             rusqlite::params![tag.id, tag.name, tag.is_hidden as i64, tag.is_system as i64, tag.prefix, tag.icon, tag.sort_order, tag.created_at],
         )?;
@@ -92,8 +91,8 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
     for item in &data.items {
         let aliases_json =
             serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
-        conn.execute(
-            "INSERT OR REPLACE INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        tx.execute(
+            "INSERT OR REPLACE INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
             rusqlite::params![
                 item.id,
                 item.item_type.as_str(),
@@ -106,6 +105,8 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
                 aliases_json,
                 item.sort_order,
                 item.is_enabled as i64,
+                item.is_tracked as i64,
+                item.default_app,
                 item.created_at,
                 item.updated_at,
             ],
@@ -113,17 +114,17 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
     }
 
     for link in &data.item_tags {
-        conn.execute(
+        tx.execute(
             "INSERT OR REPLACE INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
             rusqlite::params![link.item_id, link.tag_id],
         )?;
     }
 
     for (key, value) in &data.config {
-        config_repository::set(&conn, key, value)?;
+        config_repository::set(&tx, key, value)?;
     }
 
-    conn.execute_batch("COMMIT")?;
+    tx.commit()?;
     log::info!(
         "import complete: {} items, {} tags",
         data.items.len(),

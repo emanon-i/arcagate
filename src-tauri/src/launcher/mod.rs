@@ -33,6 +33,22 @@ pub fn launch_exe(
     Ok(())
 }
 
+/// 引数を構造化 Vec で渡す EXE 起動（スペース入りパス対応）
+pub fn launch_exe_args(
+    target: &str,
+    args: &[&str],
+    working_dir: Option<&str>,
+) -> Result<(), AppError> {
+    let mut cmd = Command::new(target);
+    cmd.args(args);
+    if let Some(wd) = working_dir {
+        cmd.current_dir(wd);
+    }
+    cmd.spawn()
+        .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
+    Ok(())
+}
+
 /// URL をデフォルトブラウザで開く
 pub fn launch_url(url: &str) -> Result<(), AppError> {
     Command::new("cmd")

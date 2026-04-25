@@ -17,18 +17,8 @@ pub fn add_watched_path(
     }
     let id = Uuid::now_v7().to_string();
     let path_str = input.path.clone();
-    let wp = WatchedPath {
-        id: id.clone(),
-        path: input.path,
-        label: input.label,
-        is_active: true,
-        created_at: String::new(),
-        updated_at: String::new(),
-    };
-    {
-        let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-        watched_path_repository::insert(&conn, &wp)?;
-    }
+
+    // watcher 登録を先に試みる。失敗したら DB に書かない
     if let Ok(mut w) = watcher.0.lock() {
         if let Err(e) = w.watch(
             std::path::Path::new(&path_str),
@@ -37,7 +27,17 @@ pub fn add_watched_path(
             log::warn!("watcher: failed to watch '{}': {}", path_str, e);
         }
     }
+
+    let wp = WatchedPath {
+        id: id.clone(),
+        path: input.path,
+        label: input.label,
+        is_active: true,
+        created_at: String::new(),
+        updated_at: String::new(),
+    };
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    watched_path_repository::insert(&conn, &wp)?;
     watched_path_repository::find_by_id(&conn, &id)
 }
 
@@ -54,7 +54,9 @@ pub fn remove_watched_path(db: &DbState, watcher: &WatcherState, id: &str) -> Re
         wp.path
     };
     if let Ok(mut w) = watcher.0.lock() {
-        let _ = w.unwatch(std::path::Path::new(&path));
+        if let Err(e) = w.unwatch(std::path::Path::new(&path)) {
+            log::warn!("watcher: failed to unwatch '{}': {}", path, e);
+        }
     }
     Ok(())
 }
