@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-283
-status: todo
+status: done
 batch: 65
 type: 防衛
 ---

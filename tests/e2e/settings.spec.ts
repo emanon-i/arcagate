@@ -35,7 +35,7 @@ test.describe('設定パネル', () => {
 		await expect(tablist).toBeVisible();
 
 		// 全カテゴリタブが表示されている
-		for (const label of ['一般', 'ワークスペース', '外観', 'サウンド', 'データ']) {
+		for (const label of ['一般', 'ワークスペース', 'ライブラリ', '外観', 'サウンド', 'データ']) {
 			await expect(tablist.getByRole('tab', { name: label })).toBeVisible();
 		}
 
