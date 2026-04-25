@@ -4,9 +4,13 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
+import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import LibraryCard from './LibraryCard.svelte';
+
+const CARD_SIZE_PX: Record<string, number> = { S: 80, M: 128, L: 192 };
+let cardSizePx = $derived(CARD_SIZE_PX[configStore.itemSize] ?? 128);
 
 interface Props {
 	activeTag: string | null;
@@ -133,6 +137,18 @@ let filteredItems = $derived.by(() => {
 			{/if}
 		</div>
 		<div class="flex items-center gap-2">
+			{#if viewMode === 'grid'}
+				{#each (['S', 'M', 'L'] as const) as size}
+					<button
+						type="button"
+						class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] px-2 py-1 text-xs font-medium text-[var(--ag-text-muted)] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {configStore.itemSize === size ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]' : 'bg-[var(--ag-surface-3)]'}"
+						aria-label="カードサイズ {size}"
+						onclick={() => configStore.setItemSize(size)}
+					>
+						{size}
+					</button>
+				{/each}
+			{/if}
 			<button
 				type="button"
 				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {viewMode === 'grid' ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]' : 'bg-[var(--ag-surface-3)]'}"
@@ -226,7 +242,7 @@ let filteredItems = $derived.by(() => {
 			{/if}
 		</div>
 	{:else}
-		<div class="grid gap-4 [&>*]:max-w-sm" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+		<div class="grid gap-3 justify-center" style="grid-template-columns: repeat(auto-fill, {cardSizePx}px);">
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
 					{item}

@@ -10,6 +10,31 @@ let error = $state<string | null>(null);
 const ZOOM_STORAGE_KEY = 'widget-zoom';
 const DEFAULT_ZOOM = 100;
 
+// Card size (S/M/L), persisted in localStorage
+const ITEM_SIZE_KEY = 'library-item-size';
+type ItemSize = 'S' | 'M' | 'L';
+
+function loadItemSizeFromStorage(): ItemSize {
+	try {
+		const stored = localStorage.getItem(ITEM_SIZE_KEY);
+		if (stored === 'S' || stored === 'M' || stored === 'L') return stored;
+	} catch {
+		// SSR or localStorage unavailable
+	}
+	return 'M';
+}
+
+let itemSize = $state<ItemSize>(loadItemSizeFromStorage());
+
+function setItemSize(size: ItemSize): void {
+	itemSize = size;
+	try {
+		localStorage.setItem(ITEM_SIZE_KEY, size);
+	} catch {
+		// ignore
+	}
+}
+
 function loadZoomFromStorage(): number {
 	try {
 		const stored = localStorage.getItem(ZOOM_STORAGE_KEY);
@@ -110,9 +135,13 @@ export const configStore = {
 	get widgetZoom() {
 		return widgetZoom;
 	},
+	get itemSize() {
+		return itemSize;
+	},
 	loadConfig,
 	saveHotkey,
 	saveAutostart,
 	completeSetup,
 	setWidgetZoom,
+	setItemSize,
 };
