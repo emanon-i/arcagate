@@ -91,14 +91,14 @@ test.describe('Library カードメタデータ表示（PH-285 / 288）', () => 
 			const meta = await invoke<{
 				childCount?: number;
 				folderTotalBytes?: number;
-				modifiedAt?: string;
+				modifiedAtUnix?: number;
 			}>(page, 'cmd_get_item_metadata', {
 				itemId: item.id,
 			});
 			// src ディレクトリが存在すれば child_count >= 1
 			expect(meta.childCount ?? 0).toBeGreaterThan(0);
-			// modified_at は ISO 8601 形式
-			expect(meta.modifiedAt ?? '').toMatch(/^\d{4}-\d{2}-\d{2}T/);
+			// modifiedAtUnix は UNIX 秒（2020-01-01 以降を期待）
+			expect(meta.modifiedAtUnix ?? 0).toBeGreaterThan(1577836800);
 		},
 	);
 
@@ -113,12 +113,12 @@ test.describe('Library カードメタデータ表示（PH-285 / 288）', () => 
 		const meta = await invoke<{
 			childCount?: number;
 			folderTotalBytes?: number;
-			modifiedAt?: string;
+			modifiedAtUnix?: number;
 		}>(page, 'cmd_get_item_metadata', { itemId: item.id });
 		// すべて undefined になる（best-effort）
 		expect(meta.childCount).toBeUndefined();
 		expect(meta.folderTotalBytes).toBeUndefined();
-		expect(meta.modifiedAt).toBeUndefined();
+		expect(meta.modifiedAtUnix).toBeUndefined();
 	});
 
 	test('LibraryCard L サイズで url アイテムにドメインが表示される', async ({ page }) => {
