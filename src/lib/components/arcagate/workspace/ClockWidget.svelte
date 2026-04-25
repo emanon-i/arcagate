@@ -1,8 +1,8 @@
 <script lang="ts">
 import { Clock } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
-import { updateWidgetConfig } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceStore } from '$lib/state/workspace.svelte';
 import { CLOCK_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
@@ -51,7 +51,7 @@ async function toggleSetting(key: keyof typeof CLOCK_WIDGET_DEFAULTS) {
 	if (!widget) return;
 	const updated = { ...config, [key]: !config[key] };
 	try {
-		await updateWidgetConfig(widget.id, JSON.stringify(updated));
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(updated));
 	} catch (e: unknown) {
 		toastStore.add(`設定の保存に失敗しました: ${String(e)}`, 'error');
 	}
@@ -90,7 +90,7 @@ let menuItems = $derived(
 </script>
 
 <WidgetShell title="Clock" icon={Clock} {menuItems}>
-	<div class="flex flex-col items-center justify-center gap-1 py-4">
+	<div class="flex h-full flex-col items-center justify-center gap-1">
 		<span class="font-mono text-3xl font-semibold tabular-nums text-[var(--ag-text-primary)]">
 			{timeStr}
 		</span>
