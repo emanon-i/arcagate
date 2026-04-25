@@ -21,6 +21,13 @@ let iconClass = $derived.by(() => {
 	if (configStore.itemSize === 'L') return 'h-20 w-20 object-contain drop-shadow-lg';
 	return 'h-12 w-12 object-contain drop-shadow-lg';
 });
+
+// S サイズはラベルエリアを縮小してアイコンを圧迫しない
+let labelClass = $derived(
+	configStore.itemSize === 'S'
+		? 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent px-1.5 pb-1 pt-2'
+		: 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent px-2 pb-1.5 pt-4',
+);
 </script>
 
 {#if viewMode === 'list'}
@@ -53,7 +60,7 @@ let iconClass = $derived.by(() => {
 	<!-- グリッドカード: 正方形 (aspect-square), 背景全面 + ラベル下部オーバーレイ -->
 	<button
 		type="button"
-		class="relative aspect-square w-full overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] transition-[border-color,transform,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-0)] {item.is_enabled ? '' : 'opacity-40 grayscale'}"
+		class="group relative aspect-square w-full overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] transition-[border-color,transform,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-0)] {item.is_enabled ? '' : 'opacity-40 grayscale'}"
 		data-testid="library-card-{item.id}"
 		{onclick}
 		{ondblclick}
@@ -63,8 +70,11 @@ let iconClass = $derived.by(() => {
 			<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class={iconClass} />
 		</div>
 
+		<!-- ホバー時明度オーバーレイ -->
+		<div class="absolute inset-0 bg-white/0 transition-[background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] group-hover:bg-white/10 motion-reduce:transition-none"></div>
+
 		<!-- ラベル: 下部グラデーションオーバーレイ -->
-		<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent px-2 pb-1.5 pt-4">
+		<div class={labelClass}>
 			<div class="truncate text-center text-xs font-semibold leading-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
 				{item.label}
 			</div>
