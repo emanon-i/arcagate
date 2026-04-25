@@ -2058,3 +2058,24 @@ PH-270〜274 全完了。§5/§7/§9 ベースライン確立。
 | C    | PH-277 | 品質防衛 | lint/clippy/dependency-cruiser ルール強化               |
 | D    | PH-278 | バグ修正 | Codex 採用指摘（import rollback / パス / watcher）      |
 | E    | PH-279 | 整理     | dispatch-log + archive + docs 棚卸し                    |
+
+---
+
+## batch-64 PH-275 実装完了 (2026-04-25)
+
+PR #95 (batch-63 docs) merge 済み。PR #96 (PH-275) CI 実行中。
+
+### PH-275 実施内容
+
+| 変更        | ファイル                              | 詳細                                                      |
+| ----------- | ------------------------------------- | --------------------------------------------------------- |
+| WidgetShell | common/WidgetShell.svelte             | 選択肢1個 → ドロップダウン廃止、ボタン直結                |
+| QuickNote   | workspace/QuickNoteWidget.svelte      | font_size + h-full レイアウト + store 経由即時反映        |
+| Clock       | workspace/ClockWidget.svelte          | workspaceStore 経由即時反映                               |
+| Settings    | workspace/WidgetSettingsDialog.svelte | quick_note / projects / default 3分岐統一                 |
+| 型          | types/widget-configs.ts               | QuickNoteConfig に font_size 追加                         |
+| LibraryCard | library/LibraryCard.svelte            | S=80/M=128/L=192px 正方形 + object-cover                  |
+| CSS         | app.css                               | .dark color-scheme:dark（native select コントラスト修正） |
+| 原則        | CLAUDE.md                             | 「選択肢1個のメニューを挟むな」追記                       |
+
+PR #96 e2e 完了次第 merge → PH-276〜280 着手予定。
