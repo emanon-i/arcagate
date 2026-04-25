@@ -37,10 +37,19 @@ $effect(() => {
 
 let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
 
-let iconClass = $derived.by(() => {
+// fill / image モード時の中央アイコン: drop-shadow-lg で立体感
+let iconClassFilled = $derived.by(() => {
 	if (configStore.itemSize === 'S') return 'h-10 w-10 object-contain drop-shadow-lg';
 	if (configStore.itemSize === 'L') return 'h-20 w-20 object-contain drop-shadow-lg';
 	return 'h-14 w-14 object-contain drop-shadow-lg';
+});
+
+// none モード時: 強い drop-shadow がアイコンの edge をぼやけさせるため、
+// shadow を弱め + サイズを少し大きくして相対的に明瞭化（PH-292 修正）
+let iconClassNone = $derived.by(() => {
+	if (configStore.itemSize === 'S') return 'h-12 w-12 object-contain drop-shadow-sm';
+	if (configStore.itemSize === 'L') return 'h-24 w-24 object-contain drop-shadow-sm';
+	return 'h-16 w-16 object-contain drop-shadow-sm';
 });
 
 let bg = $derived(configStore.libraryCard.background);
@@ -117,13 +126,13 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 					iconPath={undefined}
 					itemType={item.item_type}
 					alt="{item.label} icon"
-					class={iconClass}
+					class={iconClassFilled}
 					style="color: {bg.fillIconColor};"
 				/>
 			</div>
 		{:else}
 			<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
-				<ItemIcon iconPath={undefined} itemType={item.item_type} alt="{item.label} icon" class={iconClass} />
+				<ItemIcon iconPath={undefined} itemType={item.item_type} alt="{item.label} icon" class={iconClassNone} />
 			</div>
 		{/if}
 
