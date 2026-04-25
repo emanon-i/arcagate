@@ -94,6 +94,12 @@
 
 	/* Backdrop filter (Liquid Glass theme overrides this) */
 	--ag-backdrop: none;
+
+	/* Library card sizing (4:3 aspect, gap fixed) */
+	--ag-card-gap: 1rem;
+	--ag-card-w-s: 144px;
+	--ag-card-w-m: 192px;
+	--ag-card-w-l: 256px;
 }
 
 .dark {
