@@ -8,6 +8,9 @@ pub enum WidgetType {
     Projects,
     WatchedFolders,
     Item,
+    Clock,
+    Stats,
+    QuickNote,
 }
 
 impl WidgetType {
@@ -18,6 +21,9 @@ impl WidgetType {
             WidgetType::Projects => "projects",
             WidgetType::WatchedFolders => "watched_folders",
             WidgetType::Item => "item",
+            WidgetType::Clock => "clock",
+            WidgetType::Stats => "stats",
+            WidgetType::QuickNote => "quick_note",
         }
     }
 
@@ -29,6 +35,9 @@ impl WidgetType {
             "projects" => Some(WidgetType::Projects),
             "watched_folders" => Some(WidgetType::WatchedFolders),
             "item" => Some(WidgetType::Item),
+            "clock" => Some(WidgetType::Clock),
+            "stats" => Some(WidgetType::Stats),
+            "quick_note" => Some(WidgetType::QuickNote),
             _ => None,
         }
     }
@@ -92,6 +101,9 @@ mod tests {
         assert_eq!(WidgetType::Projects.as_str(), "projects");
         assert_eq!(WidgetType::WatchedFolders.as_str(), "watched_folders");
         assert_eq!(WidgetType::Item.as_str(), "item");
+        assert_eq!(WidgetType::Clock.as_str(), "clock");
+        assert_eq!(WidgetType::Stats.as_str(), "stats");
+        assert_eq!(WidgetType::QuickNote.as_str(), "quick_note");
     }
 
     #[test]
@@ -107,6 +119,12 @@ mod tests {
             Some(WidgetType::WatchedFolders)
         );
         assert_eq!(WidgetType::from_str("item"), Some(WidgetType::Item));
+        assert_eq!(WidgetType::from_str("clock"), Some(WidgetType::Clock));
+        assert_eq!(WidgetType::from_str("stats"), Some(WidgetType::Stats));
+        assert_eq!(
+            WidgetType::from_str("quick_note"),
+            Some(WidgetType::QuickNote)
+        );
     }
 
     #[test]
@@ -124,6 +142,9 @@ mod tests {
             WidgetType::Projects,
             WidgetType::WatchedFolders,
             WidgetType::Item,
+            WidgetType::Clock,
+            WidgetType::Stats,
+            WidgetType::QuickNote,
         ];
         for t in &types {
             let s = t.as_str();

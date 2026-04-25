@@ -1,4 +1,12 @@
-export type WidgetType = 'favorites' | 'recent' | 'projects' | 'watched_folders' | 'item';
+export type WidgetType =
+	| 'favorites'
+	| 'recent'
+	| 'projects'
+	| 'watched_folders'
+	| 'item'
+	| 'clock'
+	| 'stats'
+	| 'quick_note';
 
 export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
 	favorites: 'よく使うもの',

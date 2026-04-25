@@ -1,5 +1,17 @@
 <script lang="ts">
-import { Check, Clock3, GitBranch, Grip, Package, Pencil, Star, X } from '@lucide/svelte';
+import {
+	Check,
+	Clock,
+	Clock3,
+	GitBranch,
+	Grip,
+	NotebookPen,
+	Package,
+	Pencil,
+	Star,
+	TrendingUp,
+	X,
+} from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import type { WidgetType } from '$lib/types/workspace';
@@ -21,6 +33,9 @@ const availableWidgets: { type: WidgetType; label: string; icon: Component }[] =
 	{ type: 'recent', label: 'Recent', icon: Clock3 },
 	{ type: 'projects', label: 'Projects', icon: GitBranch },
 	{ type: 'item', label: 'Item', icon: Package },
+	{ type: 'clock', label: 'Clock', icon: Clock },
+	{ type: 'stats', label: 'Most Used', icon: TrendingUp },
+	{ type: 'quick_note', label: 'Quick Note', icon: NotebookPen },
 ];
 
 function startDrag(e: PointerEvent, widgetType: WidgetType) {
