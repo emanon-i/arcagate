@@ -1,8 +1,7 @@
 <script lang="ts">
 import { Clock } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
-import { toastStore } from '$lib/state/toast.svelte';
-import { workspaceStore } from '$lib/state/workspace.svelte';
+import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { CLOCK_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
@@ -13,6 +12,7 @@ interface Props {
 
 let { widget }: Props = $props();
 
+let settingsOpen = $state(false);
 let now = $state(new Date());
 
 $effect(() => {
@@ -47,41 +47,16 @@ let dateStr = $derived.by(() => {
 	return parts.join(' ');
 });
 
-async function toggleSetting(key: keyof typeof CLOCK_WIDGET_DEFAULTS) {
-	if (!widget) return;
-	const updated = { ...config, [key]: !config[key] };
-	try {
-		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(updated));
-	} catch (e: unknown) {
-		toastStore.add(`設定の保存に失敗しました: ${String(e)}`, 'error');
-	}
-}
-
+// menuItems = 1 個（「設定」即モーダル）に統一。
+// 旧: 4 項目 DropdownMenu（秒/日付/曜日/12-24h トグル）→ CLAUDE.md「選択肢1個のメニューを挟むな」に従い
+// 全ウィジェット共通の WidgetSettingsDialog へ統合。
 let menuItems = $derived(
 	widget
 		? [
 				{
-					label: config.show_seconds ? '秒を非表示' : '秒を表示',
+					label: '設定',
 					onclick: () => {
-						void toggleSetting('show_seconds');
-					},
-				},
-				{
-					label: config.show_date ? '日付を非表示' : '日付を表示',
-					onclick: () => {
-						void toggleSetting('show_date');
-					},
-				},
-				{
-					label: config.show_weekday ? '曜日を非表示' : '曜日を表示',
-					onclick: () => {
-						void toggleSetting('show_weekday');
-					},
-				},
-				{
-					label: config.use_24h ? '12時間表示に切替' : '24時間表示に切替',
-					onclick: () => {
-						void toggleSetting('use_24h');
+						settingsOpen = true;
 					},
 				},
 			]
@@ -99,3 +74,11 @@ let menuItems = $derived(
 		{/if}
 	</div>
 </WidgetShell>
+
+{#if widget}
+	<WidgetSettingsDialog
+		{widget}
+		open={settingsOpen}
+		onClose={() => (settingsOpen = false)}
+	/>
+{/if}
