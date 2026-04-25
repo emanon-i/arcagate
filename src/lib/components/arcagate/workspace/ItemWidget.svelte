@@ -7,6 +7,7 @@ import { updateWidgetConfig } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
+import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import LibraryItemPicker from './LibraryItemPicker.svelte';
@@ -20,9 +21,7 @@ let { widget, onItemContext }: Props = $props();
 
 let pickerOpen = $state(false);
 
-let itemId = $derived(
-	parseWidgetConfig(widget?.config, { item_id: null as string | null }).item_id,
-);
+let itemId = $derived(parseWidgetConfig(widget?.config, ITEM_WIDGET_DEFAULTS).item_id);
 
 let pinnedItem = $derived(itemId ? (itemStore.items.find((i) => i.id === itemId) ?? null) : null);
 
