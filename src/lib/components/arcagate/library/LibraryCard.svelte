@@ -21,15 +21,17 @@ let { item, isStarred = false, viewMode = 'grid', onclick, ondblclick }: Props =
 let metadata = $state<ItemMetadata | null>(null);
 
 // Lazy fetch: item ごとに 1 回だけ。S サイズでは表示しないので IPC も省略。
+// item.id 切替時 / fetch 失敗時に古い値を残さないため、開始時と catch 時に null へ reset。
 $effect(() => {
 	if (viewMode !== 'grid' || configStore.itemSize === 'S') return;
 	const id = item.id;
+	metadata = null;
 	void getItemMetadata(id)
 		.then((m) => {
 			if (id === item.id) metadata = m;
 		})
 		.catch(() => {
-			// best-effort、失敗はメタデータ非表示
+			if (id === item.id) metadata = null;
 		});
 });
 

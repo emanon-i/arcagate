@@ -6,7 +6,7 @@
  */
 export interface ItemMetadata {
 	sizeBytes?: number;
-	modifiedAt?: string;
+	modifiedAtUnix?: number;
 	childCount?: number;
 	folderTotalBytes?: number;
 	urlDomain?: string;

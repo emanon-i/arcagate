@@ -10,15 +10,17 @@ use crate::utils::error::AppError;
 /// Library カードに表示するための item メタデータ。
 ///
 /// item_type ごとに埋まるフィールドが異なる:
-/// - folder: child_count + folder_total_bytes + modified_at
-/// - file/text: size_bytes + modified_at
+/// - folder: child_count + folder_total_bytes + modified_at_unix
+/// - file/text: size_bytes + modified_at_unix
 /// - url: url_domain
-/// - 未対応: image / video / music / exe（後続バッチで追加）
+///
+/// `modified_at_unix` は UNIX_EPOCH からの秒数（外部 datetime crate に依存せず、
+/// フロント側 Date で整形する）。
 #[derive(Serialize, Default, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemMetadata {
     pub size_bytes: Option<u64>,
-    pub modified_at: Option<String>,
+    pub modified_at_unix: Option<u64>,
     pub child_count: Option<u32>,
     pub folder_total_bytes: Option<u64>,
     pub url_domain: Option<String>,
@@ -49,7 +51,7 @@ fn file_metadata(path_str: &str) -> Option<ItemMetadata> {
     }
     Some(ItemMetadata {
         size_bytes: Some(meta.len()),
-        modified_at: meta.modified().ok().and_then(format_system_time),
+        modified_at_unix: meta.modified().ok().and_then(system_time_to_unix),
         ..Default::default()
     })
 }
@@ -74,7 +76,7 @@ fn folder_metadata(path_str: &str) -> Option<ItemMetadata> {
     }
 
     Some(ItemMetadata {
-        modified_at: meta.modified().ok().and_then(format_system_time),
+        modified_at_unix: meta.modified().ok().and_then(system_time_to_unix),
         child_count: Some(child_count),
         folder_total_bytes: Some(total_bytes),
         ..Default::default()
@@ -103,19 +105,9 @@ fn url_metadata(target: &str) -> ItemMetadata {
     }
 }
 
-fn format_system_time(t: std::time::SystemTime) -> Option<String> {
+fn system_time_to_unix(t: std::time::SystemTime) -> Option<u64> {
     use std::time::UNIX_EPOCH;
-    let dur = t.duration_since(UNIX_EPOCH).ok()?;
-    let secs = dur.as_secs();
-    Some(format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
-        1970 + (secs / 31_557_600),
-        ((secs % 31_557_600) / 2_629_800) + 1,
-        ((secs % 2_629_800) / 86_400) + 1,
-        (secs % 86_400) / 3_600,
-        (secs % 3_600) / 60,
-        secs % 60,
-    ))
+    t.duration_since(UNIX_EPOCH).ok().map(|d| d.as_secs())
 }
 
 #[cfg(test)]

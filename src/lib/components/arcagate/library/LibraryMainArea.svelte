@@ -1,6 +1,5 @@
 <script lang="ts">
 import { LayoutGrid, LayoutList, Package, Plus, Search, X as XIcon } from '@lucide/svelte';
-import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
@@ -13,22 +12,9 @@ interface Props {
 	activeTag: string | null;
 	onSelectItem?: (id: string | null) => void;
 	onAddItem?: () => void;
-	onEditItem?: (id: string) => void;
 }
 
-let { activeTag, onSelectItem, onAddItem, onEditItem }: Props = $props();
-
-async function handleDeleteItem(id: string) {
-	const item = itemStore.items.find((i) => i.id === id);
-	if (!item) return;
-	const confirmed = await ask(`「${item.label}」を削除しますか？`, {
-		title: '削除の確認',
-		kind: 'warning',
-	});
-	if (confirmed) {
-		void itemStore.deleteItem(id);
-	}
-}
+let { activeTag, onSelectItem, onAddItem }: Props = $props();
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
@@ -52,10 +38,15 @@ let currentRequestId = 0;
 $effect(() => {
 	if (!activeTag) return;
 	const myId = ++currentRequestId;
-	void itemStore.loadItemsByTag(activeTag, debouncedQuery).then(() => {
-		if (myId !== currentRequestId) return; // stale レスポンスは無視
-		localTagItems = itemStore.tagItems;
-	});
+	itemStore
+		.loadItemsByTag(activeTag, debouncedQuery)
+		.then(() => {
+			if (myId !== currentRequestId) return; // stale レスポンスは無視
+			localTagItems = itemStore.tagItems;
+		})
+		.catch(() => {
+			if (myId === currentRequestId) localTagItems = [];
+		});
 });
 
 // starred アイテム ID セット（LibraryCard の ★ バッジ表示用）
@@ -65,9 +56,13 @@ let starredIds = $state<Set<string>>(new Set());
 $effect(() => {
 	// itemStore.items の変化（追加/削除/タグ更新）を検知して再フェッチ
 	const _dep = itemStore.items;
-	void searchItemsInTag('sys-starred', '').then((items) => {
-		starredIds = new Set(items.map((i) => i.id));
-	});
+	searchItemsInTag('sys-starred', '')
+		.then((items) => {
+			starredIds = new Set(items.map((i) => i.id));
+		})
+		.catch(() => {
+			// best-effort、失敗時は前回の値を維持
+		});
 });
 
 let filteredItems = $derived.by(() => {

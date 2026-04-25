@@ -67,8 +67,9 @@ export function saveString(key: string, value: string): void {
 export function loadBool(key: string, fallback: boolean): boolean {
 	try {
 		const raw = localStorage.getItem(key);
-		if (raw === null) return fallback;
-		return raw === 'true';
+		if (raw === 'true') return true;
+		if (raw === 'false') return false;
+		return fallback;
 	} catch {
 		return fallback;
 	}
