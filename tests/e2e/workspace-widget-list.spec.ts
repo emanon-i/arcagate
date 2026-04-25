@@ -18,9 +18,9 @@ test.describe('Favorites ウィジェット', () => {
 				item_type: 'url',
 				label: 'E2E Favorites テストアイテム',
 				target: 'https://example.com',
-				args: null,
-				working_dir: null,
-				icon_path: null,
+				args: undefined,
+				working_dir: undefined,
+				icon_path: undefined,
 				is_tracked: false,
 			});
 			await toggleStar(page, item.id, true);
@@ -36,7 +36,7 @@ test.describe('Favorites ウィジェット', () => {
 				await expect(page.getByText('Favorites テスト WS')).toBeVisible();
 
 				// Favorites ウィジェットのタイトルが表示されること
-				await expect(page.getByText('Favorites')).toBeVisible();
+				await expect(page.getByText('Favorites', { exact: true })).toBeVisible();
 
 				// スター付きアイテムが表示されること
 				await expect(page.getByText('E2E Favorites テストアイテム')).toBeVisible();

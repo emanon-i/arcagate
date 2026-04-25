@@ -37,9 +37,9 @@ test.describe('Item ウィジェット', () => {
 			item_type: 'url',
 			label: 'E2E テスト URL アイテム',
 			target: 'https://example.com',
-			args: null,
-			working_dir: null,
-			icon_path: null,
+			args: undefined,
+			working_dir: undefined,
+			icon_path: undefined,
 			is_tracked: false,
 		});
 		const ws = await createWorkspace(page, 'Item Widget 選択テスト WS');
