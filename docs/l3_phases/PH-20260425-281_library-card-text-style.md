@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-281
-status: wip
+status: done
 batch: 65
 type: 改善
 ---

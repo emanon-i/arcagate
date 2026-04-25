@@ -1,5 +1,14 @@
 <script lang="ts">
-import { Copy, Database, LayoutDashboard, Palette, Plus, Settings2, Volume2 } from '@lucide/svelte';
+import {
+	Copy,
+	Database,
+	Image,
+	LayoutDashboard,
+	Palette,
+	Plus,
+	Settings2,
+	Volume2,
+} from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { soundStore } from '$lib/state/sound.svelte';
@@ -7,13 +16,15 @@ import { themeStore } from '$lib/state/theme.svelte';
 import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
+import LibraryCardSettings from './LibraryCardSettings.svelte';
 import ThemeEditor from './ThemeEditor.svelte';
 
-type CategoryId = 'general' | 'workspace' | 'appearance' | 'sound' | 'data';
+type CategoryId = 'general' | 'workspace' | 'library' | 'appearance' | 'sound' | 'data';
 
 const categories: { id: CategoryId; label: string; icon: Component }[] = [
 	{ id: 'general', label: '一般', icon: Settings2 },
 	{ id: 'workspace', label: 'ワークスペース', icon: LayoutDashboard },
+	{ id: 'library', label: 'ライブラリ', icon: Image },
 	{ id: 'appearance', label: '外観', icon: Palette },
 	{ id: 'sound', label: 'サウンド', icon: Volume2 },
 	{ id: 'data', label: 'データ', icon: Database },
@@ -213,21 +224,21 @@ function handleNavKeydown(e: KeyboardEvent) {
 						/>
 						<p class="mt-1.5 text-xs text-[var(--ag-text-muted)]">Ctrl+ホイールでも変更できます</p>
 					</div>
-					<div>
-						<p class="mb-2 text-sm font-medium text-[var(--ag-text-primary)]">ライブラリカードサイズ</p>
-						<p class="mb-3 text-xs text-[var(--ag-text-muted)]">Library のグリッド表示に適用されます</p>
-						<div class="flex gap-2">
-							{#each (['S', 'M', 'L'] as const) as size (size)}
-								<button
-									type="button"
-									class="flex-1 rounded-md border px-3 py-2 text-sm transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {configStore.itemSize === size ? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] font-medium text-[var(--ag-accent-text)]' : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
-									onclick={() => void configStore.saveItemSize(size)}
-								>
-									{size}
-								</button>
-							{/each}
-						</div>
-					</div>
+					<p class="text-xs text-[var(--ag-text-muted)]">
+						ライブラリカードの設定は <strong class="text-[var(--ag-text-secondary)]">ライブラリ</strong> タブに移動しました。
+					</p>
+				</div>
+			{:else if activeCategory === 'library'}
+				<div
+					id="settings-panel-library"
+					role="tabpanel"
+					aria-labelledby="tab-library"
+					class="space-y-4 px-6 py-5"
+				>
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+						ライブラリ
+					</h3>
+					<LibraryCardSettings />
 				</div>
 			{:else if activeCategory === 'appearance'}
 				<div
