@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-263
-status: todo
+status: done
 batch: 61
 type: 整理
 ---
@@ -37,6 +37,6 @@ type: 整理
 
 ## 受け入れ条件
 
-- [ ] タグシステムの現状が文書化される
-- [ ] Favorites → タグ統合の可否が明確になる
-- [ ] `pnpm verify` 全通過（docs のみなので自明）
+- [x] タグシステムの現状が文書化される（refactoring-opportunities.md §タグシステム現状）
+- [x] Favorites → タグ統合の可否が明確になる（統合済み: searchItemsInTag('sys-starred', '')）
+- [x] `pnpm verify` 全通過（docs のみなので自明）
