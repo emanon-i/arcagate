@@ -2079,3 +2079,54 @@ PR #95 (batch-63 docs) merge 済み。PR #96 (PH-275) CI 実行中。
 | 原則        | CLAUDE.md                             | 「選択肢1個のメニューを挟むな」追記                       |
 
 PR #96 e2e 完了次第 merge → PH-276〜280 着手予定。
+
+---
+
+## batch-65 開始 (2026-04-25)
+
+PR #96 (batch-64) merge 済み。PR #97 (Library カード仕様違反) close 済み。
+batch-65 は **Library カード抜本改修** の専用バッチ。
+
+### 経緯
+
+PR #97 をユーザが見て厳しく指摘:
+
+> SML 全部アイコン画像のサイズが変わるだけ / カード間隙間が変わる / 正方形じゃなくて 4:3 / 設定もできない
+
+PR #97 の仕様違反:
+
+- `aspect-square`（1:1）→ 仕様 **4:3**
+- `gap-3`（12px）→ 仕様 **gap-4 = 16px 固定**
+- S/M/L で **アイコン画像中身だけ**変動 → 仕様 **カード全体 width × height 変動**
+- ウィンドウ幅で カード幅 stretch（`1fr` minmax）→ 仕様 **カード幅固定 / 外側 padding 変動**
+
+### batch-65 構成（5 Plan）
+
+| Plan | PH     | 種別     | 内容                                                       |
+| ---- | ------ | -------- | ---------------------------------------------------------- |
+| A    | PH-280 | 改善     | 4:3 + S/M/L カード全体 + gap 固定 + 外側 padding 吸収      |
+| B    | PH-281 | 改善     | 文字色 picker + 縁取り + ラベル下部オーバーレイ            |
+| C    | PH-282 | 改善     | Settings > Library 新設 + 背景 3 モード + focal point      |
+| D    | PH-283 | 品質防衛 | E2E（CDP computed style + S/M/L + gap + focal point）      |
+| E    | PH-284 | 整理     | 設定所在統一（Workspace→Library）+ ItemCard 系の責務分離   |
+
+### スコープ調整
+
+- メタデータ強化（フォルダ件数 / 解像度 / ID3 等）は **batch-66 に回す**（規模分割）
+- 受信した「批判フィードバック」を厳格に守る: aspect-[4/3] / gap-4 / カード全体可変 / Settings > Library
+
+### 自己検証ルール（feedback_self_verification.md）
+
+OK と言う前に必須:
+
+1. CDP で S/M/L 各サイズ + 背景 3 モードのスクショ取得
+2. `getComputedStyle` で `gap` / `gridTemplateColumns` / `aspectRatio` を確認
+3. ウィンドウ幅 800/1200/1600 で列数のみ変動・カード幅不変を確認
+4. HICCUPPS（I Image / U User）で Steam / iOS / Kodi と比較
+5. 観察リスト 10 項目を全埋め
+
+### 進行
+
+ブランチ: `feature/batch-20260425-65`（main 起点）
+着手: PH-280 から順に実装（batch-65 は Library 連動なので並列化せず順次）。
+
