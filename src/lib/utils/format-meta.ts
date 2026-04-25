@@ -23,13 +23,17 @@ export function formatBytes(n: number): string {
 }
 
 /**
- * ISO 8601 文字列から短い日付表記 "YYYY-MM-DD"。
- * Invalid なら空文字。
+ * UNIX 秒から短い日付表記 "YYYY-MM-DD"（ローカルタイムゾーン）。
+ * undefined / 無効値なら空文字。
  */
-export function formatShortDate(iso: string | undefined): string {
-	if (!iso) return '';
-	const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-	return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
+export function formatShortDate(unix: number | undefined): string {
+	if (typeof unix !== 'number' || !Number.isFinite(unix)) return '';
+	const d = new Date(unix * 1000);
+	if (Number.isNaN(d.getTime())) return '';
+	const yyyy = d.getFullYear();
+	const mm = String(d.getMonth() + 1).padStart(2, '0');
+	const dd = String(d.getDate()).padStart(2, '0');
+	return `${yyyy}-${mm}-${dd}`;
 }
 
 /**
@@ -56,14 +60,14 @@ export function formatItemMeta(
 				meta.folderTotalBytes !== undefined ? formatBytes(meta.folderTotalBytes) : '';
 			return {
 				line1: [childPart, sizePart].filter(Boolean).join(' · '),
-				line2: formatShortDate(meta.modifiedAt),
+				line2: formatShortDate(meta.modifiedAtUnix),
 			};
 		}
 		case 'exe':
 		case 'script': {
 			return {
 				line1: meta.sizeBytes !== undefined ? formatBytes(meta.sizeBytes) : '',
-				line2: formatShortDate(meta.modifiedAt),
+				line2: formatShortDate(meta.modifiedAtUnix),
 			};
 		}
 		case 'url': {

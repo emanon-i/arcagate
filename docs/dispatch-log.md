@@ -2187,3 +2187,41 @@ PH-280〜284 を `docs/l3_phases/archive/` へ移動。
 - メタデータ強化（フォルダ件数 / 解像度 / ID3 等）→ batch-66 候補
 - LibraryCardSettings の color picker / range slider 重複削減（80 行削減可）→ 整理系バッチ候補
 - localStorage helper（loadJSON / saveJSON）抽出 → 整理系バッチ候補
+
+---
+
+## batch-66 着手 (2026-04-25)
+
+ユーザフィードバック: 「ユーザ目視待ち」は禁止、agent 自身が CDP 自己検証で OK 判定してから次バッチに進む（feedback_no_idle_dispatch.md 制定）。
+
+### 構成
+
+| Plan   | 種別     | 内容                                                          |
+| ------ | -------- | ------------------------------------------------------------- |
+| PH-285 | 改善     | Library カードメタデータ表示 + cmd_get_item_metadata Rust IPC |
+| PH-286 | 改善     | LibraryCardSettings の ColorRow / RangeRow snippet 抽出       |
+| PH-287 | 改善     | codex review を Library 系に実行 + 採用指摘の取り込み         |
+| PH-288 | 品質防衛 | メタデータ E2E（@smoke 2 + nightly 2）                        |
+| PH-289 | 整理     | localStorage helper 抽出 + persist 統合                       |
+
+### CDP 自己検証
+
+`pnpm test:e2e --grep @smoke` 実行 → 全 30 件 pass。
+batch-65 + batch-66 の Library 仕様 (4:3 / S/M/L width / url ドメイン / folder child_count) すべて緑。
+
+### Codex review 採用判定（PH-287）
+
+Codex 8 件指摘 → 採用 6 件、記録 1 件、却下 0 件:
+
+| # | severity | 採用判定 | 修正内容                                                                                                           |
+| - | -------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1 | High     | 採用     | metadata_service.rs format_system_time → SystemTime to Unix 秒変換に変更（外部依存追加せず、フロントで Date 整形） |
+| 2 | High     | 採用     | LibraryDetailPanel.svelte tag-loading に request token + .catch                                                    |
+| 3 | Medium   | 採用     | LibraryItemTagSection.svelte dropdown trigger を outside-click 判定から除外                                        |
+| 4 | Medium   | 採用     | LibraryCard.svelte metadata = null reset を $effect 開始時 + catch で実施                                          |
+| 5 | Medium   | 採用     | LibraryMainArea.svelte loadItemsByTag / starred fetch に .catch                                                    |
+| 6 | Low      | 記録のみ | local-storage.ts loadJSON shape validation → batch-67 整理候補                                                     |
+| 7 | Low      | 採用     | local-storage.ts loadBool fallback 動作修正（'false' でも fallback 不採用）                                        |
+| 8 | Low      | 採用     | LibraryMainArea.svelte 未使用 onEditItem / handleDeleteItem 削除 + LibraryLayout から prop 削除                    |
+
+Codex 出力ログ: `tmp/codex-review-batch66.txt`

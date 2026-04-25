@@ -49,9 +49,11 @@ $effect(() => {
 		}
 	}}
 	onpointerdown={(e) => {
-		if (showTagSelect && tagDropdownEl && !tagDropdownEl.contains(e.target as Node)) {
-			closeTagDropdown();
-		}
+		if (!showTagSelect) return;
+		const target = e.target as Node;
+		// trigger 上でのクリックは「閉じる→再オープン」の race を防ぐため除外
+		if (tagDropdownEl?.contains(target) || tagTriggerEl?.contains(target)) return;
+		closeTagDropdown();
 	}}
 />
 

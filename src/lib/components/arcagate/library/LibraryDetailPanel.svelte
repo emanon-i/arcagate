@@ -26,15 +26,23 @@ let selectedItem = $derived(itemStore.items.find((i) => i.id === selectedItemId)
 // タグ状態管理
 let itemTags = $state<Tag[]>([]);
 
+// request token: selectedItemId 切替時に古いレスポンスで上書きしないため
+let tagRequestId = 0;
+
 $effect(() => {
 	const id = selectedItemId;
-	if (id) {
-		getItemTags(id).then((tags) => {
-			itemTags = tags;
-		});
-	} else {
+	if (!id) {
 		itemTags = [];
+		return;
 	}
+	const myId = ++tagRequestId;
+	getItemTags(id)
+		.then((tags) => {
+			if (myId === tagRequestId) itemTags = tags;
+		})
+		.catch(() => {
+			if (myId === tagRequestId) itemTags = [];
+		});
 });
 
 const SYS_STARRED_ID = 'sys-starred';
