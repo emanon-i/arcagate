@@ -2043,3 +2043,18 @@ PH-270〜274 全完了。§5/§7/§9 ベースライン確立。
 - engineering-principles.md §9 運用指標にベースライン値記録
 - refactoring-opportunities.md 「次バッチへの入力」更新（7件優先順位付き）
 - L3 Plan: PH-270〜274 全 status: done
+
+---
+
+## batch-64 実施計画 (2026-04-25)
+
+ウィジェット UX 緊急修正 + 規約機械化 + Codex 採用指摘修正。
+「書いて満足」から「機械が止める」への転換バッチ。
+
+| Plan | PH     | 種別     | 内容                                                    |
+| ---- | ------ | -------- | ------------------------------------------------------- |
+| A    | PH-275 | 改善     | ウィジェット UX（サイズ追従 / 即時反映 / 設定 UX 統一） |
+| B    | PH-276 | 品質防衛 | ウィジェット設定変更 → 即時反映 E2E 機械化              |
+| C    | PH-277 | 品質防衛 | lint/clippy/dependency-cruiser ルール強化               |
+| D    | PH-278 | バグ修正 | Codex 採用指摘（import rollback / パス / watcher）      |
+| E    | PH-279 | 整理     | dispatch-log + archive + docs 棚卸し                    |
