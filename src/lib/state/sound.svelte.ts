@@ -1,49 +1,20 @@
+import { loadBool, loadNumber, saveBool, saveNumber } from '$lib/utils/local-storage';
+
 const SOUND_ENABLED_KEY = 'sound-enabled';
 const SOUND_VOLUME_KEY = 'sound-volume';
 
-function loadBoolean(key: string, fallback: boolean): boolean {
-	try {
-		const stored = localStorage.getItem(key);
-		if (stored !== null) return stored === 'true';
-	} catch {
-		// SSR or localStorage unavailable
-	}
-	return fallback;
-}
-
-function loadFloat(key: string, fallback: number): number {
-	try {
-		const stored = localStorage.getItem(key);
-		if (stored !== null) {
-			const val = Number(stored);
-			if (!Number.isNaN(val)) return Math.max(0, Math.min(1, val));
-		}
-	} catch {
-		// SSR or localStorage unavailable
-	}
-	return fallback;
-}
-
-let soundEnabled = $state(loadBoolean(SOUND_ENABLED_KEY, true));
-let soundVolume = $state(loadFloat(SOUND_VOLUME_KEY, 0.4));
+let soundEnabled = $state(loadBool(SOUND_ENABLED_KEY, true));
+let soundVolume = $state(loadNumber(SOUND_VOLUME_KEY, 0.4, 0, 1));
 
 function setSoundEnabled(v: boolean): void {
 	soundEnabled = v;
-	try {
-		localStorage.setItem(SOUND_ENABLED_KEY, String(v));
-	} catch {
-		// ignore
-	}
+	saveBool(SOUND_ENABLED_KEY, v);
 }
 
 function setSoundVolume(v: number): void {
 	const clamped = Math.max(0, Math.min(1, v));
 	soundVolume = clamped;
-	try {
-		localStorage.setItem(SOUND_VOLUME_KEY, String(clamped));
-	} catch {
-		// ignore
-	}
+	saveNumber(SOUND_VOLUME_KEY, clamped);
 }
 
 export const soundStore = {

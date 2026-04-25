@@ -1,4 +1,5 @@
 import * as configIpc from '$lib/ipc/config';
+import { loadJSON, loadNumber, saveJSON, saveNumber } from '$lib/utils/local-storage';
 
 export type ItemSize = 'S' | 'M' | 'L';
 
@@ -45,17 +46,16 @@ const DEFAULT_LIBRARY_CARD: LibraryCardConfig = {
 };
 
 function loadLibraryCardFromStorage(): LibraryCardConfig {
-	try {
-		const raw = localStorage.getItem(LIBRARY_CARD_STORAGE_KEY);
-		if (!raw) return DEFAULT_LIBRARY_CARD;
-		const parsed = JSON.parse(raw) as Partial<LibraryCardConfig>;
-		return {
-			background: { ...DEFAULT_LIBRARY_CARD.background, ...(parsed.background ?? {}) },
-			style: { ...DEFAULT_LIBRARY_CARD.style, ...(parsed.style ?? {}) },
-		};
-	} catch {
-		return DEFAULT_LIBRARY_CARD;
-	}
+	// nested 構造のため loadJSON の shallow merge では不足。background / style を
+	// それぞれ個別 merge する。
+	const top = loadJSON<{
+		background: Partial<LibraryCardBackgroundConfig>;
+		style: Partial<LibraryCardStyleConfig>;
+	}>(LIBRARY_CARD_STORAGE_KEY, { background: {}, style: {} });
+	return {
+		background: { ...DEFAULT_LIBRARY_CARD.background, ...(top.background ?? {}) },
+		style: { ...DEFAULT_LIBRARY_CARD.style, ...(top.style ?? {}) },
+	};
 }
 
 let hotkey = $state('Ctrl+Shift+Space');
@@ -68,11 +68,7 @@ let itemSize = $state<ItemSize>('M');
 let libraryCard = $state<LibraryCardConfig>(loadLibraryCardFromStorage());
 
 function persistLibraryCard(): void {
-	try {
-		localStorage.setItem(LIBRARY_CARD_STORAGE_KEY, JSON.stringify(libraryCard));
-	} catch {
-		// ignore (SSR or quota)
-	}
+	saveJSON(LIBRARY_CARD_STORAGE_KEY, libraryCard);
 }
 
 function patchEqual<T extends object>(current: T, patch: Partial<T>): boolean {
@@ -98,30 +94,13 @@ function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
 const ZOOM_STORAGE_KEY = 'widget-zoom';
 const DEFAULT_ZOOM = 100;
 
-function loadZoomFromStorage(): number {
-	try {
-		const stored = localStorage.getItem(ZOOM_STORAGE_KEY);
-		if (stored !== null) {
-			const val = Number(stored);
-			if (!Number.isNaN(val) && val >= 50 && val <= 200) return val;
-		}
-	} catch {
-		// SSR or localStorage unavailable
-	}
-	return DEFAULT_ZOOM;
-}
-
-let widgetZoom = $state(loadZoomFromStorage());
+let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, DEFAULT_ZOOM, 50, 200));
 
 function setWidgetZoom(zoom: number): void {
 	const clamped = Math.max(50, Math.min(200, Math.round(zoom / 10) * 10));
 	if (widgetZoom === clamped) return;
 	widgetZoom = clamped;
-	try {
-		localStorage.setItem(ZOOM_STORAGE_KEY, String(clamped));
-	} catch {
-		// ignore
-	}
+	saveNumber(ZOOM_STORAGE_KEY, clamped);
 }
 
 async function loadConfig(): Promise<void> {
