@@ -7,6 +7,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
   /* ag-* bridge: arcagate-theme.css の変数を shadcn トークンに透過 */
   --radius: var(--ag-radius-button);
   --background: var(--ag-surface-page);
@@ -39,6 +40,8 @@
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  /* native controls (select, scrollbar等) をダークモードで描画 */
+  color-scheme: dark;
 }
 
 @theme inline {

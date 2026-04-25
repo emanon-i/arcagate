@@ -34,6 +34,7 @@ PC上に散在する起動元を集約する個人用コマンドパレット（
 
 - レイヤー依存は一方向: commands → services → repositories → DB（逆禁止）
 - Service Layer が全エントリーポイントの共通経路。Repository を直接呼ばない
+- **選択肢1個のメニューを挟むな**: ボタン押下 = 即アクション。中間メニューは選択肢が2個以上になってから出す
 - Repository 間の相互参照禁止。複数 Repository の結合は Service で行う
 
 ## 意図的な選択（変えない）

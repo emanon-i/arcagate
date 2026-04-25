@@ -25,6 +25,8 @@ interface WidgetConfig {
 	watched_folder?: string;
 	auto_add?: boolean;
 	sort_field?: 'default' | 'name';
+	font_size?: 'sm' | 'md' | 'lg';
+	note?: string;
 }
 
 let config = $state<WidgetConfig>({});
@@ -65,6 +67,7 @@ let watchedFolder = $derived(
 );
 let autoAdd = $derived(config.auto_add ?? defaults[widget.widget_type]?.auto_add ?? false);
 let sortField = $derived(config.sort_field ?? 'default');
+let fontSize = $derived<'sm' | 'md' | 'lg'>(config.font_size ?? 'md');
 
 async function handlePickFolder() {
 	const selected = await open({
@@ -82,16 +85,21 @@ const dFast = rm ? 0 : 120;
 const dNormal = rm ? 0 : 200;
 
 async function handleSave() {
-	const newConfig: WidgetConfig = {
-		max_items: maxItems,
-		sort_field: sortField,
-	};
-	if (widget.widget_type === 'projects') {
-		newConfig.git_poll_interval_sec = gitPollInterval;
-		newConfig.title = wsTitle;
-		newConfig.description = wsDescription;
-		newConfig.watched_folder = watchedFolder;
-		newConfig.auto_add = autoAdd;
+	let newConfig: WidgetConfig;
+	if (widget.widget_type === 'quick_note') {
+		newConfig = { ...config, font_size: fontSize };
+	} else if (widget.widget_type === 'projects') {
+		newConfig = {
+			max_items: maxItems,
+			sort_field: sortField,
+			git_poll_interval_sec: gitPollInterval,
+			title: wsTitle,
+			description: wsDescription,
+			watched_folder: watchedFolder,
+			auto_add: autoAdd,
+		};
+	} else {
+		newConfig = { max_items: maxItems, sort_field: sortField };
 	}
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(newConfig));
@@ -126,32 +134,48 @@ async function handleSave() {
       <h3 class="mb-4 text-base font-semibold text-[var(--ag-text-primary)]">ウィジェット設定</h3>
       <form onsubmit={(e) => { e.preventDefault(); void handleSave(); }}>
       <div class="space-y-4">
-        <div class="space-y-1">
-          <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数</label>
-          <input
-            id="ws-max-items"
-            type="number"
-            min="1"
-            max="100"
-            autocomplete="off"
-            class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
-            value={maxItems}
-            onchange={(e) => { config = { ...config, max_items: parseInt((e.target as HTMLInputElement).value) || 10 }; }}
-          />
-        </div>
+        {#if widget.widget_type === 'quick_note'}
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-font-size">フォントサイズ</label>
+            <select
+              id="ws-font-size"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={fontSize}
+              onchange={(e) => { config = { ...config, font_size: (e.target as HTMLSelectElement).value as 'sm' | 'md' | 'lg' }; }}
+            >
+              <option value="sm">小</option>
+              <option value="md">中（デフォルト）</option>
+              <option value="lg">大</option>
+            </select>
+          </div>
+        {:else}
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数</label>
+            <input
+              id="ws-max-items"
+              type="number"
+              min="1"
+              max="100"
+              autocomplete="off"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={maxItems}
+              onchange={(e) => { config = { ...config, max_items: parseInt((e.target as HTMLInputElement).value) || 10 }; }}
+            />
+          </div>
 
-        <div class="space-y-1">
-          <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sort-field">並び順</label>
-          <select
-            id="ws-sort-field"
-            class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
-            value={sortField}
-            onchange={(e) => { config = { ...config, sort_field: (e.target as HTMLSelectElement).value as 'default' | 'name' }; }}
-          >
-            <option value="default">デフォルト（IPC 順）</option>
-            <option value="name">名前順（A-Z）</option>
-          </select>
-        </div>
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sort-field">並び順</label>
+            <select
+              id="ws-sort-field"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={sortField}
+              onchange={(e) => { config = { ...config, sort_field: (e.target as HTMLSelectElement).value as 'default' | 'name' }; }}
+            >
+              <option value="default">デフォルト（IPC 順）</option>
+              <option value="name">名前順（A-Z）</option>
+            </select>
+          </div>
+        {/if}
 
         {#if widget.widget_type === 'projects'}
           <div class="space-y-1">

@@ -40,10 +40,14 @@ export const STATS_WIDGET_DEFAULTS: StatsWidgetConfig = {
 	max_items: 5,
 };
 
+export type QuickNoteFontSize = 'sm' | 'md' | 'lg';
+
 export interface QuickNoteConfig {
 	note: string;
+	font_size: QuickNoteFontSize;
 }
 
 export const QUICK_NOTE_DEFAULTS: QuickNoteConfig = {
 	note: '',
+	font_size: 'md',
 };

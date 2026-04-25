@@ -15,15 +15,15 @@ interface Props {
 
 let { item, isStarred = false, viewMode = 'grid', onclick, ondblclick }: Props = $props();
 
-let iconAreaClass = $derived.by(() => {
-	if (configStore.itemSize === 'S') return 'h-20';
-	if (configStore.itemSize === 'L') return 'h-40';
-	return 'aspect-video';
-});
+const ITEM_SIZE_PX: Record<string, number> = { S: 80, M: 128, L: 192 };
+let cardSize = $derived(ITEM_SIZE_PX[configStore.itemSize] ?? 128);
+
+let iconAreaClass = $derived(`h-[${cardSize}px] w-[${cardSize}px]`);
 
 let iconClass = $derived.by(() => {
+	if (item.icon_path) return 'h-full w-full object-cover';
 	if (configStore.itemSize === 'S') return 'h-10 w-10 object-contain drop-shadow-lg';
-	if (configStore.itemSize === 'L') return 'h-[72px] w-[72px] object-contain drop-shadow-lg';
+	if (configStore.itemSize === 'L') return 'h-20 w-20 object-contain drop-shadow-lg';
 	return 'h-14 w-14 object-contain drop-shadow-lg';
 });
 </script>
