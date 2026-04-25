@@ -557,6 +557,7 @@ fn cmd_update(
         is_tracked: None,
         default_app: None,
         tag_ids: parsed.tag_ids,
+        card_override_json: None,
     };
 
     let item = item_service::update_item(db, id, input)?;

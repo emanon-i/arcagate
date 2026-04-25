@@ -52,8 +52,26 @@ let iconClassNone = $derived.by(() => {
 	return 'h-16 w-16 object-contain drop-shadow-sm';
 });
 
-let bg = $derived(configStore.libraryCard.background);
-let style = $derived(configStore.libraryCard.style);
+// PH-290: per-card override を global にマージ（背景・文字とも部分上書き）
+let cardOverride = $derived.by(() => {
+	if (!item.card_override_json) return null;
+	try {
+		return JSON.parse(item.card_override_json) as {
+			background?: Partial<typeof configStore.libraryCard.background>;
+			style?: Partial<typeof configStore.libraryCard.style>;
+		};
+	} catch {
+		return null;
+	}
+});
+let bg = $derived({
+	...configStore.libraryCard.background,
+	...(cardOverride?.background ?? {}),
+});
+let style = $derived({
+	...configStore.libraryCard.style,
+	...(cardOverride?.style ?? {}),
+});
 
 let labelStyle = $derived.by(() => {
 	const stroke = style.strokeEnabled ? `${style.strokeWidthPx}px ${style.strokeColor}` : 'none';

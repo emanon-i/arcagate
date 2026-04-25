@@ -179,7 +179,7 @@ pub fn list_frequent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, A
     let mut stmt = conn.prepare(
         "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                 i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                i.is_tracked, i.default_app, i.created_at, i.updated_at
+                i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_stats s ON s.item_id = i.id
          WHERE i.is_enabled = 1
@@ -196,7 +196,7 @@ pub fn list_recent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, App
     let mut stmt = conn.prepare(
         "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                 i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                i.is_tracked, i.default_app, i.created_at, i.updated_at
+                i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
          FROM items i
          INNER JOIN (
              SELECT item_id, MAX(launched_at) AS last_launch
@@ -216,7 +216,7 @@ pub fn list_folder_items(conn: &Connection) -> Result<Vec<Item>, AppError> {
     let mut stmt = conn.prepare(
         "SELECT id, item_type, label, target, args, working_dir,
                 icon_path, icon_type, aliases, sort_order, is_enabled,
-                is_tracked, default_app, created_at, updated_at
+                is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items
          WHERE item_type = 'folder' AND is_enabled = 1
          ORDER BY sort_order, label",
@@ -274,6 +274,7 @@ mod tests {
             is_enabled: true,
             is_tracked: true,
             default_app: None,
+            card_override_json: None,
             created_at: String::new(),
             updated_at: String::new(),
         }
