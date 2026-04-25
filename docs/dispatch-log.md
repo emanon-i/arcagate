@@ -2303,3 +2303,71 @@ PR #100 (`81a8e3c`) merge 済み。PR #101 (archive) は CI 待ち。
 
 batch-67 → 70 で確立した「毎バッチ何か新規 or 既存改修を出す」リズムを継続。
 ユーザフィードバックで採用 / 却下が変わったら本セクションを更新。
+
+---
+
+## CI workflow 現状解析 (2026-04-26、batch-67 PR #102 進行中の調査)
+
+### 現 ci.yml + e2e.yml 構成
+
+| Job     | runner         | 主要 step                                                    | 推定時間     |
+| ------- | -------------- | ------------------------------------------------------------ | ------------ |
+| lint    | windows-latest | biome / dprint / clippy / rustfmt / svelte-check             | 5-7 分       |
+| test    | windows-latest | cargo test (157 件) + vitest (15 ファイル)                   | 3-4 分       |
+| changes | ubuntu-latest  | dorny/paths-filter                                           | 30 秒        |
+| build   | windows-latest | `pnpm tauri build` (release、`needs: [lint, test, changes]`) | **25-28 分** |
+| e2e     | windows-latest | cargo build (debug) + playwright + smoke or full             | 8-15 分      |
+
+### ボトルネック (削減効果順)
+
+1. **build job が release tauri build / 25-28 分**: `--debug` mode + paths-filter 厳格化で **-20 分**
+2. **全 job が windows-latest**: ubuntu に移せるもの（lint / vitest / changes）は ubuntu 化で **各 30-50% 短縮**
+3. **dprint check が CI に存在**: pre-commit auto-fix と重複、失敗多発の元 → 削除で **lint -30 秒 / 失敗率↓**
+4. **lint と test の cargo / pnpm setup が重複**: 1 job 統合で **setup 1 回分削減（2-3 分）**
+5. **vitest 15 ファイル中 9 ファイルが UI store 結合**: refactor で壊れる、現フェーズ過剰 → drop で test job **-1-2 分**
+6. **E2E PR で smoke 30 件**: `@core` 5 件に厳格化で **-5-8 分**
+
+### 削減ターゲットファイル
+
+#### E2E `@core` keep（5 件、PR で走る）
+
+- `tests/e2e/layout.spec.ts:102` TitleBar ボタン存在
+- `tests/e2e/items.spec.ts:6` IPC アイテム作成 → 一覧反映
+- `tests/e2e/workspace.spec.ts:6` ワークスペース作成
+- `tests/e2e/palette.spec.ts:8` パレットボタン存在
+- `tests/e2e/settings.spec.ts:24` 設定パネル開閉
+
+#### E2E nightly 移動（17 ファイル / 80+ 件）
+
+library-card-spec / library-card-metadata / library-detail-ux / library-detail / library-empty-starred / library-search / library-tag-filter / theme-editor / theme-visual-diff / visual / widget-context-panel / widget-display / widget-zoom / workspace-editing / workspace-widget-item / workspace-widget-list / keyboard-accessibility
+
+#### vitest keep（純粋関数 / 型）
+
+`utils/detect-type` / `utils/format-target` / `utils/widget-config` / `utils.test.ts` / `types/palette` / `styles/arcagate-theme`
+
+#### vitest drop（実装密結合）
+
+`state/{config,hidden,items,palette,sound,theme,toast,workspace}.svelte.test.ts` / `utils/sfx.test.ts`
+
+### キャッシュ運用
+
+- `Swatinem/rust-cache@v2` (workspaces: src-tauri) — Rust target キャッシュ
+- `actions/setup-node@v4 + cache: pnpm` — pnpm-store キャッシュ
+- `actions/setup-pnpm@v4`
+
+実測のヒット率は GitHub Actions UI から個別確認要、ただし batch-66 〜 67 の CI は通常 8-15 分で完走しており、cache はそこそこ機能している模様。
+
+### batch-68 PH-295 で実装する修正手順
+
+1. `.github/workflows/ci.yml` から `dprint check` step 削除
+2. `lint` と `test` を 1 job 統合（setup 重複排除）
+3. `build` job を `--debug` mode に（PR 時）/ release は push のみ
+4. `.github/workflows/e2e.yml` PR 時 `pnpm test:e2e:core`（5 件）
+5. spec の `@smoke` を 5 件のみ `@core` 化、残り `@nightly`
+6. vitest `state/*` drop（git history で復元可）
+7. before/after 数値を本セクションに追記
+
+### 目標 PR ターン時間
+
+- 現状: 20-30 分
+- batch-68 PH-295 後: **5 分以内**
