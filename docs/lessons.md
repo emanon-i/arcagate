@@ -519,3 +519,27 @@ page: async ({ sharedBrowser }, use) => {
   await expect(locator.first()).not.toBeVisible();
   ```
 - **教訓**: `toBeVisible()` だけでなく `not.toBeVisible()` でも strict mode が適用される。複数マッチの可能性がある locator には `.first()` or `nth(0)` を使う
+
+---
+
+## 規約ドキュメントの形骸化（batch-63 以前の反省）
+
+- **問題**: `desktop_ui_ux_agent_rules.md` / `arcagate-engineering-principles.md` / `ux_standards.md` 等を「作るだけ」にして、Plan 設計・実装・レビュー時に実際に参照していなかった。結果、ウィジェットのサイズ追従・設定 UX 統一・即時反映（SFDIPOT の Function/Time 観点）等の規約に書いてある基本を踏み外した実装が複数バッチで産出された。
+- **根本原因**: 「書いて満足」する形式主義。機械的強制がなかった。
+- **対策**:
+  1. Plan 文書には「参照した規約」節を必ず書く（何を読んだか明記）
+  2. ルール的な事項は lint / clippy / E2E に落として機械強制する（書くだけ禁止）
+  3. CLAUDE.md は philosophy のみ。詳細ルールは機械が止める
+  4. `/simplify` は規約違反チェックを含む（規約違反指摘は取捨選択不可）
+
+---
+
+## ウィジェット UX の基本観点（batch-64 で修正）
+
+- **問題**: ウィジェットのコンテンツ（入力欄・時計表示・リスト）がコンテナサイズに追従しない。設定変更が即時反映されずワークスペース切替後に初めて反映される。設定 UX が各ウィジェットでバラバラ。
+- **根本原因**: SFDIPOT の **Function**（設定→表示連動）と **Time**（即時性）観点を見ていなかった。Svelte の reactivity が store ↔ component 間で途切れていた。
+- **対策**:
+  1. 設定変更 → 即時反映を E2E テストで機械的に確認（`@smoke` 推奨）
+  2. Widget コンポーネントは `flex-1 min-h-0` 等で必ず外枠 fill する設計に統一
+  3. 設定モーダルは全ウィジェット共通 UX（クリック or 編集モード歯車→モーダル）
+  4. `$effect` / store subscribe の経路を設計時に明示して confirm する
