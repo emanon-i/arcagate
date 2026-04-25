@@ -2,12 +2,88 @@ import * as configIpc from '$lib/ipc/config';
 
 export type ItemSize = 'S' | 'M' | 'L';
 
+export type LibraryCardBackgroundMode = 'fill' | 'image' | 'none';
+
+export interface LibraryCardStyleConfig {
+	textColor: string;
+	strokeEnabled: boolean;
+	strokeColor: string;
+	strokeWidthPx: number;
+	overlayEnabled: boolean;
+}
+
+export interface LibraryCardBackgroundConfig {
+	mode: LibraryCardBackgroundMode;
+	fillBgColor: string;
+	fillIconColor: string;
+	focalX: number;
+	focalY: number;
+}
+
+export interface LibraryCardConfig {
+	background: LibraryCardBackgroundConfig;
+	style: LibraryCardStyleConfig;
+}
+
+const LIBRARY_CARD_STORAGE_KEY = 'arcagate-library-card';
+
+const DEFAULT_LIBRARY_CARD: LibraryCardConfig = {
+	background: {
+		mode: 'image',
+		fillBgColor: '#1f2937',
+		fillIconColor: '#ffffff',
+		focalX: 50,
+		focalY: 50,
+	},
+	style: {
+		textColor: '#ffffff',
+		strokeEnabled: true,
+		strokeColor: '#000000',
+		strokeWidthPx: 0.5,
+		overlayEnabled: true,
+	},
+};
+
+function loadLibraryCardFromStorage(): LibraryCardConfig {
+	try {
+		const raw = localStorage.getItem(LIBRARY_CARD_STORAGE_KEY);
+		if (!raw) return DEFAULT_LIBRARY_CARD;
+		const parsed = JSON.parse(raw) as Partial<LibraryCardConfig>;
+		return {
+			background: { ...DEFAULT_LIBRARY_CARD.background, ...(parsed.background ?? {}) },
+			style: { ...DEFAULT_LIBRARY_CARD.style, ...(parsed.style ?? {}) },
+		};
+	} catch {
+		return DEFAULT_LIBRARY_CARD;
+	}
+}
+
 let hotkey = $state('Ctrl+Shift+Space');
 let autostart = $state(false);
 let setupComplete = $state(false);
 let loading = $state(false);
 let error = $state<string | null>(null);
 let itemSize = $state<ItemSize>('M');
+
+let libraryCard = $state<LibraryCardConfig>(loadLibraryCardFromStorage());
+
+function persistLibraryCard(): void {
+	try {
+		localStorage.setItem(LIBRARY_CARD_STORAGE_KEY, JSON.stringify(libraryCard));
+	} catch {
+		// ignore (SSR or quota)
+	}
+}
+
+function setLibraryCardBackground(patch: Partial<LibraryCardBackgroundConfig>): void {
+	libraryCard = { ...libraryCard, background: { ...libraryCard.background, ...patch } };
+	persistLibraryCard();
+}
+
+function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
+	libraryCard = { ...libraryCard, style: { ...libraryCard.style, ...patch } };
+	persistLibraryCard();
+}
 
 // Widget zoom (50-200%, persisted in localStorage)
 const ZOOM_STORAGE_KEY = 'widget-zoom';
@@ -130,10 +206,15 @@ export const configStore = {
 	get itemSize() {
 		return itemSize;
 	},
+	get libraryCard() {
+		return libraryCard;
+	},
 	loadConfig,
 	saveHotkey,
 	saveAutostart,
 	completeSetup,
 	setWidgetZoom,
 	saveItemSize,
+	setLibraryCardBackground,
+	setLibraryCardStyle,
 };

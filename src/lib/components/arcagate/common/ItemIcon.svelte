@@ -8,9 +8,10 @@ interface Props {
 	alt: string;
 	itemType?: string;
 	class?: string;
+	style?: string;
 }
 
-let { iconPath, alt, itemType, class: className = '' }: Props = $props();
+let { iconPath, alt, itemType, class: className = '', style = '' }: Props = $props();
 let iconSrc = $derived(iconPath ? convertFileSrc(iconPath) : null);
 let iconError = $state(false);
 
@@ -38,10 +39,11 @@ let FallbackIcon = $derived(
 		src={iconSrc}
 		{alt}
 		class={className}
+		{style}
 		onerror={() => {
 			iconError = true;
 		}}
 	/>
 {:else}
-	<FallbackIcon class="{className} text-[var(--ag-text-muted)]" />
+	<FallbackIcon class="{className} text-[var(--ag-text-muted)]" {style} />
 {/if}
