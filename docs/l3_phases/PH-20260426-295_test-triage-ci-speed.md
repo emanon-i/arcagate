@@ -76,6 +76,38 @@ drop ファイルは削除ではなく `*.test.ts.bak` に rename + `.gitignore`
 
 cargo test 157 件中、boilerplate な test を間引く判断は次バッチへ。本 Plan では現状維持（既に 1.3 秒で完走、ボトルネックでない）。
 
+### lefthook pre-push bug 原因究明（batch-67 で発覚、batch-68 で修正）
+
+#### 症状
+
+`git push` 経由で lefthook pre-push が走ると、`cargo test --quiet` が exit 0 で終わるにも関わらず lefthook が **失敗扱い**（🥊 マーク）にして push 拒否。手動で `lefthook run pre-push` を実行すると同じコマンドが ✔️ で成功。
+
+加えて pre-push 内で内部的に呼ばれる `git rev-parse --path-format=absolute --show-toplevel --git-path hooks --git-path info --git-dir` が `fatal: this operation must be run in a work tree` で失敗。
+
+#### 原因
+
+1. common config（`E:/Cella/Projects/arcagate/.git/config`）の `[core] bare = true` が worktree に継承される
+2. worktree では `is-inside-work-tree = false` 扱いとなり、`--show-toplevel` 系 rev-parse が fatal
+3. lefthook が rev-parse 失敗で hook 全体を fail 判定する
+
+`git config extensions.worktreeConfig = true` は設定済みだが、各 worktree の `config.worktree` に `core.bare = false` を **明示 override** しないと common 値が継承される。
+
+#### 修正方針（batch-68 で実装）
+
+A. **setup script** `scripts/setup-worktree.sh`:
+
+```bash
+#!/usr/bin/env bash
+git config --worktree core.bare false
+echo "core.bare=false set for $(git rev-parse --show-toplevel)"
+```
+
+新規 worktree 作成時に必ず実行（CONTRIBUTING.md に手順記載）。
+
+B. **CI / lefthook 整合**: pre-push hook を復活、cargo test --quiet → cargo test（出力ありの方が lefthook の判定安定？要検証）or `cargo nextest`（高速、安定）に置換検討。
+
+C. **代替**: pre-push を撤廃し、`pre-commit + cargo check`（test なし）+ CI で test 担保 という設計に変更も選択肢。
+
 ### D. CI workflow 高速化
 
 #### `.github/workflows/ci.yml` 修正
