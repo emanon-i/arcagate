@@ -24,6 +24,7 @@ use commands::item_commands::{
 use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
 };
+use commands::metadata_commands::cmd_get_item_metadata;
 use commands::theme_commands::{
     cmd_create_theme, cmd_delete_theme, cmd_export_theme_json, cmd_get_active_theme_mode,
     cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
@@ -242,6 +243,7 @@ pub fn run() {
             cmd_toggle_star,
             cmd_auto_register_folder_items,
             cmd_get_item_stats,
+            cmd_get_item_metadata,
             cmd_list_themes,
             cmd_get_theme,
             cmd_create_theme,

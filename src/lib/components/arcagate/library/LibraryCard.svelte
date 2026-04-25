@@ -2,8 +2,11 @@
 import { Star } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
+import { getItemMetadata } from '$lib/ipc/items';
 import { configStore } from '$lib/state/config.svelte';
 import type { Item } from '$lib/types/item';
+import type { ItemMetadata } from '$lib/types/item-metadata';
+import { formatItemMeta } from '$lib/utils/format-meta';
 
 interface Props {
 	item: Item;
@@ -14,6 +17,23 @@ interface Props {
 }
 
 let { item, isStarred = false, viewMode = 'grid', onclick, ondblclick }: Props = $props();
+
+let metadata = $state<ItemMetadata | null>(null);
+
+// Lazy fetch: item ごとに 1 回だけ。S サイズでは表示しないので IPC も省略。
+$effect(() => {
+	if (viewMode !== 'grid' || configStore.itemSize === 'S') return;
+	const id = item.id;
+	void getItemMetadata(id)
+		.then((m) => {
+			if (id === item.id) metadata = m;
+		})
+		.catch(() => {
+			// best-effort、失敗はメタデータ非表示
+		});
+});
+
+let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
 
 let iconClass = $derived.by(() => {
 	if (configStore.itemSize === 'S') return 'h-10 w-10 object-contain drop-shadow-lg';
@@ -124,7 +144,14 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 		>
 			<div class="truncate font-semibold {labelFontClass}" style={labelStyle}>{item.label}</div>
 			{#if configStore.itemSize !== 'S'}
-				<div class="truncate {targetFontClass} opacity-80" style={labelStyle}>{item.target}</div>
+				<div class="truncate {targetFontClass} opacity-80" style={labelStyle}>
+					{metaLines?.line1 || item.target}
+				</div>
+			{/if}
+			{#if configStore.itemSize === 'L' && metaLines?.line2}
+				<div class="truncate text-[10px] opacity-70" style={labelStyle}>
+					{metaLines.line2}
+				</div>
 			{/if}
 		</div>
 	</button>
