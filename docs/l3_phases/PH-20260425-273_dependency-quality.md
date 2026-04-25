@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-273
-status: todo
+status: done
 batch: 63
 type: 計測
 ---
