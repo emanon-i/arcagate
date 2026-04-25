@@ -265,6 +265,33 @@ let moreMenuItems = $derived.by(() => {
 			</span>
 		</label>
 
+		<!-- PH-290: per-card 設定 -->
+		<div class="mt-4 space-y-2 border-t border-[var(--ag-border)] pt-4">
+			<div class="flex items-start justify-between gap-3">
+				<div class="min-w-0 flex-1">
+					<p class="text-sm font-medium text-[var(--ag-text-primary)]">カード表示</p>
+					<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
+						{selectedItem.card_override_json
+							? 'このカードは個別設定が適用されています。'
+							: 'Settings > Library のグローバル設定が適用されています。'}
+					</p>
+				</div>
+				{#if selectedItem.card_override_json}
+					<button
+						type="button"
+						data-testid="card-override-reset"
+						class="shrink-0 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
+						onclick={() =>
+							void itemStore.updateItem(selectedItem!.id, {
+								card_override_json: null,
+							})}
+					>
+						グローバル設定に戻す
+					</button>
+				{/if}
+			</div>
+		</div>
+
 	{:else}
 		<!-- Placeholder -->
 		<div class="flex h-full items-center justify-center">
