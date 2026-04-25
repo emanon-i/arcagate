@@ -36,6 +36,7 @@ export interface CreateItemInput {
 	args?: string;
 	working_dir?: string;
 	icon_path?: string;
+	is_tracked?: boolean;
 	aliases: string[];
 	tag_ids: string[];
 }
