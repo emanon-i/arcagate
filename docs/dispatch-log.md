@@ -2102,13 +2102,13 @@ PR #97 の仕様違反:
 
 ### batch-65 構成（5 Plan）
 
-| Plan | PH     | 種別     | 内容                                                       |
-| ---- | ------ | -------- | ---------------------------------------------------------- |
-| A    | PH-280 | 改善     | 4:3 + S/M/L カード全体 + gap 固定 + 外側 padding 吸収      |
-| B    | PH-281 | 改善     | 文字色 picker + 縁取り + ラベル下部オーバーレイ            |
-| C    | PH-282 | 改善     | Settings > Library 新設 + 背景 3 モード + focal point      |
-| D    | PH-283 | 品質防衛 | E2E（CDP computed style + S/M/L + gap + focal point）      |
-| E    | PH-284 | 整理     | 設定所在統一（Workspace→Library）+ ItemCard 系の責務分離   |
+| Plan | PH     | 種別     | 内容                                                     |
+| ---- | ------ | -------- | -------------------------------------------------------- |
+| A    | PH-280 | 改善     | 4:3 + S/M/L カード全体 + gap 固定 + 外側 padding 吸収    |
+| B    | PH-281 | 改善     | 文字色 picker + 縁取り + ラベル下部オーバーレイ          |
+| C    | PH-282 | 改善     | Settings > Library 新設 + 背景 3 モード + focal point    |
+| D    | PH-283 | 品質防衛 | E2E（CDP computed style + S/M/L + gap + focal point）    |
+| E    | PH-284 | 整理     | 設定所在統一（Workspace→Library）+ ItemCard 系の責務分離 |
 
 ### スコープ調整
 
@@ -2129,4 +2129,3 @@ OK と言う前に必須:
 
 ブランチ: `feature/batch-20260425-65`（main 起点）
 着手: PH-280 から順に実装（batch-65 は Library 連動なので並列化せず順次）。
-

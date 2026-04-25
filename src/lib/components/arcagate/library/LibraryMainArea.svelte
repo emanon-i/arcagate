@@ -4,6 +4,7 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
+import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import LibraryCard from './LibraryCard.svelte';
@@ -226,7 +227,10 @@ let filteredItems = $derived.by(() => {
 			{/if}
 		</div>
 	{:else}
-		<div class="grid gap-4 [&>*]:max-w-sm" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+		<div
+			class="library-grid grid"
+			style="grid-template-columns: repeat(auto-fill, var(--ag-card-w)); gap: var(--ag-card-gap); justify-content: center; --ag-card-w: var(--ag-card-w-{configStore.itemSize === 'S' ? 's' : configStore.itemSize === 'L' ? 'l' : 'm'});"
+		>
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
 					{item}
