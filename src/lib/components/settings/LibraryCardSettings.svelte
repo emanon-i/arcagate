@@ -12,6 +12,58 @@ const MODES = [
 ] as const;
 </script>
 
+{#snippet ColorRow(label: string, value: string, oninput: (v: string) => void, testid: string)}
+	<label class="flex items-center justify-between gap-3 text-sm">
+		<span class="text-[var(--ag-text-secondary)]">{label}</span>
+		<input
+			type="color"
+			{value}
+			oninput={(e) => oninput((e.currentTarget as HTMLInputElement).value)}
+			data-testid={testid}
+			class="h-8 w-16 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent"
+		/>
+	</label>
+{/snippet}
+
+{#snippet RangeRow(
+	label: string,
+	value: number,
+	min: number,
+	max: number,
+	step: number,
+	oninput: (v: number) => void,
+	testid: string,
+	suffix: string,
+)}
+	<label class="flex items-center justify-between gap-3 text-sm">
+		<span class="text-[var(--ag-text-secondary)]">{label}</span>
+		<input
+			type="range"
+			{min}
+			{max}
+			{step}
+			{value}
+			oninput={(e) => oninput(Number((e.currentTarget as HTMLInputElement).value))}
+			data-testid={testid}
+			class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent-text)]"
+		/>
+		<span class="w-10 text-right text-xs tabular-nums text-[var(--ag-text-muted)]">{value}{suffix}</span>
+	</label>
+{/snippet}
+
+{#snippet CheckboxRow(label: string, checked: boolean, onchange: (v: boolean) => void, testid: string)}
+	<label class="flex items-center justify-between gap-3 text-sm">
+		<span class="text-[var(--ag-text-secondary)]">{label}</span>
+		<input
+			type="checkbox"
+			{checked}
+			onchange={(e) => onchange((e.currentTarget as HTMLInputElement).checked)}
+			data-testid={testid}
+			class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		/>
+	</label>
+{/snippet}
+
 <div class="space-y-6">
 	<!-- カードサイズ -->
 	<section class="space-y-2">
@@ -54,26 +106,18 @@ const MODES = [
 	{#if bg.mode === 'fill'}
 		<section class="space-y-2 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">塗りつぶし色</h4>
-			<label class="flex items-center justify-between gap-3 text-sm">
-				<span class="text-[var(--ag-text-secondary)]">背景色</span>
-				<input
-					type="color"
-					value={bg.fillBgColor}
-					oninput={(e) => configStore.setLibraryCardBackground({ fillBgColor: e.currentTarget.value })}
-					data-testid="library-fill-bg-color"
-					class="h-8 w-16 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent"
-				/>
-			</label>
-			<label class="flex items-center justify-between gap-3 text-sm">
-				<span class="text-[var(--ag-text-secondary)]">アイコン色</span>
-				<input
-					type="color"
-					value={bg.fillIconColor}
-					oninput={(e) => configStore.setLibraryCardBackground({ fillIconColor: e.currentTarget.value })}
-					data-testid="library-fill-icon-color"
-					class="h-8 w-16 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent"
-				/>
-			</label>
+			{@render ColorRow(
+				'背景色',
+				bg.fillBgColor,
+				(v) => configStore.setLibraryCardBackground({ fillBgColor: v }),
+				'library-fill-bg-color',
+			)}
+			{@render ColorRow(
+				'アイコン色',
+				bg.fillIconColor,
+				(v) => configStore.setLibraryCardBackground({ fillIconColor: v }),
+				'library-fill-icon-color',
+			)}
 		</section>
 	{/if}
 
@@ -81,97 +125,69 @@ const MODES = [
 		<section class="space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">画像の表示位置 (focal point)</h4>
 			<p class="text-[11px] text-[var(--ag-text-muted)]">画像が切り抜かれるとき、どの位置を中心に残すかを指定します。</p>
-			<label class="flex items-center justify-between gap-3 text-sm">
-				<span class="text-[var(--ag-text-secondary)]">X (横)</span>
-				<input
-					type="range"
-					min="0"
-					max="100"
-					step="1"
-					value={bg.focalX}
-					oninput={(e) => configStore.setLibraryCardBackground({ focalX: Number(e.currentTarget.value) })}
-					data-testid="library-focal-x"
-					class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent-text)]"
-				/>
-				<span class="w-10 text-right text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.focalX}%</span>
-			</label>
-			<label class="flex items-center justify-between gap-3 text-sm">
-				<span class="text-[var(--ag-text-secondary)]">Y (縦)</span>
-				<input
-					type="range"
-					min="0"
-					max="100"
-					step="1"
-					value={bg.focalY}
-					oninput={(e) => configStore.setLibraryCardBackground({ focalY: Number(e.currentTarget.value) })}
-					data-testid="library-focal-y"
-					class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent-text)]"
-				/>
-				<span class="w-10 text-right text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.focalY}%</span>
-			</label>
+			{@render RangeRow(
+				'X (横)',
+				bg.focalX,
+				0,
+				100,
+				1,
+				(v) => configStore.setLibraryCardBackground({ focalX: v }),
+				'library-focal-x',
+				'%',
+			)}
+			{@render RangeRow(
+				'Y (縦)',
+				bg.focalY,
+				0,
+				100,
+				1,
+				(v) => configStore.setLibraryCardBackground({ focalY: v }),
+				'library-focal-y',
+				'%',
+			)}
 		</section>
 	{/if}
 
 	<!-- ラベル文字 -->
 	<section class="space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">ラベルの文字</h4>
-		<label class="flex items-center justify-between gap-3 text-sm">
-			<span class="text-[var(--ag-text-secondary)]">文字色</span>
-			<input
-				type="color"
-				value={style.textColor}
-				oninput={(e) => configStore.setLibraryCardStyle({ textColor: e.currentTarget.value })}
-				data-testid="library-text-color"
-				class="h-8 w-16 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent"
-			/>
-		</label>
-		<label class="flex items-center justify-between gap-3 text-sm">
-			<span class="text-[var(--ag-text-secondary)]">背景オーバーレイ</span>
-			<input
-				type="checkbox"
-				checked={style.overlayEnabled}
-				onchange={(e) => configStore.setLibraryCardStyle({ overlayEnabled: e.currentTarget.checked })}
-				data-testid="library-overlay-enabled"
-				class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
-			/>
-		</label>
+		{@render ColorRow(
+			'文字色',
+			style.textColor,
+			(v) => configStore.setLibraryCardStyle({ textColor: v }),
+			'library-text-color',
+		)}
+		{@render CheckboxRow(
+			'背景オーバーレイ',
+			style.overlayEnabled,
+			(v) => configStore.setLibraryCardStyle({ overlayEnabled: v }),
+			'library-overlay-enabled',
+		)}
 
 		<div class="space-y-2 border-t border-[var(--ag-border)] pt-3">
-			<label class="flex items-center justify-between gap-3 text-sm">
-				<span class="text-[var(--ag-text-secondary)]">縁取り</span>
-				<input
-					type="checkbox"
-					checked={style.strokeEnabled}
-					onchange={(e) => configStore.setLibraryCardStyle({ strokeEnabled: e.currentTarget.checked })}
-					data-testid="library-stroke-enabled"
-					class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
-				/>
-			</label>
+			{@render CheckboxRow(
+				'縁取り',
+				style.strokeEnabled,
+				(v) => configStore.setLibraryCardStyle({ strokeEnabled: v }),
+				'library-stroke-enabled',
+			)}
 			{#if style.strokeEnabled}
-				<label class="flex items-center justify-between gap-3 text-sm">
-					<span class="text-[var(--ag-text-secondary)]">縁取り色</span>
-					<input
-						type="color"
-						value={style.strokeColor}
-						oninput={(e) => configStore.setLibraryCardStyle({ strokeColor: e.currentTarget.value })}
-						data-testid="library-stroke-color"
-						class="h-8 w-16 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent"
-					/>
-				</label>
-				<label class="flex items-center justify-between gap-3 text-sm">
-					<span class="text-[var(--ag-text-secondary)]">縁取り太さ</span>
-					<input
-						type="range"
-						min="0"
-						max="3"
-						step="0.25"
-						value={style.strokeWidthPx}
-						oninput={(e) => configStore.setLibraryCardStyle({ strokeWidthPx: Number(e.currentTarget.value) })}
-						data-testid="library-stroke-width"
-						class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent-text)]"
-					/>
-					<span class="w-10 text-right text-xs tabular-nums text-[var(--ag-text-muted)]">{style.strokeWidthPx}px</span>
-				</label>
+				{@render ColorRow(
+					'縁取り色',
+					style.strokeColor,
+					(v) => configStore.setLibraryCardStyle({ strokeColor: v }),
+					'library-stroke-color',
+				)}
+				{@render RangeRow(
+					'縁取り太さ',
+					style.strokeWidthPx,
+					0,
+					3,
+					0.25,
+					(v) => configStore.setLibraryCardStyle({ strokeWidthPx: v }),
+					'library-stroke-width',
+					'px',
+				)}
 			{/if}
 		</div>
 	</section>

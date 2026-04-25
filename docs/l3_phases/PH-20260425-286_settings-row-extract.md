@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-286
-status: todo
+status: done
 batch: 66
 type: 改善
 ---
