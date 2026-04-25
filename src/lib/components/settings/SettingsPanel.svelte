@@ -1,15 +1,7 @@
 <script lang="ts">
-import {
-	Copy,
-	Database,
-	Image,
-	LayoutDashboard,
-	Palette,
-	Plus,
-	Settings2,
-	Volume2,
-} from '@lucide/svelte';
+import { Copy, Plus } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import { NAV_SETTINGS, type NavSettingsId } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
 import { soundStore } from '$lib/state/sound.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
@@ -19,16 +11,11 @@ import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import ThemeEditor from './ThemeEditor.svelte';
 
-type CategoryId = 'general' | 'workspace' | 'library' | 'appearance' | 'sound' | 'data';
+type CategoryId = NavSettingsId;
 
-const categories: { id: CategoryId; label: string; icon: Component }[] = [
-	{ id: 'general', label: '一般', icon: Settings2 },
-	{ id: 'workspace', label: 'ワークスペース', icon: LayoutDashboard },
-	{ id: 'library', label: 'ライブラリ', icon: Image },
-	{ id: 'appearance', label: '外観', icon: Palette },
-	{ id: 'sound', label: 'サウンド', icon: Volume2 },
-	{ id: 'data', label: 'データ', icon: Database },
-];
+const categories: { id: CategoryId; label: string; icon: Component }[] = (
+	['general', 'workspace', 'library', 'appearance', 'sound', 'data'] as const
+).map((id) => ({ id, ...NAV_SETTINGS[id] }));
 
 let activeCategory = $state<CategoryId>('general');
 let editingThemeId = $state<string | null>(null);

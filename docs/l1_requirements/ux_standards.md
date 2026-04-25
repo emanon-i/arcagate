@@ -431,17 +431,66 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 
 ## 11. アイテムカードサイズプリセット
 
-Library のグリッド表示で使用するサイズプリセット。Settings から変更可能。
+Library のグリッド表示で使用するサイズプリセット。Settings > Library から変更可能。
+**4:3 アスペクト比固定**、カード width のみが変動、gap は 16px 固定。
 
-| サイズ | アイコン | ラベル       | メタ情報      |
-| ------ | -------- | ------------ | ------------- |
-| S      | 40px     | 1行省略 (xs) | 非表示        |
-| M      | 56px     | 1行 (sm)     | target + type |
-| L      | 72px     | 2行 (sm)     | target + type |
+| サイズ | width | height (4:3) |
+| ------ | ----- | ------------ |
+| S      | 144px | 108px        |
+| M      | 192px | 144px        |
+| L      | 256px | 192px        |
 
-- DB `config` テーブルの `item_size` キーで永続化
-- デフォルト: `M`
-- ウィジェット内リストのアイコンも S/M/L に追従する（S: 16px / M: 20px / L: 24px）
+- CSS 変数 `--ag-card-w-{s,m,l}` で定義、`--ag-card-gap = 1rem` 固定
+- グリッド: `repeat(auto-fill, var(--ag-card-w))` + `justify-content: center`
+- DB `config` の `item_size` キーで永続化、デフォルト `M`
+- ウィジェット内リストのアイコンも S/M/L に追従
+
+## 12. Library 操作 UX 規約 (batch-67)
+
+### お気に入りボタン
+
+- **アイコン + テキストラベル「お気に入り」**（"星" / "★" / "☆" は禁止）
+- `<Star fill={isStarred ? 'currentColor' : 'none'} />` で塗り/枠の状態切替
+- aria-label: 「お気に入りに追加」/「お気に入りを解除」（機能ベース）
+
+### タグ追加 UI
+
+- 「+ タグを追加」ボタンで明示
+- ドロップダウン候補リストで選択、未割当タグのみ表示
+- 矢印キー / Esc で操作可能
+
+### 可視/不可視切替
+
+- LibraryDetailPanel の「ライブラリで非表示」チェックボックス
+- 説明 hint:「非表示にすると検索結果から除外されます。残したまま隠せます。」
+- ON で `is_enabled = false`、LibraryCard が grayscale + 検索除外
+
+### 左パネル 4 セクション
+
+1. ライブラリ全体（すべて + お気に入り）
+2. タイプ（exe / url / folder / script / command）
+3. ワークスペース（sys-ws-* タグ）
+4. ユーザータグ
+
+各セクション間に `border-t` 罫線、`expanded` 時は uppercase 見出し。
+
+### per-card 背景・文字 override
+
+- DB `items.card_override_json` で per-card 上書き保存
+- `null` = global default（`configStore.libraryCard`）
+- LibraryCard で `JSON.parse + shallow merge` 適用
+- LibraryDetailPanel に「グローバル設定に戻す」ボタン
+
+### 背景なしモード時のアイコン rendering
+
+- fill / image モード: `drop-shadow-lg` で立体感
+- none モード: `drop-shadow-sm` 弱化 + サイズ +2 段階上げ（artMap 柔らかいグラデで edge ぼやけ防止）
+
+### ラベル原則（全画面）
+
+- ラベルはアイコン名ではなく機能 / 状態 / アクションを書く（CLAUDE.md / desktop_ui_ux_agent_rules.md P4 補足）
+- 同じ機能には同じアイコン + 同じラベル（`src/lib/nav-items.ts` 経由）
+- 1 つの不整合を見つけたら横展開で全画面チェック
 
 ---
 

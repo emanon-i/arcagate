@@ -16,6 +16,7 @@ const MIGRATION_012: &str = include_str!("../../migrations/012_liquid_glass_them
 const MIGRATION_013: &str = include_str!("../../migrations/013_endfield_enhanced.sql");
 const MIGRATION_014: &str = include_str!("../../migrations/014_ubuntu_frosted_enhanced.sql");
 const MIGRATION_015: &str = include_str!("../../migrations/015_liquid_glass_token_fix.sql");
+const MIGRATION_016: &str = include_str!("../../migrations/016_card_override.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -34,6 +35,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_013),
         M::up(MIGRATION_014),
         M::up(MIGRATION_015),
+        M::up(MIGRATION_016),
     ])
 }
 

@@ -2225,3 +2225,149 @@ Codex 8 件指摘 → 採用 6 件、記録 1 件、却下 0 件:
 | 8 | Low      | 採用     | LibraryMainArea.svelte 未使用 onEditItem / handleDeleteItem 削除 + LibraryLayout から prop 削除                    |
 
 Codex 出力ログ: `tmp/codex-review-batch66.txt`
+
+---
+
+## batch-66 完走 (2026-04-25)
+
+PR #100 (`81a8e3c`) merge 済み。PR #101 (archive) は CI 待ち。
+
+## batch-67 着手 (2026-04-25)
+
+ユーザフィードバック「⭐ +『星』ラベルは冗長で意味不明」「ラベルはアイコン名でなく機能を書け」「CI 待ちで idle するな」を受けて batch-67 を即着手。
+
+### 構成
+
+| Plan   | 種別 | 内容                                                                                              |
+| ------ | ---- | ------------------------------------------------------------------------------------------------- |
+| PH-290 | 改善 | Library カード個別背景 override（per-card override + global default）                             |
+| PH-291 | 改善 | 右パネル UX（⭐+「お気に入り」ボタン / タグ追加 UI / 可視切替）                                   |
+| PH-292 | 改善 | 左パネル（4 セクション + 罫線分離 / 「すべて」アイコン強化 / 背景なしモードのアイコンぼやけ修正） |
+| PH-293 | 防衛 | Library UX E2E（5 ケース、@smoke 2 件）                                                           |
+| PH-294 | 整理 | ux_standards / lessons / CLAUDE.md にラベル原則追記 + 全 button audit                             |
+
+### ラベル原則の制定（batch-67 で確立）
+
+ユーザ指摘:「アイコン名をそのままラベルにする失敗」を受けて全プロジェクトで適用するルールを制定:
+
+- **CLAUDE.md 哲学節**: 「ラベルはアイコン名ではなく機能 / 状態 / アクションを書く」
+- **`docs/desktop_ui_ux_agent_rules.md` P4 補足**: 違反例・正例・書き分け表
+- **`docs/lessons.md`**: 「アイコン + ラベルの整合性」失敗パターン記録
+- batch-67 PH-291 + PH-294 で Library 全 button を機能ラベルに統一
+
+### 自己分析: 過去 idle した原因と再発防止
+
+過去発生した idle 状況:
+
+1. **CI 待ち状態で次の作業を止めた** → CI 待ち時間は次バッチ Plan / 別 PR / メモリ整備に充てる、止まる理由なし
+2. **「ユーザ目視待ち」を理由に進行を止めた** → 実機目視は agent 自身が CDP でやる、ユーザ待ち禁止（feedback_no_idle_dispatch.md 制定済み）
+3. **「指示があれば続行」と発言した** → dispatch-operation §3 ではバッチ完走後 60 秒以内に次バッチ着手が原則、指示なしでも進む
+4. **ExitPlanMode を 1 回使った** → 禁止行為、即撤回済み
+
+再発防止（既に運用中）:
+
+- 60 秒以内に次ステップ
+- バッチ完走後 `/clear` 代替（L0/L1 + dispatch-log 再読）→ 即次バッチ着手
+- CI 待ち時間に並行で次バッチ Plan / 整理系 / メモリ整備を進める
+- 「指示待ち / 確認待ち」発言禁止
+- 停止条件は dispatch-operation §5 暴走ブレーキ 8 条件のみ
+
+---
+
+## バッチキュー (2026-04-26 確定、ユーザ承認済み)
+
+| Batch | 内容                                                                                                                                                                              | 状態               |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 67    | Library UX 抜本改修 (PH-290〜294 + nav-items 横展開)                                                                                                                              | PR #102 CI 待ち    |
+| 68    | メタデータ拡張 image/video/music/exe + per-card 編集 UI + 全画面 button audit + ウィジェット設定ボタン UX 統一 (ClockWidget modal 統合) + E2E + loadJSON validation (PH-295〜299) | Plan 完成、未 push |
+| 69    | **ExeFolderWatchWidget** (1〜3 階層 folder scan + 最大サイズ exe 自動選択 + per-item 切替) (PH-300〜304)                                                                          | Plan 完成、未 push |
+| 70    | **Workspace 編集 UX 大改修** (中ボタンパン + Space+drag + 8 ハンドル + ホバー toolbar + ux_standards §14) (PH-305〜309)                                                           | Plan 完成、未 push |
+| 71    | **Daily Task / Checklist Widget + スニペット Widget**（生産性系、各バッチで改善 1〜2 本を新ウィジェット枠に充てる運用）                                                           | キュー             |
+| 72    | **ClipboardHistoryWidget + ファイル検索 Widget**（クイックアクセス系）                                                                                                            | キュー             |
+| 73    | **SystemMonitorWidget**（CPU / メモリ / ディスク、idle 100MB 制約遵守の軽量実装）                                                                                                 | キュー             |
+
+各バッチ 5 Plan 構成（改善 3 + 防衛 1 + 整理 1）。新ウィジェットバッチでは改善枠の 1〜2 本にウィジェット、残りで関連改善 / リファクタ。
+
+「止まらず進む」原則: バッチ完走後 60 秒以内に次バッチ着手、CI 待ち時間も並行で次バッチ Plan を書く。
+
+## 却下機能（再提案条件付き、不採用記録）
+
+ユーザフィードバックで明示的に却下された機能候補。dispatch-operation §8 ゲートで再提案条件が変わったら復活可。
+
+| 機能                       | 却下理由                         | 再提案条件                              |
+| -------------------------- | -------------------------------- | --------------------------------------- |
+| 電卓ウィジェット           | ユーザ「要らない」（2026-04-26） | 用途が広がった場合                      |
+| コマンド再実行ウィジェット | ユーザ「要らない」（2026-04-26） | 既存 Palette 履歴で代替できなくなったら |
+
+## 新ウィジェット候補メモ（運用継承）
+
+batch-67 → 70 で確立した「毎バッチ何か新規 or 既存改修を出す」リズムを継続。
+ユーザフィードバックで採用 / 却下が変わったら本セクションを更新。
+
+---
+
+## CI workflow 現状解析 (2026-04-26、batch-67 PR #102 進行中の調査)
+
+### 現 ci.yml + e2e.yml 構成
+
+| Job     | runner         | 主要 step                                                    | 推定時間     |
+| ------- | -------------- | ------------------------------------------------------------ | ------------ |
+| lint    | windows-latest | biome / dprint / clippy / rustfmt / svelte-check             | 5-7 分       |
+| test    | windows-latest | cargo test (157 件) + vitest (15 ファイル)                   | 3-4 分       |
+| changes | ubuntu-latest  | dorny/paths-filter                                           | 30 秒        |
+| build   | windows-latest | `pnpm tauri build` (release、`needs: [lint, test, changes]`) | **25-28 分** |
+| e2e     | windows-latest | cargo build (debug) + playwright + smoke or full             | 8-15 分      |
+
+### ボトルネック (削減効果順)
+
+1. **build job が release tauri build / 25-28 分**: `--debug` mode + paths-filter 厳格化で **-20 分**
+2. **全 job が windows-latest**: ubuntu に移せるもの（lint / vitest / changes）は ubuntu 化で **各 30-50% 短縮**
+3. **dprint check が CI に存在**: pre-commit auto-fix と重複、失敗多発の元 → 削除で **lint -30 秒 / 失敗率↓**
+4. **lint と test の cargo / pnpm setup が重複**: 1 job 統合で **setup 1 回分削減（2-3 分）**
+5. **vitest 15 ファイル中 9 ファイルが UI store 結合**: refactor で壊れる、現フェーズ過剰 → drop で test job **-1-2 分**
+6. **E2E PR で smoke 30 件**: `@core` 5 件に厳格化で **-5-8 分**
+
+### 削減ターゲットファイル
+
+#### E2E `@core` keep（5 件、PR で走る）
+
+- `tests/e2e/layout.spec.ts:102` TitleBar ボタン存在
+- `tests/e2e/items.spec.ts:6` IPC アイテム作成 → 一覧反映
+- `tests/e2e/workspace.spec.ts:6` ワークスペース作成
+- `tests/e2e/palette.spec.ts:8` パレットボタン存在
+- `tests/e2e/settings.spec.ts:24` 設定パネル開閉
+
+#### E2E nightly 移動（17 ファイル / 80+ 件）
+
+library-card-spec / library-card-metadata / library-detail-ux / library-detail / library-empty-starred / library-search / library-tag-filter / theme-editor / theme-visual-diff / visual / widget-context-panel / widget-display / widget-zoom / workspace-editing / workspace-widget-item / workspace-widget-list / keyboard-accessibility
+
+#### vitest keep（純粋関数 / 型）
+
+`utils/detect-type` / `utils/format-target` / `utils/widget-config` / `utils.test.ts` / `types/palette` / `styles/arcagate-theme`
+
+#### vitest drop（実装密結合）
+
+`state/{config,hidden,items,palette,sound,theme,toast,workspace}.svelte.test.ts` / `utils/sfx.test.ts`
+
+### キャッシュ運用
+
+- `Swatinem/rust-cache@v2` (workspaces: src-tauri) — Rust target キャッシュ
+- `actions/setup-node@v4 + cache: pnpm` — pnpm-store キャッシュ
+- `actions/setup-pnpm@v4`
+
+実測のヒット率は GitHub Actions UI から個別確認要、ただし batch-66 〜 67 の CI は通常 8-15 分で完走しており、cache はそこそこ機能している模様。
+
+### batch-68 PH-295 で実装する修正手順
+
+1. `.github/workflows/ci.yml` から `dprint check` step 削除
+2. `lint` と `test` を 1 job 統合（setup 重複排除）
+3. `build` job を `--debug` mode に（PR 時）/ release は push のみ
+4. `.github/workflows/e2e.yml` PR 時 `pnpm test:e2e:core`（5 件）
+5. spec の `@smoke` を 5 件のみ `@core` 化、残り `@nightly`
+6. vitest `state/*` drop（git history で復元可）
+7. before/after 数値を本セクションに追記
+
+### 目標 PR ターン時間
+
+- 現状: 20-30 分
+- batch-68 PH-295 後: **5 分以内**

@@ -15,6 +15,8 @@ export interface Item {
 	is_enabled: boolean;
 	is_tracked: boolean;
 	default_app: DefaultApp | null;
+	/** PH-290: per-card 背景・文字 override（JSON 文字列、null = global default） */
+	card_override_json: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -54,4 +56,6 @@ export interface UpdateItemInput {
 	is_tracked?: boolean;
 	default_app?: DefaultApp | null;
 	tag_ids?: string[];
+	/** PH-290: card_override_json: null で明示的に解除、undefined で変更なし */
+	card_override_json?: string | null;
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Archive, Eye, EyeOff, LayoutDashboard, Search, Settings2, X } from '@lucide/svelte';
+import { Eye, EyeOff, X } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { onDestroy } from 'svelte';
@@ -12,6 +12,7 @@ import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
+import { NAV_TOP } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -189,35 +190,35 @@ function handleFormClose() {
 <div class="flex h-screen flex-col bg-[var(--ag-surface-0)]">
 	<TitleBar>
 		{#snippet leftSlot()}
-			<TitleAction icon={Settings2} label="Settings" onclick={() => (showSettings = true)} />
-			{#if activeView === "library"}
-				<TitleAction
-					icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
-					label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示中' : '非表示アイテム: 非表示'}
-					tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
-					onclick={() => hiddenStore.toggleDirect()}
-				/>
-			{:else}
-				<TitleAction
-					icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
-					label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示中' : '非表示アイテム: 非表示'}
-					tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
-					onclick={() => hiddenStore.toggleDirect()}
-				/>
-			{/if}
-			<TitleAction icon={Search} label="Palette" tone="accent" onclick={openFloatingPalette} />
+			<TitleAction
+				icon={NAV_TOP.settings.icon}
+				label={NAV_TOP.settings.label}
+				onclick={() => (showSettings = true)}
+			/>
+			<TitleAction
+				icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
+				label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示' : '非表示アイテム: 非表示'}
+				tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
+				onclick={() => hiddenStore.toggleDirect()}
+			/>
+			<TitleAction
+				icon={NAV_TOP.palette.icon}
+				label={NAV_TOP.palette.label}
+				tone="accent"
+				onclick={openFloatingPalette}
+			/>
 		{/snippet}
 		{#snippet centerSlot()}
 			<div class="flex items-center gap-2">
 				<TitleTab
-					icon={Archive}
-					label="Library"
+					icon={NAV_TOP.library.icon}
+					label={NAV_TOP.library.label}
 					active={activeView === "library"}
 					onclick={() => (activeView = "library")}
 				/>
 				<TitleTab
-					icon={LayoutDashboard}
-					label="Workspace"
+					icon={NAV_TOP.workspace.icon}
+					label={NAV_TOP.workspace.label}
 					active={activeView === "workspace"}
 					onclick={() => (activeView = "workspace")}
 				/>

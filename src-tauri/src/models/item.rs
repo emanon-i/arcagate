@@ -49,6 +49,8 @@ pub struct Item {
     pub is_enabled: bool,
     pub is_tracked: bool,
     pub default_app: Option<String>,
+    /// PH-290: per-card 背景・文字 override (JSON 文字列、NULL = global default)
+    pub card_override_json: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -129,6 +131,8 @@ pub struct UpdateItemInput {
     pub is_tracked: Option<bool>,
     pub default_app: Option<String>,
     pub tag_ids: Option<Vec<String>>,
+    /// PH-290: per-card override JSON (null 渡しで明示的に解除)
+    pub card_override_json: Option<Option<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -27,8 +27,9 @@ pub(crate) fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
         is_enabled: is_enabled_int != 0,
         is_tracked: is_tracked_int != 0,
         default_app: row.get(12)?,
-        created_at: row.get(13)?,
-        updated_at: row.get(14)?,
+        card_override_json: row.get(13)?,
+        created_at: row.get(14)?,
+        updated_at: row.get(15)?,
     })
 }
 
@@ -58,7 +59,7 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
 
 pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
     let result = conn.query_row(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items WHERE id = ?1",
         params![id],
         row_to_item,
@@ -72,7 +73,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {
     let mut stmt = conn.prepare(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items ORDER BY sort_order, label",
     )?;
     let items = stmt
@@ -84,7 +85,7 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {
 pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
     let pattern = format!("%{}%", query);
     let mut stmt = conn.prepare(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items
          WHERE is_enabled = 1 AND (label LIKE ?1 OR aliases LIKE ?1)
          ORDER BY sort_order, label",
@@ -98,7 +99,7 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
 pub fn search_in_tag(conn: &Connection, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
     let pattern = format!("%{}%", query);
     let mut stmt = conn.prepare(
-        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.created_at, i.updated_at
+        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_tags it ON it.item_id = i.id
          WHERE it.tag_id = ?1
@@ -153,6 +154,11 @@ pub fn update(conn: &Connection, id: &str, input: &UpdateItemInput) -> Result<()
     if let Some(default_app) = &input.default_app {
         sets.push(format!("default_app = ?{}", values.len() + 1));
         values.push(Box::new(default_app.clone()));
+    }
+    // card_override_json: Some(Some(json)) で設定、Some(None) で明示的に解除、None で変更なし
+    if let Some(override_opt) = &input.card_override_json {
+        sets.push(format!("card_override_json = ?{}", values.len() + 1));
+        values.push(Box::new(override_opt.clone()));
     }
 
     let id_param_idx = values.len() + 1;
@@ -211,7 +217,7 @@ pub fn get_library_stats(conn: &Connection) -> Result<LibraryStats, AppError> {
 
 pub fn find_by_target(conn: &Connection, target: &str) -> Result<Option<Item>, AppError> {
     let result = conn.query_row(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items WHERE target = ?1",
         params![target],
         row_to_item,
@@ -294,6 +300,7 @@ mod tests {
             is_enabled: true,
             is_tracked: true,
             default_app: None,
+            card_override_json: None,
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-01T00:00:00Z".to_string(),
         }

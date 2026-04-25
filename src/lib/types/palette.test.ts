@@ -16,6 +16,7 @@ const mockItem: Item = {
 	is_enabled: true,
 	is_tracked: false,
 	default_app: null,
+	card_override_json: null,
 	created_at: '',
 	updated_at: '',
 };
