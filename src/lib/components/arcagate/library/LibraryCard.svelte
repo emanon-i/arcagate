@@ -20,6 +20,19 @@ let iconClass = $derived.by(() => {
 	if (configStore.itemSize === 'L') return 'h-20 w-20 object-contain drop-shadow-lg';
 	return 'h-14 w-14 object-contain drop-shadow-lg';
 });
+
+let bg = $derived(configStore.libraryCard.background);
+let style = $derived(configStore.libraryCard.style);
+
+let labelStyle = $derived.by(() => {
+	const stroke = style.strokeEnabled ? `${style.strokeWidthPx}px ${style.strokeColor}` : 'none';
+	return `color: ${style.textColor}; -webkit-text-stroke: ${stroke}; paint-order: stroke fill;`;
+});
+
+let resolvedMode = $derived.by(() => {
+	if (bg.mode === 'image' && !item.icon_path) return 'fill';
+	return bg.mode;
+});
 </script>
 
 {#if viewMode === 'list'}
@@ -57,9 +70,26 @@ let iconClass = $derived.by(() => {
 		{onclick}
 		{ondblclick}
 	>
-		{#if item.icon_path}
-			<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class="absolute inset-0 h-full w-full object-cover" />
+		{#if resolvedMode === 'image' && item.icon_path}
+			<ItemIcon
+				iconPath={item.icon_path}
+				itemType={item.item_type}
+				alt="{item.label} icon"
+				class="absolute inset-0 h-full w-full object-cover"
+				style="object-position: {bg.focalX}% {bg.focalY}%;"
+			/>
+		{:else if resolvedMode === 'fill'}
+			<div class="absolute inset-0 flex items-center justify-center" style="background: {bg.fillBgColor};">
+				<ItemIcon
+					iconPath={undefined}
+					itemType={item.item_type}
+					alt="{item.label} icon"
+					class={iconClass}
+					style="color: {bg.fillIconColor};"
+				/>
+			</div>
 		{:else}
+			<!-- mode === 'none' -->
 			<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
 				<ItemIcon iconPath={undefined} itemType={item.item_type} alt="{item.label} icon" class={iconClass} />
 			</div>
@@ -78,18 +108,20 @@ let iconClass = $derived.by(() => {
 		</span>
 
 		<div
-			class="library-card__label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent {configStore.itemSize === 'S' ? 'px-2 pb-1.5 pt-3' : 'px-3 pb-2 pt-6'}"
+			class="library-card__label absolute inset-x-0 bottom-0 {style.overlayEnabled
+				? 'bg-gradient-to-t from-black/75 via-black/40 to-transparent'
+				: ''} {configStore.itemSize === 'S' ? 'px-2 pb-1.5 pt-3' : 'px-3 pb-2 pt-6'}"
 		>
 			<div
-				class="truncate font-semibold text-white {configStore.itemSize === 'S' ? 'text-[11px]' : configStore.itemSize === 'L' ? 'text-base' : 'text-sm'}"
-				style="paint-order: stroke fill; -webkit-text-stroke: 0.5px rgba(0,0,0,0.6);"
+				class="truncate font-semibold {configStore.itemSize === 'S' ? 'text-[11px]' : configStore.itemSize === 'L' ? 'text-base' : 'text-sm'}"
+				style={labelStyle}
 			>
 				{item.label}
 			</div>
 			{#if configStore.itemSize !== 'S'}
 				<div
-					class="truncate text-white/80 {configStore.itemSize === 'L' ? 'text-xs' : 'text-[11px]'}"
-					style="paint-order: stroke fill; -webkit-text-stroke: 0.5px rgba(0,0,0,0.6);"
+					class="truncate {configStore.itemSize === 'L' ? 'text-xs' : 'text-[11px]'} opacity-80"
+					style={labelStyle}
 				>
 					{item.target}
 				</div>
