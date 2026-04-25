@@ -2129,3 +2129,35 @@ OK と言う前に必須:
 
 ブランチ: `feature/batch-20260425-65`（main 起点）
 着手: PH-280 から順に実装（batch-65 は Library 連動なので並列化せず順次）。
+
+---
+
+## batch-65 実装完了 (2026-04-25)
+
+PH-280 〜 284 すべて status: done。pnpm verify 緑（biome / dprint / svelte-check 0 errors）。
+
+### Plan 別コミット
+
+| Plan   | コミット | 内容                                                             |
+| ------ | -------- | ---------------------------------------------------------------- |
+| PH-280 | 403b815  | 4:3 + S/M/L カード全体可変 + gap 固定 + 外側 padding 吸収        |
+| PH-281 | f0ae171  | 文字スタイル + 背景 3 モード型 + LibraryCard 配線                |
+| PH-282 | 271593a  | Settings > Library 新設 + 背景モード UI + focal point picker     |
+| PH-283 | 9e66c44  | E2E spec（4:3 / size / gap / resize / 背景モード / focal point） |
+| PH-284 | （次）   | 整理: 設定所在統一 + LibraryCard 分割見送り判断                  |
+
+### 設計判断（lessons / 次バッチへの入力）
+
+- **LibraryCard 分割は見送り**: ~130 行で十分許容範囲。過剰抽象化を避けた（engineering-principles.md §7）
+- **itemSize は Library + Workspace 共有**: アイテム表示サイズの一貫性を優先。完全分離は別バッチで再評価
+- **ItemIcon に style prop 追加**: 4 箇所（LibraryCard / Library list / WidgetItemList / Palette）で利用、重複ヘルパ不要
+
+## 手動確認依頼
+
+- [ ] 2026-04-25 [PH-280〜282] 実機目視: S/M/L 切替で **アイコンだけでなくカード全体** が変わることを確認
+- [ ] 2026-04-25 [PH-280〜282] 実機目視: ウィンドウ幅変えても **カード間 gap が固定**（伸縮しない）であることを確認
+- [ ] 2026-04-25 [PH-280〜282] 実機目視: カードが **4:3** に見えること（正方形でない）
+- [ ] 2026-04-25 [PH-282] 実機目視: Settings > **ライブラリ** タブで背景モード切替・focal point スライダー・文字色 picker・縁取り設定が **即時反映** すること
+- [ ] 2026-04-25 [PH-282] 実機目視: Settings > **ワークスペース** タブから「ライブラリカードサイズ」UI が消え、誘導文言があること
+
+CDP 自動実機目視は ユーザの「pnpm tauri dev or test:e2e 実行 OK」明示後に実行する。

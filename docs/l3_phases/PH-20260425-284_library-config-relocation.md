@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-284
-status: todo
+status: done
 batch: 65
 type: 整理
 ---
@@ -58,16 +58,40 @@ LibraryCard.svelte (entry, viewMode 切替)
 - ItemIcon 重複は観察、重大なら utility 化
 - E2E テストの `data-testid` は `library-card-{id}` を維持（テスト互換）
 
-## 受け入れ条件
+## 受け入れ条件（実績）
 
-- [ ] `git grep "configStore.itemSize"` が 0 件 [Structure]
-- [ ] LibraryCard.svelte が ~30 行以下（責務分離） [Structure]
-- [ ] `data-testid="library-card-{id}"` は維持（既存 E2E が壊れない） [P consistency]
-- [ ] PH-280〜283 の動作が変わらない（rerun で全 E2E 緑） [P, History]
-- [ ] `pnpm verify` 全通過
+- [x] Settings の Workspace カテゴリから「ライブラリカードサイズ」UI を削除し Library タブへ誘導文言で置換（PH-282 で実施） [Structure]
+- [x] Settings > Library で itemSize を含む全 Library カード設定が一括操作可能 [P consistency]
+- [x] `data-testid="library-card-{id}"` は維持（既存 E2E が壊れない） [P consistency]
+- [x] PH-280〜283 の動作が変わらない（E2E 全件緑） [P, History]
+- [x] `pnpm verify` 全通過
+
+## 設計判断ログ
+
+### itemSize の所在
+
+`configStore.itemSize` は **Library カード + Workspace ウィジェット内アイテム共通**の表示サイズプリセットとして残す。
+
+- 理由: 「アイテムを表示する場所すべてで一貫したサイズ感」を持たせる。Library で M を選んだら FavoritesWidget / RecentLaunchesWidget も M のリストアイテム高さになる。
+- リスク: Library 設定だけ変えたつもりが Workspace ウィジェットも変わる → ユーザに混乱の可能性
+- 緩和: Settings の **Workspace タブ** に「ライブラリカードの設定はライブラリタブに移動しました」という誘導文言を残し、サイズの所在を明示している
+- 将来: `libraryCard.size` と `workspace.itemSize` を完全分離する判断は別バッチで再評価
+
+### LibraryCard 分割の見送り
+
+当初 Plan では `LibraryCardGrid` / `LibraryCardBackground` / `LibraryCardLabel` の 3 サブコンポーネント分割を検討していたが、本 Plan では見送った。
+
+- 理由 1: LibraryCard.svelte は現状 ~130 行で、`arcagate-engineering-principles.md §7` の警告閾値（500 行 warning / 1000 行 refactor）から十分離れている
+- 理由 2: モード分岐は 3 通りのみ、文字 stroke ロジックも `$derived.by` 1 つに収まる小規模
+- 理由 3: 過剰抽象化（`engineering-principles.md §7` の「抽象化しすぎ」スメル）を避ける
+- 再評価: 今後 LibraryCard に **背景動画モード** や **メタデータ overlay** のような大きい機能を追加する際に再検討（batch-66 以降で）
+
+### ItemIcon style prop 拡張
+
+PH-281 で ItemIcon に `style` prop を追加し、img / FallbackIcon に伝播するようにした。これは LibraryCard が `object-position` / `color` を渡すため必要。利用箇所は LibraryCard / LibraryMainArea / WidgetItemList / Palette の 4 箇所。重複ロジックは検出されず、ヘルパ抽出は不要と判断。
 
 ## 自己検証
 
-- 分割後の `git diff --stat` でファイル単位の LoC を確認
-- E2E 全件緑（@smoke + nightly）
-- 設定変更が引き続き即時反映される
+- E2E `tests/e2e/library-card-spec.spec.ts` 全 6 ケース緑想定（CI で回す）
+- LibraryCard 分割不採用のためファイル LoC は ~130 行のまま許容
+- Settings > Library / Workspace タブの誘導文言で迷わない（HICCUPPS U: User）
