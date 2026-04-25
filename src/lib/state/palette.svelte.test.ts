@@ -29,6 +29,7 @@ const mockItem = {
 	is_enabled: true,
 	is_tracked: true,
 	default_app: null,
+	card_override_json: null,
 	created_at: '2024-01-01T00:00:00Z',
 	updated_at: '2024-01-01T00:00:00Z',
 };
@@ -47,6 +48,7 @@ const mockItem2 = {
 	is_enabled: true,
 	is_tracked: false,
 	default_app: null,
+	card_override_json: null,
 	created_at: '2024-01-01T00:00:00Z',
 	updated_at: '2024-01-01T00:00:00Z',
 };

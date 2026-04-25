@@ -30,6 +30,7 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
         is_enabled: true,
         is_tracked: input.is_tracked,
         default_app: None,
+        card_override_json: None,
         created_at: String::new(), // set by DB DEFAULT on insert
         updated_at: String::new(),
     };
@@ -195,6 +196,7 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
             is_enabled: true,
             is_tracked: true,
             default_app: None,
+            card_override_json: None,
             created_at: String::new(),
             updated_at: String::new(),
         };
