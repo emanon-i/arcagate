@@ -7,6 +7,7 @@ pub enum WidgetType {
     Recent,
     Projects,
     WatchedFolders,
+    Item,
 }
 
 impl WidgetType {
@@ -16,6 +17,7 @@ impl WidgetType {
             WidgetType::Recent => "recent",
             WidgetType::Projects => "projects",
             WidgetType::WatchedFolders => "watched_folders",
+            WidgetType::Item => "item",
         }
     }
 
@@ -26,6 +28,7 @@ impl WidgetType {
             "recent" => Some(WidgetType::Recent),
             "projects" => Some(WidgetType::Projects),
             "watched_folders" => Some(WidgetType::WatchedFolders),
+            "item" => Some(WidgetType::Item),
             _ => None,
         }
     }
@@ -88,6 +91,7 @@ mod tests {
         assert_eq!(WidgetType::Recent.as_str(), "recent");
         assert_eq!(WidgetType::Projects.as_str(), "projects");
         assert_eq!(WidgetType::WatchedFolders.as_str(), "watched_folders");
+        assert_eq!(WidgetType::Item.as_str(), "item");
     }
 
     #[test]
@@ -102,6 +106,7 @@ mod tests {
             WidgetType::from_str("watched_folders"),
             Some(WidgetType::WatchedFolders)
         );
+        assert_eq!(WidgetType::from_str("item"), Some(WidgetType::Item));
     }
 
     #[test]
@@ -118,6 +123,7 @@ mod tests {
             WidgetType::Recent,
             WidgetType::Projects,
             WidgetType::WatchedFolders,
+            WidgetType::Item,
         ];
         for t in &types {
             let s = t.as_str();

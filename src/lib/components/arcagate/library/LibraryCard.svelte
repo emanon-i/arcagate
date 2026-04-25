@@ -63,7 +63,7 @@ let iconClass = $derived.by(() => {
 		{ondblclick}
 	>
 		<div class="relative flex {iconAreaClass} items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
-			<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class="{iconClass}" />
+			<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class={iconClass} />
 			{#if isStarred}
 				<div class="absolute right-2 top-2 rounded-full bg-[var(--ag-accent)]/90 p-1 shadow-sm" data-testid="starred-badge">
 					<Star class="h-3 w-3 fill-white text-white" />

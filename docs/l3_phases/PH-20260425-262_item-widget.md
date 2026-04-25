@@ -1,6 +1,6 @@
 ---
 id: PH-20260425-262
-status: todo
+status: done
 batch: 61
 type: 改善
 ---
@@ -33,8 +33,8 @@ type: 改善
 
 ## 受け入れ条件
 
-- [ ] Item Widget を Workspace に配置できる
-- [ ] アイテムを選択・変更できる
-- [ ] 選択後クリックでアイテム起動
-- [ ] widget_config が永続化される
-- [ ] `pnpm verify` 全通過
+- [x] Item Widget を Workspace に配置できる（WorkspaceSidebar + widgetComponents 登録）
+- [x] アイテムを選択・変更できる（LibraryItemPicker.svelte + WidgetShell メニュー）
+- [x] 選択後クリックでアイテム起動
+- [x] widget_config（item_id）が永続化される（cmd_update_widget_config）
+- [x] `pnpm verify` 全通過

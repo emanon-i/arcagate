@@ -8,6 +8,7 @@ import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import FavoritesWidget from './FavoritesWidget.svelte';
+import ItemWidget from './ItemWidget.svelte';
 import PageTabBar from './PageTabBar.svelte';
 import ProjectsWidget from './ProjectsWidget.svelte';
 import RecentLaunchesWidget from './RecentLaunchesWidget.svelte';
@@ -129,6 +130,7 @@ const widgetComponents = {
 	favorites: FavoritesWidget,
 	recent: RecentLaunchesWidget,
 	projects: ProjectsWidget,
+	item: ItemWidget,
 } as const;
 
 function handleItemContext(itemId: string) {

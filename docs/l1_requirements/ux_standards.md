@@ -433,11 +433,11 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 
 Library のグリッド表示で使用するサイズプリセット。Settings から変更可能。
 
-| サイズ | アイコン | ラベル           | メタ情報         |
-| ------ | -------- | ---------------- | ---------------- |
-| S      | 40px     | 1行省略 (xs)     | 非表示           |
-| M      | 56px     | 1行 (sm)         | target + type    |
-| L      | 72px     | 2行 (sm)         | target + type    |
+| サイズ | アイコン | ラベル       | メタ情報      |
+| ------ | -------- | ------------ | ------------- |
+| S      | 40px     | 1行省略 (xs) | 非表示        |
+| M      | 56px     | 1行 (sm)     | target + type |
+| L      | 72px     | 2行 (sm)     | target + type |
 
 - DB `config` テーブルの `item_size` キーで永続化
 - デフォルト: `M`
