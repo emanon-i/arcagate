@@ -2023,3 +2023,23 @@ engineering-principles.md §5/§7/§9 の「アーキテクチャ棚卸しフェ
 | E    | PH-274 | 整理 | ベースライン統合文書 + §7 閾値確定 + engineering-principles 更新 |
 
 成果物: `docs/l2_architecture/bundle-baseline.md` / `complexity-baseline.md` / `dependency-quality.md` 新設。
+
+---
+
+## batch-63 完了 (2026-04-25)
+
+PH-270〜274 全完了。§5/§7/§9 ベースライン確立。
+
+| 計測項目                | 結果                                                 |
+| ----------------------- | ---------------------------------------------------- |
+| フロントバンドル        | 556KB raw / 150KB gzip（vision.md 制約内）           |
+| Rust バイナリ           | arcagate.exe 16.4MB（20MB 制約内）                   |
+| コード規模              | 193ファイル / 15,469 code lines（§7 閾値超過ゼロ）   |
+| pnpm audit --prod       | 0 vulnerabilities ✅                                 |
+| knip 未使用 export      | 8件（shadcn IPC + WIDGET_LABELS、batch-64 対応候補） |
+| cargo tree --duplicates | bitflags v1/v2（Tauri 通常依存、対応不要）           |
+
+- engineering-principles.md §2「実績ベース検証」埋め込み完了
+- engineering-principles.md §9 運用指標にベースライン値記録
+- refactoring-opportunities.md 「次バッチへの入力」更新（7件優先順位付き）
+- L3 Plan: PH-270〜274 全 status: done
