@@ -1,15 +1,29 @@
+# pre-commit: 整形系 + 軽量 lint で「ローカルで早く気付ける化」
+# 重い検査（svelte-check / cargo test）は pre-push に移動、CI は最終保証のみ
 pre-commit:
   parallel: true
   commands:
     biome:
-      glob: "*.{ts,svelte}"
-      run: pnpm biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      glob: "*.{ts,svelte,js,json,jsonc}"
+      run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
     dprint:
-      glob: "*.md"
-      run: pnpm dprint check {staged_files}
-    clippy:
-      glob: "*.rs"
-      run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+      glob: "*.{md,toml}"
+      run: pnpm dprint fmt {staged_files}
+      stage_fixed: true
     rustfmt:
-      glob: "*.rs"
-      run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      glob: "src-tauri/**/*.rs"
+      run: cargo fmt --manifest-path src-tauri/Cargo.toml
+      stage_fixed: true
+    clippy:
+      glob: "src-tauri/**/*.rs"
+      run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+# pre-push: 重い検査をローカルで完了、CI で重複させない
+pre-push:
+  parallel: true
+  commands:
+    svelte-check:
+      run: pnpm check
+    cargo-test:
+      run: cargo test --manifest-path src-tauri/Cargo.toml --quiet
