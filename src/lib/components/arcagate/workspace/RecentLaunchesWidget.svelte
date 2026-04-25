@@ -7,7 +7,7 @@ import { configStore } from '$lib/state/config.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
-import type { WidgetSortField } from '$lib/types/widget-list';
+import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import WidgetItemList from './WidgetItemList.svelte';
@@ -24,7 +24,7 @@ let recentItems = $state<Item[]>([]);
 let settingsOpen = $state(false);
 
 $effect(() => {
-	const { max_items: limit } = parseWidgetConfig(widget?.config, { max_items: 10 });
+	const { max_items: limit } = parseWidgetConfig(widget?.config, LIST_WIDGET_DEFAULTS);
 	void getRecentItems(limit).then((items) => {
 		recentItems = items;
 	});
@@ -34,9 +34,7 @@ let visibleRecentItems = $derived(
 	hiddenStore.isHiddenVisible ? recentItems : recentItems.filter((i) => i.is_enabled),
 );
 
-let sortField = $derived(
-	parseWidgetConfig(widget?.config, { sort_field: 'default' as WidgetSortField }).sort_field,
-);
+let sortField = $derived(parseWidgetConfig(widget?.config, LIST_WIDGET_DEFAULTS).sort_field);
 
 let widgetIconClass = $derived(
 	configStore.itemSize === 'S'

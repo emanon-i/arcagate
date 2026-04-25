@@ -2,7 +2,7 @@
  * ウィジェット設定 JSON をパースし、デフォルト値とマージして返す。
  * パース失敗時はデフォルトをそのまま返す。
  */
-export function parseWidgetConfig<T extends Record<string, unknown>>(
+export function parseWidgetConfig<T extends object>(
 	raw: string | null | undefined,
 	defaults: T,
 ): T {

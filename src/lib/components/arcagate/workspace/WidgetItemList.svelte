@@ -2,7 +2,7 @@
 import { ChevronRight, Search, X as XIcon } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import type { Item } from '$lib/types/item';
-import type { WidgetSortField } from '$lib/types/widget-list';
+import type { WidgetSortField } from '$lib/types/widget-configs';
 
 interface Props {
 	items: Item[];
