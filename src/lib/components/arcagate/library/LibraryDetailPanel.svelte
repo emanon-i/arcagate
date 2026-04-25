@@ -223,15 +223,16 @@ let moreMenuItems = $derived.by(() => {
 			<ActionButton icon={Settings2} label="編集" onclick={() => onEditItem?.(selectedItem!.id)} />
 			<button
 				type="button"
-				aria-label={isStarred ? 'スターを外す' : 'スターを付ける'}
+				aria-label={isStarred ? 'お気に入りを解除' : 'お気に入りに追加'}
+				data-testid="favorite-button"
 				class="flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97]
 					{isStarred
 					? 'border-[var(--ag-accent)]/60 bg-[var(--ag-accent)]/15 text-[var(--ag-accent)] hover:bg-[var(--ag-accent)]/25'
 					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 				onclick={handleToggleStar}
 			>
-				<Star class="h-4 w-4 {isStarred ? 'fill-current' : ''}" />
-				{isStarred ? '★' : '☆'}
+				<Star class="h-4 w-4" fill={isStarred ? 'currentColor' : 'none'} />
+				お気に入り
 			</button>
 			<button
 				type="button"
@@ -243,6 +244,26 @@ let moreMenuItems = $derived.by(() => {
 				削除
 			</button>
 		</div>
+
+		<!-- Visibility toggle (PH-291) -->
+		<label class="mt-4 flex items-start gap-2 text-sm text-[var(--ag-text-secondary)]">
+			<input
+				type="checkbox"
+				class="mt-0.5 h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+				data-testid="visibility-toggle"
+				checked={!selectedItem.is_enabled}
+				onchange={(e) =>
+					void itemStore.updateItem(selectedItem!.id, {
+						is_enabled: !(e.currentTarget as HTMLInputElement).checked,
+					})}
+			/>
+			<span class="flex-1">
+				<span class="block">ライブラリで非表示</span>
+				<span class="mt-0.5 block text-xs text-[var(--ag-text-muted)]">
+					非表示にすると検索結果から除外されます。残したまま隠せます。
+				</span>
+			</span>
+		</label>
 
 	{:else}
 		<!-- Placeholder -->
