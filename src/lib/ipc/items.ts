@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
+import type { ItemMetadata } from '$lib/types/item-metadata';
 import type { CreateTagInput, Tag, TagWithCount } from '$lib/types/tag';
 
 export async function createItem(input: CreateItemInput): Promise<Item> {
@@ -36,6 +37,10 @@ export async function searchItemsInTag(tagId: string, query: string): Promise<It
 
 export async function checkIsDirectory(path: string): Promise<boolean> {
 	return invoke<boolean>('cmd_check_is_directory', { path });
+}
+
+export async function getItemMetadata(itemId: string): Promise<ItemMetadata> {
+	return invoke<ItemMetadata>('cmd_get_item_metadata', { itemId });
 }
 
 export async function extractItemIcon(exePath: string): Promise<string> {
