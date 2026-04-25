@@ -2161,3 +2161,29 @@ PH-280 〜 284 すべて status: done。pnpm verify 緑（biome / dprint / svelt
 - [ ] 2026-04-25 [PH-282] 実機目視: Settings > **ワークスペース** タブから「ライブラリカードサイズ」UI が消え、誘導文言があること
 
 CDP 自動実機目視は ユーザの「pnpm tauri dev or test:e2e 実行 OK」明示後に実行する。
+
+---
+
+## batch-65 完走 (2026-04-25)
+
+**PR #98 merge 済み**（rebase-and-merge、merge SHA `236e941`）。CI 全件 SUCCESS（lint / e2e / test / changes / build）。
+
+main rebased commits（main 8e4836f → 236e941）:
+
+- 236e941 refactor(batch-65): /simplify レビュー対応（no-op gate / pre-compute / 簡素化）
+- 4969b27 chore(batch-65): PH-284 整理（設定所在統一の実態 + 設計判断ログ）
+- 20b0e98 test(batch-65): PH-283 Library カード仕様 E2E
+- feat(batch-65): PH-282 Settings > Library 新設 + 背景 3 モード UI + focal point picker
+- feat(batch-65): PH-281 LibraryCard 文字スタイル + 背景 3 モード型定義 + 配線
+- feat(batch-65): PH-280 Library カード 4:3 + S/M/L カード全体可変 + gap 固定
+- docs(batch-65): L3 Plan 5本作成
+
+archive ブランチ: `chore/batch-65-archive`（main 起点）。
+PH-280〜284 を `docs/l3_phases/archive/` へ移動。
+
+### 残課題（次バッチ申し送り）
+
+- 実機目視 5 項目（手動確認依頼セクション参照）
+- メタデータ強化（フォルダ件数 / 解像度 / ID3 等）→ batch-66 候補
+- LibraryCardSettings の color picker / range slider 重複削減（80 行削減可）→ 整理系バッチ候補
+- localStorage helper（loadJSON / saveJSON）抽出 → 整理系バッチ候補
