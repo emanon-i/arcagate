@@ -91,7 +91,7 @@ fn walk(dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEntry>) {
 
     if !exes.is_empty() {
         // size_bytes 降順
-        exes.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
+        exes.sort_by_key(|c| std::cmp::Reverse(c.size_bytes));
         let folder_name = dir
             .file_name()
             .and_then(|n| n.to_str())
