@@ -99,9 +99,10 @@ function previewText(text: string): string {
 
 <WidgetShell title={config.title || 'クリップボード履歴'} icon={ClipboardList} {menuItems}>
 	{#if history.length === 0}
-		<p class="text-xs text-[var(--ag-text-muted)]">
-			コピーした内容がここに溜まります
-		</p>
+		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-xs text-[var(--ag-text-muted)]">
+			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">履歴は空です</p>
+			<p>テキストをコピーすると ここに溜まり、クリックで再コピーできます。</p>
+		</div>
 	{:else}
 		<ul class="space-y-1">
 			{#each history as entry (entry.id)}
