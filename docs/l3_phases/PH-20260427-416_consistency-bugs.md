@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-416
-status: wip
+status: done
 batch: 92
 type: 改善
 era: UX Audit Re-Validation
