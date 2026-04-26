@@ -2601,3 +2601,37 @@ main rebased commits:
 
 - batch-75: lefthook pre-push 復活（worktree + v2.1.1 bug 究明、setup-worktree.sh 実行後の挙動確認）
 - batch-76: Workspace 8 ハンドル resize 完成（n / w / nw / ne / sw、workspaceStore.optimisticMoveAndResize() API 拡張）
+
+---
+
+## batch-75 完走 (2026-04-26)
+
+PR #118 merge 済み（rebase-and-merge、merge SHA `cb03da6`）。CI 全 SUCCESS（changes / check / e2e / build）。
+
+main rebased commits:
+
+- cb03da6 feat(batch-75): PH-330〜334 lefthook pre-push 復活 + 8 ハンドル resize + WIDGET_LABELS 単一情報源化
+- b83da9c fix(batch-75): PH-330 を deferred → batch-76 持ち越し（force-push 復旧）
+- 0b307bf feat(batch-75): 元の feat 本体
+
+主要変更:
+
+- PH-330 lefthook pre-push 復活 → **deferred**（実機 push 検証で worktree 内 cargo test の git_status fail を確認、batch-76 で究明）
+- PH-331 Workspace 8 ハンドル resize（n / w / nw / ne / sw）:
+  - workspaceStore.optimisticMoveAndResize / persistMoveAndResize API 追加
+  - resize-delta.ts 純粋関数化（vitest 15 件 pass）
+- PH-332 WIDGET_LABELS 単一情報源化:
+  - Partial → 完全 Record<WidgetType, string>（全 14 entry 漏れなく機械強制）
+  - WorkspaceSidebar / WorkspaceWidgetGrid から hardcoded label 削除
+- PH-333 単体テスト: resize-delta 15 件 pass
+- PH-334 整理
+
+教訓 / 横展開:
+
+- `git commit --amend` は worktree + lefthook + Windows shell 環境で意図しない新規 commit を作る場合あり、`feature/test` ブランチに「init」commit が漏れた → `git reset --hard <good-sha>` + `git push --force-with-lease` で復旧
+- WIDGET_LABELS が `Partial` だったため後発追加時の漏れあり、完全 `Record` にして TS 型で compile-time 強制
+- aria-label に raw enum 値（'favorites'）を渡していた → ローカライズで a11y 改善
+
+次バッチ:
+
+- batch-76: PH-335 lefthook pre-push 復活（GIT_* env var 漏出根本原因究明 + 修正）
