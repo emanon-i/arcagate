@@ -646,3 +646,24 @@ page: async ({ sharedBrowser }, use) => {
 - **同 ID 再登録**: 古い token を自動 cancel して新規発行 (新検索開始 → 古い検索を自動停止)
 - **依存追加なし**: tokio_util::sync::CancellationToken でも実装可能だが、AtomicBool 1 つで十分
 - **参照**: PH-420 / `src-tauri/src/services/file_search_state.rs`
+
+---
+
+## OnboardingTour と E2E fixture（batch-94 PH-427）
+
+- **問題**: 初回起動時 modal を表示する OnboardingTour を実装すると、e2e で setupComplete 直後に画面を遮り、Settings ボタンクリック等が阻害される
+- **対策**: e2e global-setup.ts で `markSetupComplete` の後に `markOnboardingComplete` も呼ぶ
+- **設計判断**: OnboardingTour の trigger 条件を「setupComplete && !onboardingComplete」にしておけば、e2e fixture で onboardingComplete を mark するだけで bypass 可能
+- **再発防止**: 新しい初回 modal を実装する際は同時に e2e fixture を更新する。Plan 文書に「e2e fixture 影響あり」を必須記載
+- **参照**: PH-427 / `tests/fixtures/global-setup.ts`
+
+---
+
+## Settings 設定 UI の追加パターン（batch-94 PH-428）
+
+- **新設場所**: `src/lib/components/settings/<Name>Settings.svelte` を作る
+- **SettingsPanel への統合**: `activeCategory === 'library'` 等の各 section で `<NewSettings />` をマウント
+- **空状態**: `EmptyState` を使い `description` で onboarding hint を出す
+- **エラー処理**: `formatIpcError({ operation: '<操作名>' }, e)` で「原因 + 次の操作」フォーマット
+- **CI 影響**: 新 dialog / overlay は e2e で「想定外要素 = strict mode 違反」を起こすことがある → 専用 testid を付与して getByRole/getByText 衝突回避
+- **参照**: PH-428 / `src/lib/components/settings/WatchedFoldersSettings.svelte`
