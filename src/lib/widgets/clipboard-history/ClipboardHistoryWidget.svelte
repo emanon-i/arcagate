@@ -69,7 +69,7 @@ async function copyEntry(entry: ClipboardEntry) {
 		await writeText(entry.text);
 		toastStore.add('クリップボードにコピーしました', 'success');
 	} catch (e: unknown) {
-		toastStore.add(`コピーに失敗: ${String(e)}`, 'error');
+		toastStore.add(`コピーに失敗しました: ${String(e)}`, 'error');
 	}
 }
 
