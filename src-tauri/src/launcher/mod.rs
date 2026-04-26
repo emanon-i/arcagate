@@ -33,7 +33,11 @@ pub fn launch_exe(
 
     let mut cmd = Command::new(target);
     if let Some(a) = args {
-        cmd.args(a.split_whitespace());
+        // PH-422 / Codex Q5 #6: shell-words::split で quoted args を正しく扱う
+        // (split_whitespace では `--flag "value with space"` が破壊される)
+        let parsed = shell_words::split(a)
+            .map_err(|e| AppError::LaunchFailed(format!("invalid args quoting: {e}")))?;
+        cmd.args(parsed);
     }
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
@@ -77,6 +81,11 @@ pub fn launch_folder(path: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// PH-422: shell-words::split で quoted args を扱う helper
+fn parse_args(a: &str) -> Result<Vec<String>, AppError> {
+    shell_words::split(a).map_err(|e| AppError::LaunchFailed(format!("invalid args quoting: {e}")))
+}
+
 /// スクリプトファイルを実行（拡張子で判定）
 pub fn launch_script(
     path: &str,
@@ -89,29 +98,28 @@ pub fn launch_script(
         .unwrap_or("")
         .to_lowercase();
 
+    let parsed_args = match args {
+        Some(a) => parse_args(a)?,
+        None => Vec::new(),
+    };
+
     let mut cmd = match ext.as_str() {
         "ps1" => {
             let mut c = Command::new("powershell");
             c.args(["-ExecutionPolicy", "Bypass", "-File", path]);
-            if let Some(a) = args {
-                c.args(a.split_whitespace());
-            }
+            c.args(&parsed_args);
             c
         }
         "bat" | "cmd" => {
             let mut c = Command::new("cmd");
             c.args(["/c", path]);
-            if let Some(a) = args {
-                c.args(a.split_whitespace());
-            }
+            c.args(&parsed_args);
             c
         }
         _ => {
             let mut c = Command::new("cmd");
             c.args(["/c", path]);
-            if let Some(a) = args {
-                c.args(a.split_whitespace());
-            }
+            c.args(&parsed_args);
             c
         }
     };
@@ -123,14 +131,15 @@ pub fn launch_script(
     Ok(())
 }
 
-/// コマンド文字列を実行（スペースで最初のトークンがコマンド、残りが引数）
+/// コマンド文字列を実行（最初のトークンがコマンド、残りが引数）。
+/// PH-422: shell-words で quoting に対応し、スペース入りパスを安全に扱う。
 pub fn launch_command(command: &str, working_dir: Option<&str>) -> Result<(), AppError> {
-    let mut tokens = command.split_whitespace();
+    let mut tokens = parse_args(command)?.into_iter();
     let program = tokens
         .next()
         .ok_or_else(|| AppError::LaunchFailed("empty command string".to_string()))?;
 
-    let mut cmd = Command::new(program);
+    let mut cmd = Command::new(&program);
     cmd.args(tokens);
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
@@ -179,6 +188,30 @@ mod tests {
         let args: Vec<&str> = tokens.collect();
         assert_eq!(program, "notepad");
         assert_eq!(args, vec!["C:/test/file.txt"]);
+    }
+
+    // PH-422 / Codex Q5 #6 — shell-words による quoted args 解析
+    #[test]
+    fn parse_args_handles_quoted_path_with_spaces() {
+        let parsed = parse_args(r#""C:/Program Files/Foo/foo.exe" --flag value"#).unwrap();
+        assert_eq!(parsed[0], "C:/Program Files/Foo/foo.exe");
+        assert_eq!(parsed[1], "--flag");
+        assert_eq!(parsed[2], "value");
+    }
+
+    #[test]
+    fn parse_args_handles_flag_with_quoted_value() {
+        let parsed = parse_args(r#"--config "C:/data/config file.json" --port 8080"#).unwrap();
+        assert_eq!(parsed[0], "--config");
+        assert_eq!(parsed[1], "C:/data/config file.json");
+        assert_eq!(parsed[2], "--port");
+        assert_eq!(parsed[3], "8080");
+    }
+
+    #[test]
+    fn parse_args_returns_error_on_unclosed_quote() {
+        let result = parse_args(r#"--flag "unclosed quote"#);
+        assert!(matches!(result, Err(AppError::LaunchFailed(_))));
     }
 
     #[test]
