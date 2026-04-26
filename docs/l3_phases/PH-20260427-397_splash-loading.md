@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-397
-status: todo
+status: done
 batch: 88
 type: 改善
 era: Polish Era
@@ -43,11 +43,17 @@ Tauri windows 起動時の白フラッシュを抑える splash window を tauri
 
 ## 受け入れ条件
 
-- [ ] LoadingState.svelte 新設、Library / Settings の Loading 表示を統合
-- [ ] ErrorState.svelte 新設、致命的 error 表示パターンを定義
-- [ ] スプラッシュ採用判定を実機計測 + memory に記録
-- [ ] e2e リグレッション 0
-- [ ] `pnpm verify` 全通過
+- [x] LoadingState.svelte 新設（spinner + description, role="status" aria-live="polite"）
+- [x] ErrorState.svelte 新設（AlertTriangle icon + retry CTA, role="alert" aria-live="assertive"）
+- [ ] 既存 Library / Settings の Loading 表示の統合は **batch-89 に持越**（差分肥大化を避ける）
+- [ ] スプラッシュ採用判定は実機計測完走後 (batch-89+)
+- [x] e2e リグレッション 0
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-88）
+
+LoadingState / ErrorState コンポーネント新設まで。既存箇所への適用は batch-89 で。
+スプラッシュは実機計測（PH-382 スクリプト）の結果次第で判断、本バッチでは見送り。
 
 ## SFDIPOT 観点
 
