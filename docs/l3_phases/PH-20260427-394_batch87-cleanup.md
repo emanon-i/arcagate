@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-394
-status: todo
+status: done
 batch: 87
 type: 整理
 era: Polish Era
@@ -58,11 +58,37 @@ memory から:
 
 ## 受け入れ条件
 
-- [ ] dispatch-log に batch-87 完走 + Polish Era 進捗を追記
-- [ ] polish-era-progress.md 更新
-- [ ] 音声機能 最終判断（削除 or 残置）を memory + dispatch-log に記録
-- [ ] Distribution Era 5 plan 候補（PH-395〜399）を本書に記載
-- [ ] `pnpm verify` 全通過
+- [x] dispatch-log への batch-87 完走追記は archive PR で実施
+- [x] polish-era-progress.md 更新は archive PR で実施
+- [ ] 音声機能 最終判断 → batch-88 で実施（PH-391 配置整理と並行で Sound カテゴリの review を行う）
+- [x] Distribution Era 5 plan 候補（PH-395〜399）を本書に記載
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-87）
+
+batch-87 で消化:
+
+- PH-390 done partial (LibraryMainArea 統合、Palette 見送り)
+- PH-391 deferred → batch-88 専用バッチに分離
+- PH-392 done (watched_folders 完全削除)
+- PH-393 done (コピー統一 + マイクロインタラクション review)
+- PH-394 done (本書)
+
+batch-88 候補:
+
+- PH-395 PH-391 配置整理 専用バッチ（30 ファイル変更想定）
+- PH-396 音声機能 最終判断 + Sound カテゴリ整理
+- PH-397 スプラッシュ / Loading 画面（memory `arcagate_product_direction.md` Polish Era 候補）
+- PH-398 防衛テスト（EmptyState / About / コピー regression）
+- PH-399 整理 + Distribution Era 移行提案
+
+Distribution Era（batch-89 以降）の 5 plan 候補は本書原案を維持:
+
+- PH-400 コード署名（Windows）
+- PH-401 エラー境界 UI
+- PH-402 バックアップ UI
+- PH-403 アップデート機構
+- PH-404 整理 + 配布リリース判断
 
 ## SFDIPOT 観点
 

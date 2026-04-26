@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-392
-status: todo
+status: done
 batch: 87
 type: 整理
 era: Polish Era
@@ -55,13 +55,13 @@ UPDATE workspace_widgets SET widget_type = 'projects' WHERE widget_type = 'watch
 
 ## 受け入れ条件
 
-- [ ] Rust 側の `WatchedFolders` 全関連コード削除
-- [ ] ts-rs bindings 再生成（`watched_folders` が無いことを確認）
-- [ ] WIDGET_LABELS から削除
-- [ ] DB マイグレーション追加
-- [ ] `registry.test.ts` の `DEPRECATED_WIDGETS` 空に
-- [ ] `pnpm verify` 全通過（cargo test 176 件 → 削除分の 1〜2 件減を期待）
-- [ ] e2e リグレッション 0
+- [x] Rust 側の `WatchedFolders` 全関連コード削除
+- [x] ts-rs bindings 再生成（`watched_folders` が無いことを確認、自動 export）
+- [x] WIDGET_LABELS から削除
+- [x] DB マイグレーション 017 追加（既存レコードを projects に統合）
+- [x] `registry.test.ts` の `DEPRECATED_WIDGETS` 空に
+- [x] `pnpm verify` 全通過（cargo test 177 / 0 failed）
+- [x] e2e リグレッション 0（CI で確認、batch-87 PR で）
 
 ## SFDIPOT 観点
 

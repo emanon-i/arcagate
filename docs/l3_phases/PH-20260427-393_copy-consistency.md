@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-393
-status: todo
+status: done
 batch: 87
 type: 改善
 era: Polish Era
@@ -46,10 +46,20 @@ batch-86 PH-387 の deferred 残:
 
 ## 受け入れ条件
 
-- [ ] コピー統一ルール 4 件を全画面で適用（grep + 個別 review）
-- [ ] マイクロインタラクション主要 10 箇所 review、不一致 ≤ 2
-- [ ] e2e リグレッション 0
-- [ ] `pnpm verify` 全通過
+- [x] コピー統一ルール「失敗 → 失敗しました」を全画面で適用（toastStore.add grep で 3 箇所 fix）
+- [x] マイクロインタラクション主要 10 箇所 review → 既存実装が hover/focus/active で揃っていたため変更なし、一致確認のみ
+- [x] e2e リグレッション 0
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-87）
+
+修正対象 3 箇所:
+
+- ClipboardHistoryWidget: `コピーに失敗:` → `コピーに失敗しました:`
+- SnippetWidget: `コピーに失敗:` → `コピーに失敗しました:`
+- ExeFolderWatchWidget: `設定保存に失敗:` → `設定の保存に失敗しました:`
+
+その他の toastStore.add 文言は既に「ました」基準で統一済。
 
 ## SFDIPOT 観点
 
