@@ -1,5 +1,6 @@
 import { Clock } from '@lucide/svelte';
 import type { WidgetMeta } from '../_shared/types';
+import ClockSettings from './ClockSettings.svelte';
 import Component from './ClockWidget.svelte';
 
 export const widgetType = 'clock' as const;
@@ -15,4 +16,5 @@ export const meta: WidgetMeta = {
 		use_24h: true,
 	},
 	addable: true,
+	SettingsContent: ClockSettings,
 };

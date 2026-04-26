@@ -1,5 +1,6 @@
 import { GitBranch } from '@lucide/svelte';
 import type { WidgetMeta } from '../_shared/types';
+import ProjectsSettings from './ProjectsSettings.svelte';
 import Component from './ProjectsWidget.svelte';
 
 export const widgetType = 'projects' as const;
@@ -17,4 +18,5 @@ export const meta: WidgetMeta = {
 		auto_add: false,
 	},
 	addable: true,
+	SettingsContent: ProjectsSettings,
 };

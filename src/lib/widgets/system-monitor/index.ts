@@ -1,5 +1,6 @@
 import { Activity } from '@lucide/svelte';
 import type { WidgetMeta } from '../_shared/types';
+import SystemMonitorSettings from './SystemMonitorSettings.svelte';
 import Component from './SystemMonitorWidget.svelte';
 
 export const widgetType = 'system_monitor' as const;
@@ -15,4 +16,5 @@ export const meta: WidgetMeta = {
 		show_disk: false,
 	},
 	addable: true,
+	SettingsContent: SystemMonitorSettings,
 };

@@ -1,5 +1,6 @@
 import { NotebookPen } from '@lucide/svelte';
 import type { WidgetMeta } from '../_shared/types';
+import QuickNoteSettings from './QuickNoteSettings.svelte';
 import Component from './QuickNoteWidget.svelte';
 
 export const widgetType = 'quick_note' as const;
@@ -10,4 +11,5 @@ export const meta: WidgetMeta = {
 	label: 'クイックメモ',
 	defaultConfig: { font_size: 'md' },
 	addable: true,
+	SettingsContent: QuickNoteSettings,
 };

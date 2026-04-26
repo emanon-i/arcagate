@@ -1,4 +1,5 @@
 import { Clipboard } from '@lucide/svelte';
+import CommonMaxItemsSettings from '../_shared/CommonMaxItemsSettings.svelte';
 import type { WidgetMeta } from '../_shared/types';
 import Component from './SnippetWidget.svelte';
 
@@ -10,4 +11,5 @@ export const meta: WidgetMeta = {
 	label: 'スニペット',
 	defaultConfig: {},
 	addable: true,
+	SettingsContent: CommonMaxItemsSettings,
 };
