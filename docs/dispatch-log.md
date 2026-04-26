@@ -2568,3 +2568,36 @@ main rebased commits:
 
 - batch-74: 副産物バグ修正（ExeFolderWatchWidget launchItem 経由）+ Workspace 編集 polish + ラベル audit 機械化
 - batch-75: lefthook pre-push 復活（worktree + v2.1.1 bug 究明）
+
+---
+
+## batch-74 完走 (2026-04-26)
+
+PR #116 merge 済み（rebase-and-merge、merge SHA `1d5f7eb`）。CI 全 SUCCESS（changes / check / e2e / build）。
+
+main rebased commits:
+
+- 1d5f7eb feat(batch-74): PH-325〜329 ExeFolder fix + label audit 機械化 + Workspace 破棄確認
+
+主要変更:
+
+- PH-325 ExeFolderWatchWidget: launchItem virtual id バグを cmd_open_path に置換修正
+- PH-326 ラベル原則の機械化:
+  - audit-labels.sh 強化（Lucide icon 名 + 記号文字 + 表示テキスト直書きを検出）
+  - lefthook pre-commit に label-audit step 追加
+  - CI に Label audit step 追加
+  - PaletteQuickContext の英語見出し（Calculator / Clipboard / Quick context）を日本語化（既存違反横展開）
+- PH-327 Workspace 編集モード: hasUnsavedChanges() で snapshot 差分検出、Esc / キャンセル時に破棄確認ダイアログ
+- PH-328 セルフテスト: scripts/test-audit-labels.sh が tmpdir fixture で audit の exit code を検証
+- PH-329 ux_standards.md §12 ラベル原則に「機械化」サブセクション追記
+
+教訓 / 横展開:
+
+- 「書いて満足」の規約を「機械検証」に昇格させる手順を確立: bash script → lefthook step → CI step → セルフテスト の 4 段階
+- launchItem('virtual-prefix:value') パターンは DB 経由 NotFound で silently fail する罠 → 直接 cmd_open_path 等を呼ぶこと
+- Workspace 編集破棄確認は snapshot 比較で実装、既存 doRestoreSnapshot を再利用
+
+次バッチ候補:
+
+- batch-75: lefthook pre-push 復活（worktree + v2.1.1 bug 究明、setup-worktree.sh 実行後の挙動確認）
+- batch-76: Workspace 8 ハンドル resize 完成（n / w / nw / ne / sw、workspaceStore.optimisticMoveAndResize() API 拡張）
