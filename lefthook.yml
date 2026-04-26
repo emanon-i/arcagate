@@ -20,6 +20,9 @@ pre-commit:
     clippy:
       glob: "src-tauri/**/*.rs"
       run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+    label-audit:
+      glob: "*.{svelte,ts,tsx}"
+      run: bash scripts/audit-labels.sh {staged_files}
 
 # pre-push: 一時無効（worktree + lefthook v2.1.1 bug）。batch-68 で復活予定。
 # pre-push:

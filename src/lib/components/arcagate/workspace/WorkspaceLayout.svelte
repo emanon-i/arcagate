@@ -200,10 +200,50 @@ function confirmEdit() {
 	editSnapshot = [];
 }
 
+function hasUnsavedChanges(): boolean {
+	if (editSnapshot.length === 0) return false;
+	const snapshotIds = new Set(editSnapshot.map((s) => s.id));
+	const liveIds = new Set(workspaceStore.widgets.map((w) => w.id));
+	if (snapshotIds.size !== liveIds.size) return true;
+	for (const id of snapshotIds) {
+		if (!liveIds.has(id)) return true;
+	}
+	for (const snap of editSnapshot) {
+		const live = workspaceStore.widgets.find((w) => w.id === snap.id);
+		if (!live) return true;
+		if (
+			live.position_x !== snap.x ||
+			live.position_y !== snap.y ||
+			live.width !== snap.w ||
+			live.height !== snap.h
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+let cancelConfirmOpen = $state(false);
+
 function cancelEdit() {
+	if (hasUnsavedChanges()) {
+		cancelConfirmOpen = true;
+		return;
+	}
 	editMode = false;
 	selectedWidgetId = null;
 	void doRestoreSnapshot();
+}
+
+function confirmCancel() {
+	cancelConfirmOpen = false;
+	editMode = false;
+	selectedWidgetId = null;
+	void doRestoreSnapshot();
+}
+
+function dismissCancel() {
+	cancelConfirmOpen = false;
 }
 
 async function doRestoreSnapshot() {
@@ -404,3 +444,43 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	onConfirm={confirmRename}
 	onCancel={() => (renameOpen = false)}
 />
+
+{#if cancelConfirmOpen}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) dismissCancel();
+		}}
+		onkeydown={(e) => {
+			if (e.key === 'Escape') dismissCancel();
+			if (e.key === 'Enter') confirmCancel();
+		}}
+	>
+		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]">
+			<h3 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">編集を破棄しますか？</h3>
+			<p class="mb-4 text-sm text-[var(--ag-text-secondary)]">
+				未確定の変更があります。破棄するとレイアウト変更は失われます。
+			</p>
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					onclick={dismissCancel}
+				>
+					編集に戻る
+				</button>
+				<button
+					type="button"
+					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-red-500 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					onclick={confirmCancel}
+				>
+					破棄する
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

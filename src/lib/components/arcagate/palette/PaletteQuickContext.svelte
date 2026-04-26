@@ -50,7 +50,7 @@ function formatRelativeTime(iso: string): string {
 <div class="space-y-4 rounded-[24px] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4" role="region" aria-label="選択アイテムの詳細">
 	{#if selected?.kind === 'item'}
 		<div>
-			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">Quick context</div>
+			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">プレビュー</div>
 			<div class="mt-2 text-sm font-medium text-[var(--ag-text-primary)]">{selected.item.label}</div>
 		</div>
 
@@ -70,18 +70,18 @@ function formatRelativeTime(iso: string): string {
 		</div>
 	{:else if selected?.kind === 'calc'}
 		<div>
-			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">Calculator</div>
+			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">電卓</div>
 			<div class="mt-2 text-sm font-medium text-[var(--ag-text-primary)]">{selected.expression}</div>
 			<div class="mt-1 text-lg font-bold text-[var(--ag-accent-text)]">= {selected.result}</div>
 		</div>
 	{:else if selected?.kind === 'clipboard'}
 		<div>
-			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">Clipboard</div>
+			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">クリップボード</div>
 			<div class="mt-2 line-clamp-6 text-sm text-[var(--ag-text-secondary)]">{selected.text}</div>
 		</div>
 	{:else}
 		<div>
-			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">Quick context</div>
+			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">プレビュー</div>
 			<div class="mt-2 text-sm text-[var(--ag-text-muted)]">
 				検索するか矢印キーで選択してください
 			</div>

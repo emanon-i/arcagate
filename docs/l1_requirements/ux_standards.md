@@ -492,6 +492,13 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 - 同じ機能には同じアイコン + 同じラベル（`src/lib/nav-items.ts` 経由）
 - 1 つの不整合を見つけたら横展開で全画面チェック
 
+#### 機械化（batch-74）
+
+- `scripts/audit-labels.sh`: aria-label / 表示テキストに Lucide アイコン名（Star / Plus / Trash / Settings 等）や記号（★ ＋ × 等）が直書きされていないか grep 検出
+- lefthook pre-commit: `label-audit` step で staged ファイルに対し実行、違反で commit 阻止
+- CI: `Label audit (UX 一貫性)` step で全コードベースを検証、違反で PR fail
+- セルフテスト: `scripts/test-audit-labels.sh` で fixture（pass / fail）を流して exit code を検証
+
 ---
 
 ## 13. Workspace Canvas 編集 UX 規約 (batch-70)
