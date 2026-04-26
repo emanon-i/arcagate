@@ -2635,3 +2635,41 @@ main rebased commits:
 次バッチ:
 
 - batch-76: PH-335 lefthook pre-push 復活（GIT_* env var 漏出根本原因究明 + 修正）
+
+---
+
+## batch-76 完走 (2026-04-26)
+
+PR #119 merge 済み（rebase-and-merge、merge SHA `80bdf98`）。CI 全 SUCCESS（changes / check / e2e / build）。
+
+main rebased commits:
+
+- 80bdf98 feat(batch-76): PH-335 lefthook pre-push 復活（GIT_* env var 漏出を修正）
+
+scope-cut 状況:
+
+- 当初 5 plan 構成だったが、PH-336 / 337 / 338 / 339 は時間制約で未着手 → batch-77 に持ち越し
+- PH-335 単独だが、批判的な lefthook 問題究明という性質から例外的に小型バッチで完結
+
+主要変更（PH-335）:
+
+- 原因究明: lefthook が hook 起動時に GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE 環境変数を親 repo 向けに設定し、cargo test の git CLI 子プロセスに継承
+  - `Command::new("git").current_dir(tempdir)` で cwd を切り替えても、GIT_DIR が設定されていれば git は env var を優先 → tempdir 操作が破綻
+- 修正: `src-tauri/src/utils/git.rs` に `git_cmd()` helper、`env_remove` で GIT_* / GIT_OBJECT_DIRECTORY / GIT_NAMESPACE / GIT_COMMON_DIR を除去
+- production の `run_git_command` も同 helper 経由（防御的措置、Tauri 起動環境に GIT_* が残っていても内部 git status が誤動作しない）
+- lefthook.yml の pre-push を再有効化（svelte-check + cargo test 並列）
+- 実機 `git push` で svelte-check 9.6s + cargo-test 18s 並列実行 → 緑
+
+教訓:
+
+- 本日 1 日でこの bug は 4 段階で見えた:
+  1. batch-67: pre-push fatal（worktree core.bare 継承）→ setup-worktree.sh で対処
+  2. batch-68: 引き続き pre-push fail → 一時 disable（究明先送り）
+  3. batch-75: 再有効化試みるも実機 push で `utils::git::tests` 3 件 fail
+  4. batch-76: GIT_DIR env var 漏出を特定、`git_cmd()` helper で根治
+- 教訓: lefthook 経由で git CLI を起動するテストは GIT_* env var を明示的に除去すべし
+- lessons.md「lefthook + cargo test の GIT_* env 漏出」エントリを batch-78 整理で追加予定
+
+次バッチ:
+
+- batch-77: per-card override UI 仕上げ + Library タグ追加 UI 改善 + 可視/不可視トグル説明 + ExeFolder e2e + 単体テスト + 整理
