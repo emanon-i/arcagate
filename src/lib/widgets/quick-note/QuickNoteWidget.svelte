@@ -6,7 +6,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { QUICK_NOTE_DEFAULTS, type QuickNoteFontSize } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
-import { getErrorMessage } from '$lib/utils/format-error';
+import { formatIpcError } from '$lib/utils/ipc-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -50,7 +50,7 @@ async function saveNote() {
 			JSON.stringify({ ...config, note: noteText }),
 		);
 	} catch (e: unknown) {
-		toastStore.add(`メモの保存に失敗しました: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(formatIpcError({ operation: 'メモの保存' }, e), 'error');
 	}
 }
 

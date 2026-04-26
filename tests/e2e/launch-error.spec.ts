@@ -32,7 +32,7 @@ test.describe('launch エラー診断 (Nielsen H9 / PH-417 + PH-422)', () => {
 		}
 	});
 
-	test('拡張子なし path → 「実行可能ファイルではありません」エラー', async ({ page }) => {
+	test('拡張子なし path → 「実行可能ファイルではありません」エラー', async ({ page: _page }) => {
 		// CARGO_MANIFEST_DIR は存在するが拡張子なし → LaunchNotExecutable
 		// ただし e2e からは Rust 側 manifest_dir を取れないので、テスト用に固定パスを使う
 		// 代わりに Library 経由で「拡張子なし path」を作って起動を試みる
