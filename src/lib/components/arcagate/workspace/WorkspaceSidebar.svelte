@@ -1,8 +1,13 @@
 <script lang="ts">
 import {
 	Check,
+	CheckSquare,
+	Clipboard,
+	ClipboardList,
 	Clock,
 	Clock3,
+	FileSearch,
+	FolderOpen,
 	GitBranch,
 	Grip,
 	NotebookPen,
@@ -29,13 +34,18 @@ const rm =
 	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = [
-	{ type: 'favorites', label: 'Favorites', icon: Star },
-	{ type: 'recent', label: 'Recent', icon: Clock3 },
-	{ type: 'projects', label: 'Projects', icon: GitBranch },
-	{ type: 'item', label: 'Item', icon: Package },
-	{ type: 'clock', label: 'Clock', icon: Clock },
-	{ type: 'stats', label: 'Most Used', icon: TrendingUp },
-	{ type: 'quick_note', label: 'Quick Note', icon: NotebookPen },
+	{ type: 'favorites', label: 'よく使うもの', icon: Star },
+	{ type: 'recent', label: '最近使ったもの', icon: Clock3 },
+	{ type: 'projects', label: 'プロジェクト', icon: GitBranch },
+	{ type: 'item', label: 'アイテム', icon: Package },
+	{ type: 'clock', label: '時計', icon: Clock },
+	{ type: 'stats', label: 'よく起動', icon: TrendingUp },
+	{ type: 'quick_note', label: 'クイックメモ', icon: NotebookPen },
+	{ type: 'exe_folder', label: 'Exe フォルダ監視', icon: FolderOpen },
+	{ type: 'daily_task', label: 'デイリータスク', icon: CheckSquare },
+	{ type: 'snippet', label: 'スニペット', icon: Clipboard },
+	{ type: 'clipboard_history', label: 'クリップボード履歴', icon: ClipboardList },
+	{ type: 'file_search', label: 'ファイル検索', icon: FileSearch },
 ];
 
 function startDrag(e: PointerEvent, widgetType: WidgetType) {

@@ -14,6 +14,8 @@ pub enum WidgetType {
     ExeFolder,
     DailyTask,
     Snippet,
+    ClipboardHistory,
+    FileSearch,
 }
 
 impl WidgetType {
@@ -30,6 +32,8 @@ impl WidgetType {
             WidgetType::ExeFolder => "exe_folder",
             WidgetType::DailyTask => "daily_task",
             WidgetType::Snippet => "snippet",
+            WidgetType::ClipboardHistory => "clipboard_history",
+            WidgetType::FileSearch => "file_search",
         }
     }
 
@@ -47,6 +51,8 @@ impl WidgetType {
             "exe_folder" => Some(WidgetType::ExeFolder),
             "daily_task" => Some(WidgetType::DailyTask),
             "snippet" => Some(WidgetType::Snippet),
+            "clipboard_history" => Some(WidgetType::ClipboardHistory),
+            "file_search" => Some(WidgetType::FileSearch),
             _ => None,
         }
     }
@@ -116,6 +122,8 @@ mod tests {
         assert_eq!(WidgetType::ExeFolder.as_str(), "exe_folder");
         assert_eq!(WidgetType::DailyTask.as_str(), "daily_task");
         assert_eq!(WidgetType::Snippet.as_str(), "snippet");
+        assert_eq!(WidgetType::ClipboardHistory.as_str(), "clipboard_history");
+        assert_eq!(WidgetType::FileSearch.as_str(), "file_search");
     }
 
     #[test]
@@ -146,6 +154,14 @@ mod tests {
             Some(WidgetType::DailyTask)
         );
         assert_eq!(WidgetType::from_str("snippet"), Some(WidgetType::Snippet));
+        assert_eq!(
+            WidgetType::from_str("clipboard_history"),
+            Some(WidgetType::ClipboardHistory)
+        );
+        assert_eq!(
+            WidgetType::from_str("file_search"),
+            Some(WidgetType::FileSearch)
+        );
     }
 
     #[test]
@@ -169,6 +185,8 @@ mod tests {
             WidgetType::ExeFolder,
             WidgetType::DailyTask,
             WidgetType::Snippet,
+            WidgetType::ClipboardHistory,
+            WidgetType::FileSearch,
         ];
         for t in &types {
             let s = t.as_str();

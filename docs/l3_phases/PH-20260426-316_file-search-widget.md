@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-316
-status: todo
+status: done
 batch: 72
 type: 改善
 ---
@@ -23,8 +23,9 @@ type: 改善
 
 ## 受け入れ条件
 
-- [ ] WidgetType 'file_search' 追加
-- [ ] cmd_list_files Rust 単体 4 件以上 pass
-- [ ] 検索 input で filter
-- [ ] menuItems = 1 即モーダル
-- [ ] `pnpm verify` 全通過
+- [x] WidgetType 'file_search' 追加
+- [x] cmd_list_files Rust 単体 6 件 pass（depth / limit / dotfile skip / clamp）
+- [x] 検索 input で filter（部分一致、表示上限 50 件）
+- [x] menuItems = 1 即モーダル
+- [x] cmd_open_path 追加（DB 経由しない一時起動）
+- [x] `pnpm verify` 全通過

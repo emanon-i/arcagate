@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-317
-status: todo
+status: done
 batch: 72
 type: 改善
 ---
@@ -20,6 +20,7 @@ type: 改善
 
 ## 受け入れ条件
 
-- [ ] cargo test --lib widget_type roundtrip 緑
-- [ ] WIDGET_LABELS 同期
-- [ ] `pnpm verify` 全通過
+- [x] cargo test --lib widget_type roundtrip 緑（4 件 pass）
+- [x] WIDGET_LABELS 同期（'クリップボード履歴' / 'ファイル検索'）
+- [x] WorkspaceSidebar palette に追加（横展開で過去の exe_folder/daily_task/snippet も追加）
+- [x] `pnpm verify` 全通過

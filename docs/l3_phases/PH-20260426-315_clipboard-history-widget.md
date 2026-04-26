@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-315
-status: todo
+status: done
 batch: 72
 type: 改善
 ---
@@ -23,8 +23,8 @@ type: 改善
 
 ## 受け入れ条件
 
-- [ ] WidgetType 'clipboard_history' 追加
-- [ ] 履歴 polling + dedupe + max_items 上限
-- [ ] クリックで再コピー + toast
-- [ ] menuItems = 1 即モーダル
-- [ ] `pnpm verify` 全通過
+- [x] WidgetType 'clipboard_history' 追加
+- [x] 履歴 polling + dedupe + max_items 上限（pushClipboardEntry helper）
+- [x] クリックで再コピー + toast
+- [x] menuItems = 1 即モーダル
+- [x] `pnpm verify` 全通過
