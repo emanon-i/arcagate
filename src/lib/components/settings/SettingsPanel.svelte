@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Copy, Plus } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { NAV_SETTINGS, type NavSettingsId } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
@@ -154,9 +155,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 	<!-- 右: コンテンツ -->
 	<div class="min-w-0 flex-1 overflow-y-auto">
 		{#if configStore.loading}
-			<div class="p-5">
-				<p class="text-sm text-[var(--ag-text-muted)]">読み込み中...</p>
-			</div>
+			<LoadingState description="設定を読み込み中..." testId="settings-loading" />
 		{:else}
 			{#if activeCategory === 'general'}
 				<div
