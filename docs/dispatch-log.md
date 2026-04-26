@@ -2673,3 +2673,45 @@ scope-cut 状況:
 次バッチ:
 
 - batch-77: per-card override UI 仕上げ + Library タグ追加 UI 改善 + 可視/不可視トグル説明 + ExeFolder e2e + 単体テスト + 整理
+
+---
+
+## batch-77 完走 (2026-04-26)
+
+PR #122 merge 済み（rebase-and-merge、merge SHA `87ee14d`）。CI 全 SUCCESS。
+
+主要変更:
+
+- PH-340 LibraryDetailPanel per-card override UI 仕上げ（「個別調整中」バッジ + 解除確認ダイアログ + aria-label 機能文言）
+- PH-341 タグ candidate suggest helper 抽出（pure function、UI 結合は batch-78 持越→ batch-79+ に再持越）
+- PH-342 可視/不可視トグル説明強化（「検索 + ウィジェットから外れる」「データは残る」明記）
+- PH-343 単体テスト: tag-suggest 10 件 + per-card-override 4 件
+- PH-344 整理
+
+教訓:
+
+- 確認ダイアログ pattern（破壊的操作前に確認）を batch-74 (Workspace 編集破棄) と batch-77 (per-card override 解除) で共通化
+- 純粋関数を ts に切り出して vitest の確立パターン継続
+
+---
+
+## batch-78 完走 (2026-04-26)
+
+PR #123 merge 済み（rebase-and-merge、merge SHA `10c29f4`）。CI 全 SUCCESS。
+
+主要変更:
+
+- PH-345 widget role="group" tabindex 編集モード時のみ 0、Tab フォーカス（batch-76 PH-336 持越分消化）
+- PH-346 resize overlap-aware: clampResizeForOverlap 純粋関数 + UI 結合（batch-76 PH-337 持越分消化）
+- PH-347 タグ suggest UI 結合 → **batch-79+ に再持越**（folder-per-widget 改修と一緒にやる方が効率良いため scope cut）
+- PH-348 単体テスト: resize-delta 21 件
+- PH-349 整理
+
+教訓:
+
+- 持越 plan は次バッチで吸収する原則（batch-76 → 78 で消化済）
+- 「次バッチに先延ばし」が累積するのは品質バー違反、batch-79 で大規模 refactor 後に消化
+
+次バッチ:
+
+- batch-79: ウィジェットシステム追加容易性向上（folder-per-widget colocation + ts-rs + Settings 分割 + audit）→ ユーザ承認済
