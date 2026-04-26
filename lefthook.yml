@@ -23,6 +23,9 @@ pre-commit:
     label-audit:
       glob: "*.{svelte,ts,tsx}"
       run: bash scripts/audit-labels.sh {staged_files}
+    widget-coverage:
+      glob: "{src-tauri/src/models/workspace.rs,src/lib/types/workspace.ts,src/lib/bindings/WidgetType.ts}"
+      run: bash scripts/audit-widget-coverage.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

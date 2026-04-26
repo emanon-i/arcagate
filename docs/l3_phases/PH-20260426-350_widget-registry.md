@@ -1,8 +1,9 @@
 ---
 id: PH-20260426-350
-status: todo
+status: deferred
 batch: 79
 type: 改善
+note: Refactor Era 起動時に実施（user 判断、現状は polish 優先）
 ---
 
 # PH-350: TS folder-per-widget colocation + auto-collect registry

@@ -50,6 +50,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-labels.sh
 
+      - name: Widget coverage audit (Rust enum ↔ TS bindings ↔ WIDGET_LABELS)
+        shell: bash
+        run: bash scripts/audit-widget-coverage.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings
