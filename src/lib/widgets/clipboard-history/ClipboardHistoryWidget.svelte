@@ -11,7 +11,7 @@ import {
 	deleteClipboardEntry,
 	pushClipboardEntry,
 } from '$lib/utils/clipboard-history';
-import { getErrorMessage } from '$lib/utils/format-error';
+import { formatIpcError } from '$lib/utils/ipc-error';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -70,7 +70,7 @@ async function copyEntry(entry: ClipboardEntry) {
 		await writeText(entry.text);
 		toastStore.add('クリップボードにコピーしました', 'success');
 	} catch (e: unknown) {
-		toastStore.add(`コピーに失敗しました: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(formatIpcError({ operation: 'クリップボードへのコピー' }, e), 'error');
 	}
 }
 

@@ -5,7 +5,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
-import { getErrorMessage } from '$lib/utils/format-error';
+import { formatIpcError } from '$lib/utils/ipc-error';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -46,7 +46,7 @@ async function copySnippet(snip: Snippet) {
 		await navigator.clipboard.writeText(snip.body);
 		toastStore.add(`「${snip.label}」をコピーしました`, 'success');
 	} catch (e: unknown) {
-		toastStore.add(`コピーに失敗しました: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(formatIpcError({ operation: 'クリップボードへのコピー' }, e), 'error');
 	}
 }
 
