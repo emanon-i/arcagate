@@ -1,0 +1,30 @@
+import type { Component } from 'svelte';
+import type { WidgetType } from '$lib/bindings/WidgetType';
+
+/**
+ * 1 つのウィジェットの全 metadata を 1 オブジェクトに集約する型。
+ *
+ * 各 widget は `src/lib/widgets/<name>/index.ts` で `widgetType` + `meta`
+ * を export し、`src/lib/widgets/index.ts` の `import.meta.glob` で
+ * auto-collect される。
+ *
+ * batch-83 PH-370 で導入。
+ */
+export interface WidgetMeta {
+	/** ウィジェット本体の Svelte コンポーネント */
+	Component: Component;
+	/** Lucide アイコン（編集モード Sidebar / aria icon に使用） */
+	icon: Component;
+	/** 日本語ラベル（編集モード Sidebar / aria-label に使用） */
+	label: string;
+	/** デフォルト config（addWidget 時に widget.config の初期値として使用、JSON シリアライズ可能） */
+	defaultConfig?: Record<string, unknown>;
+	/** 編集モード Sidebar palette に表示するか（false なら API でのみ追加可能） */
+	addable: boolean;
+}
+
+/** widgets/<name>/index.ts の export 形式（auto-collect 用） */
+export interface WidgetModule {
+	widgetType: WidgetType;
+	meta: WidgetMeta;
+}
