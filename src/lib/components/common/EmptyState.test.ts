@@ -49,4 +49,48 @@ describe('EmptyState', () => {
 		});
 		expect(container.querySelector('[data-testid="my-empty"]')).toBeTruthy();
 	});
+
+	// PH-424 / Codex Q5 #4: 複数 actions
+	it('actions 複数指定時に全ボタンが表示される', () => {
+		const onAdd = vi.fn();
+		const onSettings = vi.fn();
+		const onHelp = vi.fn();
+		const { getByRole } = render(EmptyState, {
+			icon: Package,
+			title: 'なし',
+			actions: [
+				{ label: 'アイテムを追加', onClick: onAdd },
+				{ label: '設定を開く', onClick: onSettings },
+				{ label: 'ヘルプを見る', onClick: onHelp },
+			],
+		});
+		expect(getByRole('button', { name: 'アイテムを追加' })).toBeTruthy();
+		expect(getByRole('button', { name: '設定を開く' })).toBeTruthy();
+		expect(getByRole('button', { name: 'ヘルプを見る' })).toBeTruthy();
+	});
+
+	it('actions の各クリックで対応する onClick が呼ばれる', async () => {
+		const onAdd = vi.fn();
+		const onSettings = vi.fn();
+		const { getByRole } = render(EmptyState, {
+			icon: Package,
+			title: 'なし',
+			actions: [
+				{ label: 'アイテムを追加', onClick: onAdd },
+				{ label: '設定を開く', onClick: onSettings },
+			],
+		});
+		await fireEvent.click(getByRole('button', { name: '設定を開く' }));
+		expect(onSettings).toHaveBeenCalledOnce();
+		expect(onAdd).not.toHaveBeenCalled();
+	});
+
+	it('actions と action の両方未指定なら button 0 件 (後方互換)', () => {
+		const { queryByRole } = render(EmptyState, {
+			icon: Package,
+			title: 'なし',
+			actions: [],
+		});
+		expect(queryByRole('button')).toBeNull();
+	});
 });
