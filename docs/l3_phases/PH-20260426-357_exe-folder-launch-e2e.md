@@ -1,8 +1,9 @@
 ---
 id: PH-20260426-357
-status: todo
+status: partial
 batch: 80
 type: 改善
+note: lessons.md エントリ追加は完了、e2e nightly は batch-81 持越（cmd_open_path spy 実装の複雑さ）
 ---
 
 # PH-357: ExeFolderWatchWidget 起動 e2e + lessons.md 更新
@@ -22,6 +23,6 @@ type: 改善
 
 ## 受け入れ条件
 
-- [ ] e2e nightly テスト 1 件 pass
-- [ ] lessons.md エントリ 2 件追加
-- [ ] `pnpm verify` 全通過
+- [ ] **batch-81 持越**: e2e nightly テスト 1 件 pass（cmd_open_path spy）
+- [x] lessons.md エントリ 4 件追加（launchItem virtual id / lefthook GIT_\* env / ts-rs / Refactor Era 優先順位）
+- [x] `pnpm verify` 全通過
