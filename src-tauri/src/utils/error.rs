@@ -46,11 +46,61 @@ pub enum AppError {
     WatchFailed(String),
 }
 
+impl AppError {
+    /// PH-422: フロント側構造化判定用の error code 文字列。
+    /// serialize 形式は当面 string 維持 (互換性) だが、
+    /// code() で取得すれば error code でカテゴリ判定可能 (将来 IPC serialize 形式変更に備える)。
+    pub fn code(&self) -> &'static str {
+        match self {
+            AppError::Database(_) => "db.error",
+            AppError::NotFound(_) => "not_found",
+            AppError::LaunchFailed(_) => "launch.failed",
+            AppError::LaunchFileNotFound(_) => "launch.file_not_found",
+            AppError::LaunchPermissionDenied(_) => "launch.permission_denied",
+            AppError::LaunchNotExecutable(_) => "launch.not_executable",
+            AppError::Validation(_) => "validation",
+            AppError::Io(_) => "io.error",
+            AppError::DbLock => "db.lock",
+            AppError::Zip(_) => "zip",
+            AppError::Permission(_) => "permission",
+            AppError::InvalidInput(_) => "invalid_input",
+            AppError::Cancelled => "cancelled",
+            AppError::WatchFailed(_) => "watch.failed",
+        }
+    }
+}
+
 impl serde::Serialize for AppError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         serializer.serialize_str(&self.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn code_returns_distinct_codes_for_each_variant() {
+        assert_eq!(AppError::NotFound("x".into()).code(), "not_found");
+        assert_eq!(AppError::LaunchFailed("x".into()).code(), "launch.failed");
+        assert_eq!(
+            AppError::LaunchFileNotFound("x".into()).code(),
+            "launch.file_not_found"
+        );
+        assert_eq!(
+            AppError::LaunchPermissionDenied("x".into()).code(),
+            "launch.permission_denied"
+        );
+        assert_eq!(
+            AppError::LaunchNotExecutable("x".into()).code(),
+            "launch.not_executable"
+        );
+        assert_eq!(AppError::Cancelled.code(), "cancelled");
+        assert_eq!(AppError::WatchFailed("x".into()).code(), "watch.failed");
+        assert_eq!(AppError::DbLock.code(), "db.lock");
     }
 }

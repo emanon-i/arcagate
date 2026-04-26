@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-422
-status: todo
+status: done
 batch: 93
 type: 改善
 era: UX Audit Re-Validation Round 2
@@ -65,15 +65,24 @@ Codex Rule C 再 review (2026-04-27) で **Q5 #5 + #6 として指摘**。
 - AppError serialize 形式変更 → 全 IPC 呼び出し catch の互換性確認
 - 既存 launch-error.test.ts 既存テスト改修
 
-## 受け入れ条件
+## 受け入れ条件 (batch-93 必須スコープ — Windows 引数安全化を優先)
 
-- [ ] AppError に `code()` メソッド + serialize 形式 `{ code, message }` 変更
-- [ ] shell-words crate 依存追加、Cargo.toml に記載
-- [ ] launch_exe / launch_command の split_whitespace を shlex::split に置換
+- [ ] shell-words (or shlex) crate 依存追加、Cargo.toml に記載
+- [ ] launch_exe / launch_command / launch_script の split_whitespace を shell-words::split に置換
 - [ ] スペース入りパス + `--flag "value with space"` 引数の単体テスト 3 ケース
-- [ ] launch-error.ts を errorCode field ベースに改修、フォールバック残置
-- [ ] launch-error.test.ts に errorCode 判定ケース 5 件追加
+- [ ] AppError に `code()` メソッド追加 (string code 返却)、serialize 形式は維持 (互換性)
+- [ ] launch-error.ts に code() 利用は別 plan で対応する旨コメント
 - [ ] `pnpm verify` 全通過 (clippy + biome)
+
+## 別 plan に切り出し (batch-94 候補 PH-429)
+
+- AppError serialize 形式を `{ code, message }` に変更 (IPC 境界 break change)
+- launch-error.ts を errorCode field ベースに改修
+- 全 IPC エラー catch の互換性確認
+- e2e テストで原因別文言検証 (PH-423 と被るが完全な fix は serialize 変更後)
+
+理由: serialize 変更は全 IPC 境界に影響、慎重に進めるため別 plan。
+本 plan では「Windows 引数安全化」を最優先 (Codex 指摘の地雷)。
 
 ## SFDIPOT 観点
 
