@@ -100,7 +100,7 @@ async function persistConfig(next: WidgetConfig) {
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
-		toastStore.add(`設定保存に失敗: ${String(e)}`, 'error');
+		toastStore.add(`設定の保存に失敗しました: ${String(e)}`, 'error');
 	}
 }
 

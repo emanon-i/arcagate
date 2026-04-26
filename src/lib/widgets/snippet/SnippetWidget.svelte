@@ -45,7 +45,7 @@ async function copySnippet(snip: Snippet) {
 		await navigator.clipboard.writeText(snip.body);
 		toastStore.add(`「${snip.label}」をコピーしました`, 'success');
 	} catch (e: unknown) {
-		toastStore.add(`コピーに失敗: ${String(e)}`, 'error');
+		toastStore.add(`コピーに失敗しました: ${String(e)}`, 'error');
 	}
 }
 
