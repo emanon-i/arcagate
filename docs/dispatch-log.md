@@ -3148,3 +3148,52 @@ batch-94 は 5 plan に絞る:
 ### 自律作成ログ
 
 - 2026-04-27: PH-420〜424 を Plan 自律作成 (dispatch-operation §4d、5 件上限内)
+
+## 2026-04-27 [batch-94] UX Audit Re-Validation Round 3 完走
+
+### 経緯
+
+batch-93 Codex Rule C 再 review (2 回目) で「Polish Era 完走時期尚早」「8 件未解消」と判定。
+batch-93 で 5 件解消、残 3 件 (#2 watch UI / #3 OnboardingTour / #5 IPC serialize) を batch-94 で全消化。
+
+### 5 Plan 結果 (Codex Q5 残 3 件 + Q4 推奨優先順位)
+
+| Plan   | 内容                                                | status | Codex 指摘 |
+| ------ | --------------------------------------------------- | ------ | ---------- |
+| PH-429 | AppError serialize { code, message } + format-error | done   | Q5 #5      |
+| PH-426 | formatIpcError helper + 6 箇所統一                  | done   | Q4 推奨 #3 |
+| PH-425 | ErrorBoundary svelte:boundary 利用                  | done   | Q4 推奨 #7 |
+| PH-428 | 取り込みフォルダ管理 UI (Settings > Library)        | done   | Q5 #2      |
+| PH-427 | OnboardingTour 初回 3 ステップ + skip               | done   | Q5 #3      |
+
+### Codex Q5 残作業 全 8 件 解消 (batch-92 + 93 + 94)
+
+- ✅ #1 watch silent failure → PH-421
+- ✅ #2 watch UI 可視化 → PH-428
+- ✅ #3 OnboardingTour → PH-427
+- ✅ #4 EmptyState actions slot → PH-424
+- ✅ #5 IPC serialize 構造化 → PH-429
+- ✅ #6 split_whitespace → PH-422
+- ✅ #7 HelpPanel focus trap → PH-423 + ErrorBoundary → PH-425
+- ✅ #8 e2e 原因別文言 → PH-423
+
+### Polish Era 完走判定
+
+batch-95 で Codex 3 回目再 review → 残作業確認 + 機能拡張系判定 → 完走判定。
+
+### batch-95 候補 (5 plan)
+
+severity 3 残 (機能拡張系):
+
+- PH-430 一括タグ付け (H7、bulk-edit UI)
+- PH-431 launch group (H7、Rule A、Codex Q4 macro 候補)
+- PH-432 clipboard 検索 (H7)
+
+その他:
+
+- PH-433 実機ベンチ実行 (PH-419 deferred 解消、ユーザ承認後)
+- PH-434 Codex Rule C 3 回目 + Polish Era 完走判定文書化
+
+### 自律作成ログ
+
+- 2026-04-27: PH-425〜429 を Plan 自律作成 (5 件上限内)
