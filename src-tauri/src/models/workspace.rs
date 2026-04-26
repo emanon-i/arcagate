@@ -16,6 +16,7 @@ pub enum WidgetType {
     Snippet,
     ClipboardHistory,
     FileSearch,
+    SystemMonitor,
 }
 
 impl WidgetType {
@@ -34,6 +35,7 @@ impl WidgetType {
             WidgetType::Snippet => "snippet",
             WidgetType::ClipboardHistory => "clipboard_history",
             WidgetType::FileSearch => "file_search",
+            WidgetType::SystemMonitor => "system_monitor",
         }
     }
 
@@ -53,6 +55,7 @@ impl WidgetType {
             "snippet" => Some(WidgetType::Snippet),
             "clipboard_history" => Some(WidgetType::ClipboardHistory),
             "file_search" => Some(WidgetType::FileSearch),
+            "system_monitor" => Some(WidgetType::SystemMonitor),
             _ => None,
         }
     }
@@ -124,6 +127,7 @@ mod tests {
         assert_eq!(WidgetType::Snippet.as_str(), "snippet");
         assert_eq!(WidgetType::ClipboardHistory.as_str(), "clipboard_history");
         assert_eq!(WidgetType::FileSearch.as_str(), "file_search");
+        assert_eq!(WidgetType::SystemMonitor.as_str(), "system_monitor");
     }
 
     #[test]
@@ -162,6 +166,10 @@ mod tests {
             WidgetType::from_str("file_search"),
             Some(WidgetType::FileSearch)
         );
+        assert_eq!(
+            WidgetType::from_str("system_monitor"),
+            Some(WidgetType::SystemMonitor)
+        );
     }
 
     #[test]
@@ -187,6 +195,7 @@ mod tests {
             WidgetType::Snippet,
             WidgetType::ClipboardHistory,
             WidgetType::FileSearch,
+            WidgetType::SystemMonitor,
         ];
         for t in &types {
             let s = t.as_str();

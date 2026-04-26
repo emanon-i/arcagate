@@ -1,5 +1,6 @@
 <script lang="ts">
 import {
+	Activity,
 	Check,
 	CheckSquare,
 	Clipboard,
@@ -46,6 +47,7 @@ const availableWidgets: { type: WidgetType; label: string; icon: Component }[] =
 	{ type: 'snippet', label: 'スニペット', icon: Clipboard },
 	{ type: 'clipboard_history', label: 'クリップボード履歴', icon: ClipboardList },
 	{ type: 'file_search', label: 'ファイル検索', icon: FileSearch },
+	{ type: 'system_monitor', label: 'システムモニタ', icon: Activity },
 ];
 
 function startDrag(e: PointerEvent, widgetType: WidgetType) {

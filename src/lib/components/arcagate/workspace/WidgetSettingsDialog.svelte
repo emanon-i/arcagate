@@ -43,6 +43,11 @@ interface WidgetConfig {
 	root?: string;
 	depth?: number;
 	limit?: number;
+	// SystemMonitor widget
+	refresh_interval_ms?: number;
+	show_cpu?: boolean;
+	show_memory?: boolean;
+	show_disk?: boolean;
 }
 
 let config = $state<WidgetConfig>({});
@@ -102,6 +107,12 @@ let fsRoot = $derived(config.root ?? '');
 let fsDepth = $derived(config.depth ?? 2);
 let fsLimit = $derived(config.limit ?? 200);
 let fsTitle = $derived(config.title ?? '');
+// SystemMonitor widget defaults
+let smRefreshMs = $derived(config.refresh_interval_ms ?? 2000);
+let smShowCpu = $derived(config.show_cpu ?? true);
+let smShowMemory = $derived(config.show_memory ?? true);
+let smShowDisk = $derived(config.show_disk ?? false);
+let smTitle = $derived(config.title ?? '');
 
 async function handlePickFolder() {
 	const selected = await open({
@@ -159,6 +170,14 @@ async function handleSave() {
 			depth: Math.max(1, Math.min(3, fsDepth)),
 			limit: Math.max(10, Math.min(2000, fsLimit)),
 			title: fsTitle,
+		};
+	} else if (widget.widget_type === 'system_monitor') {
+		newConfig = {
+			refresh_interval_ms: Math.max(500, Math.min(10_000, smRefreshMs)),
+			show_cpu: smShowCpu,
+			show_memory: smShowMemory,
+			show_disk: smShowDisk,
+			title: smTitle,
 		};
 	} else {
 		newConfig = { max_items: maxItems, sort_field: sortField };
@@ -406,6 +425,60 @@ async function handleSave() {
               placeholder="ファイル検索"
               class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
               value={fsTitle}
+              oninput={(e) => { config = { ...config, title: (e.currentTarget as HTMLInputElement).value }; }}
+            />
+          </div>
+        {:else if widget.widget_type === 'system_monitor'}
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-refresh">更新間隔（ミリ秒、500〜10000）</label>
+            <input
+              id="ws-sm-refresh"
+              type="number"
+              min="500"
+              max="10000"
+              step="100"
+              autocomplete="off"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={smRefreshMs}
+              onchange={(e) => { config = { ...config, refresh_interval_ms: Math.max(500, Math.min(10000, Number((e.currentTarget as HTMLInputElement).value) || 2000)) }; }}
+            />
+          </div>
+          <label class="flex items-center justify-between gap-3 text-sm">
+            <span class="text-[var(--ag-text-primary)]">CPU を表示</span>
+            <input
+              type="checkbox"
+              checked={smShowCpu}
+              onchange={(e) => { config = { ...config, show_cpu: (e.currentTarget as HTMLInputElement).checked }; }}
+              class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+            />
+          </label>
+          <label class="flex items-center justify-between gap-3 text-sm">
+            <span class="text-[var(--ag-text-primary)]">メモリを表示</span>
+            <input
+              type="checkbox"
+              checked={smShowMemory}
+              onchange={(e) => { config = { ...config, show_memory: (e.currentTarget as HTMLInputElement).checked }; }}
+              class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+            />
+          </label>
+          <label class="flex items-center justify-between gap-3 text-sm">
+            <span class="text-[var(--ag-text-primary)]">ディスクを表示</span>
+            <input
+              type="checkbox"
+              checked={smShowDisk}
+              onchange={(e) => { config = { ...config, show_disk: (e.currentTarget as HTMLInputElement).checked }; }}
+              class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+            />
+          </label>
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-title">タイトル</label>
+            <input
+              id="ws-sm-title"
+              type="text"
+              autocomplete="off"
+              placeholder="システムモニタ"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={smTitle}
               oninput={(e) => { config = { ...config, title: (e.currentTarget as HTMLInputElement).value }; }}
             />
           </div>

@@ -20,6 +20,7 @@ import QuickNoteWidget from './QuickNoteWidget.svelte';
 import RecentLaunchesWidget from './RecentLaunchesWidget.svelte';
 import SnippetWidget from './SnippetWidget.svelte';
 import StatsWidget from './StatsWidget.svelte';
+import SystemMonitorWidget from './SystemMonitorWidget.svelte';
 import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
@@ -237,6 +238,7 @@ const widgetComponents = {
 	snippet: SnippetWidget,
 	clipboard_history: ClipboardHistoryWidget,
 	file_search: FileSearchWidget,
+	system_monitor: SystemMonitorWidget,
 } as const;
 
 function handleItemContext(itemId: string) {

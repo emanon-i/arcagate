@@ -11,7 +11,8 @@ export type WidgetType =
 	| 'daily_task'
 	| 'snippet'
 	| 'clipboard_history'
-	| 'file_search';
+	| 'file_search'
+	| 'system_monitor';
 
 export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
 	favorites: 'よく使うもの',
@@ -22,6 +23,7 @@ export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
 	snippet: 'スニペット',
 	clipboard_history: 'クリップボード履歴',
 	file_search: 'ファイル検索',
+	system_monitor: 'システムモニタ',
 };
 
 export interface Workspace {
