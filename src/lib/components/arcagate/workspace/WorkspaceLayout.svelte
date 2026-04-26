@@ -8,7 +8,7 @@ import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import ClipboardHistoryWidget from './ClipboardHistoryWidget.svelte';
-import ClockWidget from './ClockWidget.svelte';
+import ClockWidget from '$lib/widgets/clock/ClockWidget.svelte';
 import DailyTaskWidget from './DailyTaskWidget.svelte';
 import ExeFolderWatchWidget from './ExeFolderWatchWidget.svelte';
 import FavoritesWidget from './FavoritesWidget.svelte';
