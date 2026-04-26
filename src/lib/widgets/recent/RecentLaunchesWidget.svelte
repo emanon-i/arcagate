@@ -10,7 +10,7 @@ import { hiddenStore } from '$lib/state/hidden.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
-import type { WorkspaceWidget } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -65,7 +65,7 @@ async function handleLaunch(id: string) {
 }
 </script>
 
-<WidgetShell title="Recent launches" icon={Clock3} {menuItems}>
+<WidgetShell title={WIDGET_LABELS.recent} icon={Clock3} {menuItems}>
 	<WidgetItemList
 		items={visibleRecentItems}
 		{sortField}

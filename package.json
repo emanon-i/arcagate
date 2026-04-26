@@ -18,7 +18,10 @@
 		"test:e2e:core": "playwright test --grep @core",
 		"tauri": "tauri",
 		"verify:smoke": "bash scripts/smoke-test.sh",
-		"verify": "pnpm biome check && pnpm dprint check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm verify:smoke && pnpm test && pnpm tauri build"
+		"audit:hotkey": "bash scripts/audit-hotkey-consistency.sh",
+		"audit:design-tokens": "bash scripts/audit-design-tokens.sh",
+		"audit:all": "bash scripts/audit-widget-coverage.sh && bash scripts/audit-hotkey-consistency.sh && bash scripts/audit-design-tokens.sh",
+		"verify": "pnpm biome check && pnpm dprint check && pnpm audit:all && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm verify:smoke && pnpm test && pnpm tauri build"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

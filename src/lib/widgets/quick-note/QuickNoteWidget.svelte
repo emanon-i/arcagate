@@ -5,7 +5,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { QUICK_NOTE_DEFAULTS, type QuickNoteFontSize } from '$lib/types/widget-configs';
-import type { WorkspaceWidget } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -68,7 +68,7 @@ let menuItems = $derived(
 );
 </script>
 
-<WidgetShell title="Quick Note" icon={StickyNote} {menuItems}>
+<WidgetShell title={WIDGET_LABELS.quick_note} icon={StickyNote} {menuItems}>
 	<div class="flex h-full flex-col gap-1">
 		<textarea
 			class="h-0 w-full flex-1 resize-none rounded-lg bg-[var(--ag-surface-2)] p-2 {FONT_SIZE_CLASS[config.font_size]} text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"

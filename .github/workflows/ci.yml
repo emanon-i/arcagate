@@ -54,6 +54,14 @@ jobs:
         shell: bash
         run: bash scripts/audit-widget-coverage.sh
 
+      - name: Hotkey notation consistency audit
+        shell: bash
+        run: bash scripts/audit-hotkey-consistency.sh
+
+      - name: Design token consistency audit
+        shell: bash
+        run: bash scripts/audit-design-tokens.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings

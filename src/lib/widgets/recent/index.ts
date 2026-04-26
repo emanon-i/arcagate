@@ -8,7 +8,7 @@ export const widgetType = 'recent' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: Clock3,
-	label: '最近使ったもの',
+	label: '最近起動',
 	defaultConfig: { max_items: 10 },
 	addable: true,
 	SettingsContent: CommonMaxItemsSettings,

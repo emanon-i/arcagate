@@ -3,7 +3,7 @@ import { Clock } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { CLOCK_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
-import type { WorkspaceWidget } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -64,7 +64,7 @@ let menuItems = $derived(
 );
 </script>
 
-<WidgetShell title="Clock" icon={Clock} {menuItems}>
+<WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>
 	<div class="flex h-full flex-col items-center justify-center gap-1">
 		<span class="font-mono text-3xl font-semibold tabular-nums text-[var(--ag-text-primary)]">
 			{timeStr}

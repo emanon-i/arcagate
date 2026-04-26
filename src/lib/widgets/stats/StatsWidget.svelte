@@ -7,7 +7,7 @@ import { getFrequentItems } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { STATS_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
-import type { WorkspaceWidget } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -48,7 +48,7 @@ async function handleLaunch(id: string) {
 }
 </script>
 
-<WidgetShell title="Most Used" icon={TrendingUp} {menuItems}>
+<WidgetShell title={WIDGET_LABELS.stats} icon={TrendingUp} {menuItems}>
 	<div class="space-y-1.5">
 		{#each topItems as item, i (item.id)}
 			<button
