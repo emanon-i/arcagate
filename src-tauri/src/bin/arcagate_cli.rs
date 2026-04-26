@@ -141,7 +141,7 @@ enum WorkspaceCommands {
     AddWidget {
         /// Workspace UUID
         workspace_id: String,
-        /// Widget type (favorites|recent|projects|watched_folders)
+        /// Widget type (favorites|recent|projects|item|clock|stats|quick_note|exe_folder|daily_task|snippet|clipboard_history|file_search|system_monitor)
         widget_type: String,
     },
     /// Delete a workspace
@@ -315,7 +315,7 @@ fn validate_item_type(s: &str) -> Result<ItemType, AppError> {
 fn validate_widget_type(s: &str) -> Result<WidgetType, AppError> {
     WidgetType::from_str(s).ok_or_else(|| {
         AppError::Validation(format!(
-            "invalid widget_type '{}' (expected: favorites|recent|projects|watched_folders)",
+            "invalid widget_type '{}' (expected: favorites|recent|projects|item|clock|stats|quick_note|exe_folder|daily_task|snippet|clipboard_history|file_search|system_monitor)",
             s
         ))
     })
@@ -891,7 +891,7 @@ fn describe_one(name: &str, json: bool) -> bool {
                 {"name": "workspace_id", "type": "string", "required": true,
                  "description": "Workspace UUID"},
                 {"name": "widget_type", "type": "string", "required": true,
-                 "enum": ["favorites", "recent", "projects", "watched_folders"],
+                 "enum": ["favorites", "recent", "projects", "item", "clock", "stats", "quick_note", "exe_folder", "daily_task", "snippet", "clipboard_history", "file_search", "system_monitor"],
                  "description": "Widget type to add"}
             ],
             "flags": [
@@ -1301,7 +1301,7 @@ mod tests {
         assert!(validate_widget_type("favorites").is_ok());
         assert!(validate_widget_type("recent").is_ok());
         assert!(validate_widget_type("projects").is_ok());
-        assert!(validate_widget_type("watched_folders").is_ok());
+        assert!(validate_widget_type("clock").is_ok());
     }
 
     #[test]
