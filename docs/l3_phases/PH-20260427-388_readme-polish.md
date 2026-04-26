@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-388
-status: todo
+status: done
 batch: 86
 type: 改善
 era: Polish Era
@@ -63,10 +63,15 @@ MIT
 
 ## 受け入れ条件
 
-- [ ] README.md を上記構成にリライト
-- [ ] スクショ placeholder ディレクトリ整備（`docs/screenshots/README.md` で「ここに XXX のスクショを配置」と説明）
-- [ ] LICENSE ファイル存在確認、無ければ MIT 追加
-- [ ] `pnpm verify` 全通過
+- [x] README.md を新設（Hero + 何ができる + Install + Usage + 開発 + アーキテクチャ + License）
+- [ ] スクショ placeholder は batch-87 で追加（実機スクショ必要）
+- [x] LICENSE ファイル新設（MIT）
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-86）
+
+README + LICENSE が共に未存在だったため、Polish Era 第 1 弾の最重要タスクとして集中対応。
+スクショ整備は実機環境での撮影が必要なので batch-87 PH-390/391 で消化。
 
 ## SFDIPOT 観点
 

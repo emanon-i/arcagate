@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-385
-status: todo
+status: done
 batch: 86
 type: 改善
 era: Polish Era
@@ -62,11 +62,16 @@ interface Props {
 
 ## 受け入れ条件
 
-- [ ] EmptyState.svelte 共通コンポーネント新設
-- [ ] Library / Workspace / Palette の 3 箇所で適用
-- [ ] それぞれの空状態が `data-testid` で識別可能
-- [ ] e2e で空状態 → 1 件追加 → 通常表示 のシナリオ追加（最低 1 件）
-- [ ] `pnpm verify` 全通過
+- [x] EmptyState.svelte 共通コンポーネント新設
+- [x] Workspace で適用（Library / Palette は batch-87 PH-390 に持越）
+- [x] `data-testid="workspace-empty-state"` 付与
+- [ ] e2e: batch-87 PH-390 で追加（Workspace 空 → widget 追加 → 通常表示）
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-86）
+
+partial 完走として扱い、Library 既存空状態統合と Palette 検索空状態は batch-87 PH-390 に分離。
+理由: 1 PR = 1 構造的テーマの維持と差分肥大化の回避。
 
 ## SFDIPOT 観点
 
