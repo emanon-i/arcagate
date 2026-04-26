@@ -46,6 +46,10 @@ jobs:
       - name: dprint check
         run: pnpm dprint check
 
+      - name: Label audit (UX 一貫性)
+        shell: bash
+        run: bash scripts/audit-labels.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings

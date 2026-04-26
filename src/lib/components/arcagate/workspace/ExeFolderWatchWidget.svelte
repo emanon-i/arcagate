@@ -3,7 +3,6 @@ import { FolderOpen, MoreHorizontal } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
-import { launchItem } from '$lib/ipc/launch';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -123,9 +122,8 @@ async function launchEntry(entry: ExeFolderEntry) {
 		toastStore.add(`${entry.folderName}: 起動可能な exe が見つかりません`, 'error');
 		return;
 	}
-	// path 直起動: 仮想 item id でなく直接 spawn
-	// （Library 経由でない、起動カウンタ未記録は仕様、PH-304 で記録）
-	void launchItem(`exe-folder:${exePath}`)
+	// path 直起動: DB 経由しない（cmd_open_path で OS デフォルト起動）
+	void invoke('cmd_open_path', { path: exePath })
 		.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
 		.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
 }
