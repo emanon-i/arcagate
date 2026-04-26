@@ -9,6 +9,7 @@ import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
 import ToastContainer from '$lib/components/arcagate/common/ToastContainer.svelte';
 import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte';
 import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.svelte';
+import ErrorBoundary from '$lib/components/common/ErrorBoundary.svelte';
 import HelpPanel from '$lib/components/help/HelpPanel.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
@@ -247,26 +248,30 @@ function handleFormClose() {
 		{/snippet}
 	</TitleBar>
 
-	<!-- メインコンテンツ -->
+	<!-- メインコンテンツ (PH-425: ErrorBoundary で横断耐障害性) -->
 	<main class="min-h-0 flex-1 overflow-hidden">
-		{#if activeView === "library"}
-			<LibraryLayout
-				onEditItem={(id) => {
-					editingItem = itemStore.items.find((i) => i.id === id) ?? null;
-					showItemForm = true;
-				}}
-				onAddItem={() => {
-					editingItem = null;
-					showItemForm = true;
-				}}
-			/>
-		{:else}
-			<WorkspaceLayout
-					onEditItem={(id) => {
-						editingItem = itemStore.items.find((i) => i.id === id) ?? null;
-						showItemForm = true;
-					}}
-				/>
-		{/if}
+		<ErrorBoundary>
+			{#snippet children()}
+				{#if activeView === "library"}
+					<LibraryLayout
+						onEditItem={(id) => {
+							editingItem = itemStore.items.find((i) => i.id === id) ?? null;
+							showItemForm = true;
+						}}
+						onAddItem={() => {
+							editingItem = null;
+							showItemForm = true;
+						}}
+					/>
+				{:else}
+					<WorkspaceLayout
+						onEditItem={(id) => {
+							editingItem = itemStore.items.find((i) => i.id === id) ?? null;
+							showItemForm = true;
+						}}
+					/>
+				{/if}
+			{/snippet}
+		</ErrorBoundary>
 	</main>
 </div>
