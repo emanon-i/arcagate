@@ -24,8 +24,8 @@ const availableWidgets: { type: WidgetType; label: string; icon: Component }[] =
 	.filter(([, meta]) => meta?.addable)
 	.map(([type, meta]) => ({
 		type: type as WidgetType,
-		label: meta!.label,
-		icon: meta!.icon,
+		label: meta?.label,
+		icon: meta?.icon,
 	}));
 
 function startDrag(e: PointerEvent, widgetType: WidgetType) {
