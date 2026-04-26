@@ -11,8 +11,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # lint: biome / dprint / clippy / rustfmt / svelte-check (~5-7min)
-  lint:
+  # lint + test を 1 job に統合（setup 重複排除、batch-68 PH-295）
+  check:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +39,7 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      # lint
       - name: Biome check
         run: pnpm biome check
 
@@ -56,32 +57,7 @@ jobs:
       - name: Svelte check
         run: pnpm check
 
-  # test: cargo test + vitest (~3-4min) — parallel with lint
-  test:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install frontend dependencies
-        run: pnpm install
-
+      # test (lint と同 setup を再利用)
       - name: Cargo test
         working-directory: src-tauri
         run: cargo test
@@ -97,6 +73,7 @@ jobs:
       pull-requests: read
     outputs:
       src: ${{ steps.filter.outputs.src }}
+      rust: ${{ steps.filter.outputs.rust }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -111,14 +88,18 @@ jobs:
               - 'Cargo.toml'
               - 'Cargo.lock'
               - '.github/workflows/ci.yml'
+            rust:
+              - 'src-tauri/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
 
-  # build: tauri build (~25-28min) — skipped for docs/test-only PRs
+  # build: PR は debug build のみ（速い）、push / workflow_dispatch は release（リリース確認）
+  # docs-only PR は skip
   build:
-    needs: [lint, test, changes]
+    needs: [check, changes]
     if: |
       always() &&
-      needs.lint.result == 'success' &&
-      needs.test.result == 'success' &&
+      needs.check.result == 'success' &&
       (
         github.event_name == 'push' ||
         github.event_name == 'workflow_dispatch' ||
@@ -148,5 +129,10 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
-      - name: Tauri build
+      - name: Tauri debug build (PR)
+        if: github.event_name == 'pull_request'
+        run: pnpm tauri build --debug
+
+      - name: Tauri release build (push / workflow_dispatch)
+        if: github.event_name != 'pull_request'
         run: pnpm tauri build
