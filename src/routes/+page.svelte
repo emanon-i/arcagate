@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Eye, EyeOff, X } from '@lucide/svelte';
+import { Eye, EyeOff, HelpCircle, X } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { onDestroy } from 'svelte';
@@ -9,11 +9,13 @@ import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
 import ToastContainer from '$lib/components/arcagate/common/ToastContainer.svelte';
 import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte';
 import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.svelte';
+import HelpPanel from '$lib/components/help/HelpPanel.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { NAV_TOP } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
+import { helpStore } from '$lib/state/help.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
@@ -103,6 +105,17 @@ onDestroy(() => {
 	unlistenPathNotFound?.();
 });
 
+// グローバルキーボードハンドラ: `?` でヘルプ開閉 (input フォーカス中は無視)
+function handleGlobalKey(e: KeyboardEvent) {
+	if (e.key !== '?') return;
+	const target = e.target as HTMLElement | null;
+	if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) {
+		return;
+	}
+	e.preventDefault();
+	helpStore.toggle();
+}
+
 async function openFloatingPalette() {
 	const palette = await WebviewWindow.getByLabel('palette');
 	if (palette) {
@@ -132,8 +145,11 @@ function handleFormClose() {
 }
 </script>
 
+<svelte:window on:keydown={handleGlobalKey} />
+
 <!-- オーバーレイ層 -->
 <SetupWizard />
+<HelpPanel />
 <ItemFormDialog
 	open={showItemForm}
 	item={editingItem ?? undefined}
@@ -194,6 +210,11 @@ function handleFormClose() {
 				icon={NAV_TOP.settings.icon}
 				label={NAV_TOP.settings.label}
 				onclick={() => (showSettings = true)}
+			/>
+			<TitleAction
+				icon={HelpCircle}
+				label="ヘルプ"
+				onclick={() => helpStore.open()}
 			/>
 			<TitleAction
 				icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}

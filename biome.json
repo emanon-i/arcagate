@@ -32,7 +32,7 @@
 			"src/**/*.svelte",
 			"tests/**/*.ts",
 			"!!**/.claude",
-			"!!src/lib/bindings/**"
+			"!!src/lib/bindings"
 		],
 		"ignoreUnknown": true
 	},

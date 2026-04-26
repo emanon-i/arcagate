@@ -17,3 +17,24 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
 		}),
 	});
 }
+
+// Svelte transitions (fly/fade) が element.animate を呼ぶため、jsdom 用に最小 polyfill (PH-418)
+if (typeof Element !== 'undefined' && !('animate' in Element.prototype)) {
+	Object.defineProperty(Element.prototype, 'animate', {
+		writable: true,
+		value: () => ({
+			cancel: () => {},
+			finish: () => {},
+			pause: () => {},
+			play: () => {},
+			reverse: () => {},
+			addEventListener: () => {},
+			removeEventListener: () => {},
+			finished: Promise.resolve(),
+			ready: Promise.resolve(),
+			onfinish: null,
+			oncancel: null,
+			onremove: null,
+		}),
+	});
+}
