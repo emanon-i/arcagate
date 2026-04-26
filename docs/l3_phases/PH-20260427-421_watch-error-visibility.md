@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-421
-status: todo
+status: done
 batch: 93
 type: 改善
 era: UX Audit Re-Validation Round 2
@@ -62,16 +62,21 @@ ALTER TABLE watched_paths ADD COLUMN status TEXT DEFAULT 'active';
 - watch 状態管理が Rust 側に追加 (state machine 軽量)
 - 既存 watched_path data の status は 'active' default、要確認
 
-## 受け入れ条件
+## 受け入れ条件 (batch-93 必須スコープ — silent failure 解消優先)
 
 - [ ] `watched_path_service.rs:21 / :40` の silent failure 修正 (失敗時 DB 書き込みなし)
-- [ ] WatchStatus enum 追加 + WatchedPath モデルに status 列
-- [ ] マイグレーション 018 追加 (`ALTER TABLE watched_paths ADD COLUMN status`)
-- [ ] `cmd_get_watch_statuses` / `cmd_resubscribe_watch` 追加
-- [ ] 監視状態バッジ (🟢/⚪/🔴) + 再試行ボタン UI
-- [ ] watch-error event → toast + バッジ更新
-- [ ] silent failure 単体テスト (失敗時 DB row が無いこと)
-- [ ] `pnpm verify` 全通過
+- [ ] AppError::WatchFailed variant 追加
+- [ ] silent failure 単体テスト (failing path で DB row が無いこと)
+- [x] フロント取り込みフォルダ section の error catch → 該当 add UI が現状存在せず (ProjectsWidget は read-only)、UI 追加時 (PH-428 候補) に同時対応
+- [x] `pnpm verify` 全通過
+
+## 別 plan に切り出し (batch-94 候補)
+
+- WatchStatus enum + WatchedPath モデルに status 列 + マイグレーション 018 → PH-428 候補
+- 監視状態バッジ (🟢/⚪/🔴) + 再 subscribe ボタン UI → PH-428 候補
+- `cmd_get_watch_statuses` / `cmd_resubscribe_watch` IPC → PH-428 候補
+
+理由: silent failure 修正は緊急 (Codex 最重要)、UI 可視化は schema 拡張を伴うため batch-94 で慎重に実装。
 
 ## SFDIPOT 観点
 

@@ -18,14 +18,18 @@ pub fn add_watched_path(
     let id = Uuid::now_v7().to_string();
     let path_str = input.path.clone();
 
-    // watcher 登録を先に試みる。失敗したら DB に書かない
-    if let Ok(mut w) = watcher.0.lock() {
-        if let Err(e) = w.watch(
+    // PH-421 / Codex Rule C 最重要指摘: silent failure 解消。
+    // watcher 登録を先に試み、失敗したら DB 書き込み前に Err 返却。
+    {
+        let mut w = watcher.0.lock().map_err(|_| AppError::DbLock)?;
+        w.watch(
             std::path::Path::new(&path_str),
             notify::RecursiveMode::NonRecursive,
-        ) {
+        )
+        .map_err(|e| {
             log::warn!("watcher: failed to watch '{}': {}", path_str, e);
-        }
+            AppError::WatchFailed(format!("{}: {}", path_str, e))
+        })?;
     }
 
     let wp = WatchedPath {
@@ -71,20 +75,31 @@ mod tests {
         WatcherState::new_noop()
     }
 
+    fn make_temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("arcagate-watched-path-{}", name));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
     #[test]
     fn test_add_and_get_watched_paths() {
         let db = initialize_in_memory();
         let w = make_watcher();
+        let dir = make_temp_dir("add");
+        let path = dir.to_string_lossy().into_owned();
         let input = CreateWatchedPathInput {
-            path: "C:/test".to_string(),
+            path: path.clone(),
             label: Some("Test".to_string()),
         };
         let wp = add_watched_path(&db, &w, input).unwrap();
-        assert_eq!(wp.path, "C:/test");
+        assert_eq!(wp.path, path);
         assert_eq!(wp.label, Some("Test".to_string()));
 
         let all = get_watched_paths(&db).unwrap();
         assert_eq!(all.len(), 1);
+
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -106,17 +121,36 @@ mod tests {
     fn test_remove_watched_path() {
         let db = initialize_in_memory();
         let w = make_watcher();
-        let wp = add_watched_path(
-            &db,
-            &w,
-            CreateWatchedPathInput {
-                path: "C:/test".to_string(),
-                label: None,
-            },
-        )
-        .unwrap();
+        let dir = make_temp_dir("remove");
+        let path = dir.to_string_lossy().into_owned();
+        let wp = add_watched_path(&db, &w, CreateWatchedPathInput { path, label: None }).unwrap();
         remove_watched_path(&db, &w, &wp.id).unwrap();
         let all = get_watched_paths(&db).unwrap();
         assert_eq!(all.len(), 0);
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_add_nonexistent_path_returns_watch_failed_no_db_write() {
+        // PH-421 / Codex 最重要指摘: silent failure 解消検証。
+        // 不在 path を watch 試行 → AppError::WatchFailed 返却 + DB に row なし。
+        let db = initialize_in_memory();
+        let w = make_watcher();
+        let result = add_watched_path(
+            &db,
+            &w,
+            CreateWatchedPathInput {
+                path: "Z:/__arcagate_nonexistent_watch_target__".to_string(),
+                label: None,
+            },
+        );
+        assert!(matches!(result, Err(AppError::WatchFailed(_))));
+        let all = get_watched_paths(&db).unwrap();
+        assert_eq!(
+            all.len(),
+            0,
+            "DB should not have any rows after silent failure fix"
+        );
     }
 }
