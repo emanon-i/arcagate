@@ -589,3 +589,60 @@ page: async ({ sharedBrowser }, use) => {
 - **biome 除外**: 自動生成ディレクトリは biome formatter と衝突するため `"!!src/lib/bindings/**"` を `biome.json` の `files.includes` に追加
 - **CI 検証**: `scripts/audit-widget-coverage.sh` で Rust enum / ts-rs bindings / WIDGET_LABELS Record の variant 集合一致を検証、lefthook + CI step に統合
 - **参照**: PH-352 (batch-79) / `src-tauri/src/models/workspace.rs` / `scripts/audit-widget-coverage.sh`
+
+---
+
+## AppError serialize 形式の構造化（batch-94 PH-429）
+
+- **問題**: `serializer.serialize_str(&self.to_string())` で AppError を string として送信していたため、フロントが `String(error).includes('File not found:')` で判定するしかなく、メッセージ文字列の変更で破綻する
+- **修正**: `SerializeStruct` で `{ code: string, message: string }` 形式に変更
+- **AppError::code() メソッド**: 各 variant に対応する短い文字列コード (`"launch.file_not_found"` / `"watch.failed"` / `"db.lock"` 等) を返す。フロントで type-safe に分岐可能
+- **フロント影響**: `${String(e)}` パターンが `[object Object]` になるため、`getErrorMessage(e)` helper (`src/lib/utils/format-error.ts`) で吸収。message field を取り出すか、無ければ JSON.stringify
+- **既存 catch 一括 audit 必須**: serialize 形式変更は IPC 全境界に影響、`grep -rn '\${String(e)}'` で全箇所一括置換
+- **参照**: PH-429 / `src-tauri/src/utils/error.rs` / `src/lib/utils/format-error.ts`
+
+---
+
+## Svelte 5 `<svelte:boundary>` の使い方（batch-94 PH-425）
+
+- **目的**: 子要素から throw される未補足エラーを catch、アプリ全体クラッシュを防ぐ
+- **構文**:
+  ```svelte
+  <svelte:boundary onerror={reportError}>
+    {@render children()}
+    {#snippet failed(error, reset)}
+      <ErrorState ... retry={{ label: '再読み込み', onClick: () => location.reload() }} />
+      <button onclick={reset}>この画面で再試行</button>
+    {/snippet}
+  </svelte:boundary>
+  ```
+- **failed snippet の引数**: `(error, reset)` の 2 つ。reset を呼ぶと boundary 内が再 mount される
+- **onerror callback**: throw された error が渡される。logging / telemetry に使える
+- **適用範囲**: ルートレイアウトの `<main>` をラップが基本、複雑なコンポーネントの内側にも追加可能
+- **参照**: PH-425 / `src/lib/components/common/ErrorBoundary.svelte`
+
+---
+
+## shell-words による Windows 引数安全化（batch-94 PH-422）
+
+- **問題**: `args.split_whitespace()` でスペース入りパス (`C:/Program Files/Foo/foo.exe`) や quoted args (`--config "C:/data/config file.json"`) が破壊される
+- **解決**: `shell-words` crate (1.x、~3KB) で POSIX 風 quoting を解析
+- **使用例**: `shell_words::split(args).map_err(|e| AppError::LaunchFailed(format!("invalid args quoting: {e}")))?`
+- **エラー処理**: unclosed quote 等は `Err(ParseError)` を返すので `?` で短絡 + `AppError::LaunchFailed` 経由でフロントに通知
+- **依存予算**: §5 通過、curated list 入り (Rust 引数解析は POSIX 風が業界標準)
+- **参照**: PH-422 / `src-tauri/src/launcher/mod.rs`
+
+---
+
+## Tauri State HashMap でリクエスト単位の cancel token（batch-93 PH-420）
+
+- **目的**: 長時間 IPC (file scan / 検索 / etc.) を user 操作で cancel 可能に (Nielsen H3)
+- **戦略**: `Arc<AtomicBool>` 配列を `Mutex<HashMap<String, Arc<AtomicBool>>>` で AppState に保持
+- **API パターン**:
+  - `cmd_long_op(state, search_id: String, ...)` で `state.register(&search_id) -> Arc<AtomicBool>` 取得
+  - 重い処理ループ内で `cancel.load(Relaxed)` check
+  - 完了時に `state.complete(&search_id)` (HashMap から remove)
+  - `cmd_cancel_op(state, search_id)` で `state.cancel(&search_id)` (AtomicBool::store(true))
+- **同 ID 再登録**: 古い token を自動 cancel して新規発行 (新検索開始 → 古い検索を自動停止)
+- **依存追加なし**: tokio_util::sync::CancellationToken でも実装可能だが、AtomicBool 1 つで十分
+- **参照**: PH-420 / `src-tauri/src/services/file_search_state.rs`
