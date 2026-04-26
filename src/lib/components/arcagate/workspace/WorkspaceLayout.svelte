@@ -7,10 +7,12 @@ import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
+import ClipboardHistoryWidget from './ClipboardHistoryWidget.svelte';
 import ClockWidget from './ClockWidget.svelte';
 import DailyTaskWidget from './DailyTaskWidget.svelte';
 import ExeFolderWatchWidget from './ExeFolderWatchWidget.svelte';
 import FavoritesWidget from './FavoritesWidget.svelte';
+import FileSearchWidget from './FileSearchWidget.svelte';
 import ItemWidget from './ItemWidget.svelte';
 import PageTabBar from './PageTabBar.svelte';
 import ProjectsWidget from './ProjectsWidget.svelte';
@@ -233,6 +235,8 @@ const widgetComponents = {
 	exe_folder: ExeFolderWatchWidget,
 	daily_task: DailyTaskWidget,
 	snippet: SnippetWidget,
+	clipboard_history: ClipboardHistoryWidget,
+	file_search: FileSearchWidget,
 } as const;
 
 function handleItemContext(itemId: string) {

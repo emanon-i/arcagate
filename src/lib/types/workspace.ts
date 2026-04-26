@@ -9,7 +9,9 @@ export type WidgetType =
 	| 'quick_note'
 	| 'exe_folder'
 	| 'daily_task'
-	| 'snippet';
+	| 'snippet'
+	| 'clipboard_history'
+	| 'file_search';
 
 export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
 	favorites: 'よく使うもの',
@@ -18,6 +20,8 @@ export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
 	exe_folder: 'Exe Folders',
 	daily_task: 'デイリータスク',
 	snippet: 'スニペット',
+	clipboard_history: 'クリップボード履歴',
+	file_search: 'ファイル検索',
 };
 
 export interface Workspace {

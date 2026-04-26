@@ -15,6 +15,7 @@ use commands::config_commands::{
 };
 use commands::exe_scanner_commands::cmd_scan_exe_folders;
 use commands::export_commands::{cmd_export_json, cmd_import_json};
+use commands::file_search_commands::{cmd_list_files, cmd_open_path};
 use commands::item_commands::{
     cmd_auto_register_folder_items, cmd_check_is_directory, cmd_count_hidden_items,
     cmd_create_item, cmd_create_tag, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon,
@@ -246,6 +247,8 @@ pub fn run() {
             cmd_get_item_stats,
             cmd_get_item_metadata,
             cmd_scan_exe_folders,
+            cmd_list_files,
+            cmd_open_path,
             cmd_list_themes,
             cmd_get_theme,
             cmd_create_theme,

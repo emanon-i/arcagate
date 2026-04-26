@@ -36,6 +36,13 @@ interface WidgetConfig {
 	watch_path?: string;
 	scan_depth?: number;
 	item_overrides?: Record<string, string>;
+	// ClipboardHistory widget
+	poll_interval_ms?: number;
+	history?: { id: string; text: string; addedAt: number }[];
+	// FileSearch widget
+	root?: string;
+	depth?: number;
+	limit?: number;
 }
 
 let config = $state<WidgetConfig>({});
@@ -86,6 +93,15 @@ let use24h = $derived(config.use_24h ?? true);
 let watchPath = $derived(config.watch_path ?? '');
 let scanDepth = $derived(config.scan_depth ?? 2);
 let exeFolderTitle = $derived(config.title ?? '');
+// ClipboardHistory widget defaults
+let clipboardMaxItems = $derived(config.max_items ?? 20);
+let clipboardPollMs = $derived(config.poll_interval_ms ?? 1500);
+let clipboardTitle = $derived(config.title ?? '');
+// FileSearch widget defaults
+let fsRoot = $derived(config.root ?? '');
+let fsDepth = $derived(config.depth ?? 2);
+let fsLimit = $derived(config.limit ?? 200);
+let fsTitle = $derived(config.title ?? '');
 
 async function handlePickFolder() {
 	const selected = await open({
@@ -129,6 +145,20 @@ async function handleSave() {
 			scan_depth: Math.max(1, Math.min(3, scanDepth)),
 			title: exeFolderTitle,
 			item_overrides: config.item_overrides,
+		};
+	} else if (widget.widget_type === 'clipboard_history') {
+		newConfig = {
+			max_items: Math.max(1, Math.min(200, clipboardMaxItems)),
+			poll_interval_ms: Math.max(500, Math.min(10_000, clipboardPollMs)),
+			title: clipboardTitle,
+			history: config.history,
+		};
+	} else if (widget.widget_type === 'file_search') {
+		newConfig = {
+			root: fsRoot,
+			depth: Math.max(1, Math.min(3, fsDepth)),
+			limit: Math.max(10, Math.min(2000, fsLimit)),
+			title: fsTitle,
 		};
 	} else {
 		newConfig = { max_items: maxItems, sort_field: sortField };
@@ -270,6 +300,112 @@ async function handleSave() {
               placeholder="Exe Folders"
               class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
               value={exeFolderTitle}
+              oninput={(e) => { config = { ...config, title: (e.currentTarget as HTMLInputElement).value }; }}
+            />
+          </div>
+        {:else if widget.widget_type === 'clipboard_history'}
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-max">保持する履歴数 (1〜200)</label>
+            <input
+              id="ws-clip-max"
+              type="number"
+              min="1"
+              max="200"
+              autocomplete="off"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={clipboardMaxItems}
+              onchange={(e) => { config = { ...config, max_items: Math.max(1, Math.min(200, Number((e.currentTarget as HTMLInputElement).value) || 20)) }; }}
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-poll">ポーリング間隔（ミリ秒、500〜10000）</label>
+            <input
+              id="ws-clip-poll"
+              type="number"
+              min="500"
+              max="10000"
+              step="100"
+              autocomplete="off"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={clipboardPollMs}
+              onchange={(e) => { config = { ...config, poll_interval_ms: Math.max(500, Math.min(10000, Number((e.currentTarget as HTMLInputElement).value) || 1500)) }; }}
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-title">タイトル</label>
+            <input
+              id="ws-clip-title"
+              type="text"
+              autocomplete="off"
+              placeholder="クリップボード履歴"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={clipboardTitle}
+              oninput={(e) => { config = { ...config, title: (e.currentTarget as HTMLInputElement).value }; }}
+            />
+          </div>
+        {:else if widget.widget_type === 'file_search'}
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-root">検索ルートフォルダ</label>
+            <div class="flex gap-2">
+              <input
+                id="ws-fs-root"
+                type="text"
+                autocomplete="off"
+                placeholder="例: E:\Cella\Projects"
+                class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+                value={fsRoot}
+                oninput={(e) => { config = { ...config, root: (e.currentTarget as HTMLInputElement).value }; }}
+              />
+              <button
+                type="button"
+                class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+                onclick={async () => {
+                  const selected = await open({ directory: true, multiple: false, title: '検索ルートを選択' });
+                  if (selected && !Array.isArray(selected)) {
+                    config = { ...config, root: selected };
+                  }
+                }}
+              >
+                参照
+              </button>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-depth">スキャン階層 (1〜3)</label>
+            <input
+              id="ws-fs-depth"
+              type="number"
+              min="1"
+              max="3"
+              autocomplete="off"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={fsDepth}
+              onchange={(e) => { config = { ...config, depth: Math.max(1, Math.min(3, Number((e.currentTarget as HTMLInputElement).value) || 2)) }; }}
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-limit">最大件数 (10〜2000)</label>
+            <input
+              id="ws-fs-limit"
+              type="number"
+              min="10"
+              max="2000"
+              step="10"
+              autocomplete="off"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={fsLimit}
+              onchange={(e) => { config = { ...config, limit: Math.max(10, Math.min(2000, Number((e.currentTarget as HTMLInputElement).value) || 200)) }; }}
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-title">タイトル</label>
+            <input
+              id="ws-fs-title"
+              type="text"
+              autocomplete="off"
+              placeholder="ファイル検索"
+              class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+              value={fsTitle}
               oninput={(e) => { config = { ...config, title: (e.currentTarget as HTMLInputElement).value }; }}
             />
           </div>
