@@ -113,7 +113,7 @@ function handleKeydown(e: KeyboardEvent) {
 					<span>Desktop Overlay Palette</span>
 				</div>
 				<div class="flex items-center gap-2">
-					<Chip tone="accent">Alt + Space</Chip>
+					<Chip tone="accent">Ctrl + Shift + Space</Chip>
 					<Chip tone="warm">{hiddenStore.isHiddenVisible ? '非表示: ON' : '非表示: OFF'}</Chip>
 				</div>
 			</div>
