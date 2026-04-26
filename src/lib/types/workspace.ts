@@ -8,7 +8,6 @@ export const WIDGET_LABELS: Record<WidgetType, string> = {
 	favorites: 'よく使うもの',
 	recent: '最近使ったもの',
 	projects: 'プロジェクト',
-	watched_folders: 'ウォッチフォルダ',
 	item: 'アイテム',
 	clock: '時計',
 	stats: 'よく起動',

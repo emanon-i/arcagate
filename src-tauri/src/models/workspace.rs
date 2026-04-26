@@ -8,7 +8,6 @@ pub enum WidgetType {
     Favorites,
     Recent,
     Projects,
-    WatchedFolders,
     Item,
     Clock,
     Stats,
@@ -27,7 +26,6 @@ impl WidgetType {
             WidgetType::Favorites => "favorites",
             WidgetType::Recent => "recent",
             WidgetType::Projects => "projects",
-            WidgetType::WatchedFolders => "watched_folders",
             WidgetType::Item => "item",
             WidgetType::Clock => "clock",
             WidgetType::Stats => "stats",
@@ -47,7 +45,6 @@ impl WidgetType {
             "favorites" => Some(WidgetType::Favorites),
             "recent" => Some(WidgetType::Recent),
             "projects" => Some(WidgetType::Projects),
-            "watched_folders" => Some(WidgetType::WatchedFolders),
             "item" => Some(WidgetType::Item),
             "clock" => Some(WidgetType::Clock),
             "stats" => Some(WidgetType::Stats),
@@ -119,7 +116,6 @@ mod tests {
         assert_eq!(WidgetType::Favorites.as_str(), "favorites");
         assert_eq!(WidgetType::Recent.as_str(), "recent");
         assert_eq!(WidgetType::Projects.as_str(), "projects");
-        assert_eq!(WidgetType::WatchedFolders.as_str(), "watched_folders");
         assert_eq!(WidgetType::Item.as_str(), "item");
         assert_eq!(WidgetType::Clock.as_str(), "clock");
         assert_eq!(WidgetType::Stats.as_str(), "stats");
@@ -140,10 +136,6 @@ mod tests {
         );
         assert_eq!(WidgetType::from_str("recent"), Some(WidgetType::Recent));
         assert_eq!(WidgetType::from_str("projects"), Some(WidgetType::Projects));
-        assert_eq!(
-            WidgetType::from_str("watched_folders"),
-            Some(WidgetType::WatchedFolders)
-        );
         assert_eq!(WidgetType::from_str("item"), Some(WidgetType::Item));
         assert_eq!(WidgetType::from_str("clock"), Some(WidgetType::Clock));
         assert_eq!(WidgetType::from_str("stats"), Some(WidgetType::Stats));
@@ -187,7 +179,6 @@ mod tests {
             WidgetType::Favorites,
             WidgetType::Recent,
             WidgetType::Projects,
-            WidgetType::WatchedFolders,
             WidgetType::Item,
             WidgetType::Clock,
             WidgetType::Stats,

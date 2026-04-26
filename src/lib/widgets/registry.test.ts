@@ -6,9 +6,10 @@ import { widgetRegistry } from './index';
 /**
  * 過去の DB 互換のため Rust enum / WIDGET_LABELS には残っているが、
  * フロント側 registry には登録されない deprecated widget。
- * Polish Era で完全削除候補。
+ * batch-87 PH-392 で `watched_folders` を完全削除し、現在は空。
+ * 将来 deprecate する widget が出たらここに追加する。
  */
-const DEPRECATED_WIDGETS: ReadonlySet<WidgetType> = new Set(['watched_folders']);
+const DEPRECATED_WIDGETS: ReadonlySet<WidgetType> = new Set();
 
 const allWidgetTypes = Object.keys(WIDGET_LABELS) as WidgetType[];
 const activeWidgetTypes = allWidgetTypes.filter((t) => !DEPRECATED_WIDGETS.has(t));
