@@ -42,6 +42,9 @@ jobs:
       - name: Biome check
         run: pnpm biome check
 
+      - name: dprint check
+        run: pnpm dprint check
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings
