@@ -4,6 +4,10 @@ walkthrough 日: 2026-04-27 / agent コード read 主体 + 既存 e2e テスト
 詳細実機 walkthrough (CDP) は許可制のため、本 audit では **コード read + e2e カバレッジ確認** で代用。
 実機検証は次バッチでユーザ承認後に追加実施可。
 
+> **初版（信頼度 2/5）**: agent 単独 + コード read 中心、業界標準照合・実機操作検証・Cognitive Walkthrough 4 Steps 適用なし。
+> batch-91 PH-410〜413 で業界標準（Nielsen 10 / Raycast / Spotlight 等）+ HE/CW 手法 + Codex セカンドオピニオンを取得済み。
+> batch-92 で HE+CW を 10 ケース × Nielsen 10 で再監査し severity 0-4 で再評価予定。
+
 ## 凡例
 
 - 🟢 **micro**: 1〜5 行で直る、即修正対象
