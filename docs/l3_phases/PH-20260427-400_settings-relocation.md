@@ -1,9 +1,20 @@
 ---
 id: PH-20260427-400
-status: todo
+status: deferred
 batch: 89
 type: 改善
 era: Polish Era
+---
+
+## deferred 判断（batch-89 → batch-91+）
+
+ユーザ新ルール（2026-04-27、`feedback_no_speculation_planning.md`）:
+
+> Rule A: 5 ファイル超の大幅変更は **Dispatch に提案 → ユーザ承認待ち**
+
+PH-400 は 30 ファイル変更見込みで Rule A 該当のため、Dispatch 経由でユーザ承認後に着手。
+batch-90 Use Case Audit 完了後、Audit 結果と合わせて再評価する（配置整理が User Case とどう関わるかを見てから判断）。
+
 ---
 
 # PH-400: Settings/utils 配置整理 専用バッチ（PH-376/391/395 deferred chain 消化）

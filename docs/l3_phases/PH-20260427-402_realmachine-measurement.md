@@ -1,9 +1,16 @@
 ---
 id: PH-20260427-402
-status: todo
+status: deferred
 batch: 89
 type: 防衛
 era: Polish Era
+---
+
+## deferred 判断（batch-89 → batch-91+）
+
+実機計測は dispatch-operation §4c でユーザ承認制。本バッチでは未承認のため deferred。
+batch-90 Use Case Audit と合わせて、実機 walkthrough のタイミングで一括計測する判断。
+
 ---
 
 # PH-402: 実機計測完走（起動 P95 + idle memory）+ スプラッシュ採用判定
