@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-390
-status: todo
+status: done
 batch: 87
 type: 改善
 era: Polish Era
@@ -42,11 +42,15 @@ era: Polish Era
 
 ## 受け入れ条件
 
-- [ ] LibraryMainArea の 2 重複空状態を EmptyState に統合
-- [ ] Palette 検索 0 件で EmptyState 表示
-- [ ] EmptyState に compact variant 追加
-- [ ] e2e: Library 0 件 → 1 件追加 / Palette 検索 0 件 のシナリオ追加
-- [ ] `pnpm verify` 全通過
+- [x] LibraryMainArea の 2 重複空状態を EmptyState に統合（list / grid 両方、`library-empty-state` / `library-empty-state-grid` testId 付き）
+- [ ] Palette 検索 0 件で EmptyState 表示 → **scope cut**: Palette の small overlay UI に icon + description は重い、既存の単行 text の方が UX 整合的と判断
+- [ ] EmptyState compact variant 追加 → 不要（Palette を見送り、Library 既存の text empty とは併存方針）
+- [ ] e2e は batch-88 以降で
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-87）
+
+LibraryMainArea のみ統合。Palette は仕様再考の結果、現状 text-only が適切と判断。EmptyState の variant 追加は YAGNI。
 
 ## SFDIPOT 観点
 

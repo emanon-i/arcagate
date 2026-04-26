@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-391
-status: todo
+status: deferred
 batch: 87
 type: 改善
 era: Polish Era
@@ -52,6 +52,16 @@ era: Polish Era
 - [ ] SettingsPanel が 200 行以下
 - [ ] 既存 e2e 全 pass
 - [ ] `pnpm verify` 全通過
+
+## deferred 判断（batch-87 → batch-88）
+
+PH-376 の deferred chain (Refactor → Polish-1 → Polish-2 → ...) が継続中。理由:
+
+- batch-87 で PH-390 + PH-392 + PH-393 を消化した時点で 1 PR の差分は既に十分大きい
+- LibraryCardSettings 移動 + Tip / WidgetShell 移動 + utils 整理 + SettingsPanel 分割 = 約 30 ファイル変更見込み
+- 1 PR = 1 構造的テーマの原則を維持するため、配置整理は単独 batch で消化したい
+
+batch-88 を「PH-391 配置整理専用バッチ」として位置付け、scope を明確に絞る。
 
 ## SFDIPOT 観点
 

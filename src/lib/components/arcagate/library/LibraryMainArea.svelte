@@ -1,6 +1,7 @@
 <script lang="ts">
 import { LayoutGrid, LayoutList, Package, Plus, Search, X as XIcon } from '@lucide/svelte';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
@@ -191,25 +192,13 @@ let filteredItems = $derived.by(() => {
 			{/each}
 			{#if filteredItems.length === 0}
 				{#if !searchQuery && !activeTag && itemStore.items.length === 0}
-					<div class="flex flex-col items-center justify-center gap-4 py-16">
-						<div class="rounded-full bg-[var(--ag-surface-4)] p-4">
-							<Package class="h-8 w-8 text-[var(--ag-text-muted)]" />
-						</div>
-						<div class="text-center">
-							<p class="text-sm font-medium text-[var(--ag-text-primary)]">ライブラリが空です</p>
-							<p class="mt-1 text-xs text-[var(--ag-text-muted)]">
-								アプリ・フォルダ・URL などのショートカットを追加できます
-							</p>
-						</div>
-						<button
-							type="button"
-							class="flex items-center gap-2 rounded-[var(--ag-radius-card)] bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[opacity,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-90"
-							onclick={() => onAddItem?.()}
-						>
-							<Plus class="h-4 w-4" />
-							アイテムを追加
-						</button>
-					</div>
+					<EmptyState
+						icon={Package}
+						title="ライブラリが空です"
+						description="アプリ・フォルダ・URL などのショートカットを追加できます"
+						action={{ label: 'アイテムを追加', onClick: () => onAddItem?.() }}
+						testId="library-empty-state"
+					/>
 				{:else}
 					<div class="py-12 text-center text-sm text-[var(--ag-text-muted)]">
 						{searchQuery
@@ -242,25 +231,14 @@ let filteredItems = $derived.by(() => {
 			{/each}
 			{#if filteredItems.length === 0}
 				{#if !searchQuery && !activeTag && itemStore.items.length === 0}
-					<!-- 真の空状態：初回体験ガイド -->
-					<div class="col-span-full flex flex-col items-center justify-center gap-4 py-16">
-						<div class="rounded-full bg-[var(--ag-surface-4)] p-4">
-							<Package class="h-8 w-8 text-[var(--ag-text-muted)]" />
-						</div>
-						<div class="text-center">
-							<p class="text-sm font-medium text-[var(--ag-text-primary)]">ライブラリが空です</p>
-							<p class="mt-1 text-xs text-[var(--ag-text-muted)]">
-								アプリ・フォルダ・URL などのショートカットを追加できます
-							</p>
-						</div>
-						<button
-							type="button"
-							class="flex items-center gap-2 rounded-[var(--ag-radius-card)] bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[opacity,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-90"
-							onclick={() => onAddItem?.()}
-						>
-							<Plus class="h-4 w-4" />
-							アイテムを追加
-						</button>
+					<div class="col-span-full">
+						<EmptyState
+							icon={Package}
+							title="ライブラリが空です"
+							description="アプリ・フォルダ・URL などのショートカットを追加できます"
+							action={{ label: 'アイテムを追加', onClick: () => onAddItem?.() }}
+							testId="library-empty-state-grid"
+						/>
 					</div>
 				{:else}
 					<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">
