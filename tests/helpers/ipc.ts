@@ -81,6 +81,10 @@ export async function markSetupComplete(page: Page): Promise<void> {
 	return invoke<void>(page, 'cmd_mark_setup_complete');
 }
 
+export async function markOnboardingComplete(page: Page): Promise<void> {
+	return invoke<void>(page, 'cmd_mark_onboarding_complete');
+}
+
 export async function listWorkspaces(page: Page): Promise<Workspace[]> {
 	return invoke<Workspace[]>(page, 'cmd_list_workspaces');
 }
