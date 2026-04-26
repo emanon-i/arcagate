@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { findMainPage } from '../helpers/app-ready.js';
-import { markSetupComplete } from '../helpers/ipc.js';
+import { markOnboardingComplete, markSetupComplete } from '../helpers/ipc.js';
 
 const CDP_PORT = 9515;
 const TAURI_EXE = join(process.cwd(), 'src-tauri', 'target', 'debug', 'arcagate.exe');
@@ -66,6 +66,13 @@ export default async function globalSetup(): Promise<void> {
 		// SetupWizard スキップ
 		try {
 			await markSetupComplete(page);
+		} catch {
+			// 既に完了済みの場合は無視
+		}
+
+		// PH-427: OnboardingTour も e2e ではスキップ (画面遮りで Settings ボタンクリック等が阻害される)
+		try {
+			await markOnboardingComplete(page);
 		} catch {
 			// 既に完了済みの場合は無視
 		}
