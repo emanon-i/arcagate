@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-405
-status: todo
+status: done
 batch: 90
 type: 改善
 era: Polish Era / Use Case Audit
