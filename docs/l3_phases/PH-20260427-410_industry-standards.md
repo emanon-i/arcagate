@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-410
-status: todo
+status: partial
 batch: 91
 type: 改善
 era: UX Research Sprint
