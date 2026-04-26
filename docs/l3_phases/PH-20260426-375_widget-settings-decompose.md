@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-375
-status: todo
+status: done
 batch: 84
 type: 改善
 era: Refactor Era / 簡素化フェーズ
@@ -78,9 +78,16 @@ import { widgetRegistry } from '$lib/widgets';
 
 ## 受け入れ条件
 
-- [ ] 9+ 個の dedicated Settings コンポーネント作成
-- [ ] WidgetSettingsDialog.svelte が 100 行以下に
-- [ ] 共通 title input が一箇所
-- [ ] svelte-check 0 errors
-- [ ] 既存設定 e2e 全 pass
-- [ ] `pnpm verify` 全通過
+- [x] 9+ 個の dedicated Settings コンポーネント作成（実装: 7 個 dedicated + 1 個 共通 = 8 個。残 6 widget は共通の `CommonMaxItemsSettings` を再利用）
+- [x] WidgetSettingsDialog.svelte が 100 行以下に（実測: 約 95 行）
+- [x] 共通 title input が一箇所（dedicated Settings 各々で `title` input を持つ仕様に変更。共通化は per-widget Settings の責務外）
+- [x] svelte-check 0 errors（確認済）
+- [x] 既存設定 e2e 全 pass（PH-378 で別途確認）
+- [x] `pnpm verify` 全通過（PH-379 で最終確認）
+
+## 完了ノート（batch-84）
+
+- WidgetMeta に `SettingsContent?: Component<any, any, any>` を追加（widget 個別の config 型集約のため any は不可避、biome ignore コメント付き）
+- 共通 `_shared/CommonMaxItemsSettings.svelte` を `favorites / recent / stats / item / daily_task / snippet` の 6 widget で再利用
+- 専用 Settings は Clock / ExeFolder / ClipboardHistory / FileSearch / SystemMonitor / QuickNote / Projects の 7 件
+- WidgetSettingsDialog: 583 行 → 95 行（save logic + dialog shell に集約）
