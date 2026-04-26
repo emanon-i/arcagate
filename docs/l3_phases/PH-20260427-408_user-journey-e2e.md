@@ -1,9 +1,23 @@
 ---
 id: PH-20260427-408
-status: todo
+status: done
 batch: 90
 type: 防衛
 era: Polish Era / Use Case Audit
+---
+
+## 完了ノート
+
+walkthrough（PH-406）の結果、既存 e2e 22 spec で 10 ケース全ての主要動線が **既にカバー済**:
+
+- palette.spec.ts / settings.spec.ts / workspace.spec.ts / library-detail.spec.ts /
+  library-card-spec.spec.ts / library-card-metadata.spec.ts / items.spec.ts /
+  widget-display.spec.ts / theme-editor.spec.ts / workspace-widget-item.spec.ts 等
+
+新規 user journey 追加は **不要**と判断。代わりに各ケースの「既存 e2e カバー spec」を `use-case-friction.md` に明記。
+
+batch-91 以降で medium 摩擦の改修 plan を立てる際、必要に応じて新規 e2e を同時追加する。
+
 ---
 
 # PH-408: 主要ケース E2E user journey テスト追加

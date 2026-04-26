@@ -3006,3 +3006,49 @@ PR #142 merge 済み（merge SHA a8a9efc）。CI 全 SUCCESS。
 
 vitest: 119 → 142 件（+23）。
 次バッチ: batch-89 第 4 弾（Polish Era 完走判定）+ batch-90 Use Case Audit
+
+---
+
+## batch-90 完走 (2026-04-27) — Use Case Audit
+
+ユーザ判断（2026-04-27）「batch-90 は純粋な調査 audit、Rule A 不適用」。即着手で完走。
+
+成果物:
+
+- `docs/l1_requirements/use-cases.md` 新設: 想定 10 ケース記述（ゲーム起動 / 同人ライブラリ / プロジェクト開始 / 日次タスク / フォルダ整理 / クリップボード / メモ / 検索 / 設定 / テーマ）
+- `docs/l2_architecture/use-case-friction.md` 新設: 10 ケース walkthrough（コード read + 既存 e2e 22 spec カバレッジ確認）
+- `docs/l2_architecture/cleanup-candidates.md` 新設: 削除候補 0 件確認
+
+### audit 結果
+
+| 分類                | 件数                         |
+| ------------------- | ---------------------------- |
+| ✅ OK（摩擦なし）   | 2（QuickNote / テーマ切替）  |
+| 🟢 micro 即修正     | 0（batch-87/88/89 で解消済） |
+| 🟡 medium 改修候補  | 11                           |
+| 🔴 macro 構造再設計 | 0                            |
+
+### Polish Era 完走宣言
+
+macro 0 件 + micro 0 件 → 構造再設計不要、Restructure Era 不要。
+batch-86〜89 の Polish Era 4 バッチ + batch-90 audit で **Polish Era 完走宣言**。
+
+### batch-91 候補（5 plan、Rule A 該当注意）
+
+medium 11 件から高優先 5 件:
+
+- PH-410 launch 失敗 diagnose 強化（case 1）
+- PH-411 一括 D&D + 一括タグ付け（case 2）
+- PH-412 launch group / 関連起動（case 3）— **Rule A 該当、ユーザ承認待ち**
+- PH-413 icon extraction async 化（case 5、refactoring C-2）— Rule A グレー
+- PH-414 ClipboardHistory 検索（case 6）
+
+### Distribution Era 候補（並行可、batch-91+）
+
+- PH-420 コード署名（Windows Authenticode）
+- PH-421 エラー境界 UI
+- PH-422 バックアップ UI
+- PH-423 アップデート機構
+- PH-424 整理
+
+エスカレーション: PH-412 のみ Rule A 確定でユーザ承認必要、他は plan 化時に範囲確認で判断。

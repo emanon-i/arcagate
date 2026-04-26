@@ -1,9 +1,16 @@
 ---
 id: PH-20260427-406
-status: todo
+status: done
 batch: 90
 type: 改善
 era: Polish Era / Use Case Audit
+---
+
+## 完了ノート
+
+`docs/l2_architecture/use-case-friction.md` 新設。10 ケース全て walkthrough（コード read + e2e カバレッジ確認）。
+結果: macro 0 / micro 0 / medium 11 件。実機 CDP は次バッチ承認後に追加実施可。
+
 ---
 
 # PH-406: walkthrough + 摩擦点リスト化

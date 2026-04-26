@@ -1,9 +1,21 @@
 ---
 id: PH-20260427-407
-status: todo
+status: done
 batch: 90
 type: 改善
 era: Polish Era / Use Case Audit
+---
+
+## 完了ノート
+
+walkthrough（PH-406）で micro 摩擦 **0 件発見**。既存 batch-87/88/89 で:
+
+- コピー統一（PH-393）
+- LoadingState rollout（PH-401）
+- 音声機能完全削除（PH-396）
+
+を消化済みのため、新規 micro 修正対象なし。
+
 ---
 
 # PH-407: walkthrough 中の軽微バグ / 不整合 即修正
