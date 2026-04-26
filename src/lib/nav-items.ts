@@ -16,6 +16,7 @@
 import {
 	Archive,
 	Database,
+	Info,
 	LayoutDashboard,
 	Palette,
 	Search,
@@ -47,6 +48,7 @@ export const NAV_SETTINGS = {
 	appearance: { icon: Palette, label: 'Appearance' },
 	sound: { icon: Volume2, label: 'Sound' },
 	data: { icon: Database, label: 'Data' },
+	about: { icon: Info, label: 'About' },
 } as const satisfies Record<string, NavItem>;
 
 export type NavTopId = keyof typeof NAV_TOP;
