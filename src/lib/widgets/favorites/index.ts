@@ -8,7 +8,7 @@ export const widgetType = 'favorites' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: Star,
-	label: 'よく使うもの',
+	label: 'お気に入り',
 	defaultConfig: { max_items: 10 },
 	addable: true,
 	SettingsContent: CommonMaxItemsSettings,

@@ -9,7 +9,7 @@ import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
-import type { WorkspaceWidget } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -50,7 +50,7 @@ let menuItems = $derived(
 );
 </script>
 
-<WidgetShell title={pinnedItem?.label ?? 'Item'} icon={Package} {menuItems}>
+<WidgetShell title={pinnedItem?.label ?? WIDGET_LABELS.item} icon={Package} {menuItems}>
 	{#if pinnedItem}
 		<button
 			type="button"

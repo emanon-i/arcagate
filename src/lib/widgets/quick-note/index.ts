@@ -8,7 +8,7 @@ export const widgetType = 'quick_note' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: NotebookPen,
-	label: 'クイックメモ',
+	label: 'メモ',
 	defaultConfig: { font_size: 'md' },
 	addable: true,
 	SettingsContent: QuickNoteSettings,

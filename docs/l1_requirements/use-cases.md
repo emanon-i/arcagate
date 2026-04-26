@@ -15,7 +15,7 @@ batch-90 PH-405 で agent が想定したケース集。実際のユーザ操作
 ## 1. ゲーム起動（Steam / 同人 / 単体 exe）
 
 - **目的**: 「あのゲーム遊びたい」→ 1 クリックで起動
-- **典型操作**: ホットキー `Ctrl+Space` → ゲーム名入力 → Enter / Workspace の Favorites widget をダブルクリック
+- **典型操作**: ホットキー `Ctrl+Shift+Space` → ゲーム名入力 → Enter / Workspace の Favorites widget をダブルクリック
 - **UI**: Palette / Workspace（Favorites widget）/ Library（カードクリック）
 - **想定時間**: 2 秒以内（パレット）/ 1 クリック以内（Workspace pinned）
 

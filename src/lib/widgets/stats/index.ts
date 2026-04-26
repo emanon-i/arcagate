@@ -8,7 +8,7 @@ export const widgetType = 'stats' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: TrendingUp,
-	label: 'よく起動',
+	label: 'よく使うもの',
 	defaultConfig: { max_items: 10 },
 	addable: true,
 	SettingsContent: CommonMaxItemsSettings,
