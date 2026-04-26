@@ -1,19 +1,9 @@
-export type WidgetType =
-	| 'favorites'
-	| 'recent'
-	| 'projects'
-	| 'watched_folders'
-	| 'item'
-	| 'clock'
-	| 'stats'
-	| 'quick_note'
-	| 'exe_folder'
-	| 'daily_task'
-	| 'snippet'
-	| 'clipboard_history'
-	| 'file_search'
-	| 'system_monitor';
+// WidgetType は src-tauri の Rust enum から ts-rs で自動生成（batch-79 PH-352）
+import type { WidgetType } from '$lib/bindings/WidgetType';
 
+export type { WidgetType };
+
+// WIDGET_LABELS は batch-79 で widget-registry に統合予定（後方互換のため当面残す）
 export const WIDGET_LABELS: Record<WidgetType, string> = {
 	favorites: 'よく使うもの',
 	recent: '最近使ったもの',

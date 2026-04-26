@@ -40,3 +40,4 @@ clap = { version = "4", features = ["derive"] }
 tauri-plugin-clipboard-manager = "2"
 notify = { version = "7", features = ["macos_fsevent"] }
 sysinfo = { version = "0.32", default-features = false, features = ["system", "disk"] }
+ts-rs = { version = "10", features = ["serde-compat"] }
