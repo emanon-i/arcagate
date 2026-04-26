@@ -41,6 +41,9 @@ pub enum AppError {
 
     #[error("Cancelled")]
     Cancelled,
+
+    #[error("Watch failed: {0}")]
+    WatchFailed(String),
 }
 
 impl serde::Serialize for AppError {
