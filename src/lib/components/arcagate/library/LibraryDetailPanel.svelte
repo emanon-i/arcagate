@@ -26,6 +26,7 @@ let selectedItem = $derived(itemStore.items.find((i) => i.id === selectedItemId)
 
 // タグ状態管理
 let itemTags = $state<Tag[]>([]);
+let resetConfirmOpen = $state(false);
 
 // request token: selectedItemId 切替時に古いレスポンスで上書きしないため
 let tagRequestId = 0;
@@ -261,19 +262,29 @@ let moreMenuItems = $derived.by(() => {
 			<span class="flex-1">
 				<span class="block">ライブラリで非表示</span>
 				<span class="mt-0.5 block text-xs text-[var(--ag-text-muted)]">
-					非表示にすると検索結果から除外されます。残したまま隠せます。
+					非表示にすると <strong>検索（パレット / Library 一覧）</strong> と <strong>ウィジェット</strong> から外れます。データは残るため、再度表示に戻すことも可能です。
 				</span>
 			</span>
 		</label>
 
-		<!-- PH-290 + PH-297: per-card 設定 -->
+		<!-- PH-290 + PH-297 + PH-340: per-card 設定 -->
 		<div class="mt-4 space-y-2 border-t border-[var(--ag-border)] pt-4">
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0 flex-1">
-					<p class="text-sm font-medium text-[var(--ag-text-primary)]">カード表示</p>
+					<div class="flex items-center gap-2">
+						<p class="text-sm font-medium text-[var(--ag-text-primary)]">カード表示</p>
+						{#if selectedItem.card_override_json}
+							<span
+								class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--ag-accent-text)]"
+								data-testid="card-override-badge"
+							>
+								個別調整中
+							</span>
+						{/if}
+					</div>
 					<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
 						{selectedItem.card_override_json
-							? 'このカードは個別設定が適用されています。'
+							? 'このカードのみグローバル設定とは独立した表示が適用されています。'
 							: 'Settings > Library のグローバル設定が適用されています。'}
 					</p>
 				</div>
@@ -282,10 +293,8 @@ let moreMenuItems = $derived.by(() => {
 						type="button"
 						data-testid="card-override-reset"
 						class="shrink-0 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-						onclick={() =>
-							void itemStore.updateItem(selectedItem!.id, {
-								card_override_json: null,
-							})}
+						aria-label="個別調整を解除してグローバル設定に戻す"
+						onclick={() => (resetConfirmOpen = true)}
 					>
 						グローバル設定に戻す
 					</button>
@@ -294,6 +303,7 @@ let moreMenuItems = $derived.by(() => {
 						type="button"
 						data-testid="card-override-enable"
 						class="shrink-0 rounded-lg border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-accent-active-bg)]"
+						aria-label="このカードだけ個別調整を有効化"
 						onclick={() => {
 							// 現在の global 設定を override にコピー（編集の起点）
 							const current = JSON.stringify({
@@ -303,6 +313,7 @@ let moreMenuItems = $derived.by(() => {
 							void itemStore.updateItem(selectedItem!.id, {
 								card_override_json: current,
 							});
+							toastStore.add('このカードだけ個別調整を開始しました', 'success');
 						}}
 					>
 						このカードだけ個別調整
@@ -311,7 +322,7 @@ let moreMenuItems = $derived.by(() => {
 			</div>
 			{#if selectedItem.card_override_json}
 				<p class="text-[11px] text-[var(--ag-text-muted)]">
-					詳細編集 UI は Settings > Library に統合予定（次バッチ）。当面はリセット → 再有効化で global の最新値を取り込めます。
+					詳細編集 UI は Settings > Library に統合予定。当面はリセット → 再有効化で global の最新値を取り込めます。
 				</p>
 			{/if}
 		</div>
@@ -323,3 +334,48 @@ let moreMenuItems = $derived.by(() => {
 		</div>
 	{/if}
 </aside>
+
+{#if resetConfirmOpen && selectedItem}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) resetConfirmOpen = false;
+		}}
+		onkeydown={(e) => {
+			if (e.key === 'Escape') resetConfirmOpen = false;
+		}}
+	>
+		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]">
+			<h3 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">個別調整を解除しますか？</h3>
+			<p class="mb-4 text-sm text-[var(--ag-text-secondary)]">
+				このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。
+			</p>
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					onclick={() => (resetConfirmOpen = false)}
+				>
+					キャンセル
+				</button>
+				<button
+					type="button"
+					data-testid="card-override-reset-confirm"
+					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-red-500 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					onclick={() => {
+						const id = selectedItem!.id;
+						resetConfirmOpen = false;
+						void itemStore.updateItem(id, { card_override_json: null });
+						toastStore.add('個別調整を解除しました', 'success');
+					}}
+				>
+					解除する
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

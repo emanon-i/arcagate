@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-341
-status: todo
+status: partial
 batch: 77
 type: 改善
 ---
@@ -22,7 +22,8 @@ type: 改善
 
 ## 受け入れ条件
 
-- [ ] ItemForm でタグ入力時に既存タグが suggest される
-- [ ] LibraryDetailPanel から add/remove タグ可能
-- [ ] aria-label が機能文言
-- [ ] `pnpm verify` 全通過
+- [x] **batch-77 partial**: 純粋関数 `filterTagSuggestions` / `isExistingTag` 抽出 → vitest 10 件 pass
+- [ ] **batch-78 持ち越し**: ItemForm でタグ入力時に既存タグが suggest される（UI 結合）
+- [ ] **batch-78 持ち越し**: LibraryDetailPanel から add/remove タグ可能
+- [ ] **batch-78 持ち越し**: aria-label が機能文言
+- [x] `pnpm verify` 全通過
