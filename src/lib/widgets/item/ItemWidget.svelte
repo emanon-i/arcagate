@@ -10,7 +10,7 @@ import type { Item } from '$lib/types/item';
 import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
-import LibraryItemPicker from './LibraryItemPicker.svelte';
+import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 
 interface Props {
 	widget?: WorkspaceWidget;

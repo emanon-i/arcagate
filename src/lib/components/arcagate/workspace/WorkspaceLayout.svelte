@@ -7,20 +7,8 @@ import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
-import ClipboardHistoryWidget from './ClipboardHistoryWidget.svelte';
-import ClockWidget from '$lib/widgets/clock/ClockWidget.svelte';
-import DailyTaskWidget from './DailyTaskWidget.svelte';
-import ExeFolderWatchWidget from './ExeFolderWatchWidget.svelte';
-import FavoritesWidget from './FavoritesWidget.svelte';
-import FileSearchWidget from './FileSearchWidget.svelte';
-import ItemWidget from './ItemWidget.svelte';
+import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
-import ProjectsWidget from './ProjectsWidget.svelte';
-import QuickNoteWidget from './QuickNoteWidget.svelte';
-import RecentLaunchesWidget from './RecentLaunchesWidget.svelte';
-import SnippetWidget from './SnippetWidget.svelte';
-import StatsWidget from './StatsWidget.svelte';
-import SystemMonitorWidget from './SystemMonitorWidget.svelte';
 import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
@@ -265,21 +253,10 @@ async function doRestoreSnapshot() {
 	}
 }
 
-const widgetComponents = {
-	favorites: FavoritesWidget,
-	recent: RecentLaunchesWidget,
-	projects: ProjectsWidget,
-	item: ItemWidget,
-	clock: ClockWidget,
-	stats: StatsWidget,
-	quick_note: QuickNoteWidget,
-	exe_folder: ExeFolderWatchWidget,
-	daily_task: DailyTaskWidget,
-	snippet: SnippetWidget,
-	clipboard_history: ClipboardHistoryWidget,
-	file_search: FileSearchWidget,
-	system_monitor: SystemMonitorWidget,
-} as const;
+// widget components は widgetRegistry から派生（batch-83 PH-370）
+const widgetComponents = Object.fromEntries(
+	Object.entries(widgetRegistry).map(([type, meta]) => [type, meta.Component]),
+);
 
 function handleItemContext(itemId: string) {
 	contextItemId = itemId;

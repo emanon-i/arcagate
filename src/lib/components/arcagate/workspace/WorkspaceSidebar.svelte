@@ -1,26 +1,9 @@
 <script lang="ts">
-import {
-	Activity,
-	Check,
-	CheckSquare,
-	Clipboard,
-	ClipboardList,
-	Clock,
-	Clock3,
-	FileSearch,
-	FolderOpen,
-	GitBranch,
-	Grip,
-	NotebookPen,
-	Package,
-	Pencil,
-	Star,
-	TrendingUp,
-	X,
-} from '@lucide/svelte';
+import { Check, Grip, Pencil, X } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
-import { WIDGET_LABELS, type WidgetType } from '$lib/types/workspace';
+import type { WidgetType } from '$lib/types/workspace';
+import { widgetRegistry } from '$lib/widgets';
 
 interface Props {
 	editMode: boolean;
@@ -34,26 +17,16 @@ let { editMode, onToggleEdit, onConfirmEdit, onCancelEdit }: Props = $props();
 const rm =
 	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// label は WIDGET_LABELS（types/workspace.ts）の単一情報源を使用
-const widgetIcons: Partial<Record<WidgetType, Component>> = {
-	favorites: Star,
-	recent: Clock3,
-	projects: GitBranch,
-	item: Package,
-	clock: Clock,
-	stats: TrendingUp,
-	quick_note: NotebookPen,
-	exe_folder: FolderOpen,
-	daily_task: CheckSquare,
-	snippet: Clipboard,
-	clipboard_history: ClipboardList,
-	file_search: FileSearch,
-	system_monitor: Activity,
-};
-
-const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = (
-	Object.entries(widgetIcons) as [WidgetType, Component][]
-).map(([type, icon]) => ({ type, label: WIDGET_LABELS[type], icon }));
+// availableWidgets を widgetRegistry から派生（batch-83 PH-370）
+const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = Object.entries(
+	widgetRegistry,
+)
+	.filter(([, meta]) => meta?.addable)
+	.map(([type, meta]) => ({
+		type: type as WidgetType,
+		label: meta!.label,
+		icon: meta!.icon,
+	}));
 
 function startDrag(e: PointerEvent, widgetType: WidgetType) {
 	e.preventDefault();
