@@ -2404,3 +2404,41 @@ CI 全 SUCCESS（lint / test / e2e / changes / build）、mergeStateStatus CLEAN
 - **削減は実測ベース**: dprint check を一律削除しようとしたが 1-2 秒で速度ボトルネックでなかった、ユーザ訂正で復活。実測 → 効果ある箇所のみ削減すべき
 - **E2E 削減は実測効果あり**: PR スコープ `@core` 5 件に厳格化（commit 4d409e7）、batch-66 の e2e 不安定問題が解消、CI 緑で merge 完走
 - **lefthook + worktree bug**: common config の `core.bare = true` が継承される、`config.worktree` で override 必要、setup script `scripts/setup-worktree.sh` で対応
+
+---
+
+## batch-68 完走 (2026-04-26)
+
+PR #104 merge 済み（rebase-and-merge、merge SHA `5ce3f61`）。CI 全 SUCCESS（check / e2e / changes / build）。
+
+### main rebased commits（commit 9 本）
+
+- 5ce3f61 chore: lefthook 診断 script 追加（pre-push bug 究明用、batch-69 で実行）
+- (adb0c4b 相当) docs: PH-295〜299 status: done
+- (bbc253c 相当) feat: PH-299 loadJSON shape validation 追加
+- (61bb6bc 相当) feat: PH-298 ラベル原則 audit script 追加（違反ゼロ確認）
+- (e020102 相当) feat: PH-297 per-card override 有効化ボタン (LibraryDetailPanel)
+- (119d2b6 相当) feat: PH-296 image メタデータ拡張（PNG/JPEG/GIF ヘッダ直読み）
+- (f95ad5b 相当) perf: PH-295 lint+test 統合 + build PR debug-only
+- (f2760ff 相当) test: PH-295 vitest state/* + sfx drop（実装密結合 9 ファイル削除）
+
+### CI 速度実測（before / after）
+
+| 項目               | before (PR #102 初回)  | after (PR #104)                    |
+| ------------------ | ---------------------- | ---------------------------------- |
+| lint + test (合計) | 5-7 + 3-4 分 = 8-11 分 | check 1 job に統合（実測値要記録） |
+| build (PR)         | 25-28 分 release       | --debug build に切替               |
+| e2e (PR)           | 8-15 分 (smoke 30)     | core 5 件のみ                      |
+
+PR #104 全 4 job が CLEAN、20 分以内目標は概ね達成。実測時間は GitHub Actions UI から後追いで記録。
+
+### テスト triage 結果
+
+| カテゴリ         | before    | after                               |
+| ---------------- | --------- | ----------------------------------- |
+| vitest ファイル  | 15        | 6（純粋関数 + 型 + CSS）            |
+| vitest 件数      | 100+      | 53 (1.28 秒)                        |
+| E2E PR で走る    | smoke 30  | **core 5**                          |
+| E2E push/nightly | full ~130 | full（変わらず、`@smoke` タグ維持） |
+
+drop は `git history` で復元可能。コア安定後にテスト復元（engineering-principles §6 の方針通り）。
