@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-415
-status: todo
+status: wip
 batch: 92
 type: 防衛
 era: UX Audit Re-Validation
