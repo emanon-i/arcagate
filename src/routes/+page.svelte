@@ -13,6 +13,7 @@ import ErrorBoundary from '$lib/components/common/ErrorBoundary.svelte';
 import HelpPanel from '$lib/components/help/HelpPanel.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
+import OnboardingTour from '$lib/components/setup/OnboardingTour.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { NAV_TOP } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
@@ -150,6 +151,7 @@ function handleFormClose() {
 
 <!-- オーバーレイ層 -->
 <SetupWizard />
+<OnboardingTour />
 <HelpPanel />
 <ItemFormDialog
 	open={showItemForm}

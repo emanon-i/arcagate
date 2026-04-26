@@ -39,6 +39,17 @@ pub fn mark_setup_complete(db: &DbState) -> Result<(), AppError> {
     config_repository::set(&conn, config::KEY_SETUP_COMPLETE, "true")
 }
 
+pub fn is_onboarding_complete(db: &DbState) -> Result<bool, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let val = config_repository::get_or_default(&conn, config::KEY_ONBOARDING_COMPLETE, "false")?;
+    Ok(val == "true")
+}
+
+pub fn mark_onboarding_complete(db: &DbState) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    config_repository::set(&conn, config::KEY_ONBOARDING_COMPLETE, "true")
+}
+
 pub fn get_config(db: &DbState, key: &str) -> Result<Option<String>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     config_repository::get(&conn, key)
