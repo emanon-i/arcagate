@@ -21,7 +21,6 @@ import {
 	Palette,
 	Search,
 	Settings2,
-	Volume2,
 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 
@@ -46,7 +45,6 @@ export const NAV_SETTINGS = {
 	workspace: { icon: LayoutDashboard, label: 'Workspace' },
 	library: { icon: Archive, label: 'Library' },
 	appearance: { icon: Palette, label: 'Appearance' },
-	sound: { icon: Volume2, label: 'Sound' },
 	data: { icon: Database, label: 'Data' },
 	about: { icon: Info, label: 'About' },
 } as const satisfies Record<string, NavItem>;
