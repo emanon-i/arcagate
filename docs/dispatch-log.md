@@ -2461,3 +2461,24 @@ PR #106 merge 済み（rebase-and-merge、merge SHA `987a23d`）。CI 全 SUCCES
 - clippy `sort_by` → `sort_by_key + Reverse` 優先（lib.rs `-D warnings` で fail）
 - CI Windows runner で page fixture setup が 60s で不足 → `process.env.CI ? 120_000 : 60_000`
 - アプリ起動 + WebView2 init + CDP attach に時間かかる場合は test timeout が原因、global timeout 増やしても効かない
+
+---
+
+## batch-70 完走 (2026-04-26)
+
+PR #108 merge 済み（rebase-and-merge、merge SHA `8ede710`）。CI 全 SUCCESS。
+
+main rebased commits（4 本）:
+
+- 8ede710 docs(batch-70): PH-308/309 ux_standards §13 + PH-305〜309 status: done
+- 118f739 相当 feat: PH-307 Del/Backspace 削除確認
+- 5b4f145 相当 feat: PH-306 e/s/se ハンドル拡張 + cursor 別
+- c5bf2e2 相当 feat: PH-305 Canvas 中ボタン / Space+drag パン
+
+PH-306 8 ハンドルは段階実装（e/s/se の 3 個のみ）、n/w/nw/ne/sw は workspaceStore に
+optimisticMoveAndResize() 追加が必要のため batch-71+ 持ち越し。
+
+教訓:
+
+- 8 ハンドルのうち position 同期必要なものは API 拡張前提
+- Plan 通りに全部やろうとすると 1 バッチで終わらない、scope 縮小判断が時間効率
