@@ -5,6 +5,7 @@ import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { WIDGET_LABELS } from '$lib/types/workspace';
 import {
+	clampResizeForOverlap,
 	computeResize,
 	RESIZE_CURSORS,
 	RESIZE_LABELS,
@@ -20,6 +21,7 @@ interface Props {
 	widgetComponents: Record<string, Component>;
 	selectedWidgetId: string | null;
 	deleteConfirmId: string | null;
+	editMode?: boolean;
 	onItemContext: (itemId: string) => void;
 	onSelectedWidgetIdChange: (id: string | null) => void;
 	onDeleteConfirmIdChange: (id: string | null) => void;
@@ -35,6 +37,7 @@ let {
 	widgetComponents,
 	selectedWidgetId,
 	deleteConfirmId,
+	editMode = true,
 	onItemContext,
 	onSelectedWidgetIdChange,
 	onDeleteConfirmIdChange,
@@ -128,10 +131,15 @@ function handleResizeStart(e: PointerEvent, widgetId: string, dir: ResizeDir = '
 		const dy = ev.clientY - startY;
 		const stepDx = Math.round(dx / cellW);
 		const stepDy = Math.round(dy / cellH);
-		const next = computeResize(start, stepDx, stepDy, dir, {
+		const proposed = computeResize(start, stepDx, stepDy, dir, {
 			maxSpan: MAX_SPAN,
 			maxCols: dynamicCols,
 		});
+		// 他ウィジェットと重なる場合は重ならない最大に丸める（rubber-band）
+		const others = workspaceStore.widgets
+			.filter((ww) => ww.id !== widgetId)
+			.map((ww) => ({ x: ww.position_x, y: ww.position_y, w: ww.width, h: ww.height }));
+		const next = clampResizeForOverlap(start, proposed, others);
 		workspaceStore.optimisticMoveAndResize(widgetId, next.x, next.y, next.w, next.h);
 	}
 
@@ -196,13 +204,16 @@ function handleMoveStart(e: PointerEvent, widgetId: string) {
 			{#if WidgetComp}
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
-					class="relative transition-opacity"
+					class="relative transition-opacity focus-visible:outline-none"
 					class:opacity-60={isMoving}
 					role="group"
 					aria-label={WIDGET_LABELS[widget.widget_type] ?? widget.widget_type}
+					tabindex={editMode ? 0 : -1}
 					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};{selectedWidgetId === widget.id ? ' box-shadow: 0 0 0 2px var(--ag-surface), 0 0 0 4px var(--ag-accent); border-radius: var(--ag-radius-widget);' : ''}"
 					onclick={(e) => { e.stopPropagation(); onSelectedWidgetIdChange(widget.id); }}
+					onfocus={() => onSelectedWidgetIdChange(widget.id)}
 				>
 					<WidgetComp {widget} {onItemContext} />
 					<!-- ドラッグハンドル (PointerEvent ベース) -->

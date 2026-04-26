@@ -384,6 +384,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						{widgetComponents}
 						{selectedWidgetId}
 						{deleteConfirmId}
+						{editMode}
 						onItemContext={handleItemContext}
 						onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
 						onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}

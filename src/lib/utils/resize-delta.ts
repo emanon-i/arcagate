@@ -59,6 +59,43 @@ function clamp(v: number, lo: number, hi: number): number {
 	return Math.max(lo, Math.min(hi, v));
 }
 
+export interface OverlapTarget {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+function overlaps(a: Rect, b: OverlapTarget): boolean {
+	return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/**
+ * 提案された rect が他のウィジェットと重なる場合、重ならない最大に丸める。
+ * 1 step ずつ start に向けて縮め、最初に non-overlap になった rect を返す。
+ * 全 step で重なるなら start を返す（rubber-band 動作）。
+ */
+export function clampResizeForOverlap(start: Rect, proposed: Rect, others: OverlapTarget[]): Rect {
+	if (!others.some((o) => overlaps(proposed, o))) return proposed;
+
+	const dx = proposed.x - start.x;
+	const dy = proposed.y - start.y;
+	const dw = proposed.w - start.w;
+	const dh = proposed.h - start.h;
+	const steps = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dw), Math.abs(dh));
+	for (let i = steps; i >= 0; i--) {
+		const ratio = steps > 0 ? i / steps : 0;
+		const cur: Rect = {
+			x: Math.round(start.x + dx * ratio),
+			y: Math.round(start.y + dy * ratio),
+			w: Math.max(1, Math.round(start.w + dw * ratio)),
+			h: Math.max(1, Math.round(start.h + dh * ratio)),
+		};
+		if (!others.some((o) => overlaps(cur, o))) return cur;
+	}
+	return start;
+}
+
 export const RESIZE_CURSORS: Record<ResizeDir, string> = {
 	n: 'ns-resize',
 	s: 'ns-resize',

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { computeResize, type Rect } from './resize-delta';
+import {
+	clampResizeForOverlap,
+	computeResize,
+	type OverlapTarget,
+	type Rect,
+} from './resize-delta';
 
 const start: Rect = { x: 5, y: 5, w: 2, h: 2 };
 
@@ -88,5 +93,49 @@ describe('computeResize - clamp boundaries', () => {
 	});
 	it('h cannot go below 1', () => {
 		expect(computeResize(start, 0, -99, 's').h).toBe(1);
+	});
+});
+
+describe('clampResizeForOverlap', () => {
+	const startRect: Rect = { x: 0, y: 0, w: 2, h: 2 };
+	const blocker: OverlapTarget = { x: 3, y: 0, w: 2, h: 2 };
+
+	it('passes through when no overlap', () => {
+		const proposed: Rect = { x: 0, y: 0, w: 3, h: 2 }; // ends at x=3, blocker starts at x=3 (touch, no overlap)
+		expect(clampResizeForOverlap(startRect, proposed, [blocker])).toEqual(proposed);
+	});
+
+	it('clamps width when proposed overlaps blocker', () => {
+		const proposed: Rect = { x: 0, y: 0, w: 5, h: 2 };
+		const result = clampResizeForOverlap(startRect, proposed, [blocker]);
+		expect(result.w).toBeLessThanOrEqual(3);
+		expect(result.x + result.w).toBeLessThanOrEqual(blocker.x);
+	});
+
+	it('returns start when fully blocked from the start', () => {
+		const fullyBlocking: OverlapTarget = { x: 0, y: 0, w: 10, h: 10 };
+		const proposed: Rect = { x: 0, y: 0, w: 3, h: 3 };
+		const result = clampResizeForOverlap(startRect, proposed, [fullyBlocking]);
+		expect(result).toEqual(startRect);
+	});
+
+	it('handles north (y shift) without overlap', () => {
+		const proposed: Rect = { x: 0, y: -1, w: 2, h: 3 };
+		const result = clampResizeForOverlap(startRect, proposed, []);
+		expect(result).toEqual(proposed);
+	});
+
+	it('handles multiple blockers', () => {
+		const blocker2: OverlapTarget = { x: 0, y: 3, w: 2, h: 2 };
+		const proposed: Rect = { x: 0, y: 0, w: 5, h: 5 };
+		const result = clampResizeForOverlap(startRect, proposed, [blocker, blocker2]);
+		// Should not overlap with either blocker
+		expect(result.x + result.w).toBeLessThanOrEqual(3);
+		expect(result.y + result.h).toBeLessThanOrEqual(3);
+	});
+
+	it('returns identity when others is empty', () => {
+		const proposed: Rect = { x: 5, y: 5, w: 3, h: 3 };
+		expect(clampResizeForOverlap(startRect, proposed, [])).toEqual(proposed);
 	});
 });
