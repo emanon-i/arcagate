@@ -2901,3 +2901,45 @@ Refactor Era **簡素化フェーズ** 完走。WidgetSettingsDialog 解体 + Co
 - PH-382 起動 P95 計測（vision 2 秒目標、未計測のため初回計測）
 - PH-383 idle memory 計測 + sysinfo Mutex 戦略 review
 - PH-384 整理 + Polish Era 起動提案
+
+---
+
+## batch-85 完走 (2026-04-27) — Refactor Era 全 4 バッチ完走
+
+PR #137 merge 済み（rebase-and-merge、merge SHA は archive 後に確認）。CI 全 SUCCESS（check / changes / build / e2e）。
+
+Refactor Era **性能フェーズ完走 + Refactor Era 全体（batch-82〜85）満了**。実機計測のスクリプトを整備、実測自体は次セッションで承認後に。
+
+主要変更:
+
+- **PH-380 done**: cargo bloat top 30 を performance-baseline.md に記録（exe 16.5 MiB / .text 11.7 MiB / vision 20MB の 83% 使用）。`notify` features を `default-features = false` に変更（vision で macOS スコープ外、Windows 配布のため意図明文化）。サイズ baseline 維持
+- **PH-381 done**: ThemeEditor を SettingsPanel から dynamic import 化。メイン chunk 369→362 KB（-7 KB）+ ThemeEditor 7.5 KB lazy chunk 分離。追加候補（ItemFormDialog / WidgetSettingsDialog Settings 群）は Polish Era に持越
+- **PH-382 partial**: 起動 P95 計測スクリプト `scripts/bench/startup.ps1` 整備（CDP ポート受付までの ms を 100 回計測）。実機計測待ち
+- **PH-383 partial**: idle memory 計測スクリプト `scripts/bench/idle-memory.ps1` 整備（30 秒 idle + 5 分使用後の WS / PrivateMemorySize）+ sysinfo Mutex 戦略 review 文書化
+- **PH-384 done**: Refactor Era 完走サマリ + Polish Era 起動条件チェック + batch-86 5 plan 候補（PH-385〜389）を refactoring-opportunities.md に追記
+
+Refactor Era 完走サマリ:
+
+| バッチ   | テーマ | 主要成果                                                                   |
+| -------- | ------ | -------------------------------------------------------------------------- |
+| batch-82 | 計測   | exe 16.44 MB / フロント 556 KB / vitest 104 / cargo test 176 baseline      |
+| batch-83 | 構造   | 14 widget colocation + registry 化（WorkspaceLayout 33→9 行 等）           |
+| batch-84 | 簡素化 | WidgetSettingsDialog 583→95 行 / ConfirmDialog 共通化 / 防衛テスト 119/119 |
+| batch-85 | 性能   | cargo bloat / ThemeEditor lazy / 起動・idle 計測スクリプト整備             |
+
+Polish Era 起動条件: 4/5 ✅、実機計測のみ Polish Era 内で消化。
+
+教訓:
+
+- Refactor Era 4 バッチを 1 セッションで完走（batch-83/84/85 + 各 archive PR の計 7 PR）
+- 計測フェーズが重要: batch-82 の baseline がないと「悪化していない」を客観的に主張できない
+- 性能フェーズで「PR #137 サイズ削減 -7 KB」のような小さな数値でも、baseline 化により定量比較可能
+- 実機計測を含むタスクは「スクリプト整備」と「実測」を分離する判断が筋（自律運用で実測は許可制）
+
+次バッチ: **batch-86 Polish Era 起動**（PH-385〜389 の 5 plan を作成予定）
+
+- PH-385 PH-376 deferred 消化（Settings/utils 配置整理 + SettingsPanel カテゴリ別分割）
+- PH-386 watched_folders deprecated 完全削除
+- PH-387 /simplify レビュー指摘消化（NumberField 抽出 + shadcn Input 統一 + Generic Dialog shell）
+- PH-388 実機計測完走（起動 P95 + idle memory + 改善必要なら 1 件 commit）
+- PH-389 Polish 整理 + Distribution Era 起動提案
