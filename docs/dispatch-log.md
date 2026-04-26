@@ -2482,3 +2482,23 @@ optimisticMoveAndResize() 追加が必要のため batch-71+ 持ち越し。
 
 - 8 ハンドルのうち position 同期必要なものは API 拡張前提
 - Plan 通りに全部やろうとすると 1 バッチで終わらない、scope 縮小判断が時間効率
+
+---
+
+## batch-71 完走 (2026-04-26)
+
+PR #110 merge 済み（rebase-and-merge、merge SHA `9a1df05`）。CI 全 SUCCESS。
+
+main rebased commits:
+
+- 9a1df05 feat(batch-71): PH-310〜314 DailyTaskWidget + SnippetWidget + WidgetType 拡張
+
+新ウィジェット 2 種を最小 MVP で投入:
+
+- DailyTaskWidget（チェックリスト、widget config JSON 永続化）
+- SnippetWidget（クリップボードコピー + toast）
+
+次バッチ候補（dispatch-log バッチキュー継続）:
+
+- batch-72: ClipboardHistory + FileSearch
+- batch-73: SystemMonitor（idle 100MB 制約遵守）
