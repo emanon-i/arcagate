@@ -1,11 +1,29 @@
 use std::path::Path;
+use std::process::Command;
 
 use crate::models::git::GitStatus;
 use crate::utils::error::AppError;
 
+/// 親プロセス（Tauri / lefthook 等）から漏れた GIT_* 環境変数を除去した Command を作る。
+/// これらが設定されていると、`current_dir` を指定しても git は親 repo を操作してしまう。
+fn git_cmd() -> Command {
+    let mut c = Command::new("git");
+    for var in [
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_NAMESPACE",
+        "GIT_COMMON_DIR",
+    ] {
+        c.env_remove(var);
+    }
+    c
+}
+
 /// 指定 cwd で git サブコマンドを実行し、stdout を返す。
 fn run_git_command(args: &[&str], cwd: &str) -> Result<String, AppError> {
-    let output = std::process::Command::new("git")
+    let output = git_cmd()
         .args(args)
         .current_dir(cwd)
         .output()
@@ -56,20 +74,19 @@ pub fn git_status(path: &str) -> Result<GitStatus, AppError> {
 mod tests {
     use super::*;
     use std::fs;
-    use std::process::Command;
 
     fn init_git_repo(dir: &std::path::Path) {
-        Command::new("git")
+        super::git_cmd()
             .args(["init"])
             .current_dir(dir)
             .output()
             .expect("git init failed");
-        Command::new("git")
+        super::git_cmd()
             .args(["config", "user.email", "test@test.com"])
             .current_dir(dir)
             .output()
             .ok();
-        Command::new("git")
+        super::git_cmd()
             .args(["config", "user.name", "Test"])
             .current_dir(dir)
             .output()
@@ -83,14 +100,14 @@ mod tests {
         init_git_repo(&tmp);
 
         // 初回コミットがないと HEAD が定まらないので空コミット
-        Command::new("git")
+        super::git_cmd()
             .args(["commit", "--allow-empty", "-m", "init"])
             .current_dir(&tmp)
             .output()
             .unwrap();
 
         // 新ブランチ作成
-        Command::new("git")
+        super::git_cmd()
             .args(["checkout", "-b", "feature/test"])
             .current_dir(&tmp)
             .output()
@@ -107,7 +124,7 @@ mod tests {
         let tmp = std::env::temp_dir().join(format!("ag_git_test_{}", uuid::Uuid::now_v7()));
         fs::create_dir_all(&tmp).unwrap();
         init_git_repo(&tmp);
-        Command::new("git")
+        super::git_cmd()
             .args(["commit", "--allow-empty", "-m", "init"])
             .current_dir(&tmp)
             .output()
@@ -125,7 +142,7 @@ mod tests {
         let tmp = std::env::temp_dir().join(format!("ag_git_test_{}", uuid::Uuid::now_v7()));
         fs::create_dir_all(&tmp).unwrap();
         init_git_repo(&tmp);
-        Command::new("git")
+        super::git_cmd()
             .args(["commit", "--allow-empty", "-m", "init"])
             .current_dir(&tmp)
             .output()
