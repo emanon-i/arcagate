@@ -37,4 +37,30 @@ describe('formatLaunchError', () => {
 		const msg = formatLaunchError('X', errObj);
 		expect(msg).toContain('「X」が見つかりません');
 	});
+
+	// PH-429: AppError serialize 形式 { code, message } 経由の判定
+	it('uses errorCode field when error is AppError object (file_not_found)', () => {
+		const err = { code: 'launch.file_not_found', message: 'Some other Rust message' };
+		const msg = formatLaunchError('GameX', err);
+		expect(msg).toContain('「GameX」が見つかりません');
+	});
+
+	it('uses errorCode field when error is AppError object (permission_denied)', () => {
+		const err = { code: 'launch.permission_denied', message: 'access denied raw' };
+		const msg = formatLaunchError('AdminApp', err);
+		expect(msg).toContain('起動権限がありません');
+	});
+
+	it('uses errorCode field when error is AppError object (not_executable)', () => {
+		const err = { code: 'launch.not_executable', message: 'no extension' };
+		const msg = formatLaunchError('ReadmeFile', err);
+		expect(msg).toContain('実行可能ファイルではありません');
+	});
+
+	it('falls back to message field for unknown AppError code', () => {
+		const err = { code: 'unknown.error', message: 'unknown thing' };
+		const msg = formatLaunchError('X', err);
+		expect(msg).toContain('「X」の起動に失敗しました');
+		expect(msg).toContain('unknown thing');
+	});
 });

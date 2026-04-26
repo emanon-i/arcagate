@@ -6,6 +6,7 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -110,7 +111,7 @@ async function openEntry(entry: FileEntry) {
 	try {
 		await invoke('cmd_open_path', { path: entry.path });
 	} catch (e: unknown) {
-		toastStore.add(`開けませんでした: ${String(e)}`, 'error');
+		toastStore.add(`開けませんでした: ${getErrorMessage(e)}`, 'error');
 	}
 }
 
