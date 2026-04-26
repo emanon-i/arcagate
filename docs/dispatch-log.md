@@ -2785,6 +2785,21 @@ PR #128 merge 済み（rebase-and-merge、merge SHA `6d95885`）。CI 全 SUCCES
 
 ---
 
+## batch-82 完走 (2026-04-26)
+
+PR #130 merge 済み（rebase-and-merge、merge SHA `52d1e0b`）。CI 全 SUCCESS（e2e 1 回 transient fail → rerun で pass）。
+
+Refactor Era **計測フェーズ**完走。**コード変更なし、ドキュメント計測のみ**。
+
+- PH-366 docs/l2_architecture/folder-map.md: フォルダ Mermaid + 混乱箇所 top 10
+- PH-367 refactoring-opportunities.md に batch-82 セクション追加
+- PH-368 performance-baseline.md: exe size 16.44 MB / cargo bloat
+- PH-365 partial / PH-369 整理
+
+次バッチ: batch-83 構造フェーズ（widget folder colocation 開始）
+
+---
+
 ## batch-77 完走 (2026-04-26)
 
 PR #122 merge 済み（rebase-and-merge、merge SHA `87ee14d`）。CI 全 SUCCESS。
