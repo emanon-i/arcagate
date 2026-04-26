@@ -1,10 +1,11 @@
 <script lang="ts">
-import { FolderOpen } from '@lucide/svelte';
+import { FolderOpen, MoreHorizontal } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 
 interface Props {
@@ -70,12 +71,50 @@ $effect(() => {
 		});
 });
 
+let candidatePopoverFor = $state<string | null>(null);
+
 function resolveExe(entry: ExeFolderEntry): string | undefined {
 	const override = config.item_overrides?.[entry.folderPath];
 	if (override && entry.exeCandidates.some((c) => c.path === override)) {
 		return override;
 	}
 	return entry.exeCandidates[0]?.path;
+}
+
+async function selectExe(entry: ExeFolderEntry, candPath: string) {
+	if (!widget) return;
+	const overrides = { ...(config.item_overrides ?? {}), [entry.folderPath]: candPath };
+	await persistConfig({ ...config, item_overrides: overrides });
+	candidatePopoverFor = null;
+}
+
+async function clearOverride(entry: ExeFolderEntry) {
+	if (!widget) return;
+	const overrides = { ...(config.item_overrides ?? {}) };
+	delete overrides[entry.folderPath];
+	await persistConfig({ ...config, item_overrides: overrides });
+	candidatePopoverFor = null;
+}
+
+async function persistConfig(next: WidgetConfig) {
+	if (!widget) return;
+	try {
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
+	} catch (e: unknown) {
+		toastStore.add(`設定保存に失敗: ${String(e)}`, 'error');
+	}
+}
+
+function formatBytes(n: number): string {
+	if (n < 1000) return `${n} B`;
+	const units = ['KB', 'MB', 'GB'];
+	let v = n / 1000;
+	let i = 0;
+	while (v >= 1000 && i < units.length - 1) {
+		v /= 1000;
+		i++;
+	}
+	return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
 async function launchEntry(entry: ExeFolderEntry) {
@@ -121,7 +160,9 @@ let menuItems = $derived(
 	{:else}
 		<ul class="space-y-1">
 			{#each entries as entry (entry.folderPath)}
-				<li class="flex items-center gap-2">
+				{@const currentExe = resolveExe(entry)}
+				{@const hasOverride = !!config.item_overrides?.[entry.folderPath]}
+				<li class="relative flex items-center gap-1">
 					<button
 						type="button"
 						class="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
@@ -130,10 +171,54 @@ let menuItems = $derived(
 					>
 						<FolderOpen class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
 						<span class="min-w-0 flex-1 truncate">{entry.folderName}</span>
-						<span class="shrink-0 text-[10px] text-[var(--ag-text-faint)]">
-							{entry.exeCandidates.length} exe
+						<span class="shrink-0 text-[10px] {hasOverride ? 'text-[var(--ag-accent-text)]' : 'text-[var(--ag-text-faint)]'}">
+							{entry.exeCandidates.length} exe{hasOverride ? ' ◉' : ''}
 						</span>
 					</button>
+					{#if entry.exeCandidates.length > 1}
+						<button
+							type="button"
+							class="rounded p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+							aria-label="{entry.folderName} の起動 exe を選ぶ"
+							onclick={() => {
+								candidatePopoverFor = candidatePopoverFor === entry.folderPath ? null : entry.folderPath;
+							}}
+						>
+							<MoreHorizontal class="h-3 w-3" />
+						</button>
+					{/if}
+					{#if candidatePopoverFor === entry.folderPath}
+						<div
+							role="menu"
+							class="absolute right-0 top-full z-10 mt-1 w-72 max-w-full rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-[var(--ag-shadow-md)]"
+						>
+							{#each entry.exeCandidates as cand (cand.path)}
+								<button
+									type="button"
+									role="menuitem"
+									class="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-3)]"
+									onclick={() => void selectExe(entry, cand.path)}
+								>
+									<span class="min-w-0 flex-1 truncate">
+										{cand.name}
+									</span>
+									<span class="shrink-0 text-[10px] text-[var(--ag-text-muted)]">
+										{formatBytes(cand.sizeBytes)}{currentExe === cand.path ? ' ✓' : ''}
+									</span>
+								</button>
+							{/each}
+							{#if hasOverride}
+								<button
+									type="button"
+									role="menuitem"
+									class="mt-1 w-full rounded px-2 py-1.5 text-left text-[10px] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
+									onclick={() => void clearOverride(entry)}
+								>
+									自動選択（最大サイズ）に戻す
+								</button>
+							{/if}
+						</div>
+					{/if}
 				</li>
 			{/each}
 		</ul>
