@@ -60,54 +60,54 @@ graph TD
 
 ### フロント (`src/lib/`)
 
-| サブディレクトリ | 責務（推測） | 初見明瞭度 | 命名一貫性 | 責務分離 | コメント |
-|---|---|---|---|---|---|
-| `components/arcagate/` | 「アプリ固有」コンポーネント全般 | △ | ◯ | △ | `arcagate/` という分類が広すぎる（ライブラリ + ウィジェット + パレット 全部入り） |
-| `components/arcagate/workspace/` | Workspace shell + 全 widget + dialog | ✕ | ◯ | ✕ | **20+ ファイル混在、widget 本体 / shell / dialog が同一階層** |
-| `components/arcagate/library/` | Library 画面の構成要素 | ◯ | ◯ | ◯ | Card / Sidebar / DetailPanel が綺麗に分離 |
-| `components/arcagate/palette/` | Palette overlay | ◯ | ◯ | ◯ | 集約良好 |
-| `components/arcagate/common/` | 横断汎用（Tip / WidgetShell） | △ | ◯ | △ | 「common」は粒度差大、WidgetShell は workspace 専用なのに common にある |
-| `components/item/` | アイテム CRUD UI | ◯ | ◯ | ◯ | |
-| `components/settings/` | Settings 画面 | △ | ◯ | △ | LibraryCardSettings.svelte が settings/ にあるのは配置疑問（library/ 配下が論理的） |
-| `components/setup/` | 初回セットアップ Wizard | ◯ | ◯ | ◯ | |
-| `components/ui/` | shadcn-svelte scaffold | ◯ | ◯ | ◯ | 手動編集禁止と明記済 |
-| `state/` | Svelte 5 runes store | ◯ | ◯ | ◯ | `*.svelte.ts` 命名で runes と分かる |
-| `ipc/` | Tauri invoke wrapper | ◯ | ◯ | ◯ | 1 file = 1 機能領域、綺麗 |
-| `bindings/` | ts-rs auto-gen | ◯ | ◯ | ◯ | コメントで "Do not edit" 明記、ignore 設定済 |
-| `utils/` | 汎用ヘルパ | △ | ◯ | △ | 純粋関数 + domain 軽ロジック混在（`format-meta.ts` は item 関連、`tag-suggest.ts` も） |
-| `types/` | グローバル型 | ◯ | ◯ | ◯ | `workspace.ts` / `tag.ts` 等、扱う domain ごと |
-| `constants/` | item 種別ラベル等 | ◯ | ◯ | ◯ | |
+| サブディレクトリ                 | 責務（推測）                         | 初見明瞭度 | 命名一貫性 | 責務分離 | コメント                                                                               |
+| -------------------------------- | ------------------------------------ | ---------- | ---------- | -------- | -------------------------------------------------------------------------------------- |
+| `components/arcagate/`           | 「アプリ固有」コンポーネント全般     | △          | ◯          | △        | `arcagate/` という分類が広すぎる（ライブラリ + ウィジェット + パレット 全部入り）      |
+| `components/arcagate/workspace/` | Workspace shell + 全 widget + dialog | ✕          | ◯          | ✕        | **20+ ファイル混在、widget 本体 / shell / dialog が同一階層**                          |
+| `components/arcagate/library/`   | Library 画面の構成要素               | ◯          | ◯          | ◯        | Card / Sidebar / DetailPanel が綺麗に分離                                              |
+| `components/arcagate/palette/`   | Palette overlay                      | ◯          | ◯          | ◯        | 集約良好                                                                               |
+| `components/arcagate/common/`    | 横断汎用（Tip / WidgetShell）        | △          | ◯          | △        | 「common」は粒度差大、WidgetShell は workspace 専用なのに common にある                |
+| `components/item/`               | アイテム CRUD UI                     | ◯          | ◯          | ◯        |                                                                                        |
+| `components/settings/`           | Settings 画面                        | △          | ◯          | △        | LibraryCardSettings.svelte が settings/ にあるのは配置疑問（library/ 配下が論理的）    |
+| `components/setup/`              | 初回セットアップ Wizard              | ◯          | ◯          | ◯        |                                                                                        |
+| `components/ui/`                 | shadcn-svelte scaffold               | ◯          | ◯          | ◯        | 手動編集禁止と明記済                                                                   |
+| `state/`                         | Svelte 5 runes store                 | ◯          | ◯          | ◯        | `*.svelte.ts` 命名で runes と分かる                                                    |
+| `ipc/`                           | Tauri invoke wrapper                 | ◯          | ◯          | ◯        | 1 file = 1 機能領域、綺麗                                                              |
+| `bindings/`                      | ts-rs auto-gen                       | ◯          | ◯          | ◯        | コメントで "Do not edit" 明記、ignore 設定済                                           |
+| `utils/`                         | 汎用ヘルパ                           | △          | ◯          | △        | 純粋関数 + domain 軽ロジック混在（`format-meta.ts` は item 関連、`tag-suggest.ts` も） |
+| `types/`                         | グローバル型                         | ◯          | ◯          | ◯        | `workspace.ts` / `tag.ts` 等、扱う domain ごと                                         |
+| `constants/`                     | item 種別ラベル等                    | ◯          | ◯          | ◯        |                                                                                        |
 
 ### バックエンド (`src-tauri/src/`)
 
-| サブディレクトリ | 責務 | 評価 | コメント |
-|---|---|---|---|
-| `commands/` | Tauri IPC handler 薄ラッパ | ◯ | 各 command が `cmd_*` 接頭辞、services を call するだけ |
-| `services/` | business logic | ◯ | layer 一方向依存、テスト可能 |
-| `repositories/` | DB CRUD | ◯ | `find_by_id` / `insert` 等の標準形式 |
-| `models/` | struct + enum | ◯ | serde derive、ts-rs 適用拡張中 |
-| `launcher/` | プロセス起動ロジック | ◯ | 単一責務 |
-| `watcher/` | ファイル監視 | ◯ | notify wrapper |
-| `db/` | DB 接続 + マイグレーション | ◯ | |
-| `utils/` | error / icon / git 等 | △ | error 型と git CLI ラッパが同居、粒度差あり |
-| `bin/` | CLI binary（arcagate_cli） | ◯ | 1 file 1438 行、巨大だがエントリポイントなので許容 |
+| サブディレクトリ | 責務                       | 評価 | コメント                                                |
+| ---------------- | -------------------------- | ---- | ------------------------------------------------------- |
+| `commands/`      | Tauri IPC handler 薄ラッパ | ◯    | 各 command が `cmd_*` 接頭辞、services を call するだけ |
+| `services/`      | business logic             | ◯    | layer 一方向依存、テスト可能                            |
+| `repositories/`  | DB CRUD                    | ◯    | `find_by_id` / `insert` 等の標準形式                    |
+| `models/`        | struct + enum              | ◯    | serde derive、ts-rs 適用拡張中                          |
+| `launcher/`      | プロセス起動ロジック       | ◯    | 単一責務                                                |
+| `watcher/`       | ファイル監視               | ◯    | notify wrapper                                          |
+| `db/`            | DB 接続 + マイグレーション | ◯    |                                                         |
+| `utils/`         | error / icon / git 等      | △    | error 型と git CLI ラッパが同居、粒度差あり             |
+| `bin/`           | CLI binary（arcagate_cli） | ◯    | 1 file 1438 行、巨大だがエントリポイントなので許容      |
 
 ---
 
 ## 3. 混乱箇所 top 10（構造フェーズ batch-83 で潰す候補）
 
-| # | 場所 | 問題 | 影響 |
-|---|---|---|---|
-| 1 | `components/arcagate/workspace/` 20+ files | widget 本体 / dialog / shell / sidebar / hint / rename / delete-confirm が同一階層に混在 | 新規 widget 追加時にどこに置くか迷う、grep が爆発 |
-| 2 | `WidgetSettingsDialog.svelte` 583 行 | 9 widget 用の if/else if が雪だるま | 新規 widget 追加で行が膨張、共通項目の重複 |
-| 3 | `WorkspaceLayout.svelte` 487 行 | 1 ファイルに pan / Del キー / 確認ダイアログ / widget map / rename / context panel が同居 | 改修箇所の特定が困難 |
-| 4 | `components/arcagate/common/` の粒度差 | `Tip` (横断汎用) と `WidgetShell` (workspace 専用) が同居 | 「common とは何か」の定義が曖昧 |
-| 5 | `components/settings/LibraryCardSettings.svelte` の配置 | Library 設定 UI なのに settings/ 配下、library/ にあるべき | 改修時に検索範囲が広がる |
-| 6 | `lib/utils/` の粒度差 | `format-meta.ts` (item 専用) と汎用ヘルパが同居 | utils が domain 知識を持つ汚染 |
-| 7 | `arcagate_cli.rs` 1438 行 | 単一ファイルに全サブコマンド + 引数 parsing | maintainable な分割が必要 |
-| 8 | `item_repository.rs` 685 行 | CRUD + auto-register + tag 関連が同居 | 責務分離が薄い |
-| 9 | `state/workspace.svelte.ts` 338 行 | workspace + widget の state を 1 ファイルに集約 | widget 独立性が低い（registry 化と関連） |
-| 10 | `SettingsPanel.svelte` 455 行 | 6 カテゴリ × 各 UI を 1 ファイルに | カテゴリごとに分割できる（PH-351 の方針と同じ） |
+| #  | 場所                                                    | 問題                                                                                      | 影響                                              |
+| -- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1  | `components/arcagate/workspace/` 20+ files              | widget 本体 / dialog / shell / sidebar / hint / rename / delete-confirm が同一階層に混在  | 新規 widget 追加時にどこに置くか迷う、grep が爆発 |
+| 2  | `WidgetSettingsDialog.svelte` 583 行                    | 9 widget 用の if/else if が雪だるま                                                       | 新規 widget 追加で行が膨張、共通項目の重複        |
+| 3  | `WorkspaceLayout.svelte` 487 行                         | 1 ファイルに pan / Del キー / 確認ダイアログ / widget map / rename / context panel が同居 | 改修箇所の特定が困難                              |
+| 4  | `components/arcagate/common/` の粒度差                  | `Tip` (横断汎用) と `WidgetShell` (workspace 専用) が同居                                 | 「common とは何か」の定義が曖昧                   |
+| 5  | `components/settings/LibraryCardSettings.svelte` の配置 | Library 設定 UI なのに settings/ 配下、library/ にあるべき                                | 改修時に検索範囲が広がる                          |
+| 6  | `lib/utils/` の粒度差                                   | `format-meta.ts` (item 専用) と汎用ヘルパが同居                                           | utils が domain 知識を持つ汚染                    |
+| 7  | `arcagate_cli.rs` 1438 行                               | 単一ファイルに全サブコマンド + 引数 parsing                                               | maintainable な分割が必要                         |
+| 8  | `item_repository.rs` 685 行                             | CRUD + auto-register + tag 関連が同居                                                     | 責務分離が薄い                                    |
+| 9  | `state/workspace.svelte.ts` 338 行                      | workspace + widget の state を 1 ファイルに集約                                           | widget 独立性が低い（registry 化と関連）          |
+| 10 | `SettingsPanel.svelte` 455 行                           | 6 カテゴリ × 各 UI を 1 ファイルに                                                        | カテゴリごとに分割できる（PH-351 の方針と同じ）   |
 
 ---
 
