@@ -10,6 +10,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
+import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -58,7 +59,9 @@ let menuItems = $derived(
 			onclick={() => {
 				void launchItem(pinnedItem!.id)
 					.then(() => toastStore.add(`${pinnedItem!.label} を起動しました`, 'success'))
-					.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
+					.catch((e: unknown) =>
+						toastStore.add(formatLaunchError(pinnedItem!.label, e), 'error'),
+					);
 			}}
 			oncontextmenu={(e) => {
 				if (onItemContext && pinnedItem) {

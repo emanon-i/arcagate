@@ -14,6 +14,7 @@ import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
+import { formatLaunchError } from '$lib/utils/launch-error';
 
 interface Props {
 	selectedItemId: string | null;
@@ -84,7 +85,7 @@ function handleLaunch() {
 	const label = selectedItem.label;
 	void launchItem(selectedItem.id)
 		.then(() => toastStore.add(`${label} を起動しました`, 'success'))
-		.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
+		.catch((e: unknown) => toastStore.add(formatLaunchError(label, e), 'error'));
 }
 
 async function handleDelete() {
@@ -147,7 +148,7 @@ let moreMenuItems = $derived.by(() => {
 			const label = selectedItem.label;
 			void launchItem(selectedItem.id)
 				.then(() => toastStore.add(`${label} を起動しました`, 'success'))
-				.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
+				.catch((e: unknown) => toastStore.add(formatLaunchError(label, e), 'error'));
 		}
 	}}
 />

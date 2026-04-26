@@ -17,13 +17,21 @@ const typeStyles: Record<string, string> = {
 </script>
 
 {#if toastStore.toasts.length > 0}
-	<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2" data-testid="toast-container">
+	<div
+		class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"
+		data-testid="toast-container"
+		role="status"
+		aria-live="polite"
+		aria-atomic="false"
+	>
 		{#each toastStore.toasts as toast (toast.id)}
 			<div
 				class="flex max-w-sm items-center gap-2 rounded-md border px-4 py-3 text-sm shadow-md {typeStyles[
 					toast.type
 				]}"
 				data-testid="toast-{toast.type}"
+				role={toast.type === 'error' ? 'alert' : undefined}
+				aria-live={toast.type === 'error' ? 'assertive' : undefined}
 				in:fly={{ x: 100, duration: dNormal }}
 				out:fade={{ duration: dFast }}
 			>

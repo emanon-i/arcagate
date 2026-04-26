@@ -1,9 +1,19 @@
 // Process launch logic (per item type)
 
+use std::io;
 use std::path::Path;
 use std::process::Command;
 
 use crate::utils::error::AppError;
+
+/// std::io::Error → AppError 分類 (Nielsen H9 launch エラー診断)
+fn map_spawn_error(e: io::Error) -> AppError {
+    match e.kind() {
+        io::ErrorKind::NotFound => AppError::LaunchFileNotFound(e.to_string()),
+        io::ErrorKind::PermissionDenied => AppError::LaunchPermissionDenied(e.to_string()),
+        _ => AppError::LaunchFailed(e.to_string()),
+    }
+}
 
 /// EXE ファイルを起動
 pub fn launch_exe(
@@ -28,8 +38,7 @@ pub fn launch_exe(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn()
-        .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
+    cmd.spawn().map_err(map_spawn_error)?;
     Ok(())
 }
 
@@ -44,8 +53,7 @@ pub fn launch_exe_args(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn()
-        .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
+    cmd.spawn().map_err(map_spawn_error)?;
     Ok(())
 }
 
@@ -111,8 +119,7 @@ pub fn launch_script(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn()
-        .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
+    cmd.spawn().map_err(map_spawn_error)?;
     Ok(())
 }
 
@@ -128,8 +135,7 @@ pub fn launch_command(command: &str, working_dir: Option<&str>) -> Result<(), Ap
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn()
-        .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
+    cmd.spawn().map_err(map_spawn_error)?;
     Ok(())
 }
 

@@ -6,6 +6,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { formatLaunchError } from '$lib/utils/launch-error';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -125,7 +126,7 @@ async function launchEntry(entry: ExeFolderEntry) {
 	// path 直起動: DB 経由しない（cmd_open_path で OS デフォルト起動）
 	void invoke('cmd_open_path', { path: exePath })
 		.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
-		.catch((e: unknown) => toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'));
+		.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
 }
 
 let menuItems = $derived(
