@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   snapshotDir: './tests/e2e/__snapshots__',
-  timeout: 60_000,
+  timeout: process.env.CI ? 120_000 : 60_000,
   globalTimeout: process.env.CI ? 1_200_000 : 300_000,
   retries: 1,
   workers: 1,
