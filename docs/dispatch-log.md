@@ -3052,3 +3052,43 @@ medium 11 件から高優先 5 件:
 - PH-424 整理
 
 エスカレーション: PH-412 のみ Rule A 確定でユーザ承認必要、他は plan 化時に範囲確認で判断。
+
+## 2026-04-27 [batch-91] UX Research Sprint 完走
+
+### 経緯
+
+batch-90 audit が信頼度 2/5（コード read 単独、業界標準照合なし）と自己評価 → 当初 Polish Era 完走宣言を取消し、batch-91 で UX Research Sprint を組み直し。Rule C（Codex 相談必須）を厳格適用。
+
+### 5 Plan 結果
+
+| Plan   | 内容                                          | status  | 主要成果物                                                                  |
+| ------ | --------------------------------------------- | ------- | --------------------------------------------------------------------------- |
+| PH-410 | 業界 UX 標準収集（Nielsen 10 / Raycast 等）   | partial | `docs/l1_requirements/ux-research/industry-standards.md`                    |
+| PH-411 | CEDEC / GDC / CHI 学術 + HE+CW 手法           | partial | `docs/l1_requirements/ux-research/cedec-papers.md`                          |
+| PH-412 | Claude Code skills marketplace 探査           | partial | `docs/l1_requirements/ux-research/claude-skills-survey.md`（導入は Rule A） |
+| PH-413 | Codex セカンドオピニオン（Rule C）            | done    | `docs/l1_requirements/ux-research/codex-review.md`                          |
+| PH-414 | ux_standards / engineering-principles §9 統合 | done    | 雛形 `_template/use-case-audit.md` 新設、業界標準列追加                     |
+
+### Codex Q5 残作業優先順位（Rule C 結果）
+
+1. HE+CW 再監査（10 ケース × Nielsen 10 / severity 0-4）
+2. エラー復旧導線 + in-app ヘルプ最小実装
+3. 実測ベースで hotkey/search 体感性能を競合水準へ
+4. 一貫性バグ一括修正（hotkey 不整合は本バッチで解消済）
+
+### Polish Era 完走宣言の取扱い
+
+batch-90 で出した「Polish Era 完走宣言」は **取消**（信頼度 2/5、Codex も「公開水準ではない」判定）。
+batch-92 HE+CW 再監査で macro/micro/medium が再計測された後に再判定する。
+
+### batch-92 候補
+
+- PH-415: HE+CW 再監査（10 ケース、`_template/use-case-audit.md` 適用）
+- PH-416: 一貫性バグ修正（design token / hotkey 表記揺れ）
+- PH-417: エラー診断強化（H9 オラクル違反）
+- PH-418: in-app ヘルプ最小（H10 オラクル違反）
+- PH-419: 実測ベンチ取得（startup / idle-mem / search 計測）
+
+### 自律作成ログ
+
+- 2026-04-27: PH-410〜414 を Plan 自律作成（dispatch-operation §4d、5 件上限内）
