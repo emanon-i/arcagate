@@ -1,6 +1,7 @@
 <script lang="ts">
 import { cubicOut } from 'svelte/easing';
 import { fade, scale } from 'svelte/transition';
+import { Button } from '$lib/components/ui/button';
 
 interface Props {
 	open: boolean;
@@ -62,23 +63,17 @@ const dNormal = rm ? 0 : 200;
 				{description}
 			</p>
 			<div class="flex justify-end gap-2">
-				<button
-					type="button"
-					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					onclick={onCancel}
-				>
+				<Button type="button" variant="outline" size="sm" onclick={onCancel}>
 					{cancelLabel}
-				</button>
-				<button
+				</Button>
+				<Button
 					type="button"
-					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {confirmVariant ===
-					'destructive'
-						? 'text-red-500'
-						: 'text-[var(--ag-text-primary)]'}"
+					variant={confirmVariant === 'destructive' ? 'destructive' : 'default'}
+					size="sm"
 					onclick={onConfirm}
 				>
 					{confirmLabel}
-				</button>
+				</Button>
 			</div>
 		</div>
 	</div>
