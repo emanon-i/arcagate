@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-374
-status: todo
+status: done
 batch: 83
 type: 整理
 era: Refactor Era / 構造フェーズ
