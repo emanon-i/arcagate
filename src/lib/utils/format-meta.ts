@@ -65,6 +65,14 @@ export function formatItemMeta(
 		}
 		case 'exe':
 		case 'script': {
+			// 画像メタデータがあれば優先（image item_type は ItemType に未定義のため
+			// exe/script 経由でも image_width が埋まっていれば表示）
+			if (meta.imageWidth !== undefined && meta.imageHeight !== undefined) {
+				return {
+					line1: `${meta.imageWidth} × ${meta.imageHeight}${meta.imageFormat ? ` ${meta.imageFormat}` : ''}`,
+					line2: meta.sizeBytes !== undefined ? formatBytes(meta.sizeBytes) : '',
+				};
+			}
 			return {
 				line1: meta.sizeBytes !== undefined ? formatBytes(meta.sizeBytes) : '',
 				line2: formatShortDate(meta.modifiedAtUnix),

@@ -10,4 +10,7 @@ export interface ItemMetadata {
 	childCount?: number;
 	folderTotalBytes?: number;
 	urlDomain?: string;
+	imageWidth?: number;
+	imageHeight?: number;
+	imageFormat?: string;
 }
