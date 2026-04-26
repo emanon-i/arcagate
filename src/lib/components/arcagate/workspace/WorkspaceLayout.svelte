@@ -8,6 +8,7 @@ import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import ClockWidget from './ClockWidget.svelte';
+import DailyTaskWidget from './DailyTaskWidget.svelte';
 import ExeFolderWatchWidget from './ExeFolderWatchWidget.svelte';
 import FavoritesWidget from './FavoritesWidget.svelte';
 import ItemWidget from './ItemWidget.svelte';
@@ -15,6 +16,7 @@ import PageTabBar from './PageTabBar.svelte';
 import ProjectsWidget from './ProjectsWidget.svelte';
 import QuickNoteWidget from './QuickNoteWidget.svelte';
 import RecentLaunchesWidget from './RecentLaunchesWidget.svelte';
+import SnippetWidget from './SnippetWidget.svelte';
 import StatsWidget from './StatsWidget.svelte';
 import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
@@ -229,6 +231,8 @@ const widgetComponents = {
 	stats: StatsWidget,
 	quick_note: QuickNoteWidget,
 	exe_folder: ExeFolderWatchWidget,
+	daily_task: DailyTaskWidget,
+	snippet: SnippetWidget,
 } as const;
 
 function handleItemContext(itemId: string) {
