@@ -1,6 +1,7 @@
 <script lang="ts">
 import { TrendingUp } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
+import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getFrequentItems } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -8,7 +9,6 @@ import type { Item } from '$lib/types/item';
 import { STATS_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
-import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 
 interface Props {
 	widget?: WorkspaceWidget;

@@ -2,6 +2,7 @@
 import { Package, Pencil } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
+import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { updateWidgetConfig } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
@@ -10,7 +11,6 @@ import type { Item } from '$lib/types/item';
 import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
-import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 
 interface Props {
 	widget?: WorkspaceWidget;

@@ -3,6 +3,7 @@ import { CircleDot, Eye, FolderKanban, GitBranch } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
+import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { getWatchedPaths } from '$lib/ipc/watched_paths';
@@ -13,7 +14,6 @@ import type { Item } from '$lib/types/item';
 import type { WatchedPath } from '$lib/types/watched_path';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
-import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 
 interface Props {
 	widget?: WorkspaceWidget;

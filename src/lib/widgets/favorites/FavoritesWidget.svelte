@@ -1,6 +1,8 @@
 <script lang="ts">
 import { Star } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
+import WidgetItemList from '$lib/components/arcagate/workspace/WidgetItemList.svelte';
+import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
@@ -11,8 +13,6 @@ import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
-import WidgetItemList from '$lib/components/arcagate/workspace/WidgetItemList.svelte';
-import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 
 interface Props {
 	widget?: WorkspaceWidget;
