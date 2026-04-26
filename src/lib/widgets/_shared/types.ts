@@ -21,16 +21,7 @@ export interface WidgetMeta {
 	defaultConfig?: Record<string, unknown>;
 	/** 編集モード Sidebar palette に表示するか（false なら API でのみ追加可能） */
 	addable: boolean;
-	/**
-	 * 設定 UI を担当する Svelte コンポーネント（batch-84 PH-375 で追加）。
-	 * `let { config = $bindable() }: { config: SpecificConfig } = $props()` を受け取り、
-	 * 内部で config を mutate する。WidgetSettingsDialog から `bind:config` で mount される。
-	 * 未定義の widget は Settings UI を表示しない（旧フォールバック「max_items + sort_field」は
-	 * `_shared/CommonMaxItemsSettings.svelte` を明示登録した widget のみに適用）。
-	 *
-	 * 型は `Component<any, any, any>` で受け、widget ごとに具体型の Props を持たせる。
-	 * registry が異なる Settings コンポーネントを 1 つの型で集約する都合上、これは避けられない。
-	 */
+	/** WidgetSettingsDialog から `bind:config` で動的 mount される設定 UI（batch-84 PH-375）。 */
 	// biome-ignore lint/suspicious/noExplicitAny: widget ごとに異なる config 型を 1 つの WidgetMeta に集約する都合
 	SettingsContent?: Component<any, any, any>;
 }

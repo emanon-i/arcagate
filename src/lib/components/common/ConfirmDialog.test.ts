@@ -67,9 +67,9 @@ describe('ConfirmDialog', () => {
 		expect(onConfirm).toHaveBeenCalledOnce();
 	});
 
-	it('confirmVariant=destructive で確認ボタンに赤色クラスが付く', () => {
+	it('confirmVariant=destructive で shadcn destructive variant が適用される', () => {
 		const { getByRole } = render(ConfirmDialog, { ...baseProps, confirmVariant: 'destructive' });
 		const confirmBtn = getByRole('button', { name: '実行' });
-		expect(confirmBtn.className).toContain('text-red-500');
+		expect(confirmBtn.className).toContain('bg-destructive');
 	});
 });
