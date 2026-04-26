@@ -2502,3 +2502,32 @@ main rebased commits:
 
 - batch-72: ClipboardHistory + FileSearch
 - batch-73: SystemMonitor（idle 100MB 制約遵守）
+
+---
+
+## batch-72 完走 (2026-04-26)
+
+PR #112 merge 済み（rebase-and-merge、merge SHA `0ee0921`）。CI 全 SUCCESS（changes / check / e2e / build）。
+
+main rebased commits:
+
+- 0ee0921 feat(batch-72): PH-315〜318 ClipboardHistoryWidget + FileSearchWidget + Sidebar palette 横展開
+
+新ウィジェット 2 種 + 横展開修正:
+
+- ClipboardHistoryWidget（履歴 N 件 polling + dedupe + click 再コピー）
+  - `src/lib/utils/clipboard-history.ts` 純粋関数 `pushClipboardEntry` / `deleteClipboardEntry` 抽出 → vitest 8 件 pass
+- FileSearchWidget（フォルダ walk + 部分一致 filter）
+  - `src-tauri/src/services/file_search_service.rs` cargo test 6 件 pass（depth clamp / limit / dotfile skip）
+  - `cmd_open_path` 新設で DB を経由しない一時起動を分離
+- WorkspaceSidebar palette: 過去のバッチで追加された exe_folder / daily_task / snippet が未登録だったのを発見 → 全 12 ウィジェットを日本語ラベルで登録
+
+教訓 / 横展開:
+
+- ウィジェットを追加するたびに「Sidebar palette・WidgetSettingsDialog 分岐・WorkspaceLayout map・WIDGET_LABELS」の 4 箇所同期が必須。1 つでも欠けると UI から追加できない
+- 純粋関数を ts ファイルに切り出して vitest で attest する方が、Svelte component のテストよりはるかに ROI 高い
+- batch-69 ExeFolderWatchWidget の `launchItem('exe-folder:<path>')` は DB 経由 NotFound で失敗する pre-existing バグ → 別タスク chip で fix 待機（cmd_open_path に置換）
+
+次バッチ候補:
+
+- batch-73: SystemMonitor Widget（CPU / memory / disk、idle 100MB 制約、sysinfo crate 導入要検討）
