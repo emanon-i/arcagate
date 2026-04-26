@@ -5,7 +5,7 @@ import { createItem, deleteItem, listItems } from '../helpers/ipc.js';
 test.describe('アイテム管理', () => {
 	test(
 		'IPC 経由でアイテムを作成すると一覧に反映されること',
-		{ tag: '@smoke' },
+		{ tag: ['@smoke', '@core'] },
 		async ({ page }, testInfo) => {
 			// IPC で直接アイテム作成
 			const item = await createItem(page, {

@@ -101,7 +101,7 @@ test.describe('レイアウト', () => {
 
 	test(
 		'TitleBar のボタンが存在すること（#1, #2 修正検証）',
-		{ tag: '@smoke' },
+		{ tag: ['@smoke', '@core'] },
 		async ({ page }) => {
 			await expect(page.getByRole('button', { name: '最小化' })).toBeVisible();
 			await expect(page.getByRole('button', { name: /最大化|元に戻す/ })).toBeVisible();

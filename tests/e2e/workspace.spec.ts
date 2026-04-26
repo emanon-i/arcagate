@@ -3,34 +3,38 @@ import { waitForAppReady } from '../helpers/app-ready.js';
 import { addWidget, createWorkspace, deleteWorkspace, listWorkspaces } from '../helpers/ipc.js';
 
 test.describe('ワークスペース', () => {
-	test('ワークスペースを作成すると UI に表示されること', { tag: '@smoke' }, async ({ page }) => {
-		// IPC でワークスペースを作成
-		const workspace = await createWorkspace(page, 'E2E テストワークスペース');
+	test(
+		'ワークスペースを作成すると UI に表示されること',
+		{ tag: ['@smoke', '@core'] },
+		async ({ page }) => {
+			// IPC でワークスペースを作成
+			const workspace = await createWorkspace(page, 'E2E テストワークスペース');
 
-		expect(workspace.id).toBeTruthy();
-		expect(workspace.name).toBe('E2E テストワークスペース');
+			expect(workspace.id).toBeTruthy();
+			expect(workspace.name).toBe('E2E テストワークスペース');
 
-		// IPC 一覧でも確認
-		const workspaces = await listWorkspaces(page);
-		const found = workspaces.find((w) => w.id === workspace.id);
-		expect(found).toBeDefined();
+			// IPC 一覧でも確認
+			const workspaces = await listWorkspaces(page);
+			const found = workspaces.find((w) => w.id === workspace.id);
+			expect(found).toBeDefined();
 
-		try {
-			// リロードして Store に反映
-			await page.reload();
-			await page.waitForLoadState('domcontentloaded');
-			await waitForAppReady(page);
+			try {
+				// リロードして Store に反映
+				await page.reload();
+				await page.waitForLoadState('domcontentloaded');
+				await waitForAppReady(page);
 
-			// "Workspace" タブに切り替え
-			await page.getByRole('button', { name: 'Workspace' }).click();
+				// "Workspace" タブに切り替え
+				await page.getByRole('button', { name: 'Workspace' }).click();
 
-			// PageTabBar にワークスペース名が表示されることを確認
-			await expect(page.getByText('E2E テストワークスペース')).toBeVisible();
-		} finally {
-			// クリーンアップ
-			await deleteWorkspace(page, workspace.id);
-		}
-	});
+				// PageTabBar にワークスペース名が表示されることを確認
+				await expect(page.getByText('E2E テストワークスペース')).toBeVisible();
+			} finally {
+				// クリーンアップ
+				await deleteWorkspace(page, workspace.id);
+			}
+		},
+	);
 
 	test('Workspace タブに切り替えてもエラーなく表示されること', async ({ page }) => {
 		// コンソールエラーを監視

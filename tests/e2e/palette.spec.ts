@@ -5,10 +5,14 @@ test.describe('コマンドパレット', () => {
 	// batch-46 でパレットが常時フローティングウィンドウ化された
 	// メインウィンドウの E2E では別ウィンドウのパレットを直接操作できないため
 	// TitleBar のボタン存在確認に変更
-	test('パレットボタンが TitleBar に存在すること', { tag: '@smoke' }, async ({ page }) => {
-		const paletteButton = page.getByRole('button', { name: 'Palette' });
-		await expect(paletteButton).toBeVisible();
-	});
+	test(
+		'パレットボタンが TitleBar に存在すること',
+		{ tag: ['@smoke', '@core'] },
+		async ({ page }) => {
+			const paletteButton = page.getByRole('button', { name: 'Palette' });
+			await expect(paletteButton).toBeVisible();
+		},
+	);
 
 	test('パレットでアイテムを検索できること', async ({ page }, testInfo) => {
 		// テスト用アイテムを IPC で作成
