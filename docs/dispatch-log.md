@@ -2531,3 +2531,40 @@ main rebased commits:
 次バッチ候補:
 
 - batch-73: SystemMonitor Widget（CPU / memory / disk、idle 100MB 制約、sysinfo crate 導入要検討）
+
+---
+
+## batch-73 完走 (2026-04-26)
+
+PR #114 merge 済み（rebase-and-merge、merge SHA `9cc5255`）。CI 全 SUCCESS（changes / check / e2e / build）。
+
+main rebased commits:
+
+- 9cc5255 feat(batch-73): PH-320〜323 SystemMonitorWidget + sysinfo IPC + sparkline + 4 箇所同期
+
+新ウィジェット 1 種 + 依存追加:
+
+- SystemMonitorWidget（CPU% / メモリ / ディスク + 60 サンプル CPU sparkline）
+  - sysinfo 0.32（default-features=false, features=[system,disk]）追加
+  - cargo test 4 件 pass（cpu range / mem invariant / disk invariant / no-panic）
+  - history-buffer.ts 純粋関数 → vitest 8 件 pass
+
+### 依存予算 baseline（vision exe 20MB / idle 100MB に対する記録）
+
+- release exe size 計測
+  - 2026-04-26 sysinfo 追加前: **17,393,152 bytes (16.59 MB)**
+  - 2026-04-26 sysinfo 追加後: **17,238,016 bytes (16.44 MB)**
+  - 差分は -150KB（コンパイラ非決定性の範囲内、実質無視できる増加）
+  - vision 制約 20MB に対し約 3.5MB 余裕
+- idle メモリは未計測（実機起動 + プロセス監視が必要、archive 後に手動測定して dispatch-log に追記）
+
+### 教訓 / 横展開
+
+- sysinfo は default-features を切ると軽量。`features = ["system", "disk"]` だけで十分
+- グローバル `Mutex<Option<System>>` パターンで refresh API を再呼び出し可能に（sysinfo の差分計算が前回値を要求するため）
+- 純粋関数（pushBuffer / bufferToSparklinePath）抽出 → vitest 即パス、UI 結合テスト不要
+
+次バッチ候補:
+
+- batch-74: 副産物バグ修正（ExeFolderWatchWidget launchItem 経由）+ Workspace 編集 polish + ラベル audit 機械化
+- batch-75: lefthook pre-push 復活（worktree + v2.1.1 bug 究明）
