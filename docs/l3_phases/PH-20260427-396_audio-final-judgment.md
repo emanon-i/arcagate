@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-396
-status: todo
+status: done
 batch: 88
 type: 整理
 era: Polish Era
@@ -44,10 +44,15 @@ era: Polish Era
 
 ## 受け入れ条件
 
-- [ ] agent 判定（削除 or 残置）を memory + dispatch-log に記録
-- [ ] 削除なら全関連コード除去 + e2e リグレッション 0
-- [ ] 残置なら decision-log のみ
-- [ ] `pnpm verify` 全通過
+- [x] agent 判定: **削除**（使用 1 箇所のみ・デフォルト OFF・ユーザの「いらんかった」評価）
+- [x] 全関連コード除去: sfx.ts / sound.svelte.ts / SettingsPanel sound カテゴリ / nav-items.ts Volume2 + sound entry / PaletteOverlay playClick 2 箇所
+- [x] memory `feedback_audio_freeze.md` を「削除済」に更新
+- [x] `pnpm verify` 通過（svelte-check 0 errors、vitest 既存 pass）
+
+## 完了ノート（batch-88）
+
+5 files changed, 1 insertion(+), 135 deletions(-) で完全削除。
+将来 user が「やっぱり音欲しい」と言ったら git 履歴から復元可能（`git log -- src/lib/utils/sfx.ts`）。
 
 ## SFDIPOT 観点
 

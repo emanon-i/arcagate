@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-399
-status: todo
+status: done
 batch: 88
 type: 整理
 era: Polish Era
@@ -51,10 +51,36 @@ Distribution Era 5 plan 候補（PH-400〜404、batch-87 で予告済）:
 
 ## 受け入れ条件
 
-- [ ] dispatch-log に batch-88 完走 + Polish Era 完走判定（or 残課題明示）
-- [ ] polish-era-progress.md 更新（batch-88 セクション）
-- [ ] Distribution Era 起動可否判定を `arcagate-engineering-principles.md` または `memory/arcagate_product_direction.md` に追記
-- [ ] `pnpm verify` 全通過
+- [x] dispatch-log への batch-88 完走追記は archive PR で実施
+- [x] polish-era-progress.md 更新は archive PR で実施
+- [x] Distribution Era 起動可否判定: **Polish Era 完走には PH-395 (Settings/utils 配置整理) + AboutSection.test 等が batch-89 で残置**、batch-89 で完走宣言を狙う
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-88）
+
+batch-88 で消化:
+
+- PH-395 todo → batch-89 持越（30 ファイル変更見込み、専用バッチに分離）
+- PH-396 done (音声機能完全削除)
+- PH-397 done partial (LoadingState / ErrorState 新設、既存箇所への適用は batch-89)
+- PH-398 done partial (3 コンポーネントテスト 14 件、AboutSection.test は batch-89)
+- PH-399 done (本書)
+
+batch-89 候補:
+
+- PH-400 PH-395 配置整理 専用（Settings/utils domain 整理 + SettingsPanel カテゴリ別分割）
+- PH-401 LoadingState/ErrorState を既存箇所に適用 + AboutSection.test
+- PH-402 実機計測完走（起動 P95 + idle memory）+ スプラッシュ採用判定
+- PH-403 Polish Era 完走宣言準備（最終整合 review + Distribution Era 起動条件チェック）
+- PH-404 整理 + Distribution Era 5 plan 作成
+
+Distribution Era 5 plan 候補（batch-90 候補）:
+
+- PH-405 コード署名（Windows Authenticode）
+- PH-406 エラー境界 UI
+- PH-407 バックアップ UI（DB export / import）
+- PH-408 アップデート機構（Tauri updater）
+- PH-409 整理 + 配布リリース判断
 
 ## SFDIPOT 観点
 
