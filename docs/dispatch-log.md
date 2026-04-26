@@ -2744,6 +2744,47 @@ agent が判定し、ユーザに提案 → 承認後着手。memory `arcagate_p
 
 ---
 
+## batch-81 完走 (2026-04-26)
+
+PR #128 merge 済み（rebase-and-merge、merge SHA `6d95885`）。CI 全 SUCCESS（e2e は 1 回 transient fail → rerun で pass）。
+
+主要変更:
+
+- PH-360 ✓ 手動確認依頼 5/5 件消化（4 件は既存 e2e でカバー済を確認、1 件「Workspace タブ誘導文言」を `settings.spec.ts` に追加）
+- PH-362 ✓ widget 空状態 Tip 強化（ClipboardHistory / FileSearch / ExeFolder の未設定状態を action-oriented な 2 行 Tip に）
+- PH-361 deferred（cmd_open_path spy e2e、Tauri IPC モック設計が複雑なため Refactor Era 後に集中対応）
+- PH-363 / PH-364 整理
+
+教訓:
+
+- 手動確認依頼は既存 e2e が大半カバーしていることが多い、新規追加前に grep で重複確認
+- e2e の transient fail（setup-wizard 検出 timeout 10s）は CI Windows runner で稀に発生 → `gh run rerun --failed` で対処
+- gitignore 漏れで `.claude/scheduled_tasks.lock` を誤 commit → `.gitignore` に追記
+
+---
+
+## Refactor Era 起動 (2026-04-26)
+
+ユーザ承認済（"OK 進めて"）。batch-82〜85 の 4 バッチ構成で進行:
+
+- batch-82: 計測フェーズ（PH-365〜369）— 測るだけ、変えない
+- batch-83: 構造フェーズ（フォルダ構成 / モジュール境界 再設計）
+- batch-84: 簡素化フェーズ（重複 / 過剰抽象 / dead code 解体）
+- batch-85: 性能フェーズ（実測ベース）
+
+完走後 Polish Era → Distribution Era へ。
+
+起動条件達成状況（2026-04-26 時点）:
+
+- 直近 3〜4 バッチで新規ユーザ指摘なし: △→✅（Refactor Era 設計に関する準備指示のみ）
+- 手動確認依頼 ≤ 5 項目: ✅（0 件）
+- 日常使用に違和感なし: ✅
+- agent 内部「肥大化を感じる」: ✅
+
+→ 3-4/4 成立で起動。
+
+---
+
 ## batch-77 完走 (2026-04-26)
 
 PR #122 merge 済み（rebase-and-merge、merge SHA `87ee14d`）。CI 全 SUCCESS。
