@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-376
-status: todo
+status: deferred
 batch: 84
 type: 改善
 era: Refactor Era / 簡素化フェーズ
@@ -45,3 +45,14 @@ era: Refactor Era / 簡素化フェーズ
 - [ ] SettingsPanel が 200 行以下
 - [ ] 既存 e2e 全 pass
 - [ ] `pnpm verify` 全通過
+
+## deferred 判断（batch-84）
+
+batch-84 では PH-375（WidgetSettingsDialog 解体）の差分が 23 ファイル / +692/-521 と大きく、
+PH-376 を同 PR に詰めると全体で 50+ ファイル変更になりレビュー困難になる。
+
+batch-83 で PH-371/372 を batch-84 に分離した判断（1 PR = 1 構造的テーマ）を継続し、
+**PH-376 を batch-85 以降に持ち越す**。
+
+batch-85 は性能フェーズの予定だが、PH-376 は性能と直交する整理タスクのため、
+batch-86「整理フェーズ」または batch-85 の整理枠 1 plan として消化する。
