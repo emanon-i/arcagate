@@ -56,3 +56,13 @@ pub fn cmd_is_setup_complete(db: State<DbState>) -> Result<bool, AppError> {
 pub fn cmd_mark_setup_complete(db: State<DbState>) -> Result<(), AppError> {
     config_service::mark_setup_complete(&db)
 }
+
+#[tauri::command]
+pub fn cmd_is_onboarding_complete(db: State<DbState>) -> Result<bool, AppError> {
+    config_service::is_onboarding_complete(&db)
+}
+
+#[tauri::command]
+pub fn cmd_mark_onboarding_complete(db: State<DbState>) -> Result<(), AppError> {
+    config_service::mark_onboarding_complete(&db)
+}
