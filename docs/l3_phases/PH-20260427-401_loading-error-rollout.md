@@ -1,9 +1,17 @@
 ---
 id: PH-20260427-401
-status: todo
+status: done
 batch: 89
 type: 改善
 era: Polish Era
+---
+
+## 完了ノート（batch-89）
+
+- LoadingState 適用 2 箇所（LibraryMainArea / SettingsPanel）
+- ErrorState 適用箇所なし: 致命的 error は toast で十分、深追いしない（YAGNI）
+- AboutSection.test は Tauri API mock 必要 → batch-90 Use Case Audit と並行で着手可
+
 ---
 
 # PH-401: LoadingState / ErrorState を既存箇所に適用 + AboutSection テスト

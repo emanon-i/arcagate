@@ -1,9 +1,23 @@
 ---
 id: PH-20260427-403
-status: todo
+status: done
 batch: 89
 type: 整理
 era: Polish Era
+---
+
+## 完了ノート（batch-89）— Polish Era 完走判定: **未完走、batch-90 Use Case Audit 後に再判定**
+
+ユーザ判断（2026-04-27）:「Use Case Realignment フェーズを batch-90 として挟む」「公開できる品質に持っていく」。
+
+Polish Era 完走宣言は **延期**:
+
+- batch-86 第 1 弾、batch-87 第 2 弾、batch-88 第 3 弾、batch-89 第 4 弾 = 4 バッチ完走
+- ただし PH-376 deferred chain (PH-400) と実機計測 (PH-402) が未完走
+- batch-90 Use Case Audit 結果次第で:
+  - 想定ユーザケース 10 件で「現状 OK」が大半 → Polish Era 完走 + Distribution Era 起動
+  - 「画面構成自体がダメ」「大規模摩擦」 → Restructure Era 提案 → ユーザ承認後着手
+
 ---
 
 # PH-403: Polish Era 完走宣言準備（最終整合 review + Distribution Era 起動条件チェック）
