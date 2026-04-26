@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-415
-status: wip
+status: done
 batch: 92
 type: 防衛
 era: UX Audit Re-Validation
@@ -46,8 +46,10 @@ batch-91 PH-410-414 で:
 
 ### 出力先
 
-- 各ケース → `docs/l2_architecture/audit-2026-04-27/<case-NN-name>.md`
-- 集約 → `docs/l2_architecture/use-case-friction-v2.md`（旧 friction.md は v1 として残す）
+- 集約版（一次成果物）→ `docs/l2_architecture/use-case-friction-v2.md`（旧 friction.md は v1 として残す）
+  - 10 ケース全部の Nielsen 10 表 + CW 主要ステップ + 業界比較 + 摩擦サマリ
+- 個別詳細（必要に応じて）→ `docs/l2_architecture/audit-2026-04-27/case-NN-*.md`
+  - severity 3 以上が出たケースのみ深掘りファイルを起こす
 
 ### 結果のフォーマット
 
@@ -79,10 +81,10 @@ batch-91 PH-410-414 で:
 
 ## 受け入れ条件
 
-- [ ] `docs/l2_architecture/audit-2026-04-27/` 新設、case-01〜case-10 の 10 ファイル
-- [ ] 各ケースで Nielsen 10 全項目 + CW 4 Steps + 業界比較記入
-- [ ] `docs/l2_architecture/use-case-friction-v2.md` に severity 集計表
+- [ ] `docs/l2_architecture/use-case-friction-v2.md` 新設、10 ケース全部の Nielsen 10 表 + CW 主要ステップ + 業界比較 + 摩擦サマリ
 - [ ] 旧 `use-case-friction.md` 冒頭に「v2 へ移行、本書は v1 として残置」明記
+- [ ] 集約 severity 集計表（ケース × severity）を v2 末尾に記載
+- [ ] severity 3 以上のケースは `audit-2026-04-27/case-NN-*.md` で個別深掘り（任意）
 - [ ] severity 3 以上は次バッチ Plan 候補として dispatch-log に記録
 - [ ] severity 4（catastrophic）が出た場合は Rule A エスカレーション
 - [ ] Codex に集計表 + macro 判定再 review を投げる（Rule C）
