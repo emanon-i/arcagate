@@ -1,8 +1,9 @@
 ---
 id: PH-20260426-361
-status: todo
+status: deferred
 batch: 81
 type: 改善
+note: Tauri IPC モック設計が複雑、後続バッチで集中対応
 ---
 
 # PH-361: ExeFolderWatchWidget cmd_open_path spy e2e（batch-80 PH-357 持越）
