@@ -56,12 +56,12 @@
 
 ## 機械化された検証（自動 fail するもの）
 
-| 検証 | 場所 | 検出する漏れ |
-|---|---|---|
-| `audit-widget-coverage.sh` | lefthook pre-commit + CI | Rust enum ↔ ts-rs bindings ↔ WIDGET_LABELS の集合差分 |
-| `audit-labels.sh` | lefthook pre-commit + CI | aria-label / 表示テキストにアイコン名直書き |
-| `WIDGET_LABELS: Record<WidgetType, string>` | svelte-check | 全 variant の label 漏れ |
-| `cargo test --lib export_bindings` | pre-push lefthook + CI | TS bindings 再生成漏れ（commit すべき変更が出る） |
+| 検証                                        | 場所                     | 検出する漏れ                                          |
+| ------------------------------------------- | ------------------------ | ----------------------------------------------------- |
+| `audit-widget-coverage.sh`                  | lefthook pre-commit + CI | Rust enum ↔ ts-rs bindings ↔ WIDGET_LABELS の集合差分 |
+| `audit-labels.sh`                           | lefthook pre-commit + CI | aria-label / 表示テキストにアイコン名直書き           |
+| `WIDGET_LABELS: Record<WidgetType, string>` | svelte-check             | 全 variant の label 漏れ                              |
+| `cargo test --lib export_bindings`          | pre-push lefthook + CI   | TS bindings 再生成漏れ（commit すべき変更が出る）     |
 
 ## batch-80 以降の改善予定
 
