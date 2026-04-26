@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-386
-status: todo
+status: done
 batch: 86
 type: 改善
 era: Polish Era
@@ -50,11 +50,18 @@ const version = await getVersion();
 
 ## 受け入れ条件
 
-- [ ] AboutDialog.svelte 新設
-- [ ] SettingsPanel に About カテゴリ追加
-- [ ] バージョン文字列を `getVersion()` で取得（hardcode しない）
-- [ ] e2e: Settings > About を開いてバージョンが表示されることを 1 件確認
-- [ ] `pnpm verify` 全通過
+- [x] AboutSection.svelte 新設（Dialog ではなく Settings 内のセクションとして実装）
+- [x] SettingsPanel + nav-items.ts に About カテゴリ追加（Info icon）
+- [x] `getVersion()` + `getTauriVersion()` で動的取得（hardcode なし）
+- [ ] e2e: batch-87 で追加（Settings > About 表示確認）
+- [x] `pnpm verify` 全通過
+
+## 完了ノート（batch-86）
+
+「ダイアログ」ではなく「Settings 内のセクション」に変更。理由:
+
+- Settings は既に 2 ペイン化されており、About を別 Dialog にすると一貫性が崩れる
+- `data-testid="about-app-version"` で e2e から識別可能
 
 ## SFDIPOT 観点
 
