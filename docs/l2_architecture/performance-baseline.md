@@ -265,3 +265,46 @@ pwsh scripts/bench/startup.ps1 -Iterations 100
 - 改善余地: SystemMonitor widget が 1 つも active で無いなら `System` を drop する lazy 化（複雑度高、効果未確認のため deferred）
 
 未計測なので「実測 → 改善判断」の順序を Polish Era 初回 (PH-385/386) に持越。
+
+---
+
+## 11. 検索 latency 計測（PH-419 / 計測スクリプト準備のみ）
+
+### 11.1 計測スクリプト
+
+`scripts/bench/search-latency.ps1` を新設 (batch-92 PH-419)。CDP 経由でパレット検索 latency (入力 → 結果反映) を計測:
+
+```powershell
+pwsh scripts/bench/search-latency.ps1 -Iterations 30
+```
+
+### 11.2 baseline（**未計測**）
+
+業界標準: Raycast < 50ms / VS Code Command Palette < 30ms / Arcagate 目標 < 80ms (PH-410)。
+
+| 制約              | 実測       | 達成度                     |
+| ----------------- | ---------- | -------------------------- |
+| 検索体感 P95 80ms | **未計測** | スクリプト整備済（PH-419） |
+
+### 11.3 計測実行手順 (実機セッション時に依頼)
+
+1. `pnpm tauri build` で release バイナリ作成
+2. ユーザに「ベンチ計測を実行しても良いか」確認
+3. 順次実行 (各約 5 分):
+   - `pwsh scripts/bench/startup.ps1 -Iterations 100`
+   - `pwsh scripts/bench/idle-memory.ps1` (起動後 5 分待機 → 計測)
+   - `pwsh scripts/bench/search-latency.ps1 -Iterations 30`
+4. 結果を本書 §9.2 / §10.2 / §11.2 に記入
+5. 業界標準達成度を engineering-principles.md §9 表に反映
+
+---
+
+## 12. PH-419 まとめ (batch-92)
+
+batch-92 PH-419 で実施:
+
+- ✅ `scripts/bench/search-latency.ps1` 新設（CDP 経由）
+- ✅ 計測実行手順の明文化（§11.3）
+- ⏸ 実機計測の実行は許可制 (dispatch-operation §4c)、ユーザの「OK」を待ってから次セッションで実行
+
+実測値が出たら engineering-principles.md §9 表の「未計測」を ✅ / ⚠️ / 🔴 で更新。
