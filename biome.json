@@ -27,7 +27,13 @@
 		}
 	},
 	"files": {
-		"includes": ["src/**/*.ts", "src/**/*.svelte", "tests/**/*.ts", "!!**/.claude"],
+		"includes": [
+			"src/**/*.ts",
+			"src/**/*.svelte",
+			"tests/**/*.ts",
+			"!!**/.claude",
+			"!!src/lib/bindings/**"
+		],
 		"ignoreUnknown": true
 	},
 	"css": {
