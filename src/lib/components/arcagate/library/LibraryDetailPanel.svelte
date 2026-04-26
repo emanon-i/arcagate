@@ -6,6 +6,7 @@ import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
+import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
 import { getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
@@ -335,47 +336,19 @@ let moreMenuItems = $derived.by(() => {
 	{/if}
 </aside>
 
-{#if resetConfirmOpen && selectedItem}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-		role="dialog"
-		aria-modal="true"
-		tabindex="-1"
-		onclick={(e) => {
-			if (e.target === e.currentTarget) resetConfirmOpen = false;
+{#if selectedItem}
+	<ConfirmDialog
+		open={resetConfirmOpen}
+		title="個別調整を解除しますか？"
+		description="このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。"
+		confirmLabel="解除する"
+		confirmVariant="destructive"
+		onConfirm={() => {
+			const id = selectedItem!.id;
+			resetConfirmOpen = false;
+			void itemStore.updateItem(id, { card_override_json: null });
+			toastStore.add('個別調整を解除しました', 'success');
 		}}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') resetConfirmOpen = false;
-		}}
-	>
-		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]">
-			<h3 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">個別調整を解除しますか？</h3>
-			<p class="mb-4 text-sm text-[var(--ag-text-secondary)]">
-				このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。
-			</p>
-			<div class="flex justify-end gap-2">
-				<button
-					type="button"
-					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					onclick={() => (resetConfirmOpen = false)}
-				>
-					キャンセル
-				</button>
-				<button
-					type="button"
-					data-testid="card-override-reset-confirm"
-					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-red-500 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					onclick={() => {
-						const id = selectedItem!.id;
-						resetConfirmOpen = false;
-						void itemStore.updateItem(id, { card_override_json: null });
-						toastStore.add('個別調整を解除しました', 'success');
-					}}
-				>
-					解除する
-				</button>
-			</div>
-		</div>
-	</div>
+		onCancel={() => (resetConfirmOpen = false)}
+	/>
 {/if}
