@@ -7,12 +7,30 @@
  * - removeKey: cleanup 用
  */
 
-export function loadJSON<T extends object>(key: string, fallback: T): T {
+/**
+ * shape validator: parsed 値が有効か検証する optional コールバック。
+ * false を返したら fallback に落とす。
+ */
+export type ShapeValidator<T> = (parsed: unknown) => parsed is Partial<T>;
+
+export function loadJSON<T extends object>(
+	key: string,
+	fallback: T,
+	validate?: ShapeValidator<T>,
+): T {
 	try {
 		const raw = localStorage.getItem(key);
 		if (!raw) return fallback;
-		const parsed = JSON.parse(raw) as Partial<T>;
-		return { ...fallback, ...parsed } as T;
+		const parsed = JSON.parse(raw) as unknown;
+		// 最低限: plain object であること
+		if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+			return fallback;
+		}
+		// 任意の shape validator
+		if (validate && !validate(parsed)) {
+			return fallback;
+		}
+		return { ...fallback, ...(parsed as Partial<T>) } as T;
 	} catch {
 		return fallback;
 	}
