@@ -3,6 +3,7 @@ pub mod config_service;
 pub mod exe_scanner_service;
 pub mod export_service;
 pub mod file_search_service;
+pub mod file_search_state;
 pub mod item_service;
 pub mod launch_service;
 pub mod metadata_service;

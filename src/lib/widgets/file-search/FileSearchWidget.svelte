@@ -1,5 +1,5 @@
 <script lang="ts">
-import { File, FileSearch, Folder, Search } from '@lucide/svelte';
+import { File, FileSearch, Folder, Search, X as XIcon } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
@@ -45,21 +45,51 @@ let entries = $state<FileEntry[]>([]);
 let query = $state('');
 let loading = $state(false);
 let lastError = $state<string | null>(null);
+let currentSearchId = $state<string | null>(null);
+
+function newSearchId(): string {
+	// crypto.randomUUID は Tauri webview で利用可能 (Chromium 92+)
+	return crypto.randomUUID();
+}
 
 async function refresh() {
 	if (!root) {
 		entries = [];
 		return;
 	}
+	const searchId = newSearchId();
+	currentSearchId = searchId;
 	loading = true;
 	lastError = null;
 	try {
-		entries = await invoke<FileEntry[]>('cmd_list_files', { root, depth, limit });
+		entries = await invoke<FileEntry[]>('cmd_list_files', {
+			searchId,
+			root,
+			depth,
+			limit,
+		});
 	} catch (e: unknown) {
-		lastError = String(e);
-		entries = [];
+		// Cancelled は silent (UI 側で「中止しました」toast を別途出す)
+		if (String(e).includes('Cancelled')) {
+			entries = [];
+		} else {
+			lastError = String(e);
+			entries = [];
+		}
 	} finally {
 		loading = false;
+		if (currentSearchId === searchId) {
+			currentSearchId = null;
+		}
+	}
+}
+
+async function cancelCurrent() {
+	if (!currentSearchId) return;
+	const id = currentSearchId;
+	const cancelled = await invoke<boolean>('cmd_cancel_file_search', { searchId: id });
+	if (cancelled) {
+		toastStore.add('検索を中止しました', 'info');
 	}
 }
 
@@ -141,7 +171,19 @@ let menuItems = $derived(
 			</div>
 		</div>
 		{#if loading}
-			<p class="text-xs text-[var(--ag-text-muted)]">読み込み中...</p>
+			<div class="flex items-center justify-between gap-2">
+				<p class="text-xs text-[var(--ag-text-muted)]">検索中...</p>
+				<button
+					type="button"
+					class="flex items-center gap-1 rounded border border-[var(--ag-border)] px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+					aria-label="検索を中止"
+					data-testid="file-search-cancel"
+					onclick={() => void cancelCurrent()}
+				>
+					<XIcon class="h-3 w-3" />
+					中止
+				</button>
+			</div>
 		{:else if lastError}
 			<p class="text-xs text-[var(--ag-text-warning,red)]">{lastError}</p>
 		{:else if filtered.length === 0}

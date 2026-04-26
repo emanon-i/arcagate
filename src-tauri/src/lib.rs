@@ -15,7 +15,7 @@ use commands::config_commands::{
 };
 use commands::exe_scanner_commands::cmd_scan_exe_folders;
 use commands::export_commands::{cmd_export_json, cmd_import_json};
-use commands::file_search_commands::{cmd_list_files, cmd_open_path};
+use commands::file_search_commands::{cmd_cancel_file_search, cmd_list_files, cmd_open_path};
 use commands::item_commands::{
     cmd_auto_register_folder_items, cmd_check_is_directory, cmd_count_hidden_items,
     cmd_create_item, cmd_create_tag, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon,
@@ -126,6 +126,9 @@ pub fn run() {
             // ファイルシステム監視 (DB manage 後に起動)
             let watcher_state = watcher::start_watcher(app.handle());
             app.manage(watcher_state);
+
+            // FileSearch cancel state (PH-420 / Nielsen H3)
+            app.manage(services::file_search_state::FileSearchState::default());
 
             // グローバルショートカット登録
             let hotkey_str = {
@@ -249,6 +252,7 @@ pub fn run() {
             cmd_get_item_metadata,
             cmd_scan_exe_folders,
             cmd_list_files,
+            cmd_cancel_file_search,
             cmd_open_path,
             cmd_get_system_stats,
             cmd_get_disk_stats,

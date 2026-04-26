@@ -38,6 +38,9 @@ pub enum AppError {
 
     #[error("Invalid input: {0}")]
     InvalidInput(String),
+
+    #[error("Cancelled")]
+    Cancelled,
 }
 
 impl serde::Serialize for AppError {

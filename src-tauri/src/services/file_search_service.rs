@@ -1,9 +1,13 @@
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::Serialize;
 
 use crate::utils::error::AppError;
+
+/// Sentinel cancel token for non-cancellable callers (常に false を返す)
+static NEVER_CANCELLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Serialize, Default, Debug, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -21,6 +25,17 @@ pub struct FileEntry {
 /// - 不在 root は空 Vec（best-effort）
 /// - dotfiles (`.git`, `node_modules` 等) はスキップ
 pub fn list_files(root: &str, depth: u8, limit: usize) -> Result<Vec<FileEntry>, AppError> {
+    list_files_with_cancel(root, depth, limit, &NEVER_CANCELLED)
+}
+
+/// Cancel 可能な版 (PH-420 / Nielsen H3 ユーザ制御)。
+/// `cancel.load(Ordering::Relaxed) == true` で walk を中断し AppError::Cancelled を返す。
+pub fn list_files_with_cancel(
+    root: &str,
+    depth: u8,
+    limit: usize,
+    cancel: &AtomicBool,
+) -> Result<Vec<FileEntry>, AppError> {
     let depth = depth.clamp(1, 3);
     let limit = limit.clamp(1, 5000);
     let root_path = Path::new(root);
@@ -28,12 +43,21 @@ pub fn list_files(root: &str, depth: u8, limit: usize) -> Result<Vec<FileEntry>,
         return Ok(Vec::new());
     }
     let mut out = Vec::new();
-    walk(root_path, depth, limit, &mut out);
+    walk(root_path, depth, limit, &mut out, cancel);
+    if cancel.load(Ordering::Relaxed) {
+        return Err(AppError::Cancelled);
+    }
     Ok(out)
 }
 
-fn walk(dir: &Path, remaining_depth: u8, limit: usize, out: &mut Vec<FileEntry>) {
-    if out.len() >= limit {
+fn walk(
+    dir: &Path,
+    remaining_depth: u8,
+    limit: usize,
+    out: &mut Vec<FileEntry>,
+    cancel: &AtomicBool,
+) {
+    if out.len() >= limit || cancel.load(Ordering::Relaxed) {
         return;
     }
     let read = match fs::read_dir(dir) {
@@ -41,7 +65,7 @@ fn walk(dir: &Path, remaining_depth: u8, limit: usize, out: &mut Vec<FileEntry>)
         Err(_) => return,
     };
     for entry in read.flatten() {
-        if out.len() >= limit {
+        if out.len() >= limit || cancel.load(Ordering::Relaxed) {
             return;
         }
         let path = entry.path();
@@ -66,7 +90,7 @@ fn walk(dir: &Path, remaining_depth: u8, limit: usize, out: &mut Vec<FileEntry>)
                 size_bytes: 0,
             });
             if remaining_depth > 1 {
-                walk(&path, remaining_depth - 1, limit, out);
+                walk(&path, remaining_depth - 1, limit, out, cancel);
             }
         } else if meta.is_file() {
             out.push(FileEntry {
@@ -174,6 +198,38 @@ mod tests {
         let r = list_files(dir.to_str().unwrap(), 0, 0).unwrap();
         assert_eq!(r.len(), 1);
         let r = list_files(dir.to_str().unwrap(), 99, 99999).unwrap();
+        assert_eq!(r.len(), 1);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn list_files_with_cancel_returns_cancelled_when_flag_is_set() {
+        let dir = mk_temp_dir("cancel");
+        for i in 0..50 {
+            write_file(&dir.join(format!("f{i}.txt")), b"x");
+        }
+        let cancel = AtomicBool::new(true);
+        let r = list_files_with_cancel(dir.to_str().unwrap(), 1, 100, &cancel);
+        assert!(matches!(r, Err(AppError::Cancelled)));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn list_files_with_cancel_normal_path_succeeds_when_not_cancelled() {
+        let dir = mk_temp_dir("cancel-ok");
+        write_file(&dir.join("a.txt"), b"x");
+        let cancel = AtomicBool::new(false);
+        let r = list_files_with_cancel(dir.to_str().unwrap(), 1, 100, &cancel).unwrap();
+        assert_eq!(r.len(), 1);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn list_files_default_uses_never_cancelled_sentinel() {
+        // public list_files() が AtomicBool 引数なしで動作することを確認 (後方互換)
+        let dir = mk_temp_dir("never-cancel");
+        write_file(&dir.join("a.txt"), b"x");
+        let r = list_files(dir.to_str().unwrap(), 1, 100).unwrap();
         assert_eq!(r.len(), 1);
         fs::remove_dir_all(&dir).ok();
     }
