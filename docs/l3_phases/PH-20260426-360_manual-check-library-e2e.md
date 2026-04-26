@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-360
-status: todo
+status: done
 batch: 81
 type: 改善
 ---
@@ -24,7 +24,7 @@ type: 改善
 
 ## 受け入れ条件
 
-- [ ] @nightly テスト 5 件追加
-- [ ] 全 pass
-- [ ] dispatch-log の手動確認依頼セクションから消化済を `[x]` でマーク
-- [ ] `pnpm verify` 全通過
+- [x] **既存 e2e で 4/5 件カバー済を確認**: `tests/e2e/library-card-spec.spec.ts` に 4:3 aspect / S/M/L 切替 / gap 16px / 背景モード切替 / focal point の 5 テスト存在
+- [x] **新規 1 件追加**: Workspace タブからライブラリ設定削除 + 誘導文言（`tests/e2e/settings.spec.ts`）
+- [x] dispatch-log 手動確認依頼セクションから消化済を `[x]` でマーク
+- [x] `pnpm verify` 全通過

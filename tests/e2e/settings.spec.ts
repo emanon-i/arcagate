@@ -382,4 +382,18 @@ test.describe('設定パネル', () => {
 		expect(num).toBeGreaterThanOrEqual(0);
 		expect(num).toBeLessThanOrEqual(1);
 	});
+
+	// PH-360: 手動確認依頼 L2161 消化
+	test('Workspace タブからライブラリカード設定が消えて誘導文言が表示される', async ({ page }) => {
+		await openSettingsTab(page, 'ワークスペース');
+		const workspacePanel = page.locator('#settings-panel-workspace');
+
+		// 誘導文言が表示されている
+		await expect(workspacePanel.getByText(/ライブラリカードの設定は/)).toBeVisible();
+		await expect(workspacePanel.getByText('タブに移動しました', { exact: false })).toBeVisible();
+
+		// ライブラリ専用の設定 UI（背景モード切替・focal point スライダー等）が
+		// Workspace タブには表示されていないことを確認
+		await expect(workspacePanel.getByText('背景モード', { exact: false })).not.toBeVisible();
+	});
 });
