@@ -5,6 +5,7 @@ import { NAV_SETTINGS, type NavSettingsId } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
 import { soundStore } from '$lib/state/sound.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
+import AboutSection from './AboutSection.svelte';
 import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
@@ -24,7 +25,7 @@ async function ensureThemeEditorLoaded(): Promise<void> {
 type CategoryId = NavSettingsId;
 
 const categories: { id: CategoryId; label: string; icon: Component }[] = (
-	['general', 'workspace', 'library', 'appearance', 'sound', 'data'] as const
+	['general', 'workspace', 'library', 'appearance', 'sound', 'data', 'about'] as const
 ).map((id) => ({ id, ...NAV_SETTINGS[id] }));
 
 let activeCategory = $state<CategoryId>('general');
@@ -459,6 +460,18 @@ function handleNavKeydown(e: KeyboardEvent) {
 						データ
 					</h3>
 					<ExportImport />
+				</div>
+			{:else if activeCategory === 'about'}
+				<div
+					id="settings-panel-about"
+					role="tabpanel"
+					aria-labelledby="tab-about"
+					class="space-y-4 px-6 py-5"
+				>
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+						このアプリについて
+					</h3>
+					<AboutSection />
 				</div>
 			{/if}
 		{/if}

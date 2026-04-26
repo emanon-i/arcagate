@@ -1,7 +1,9 @@
 <script lang="ts">
+import { LayoutGrid } from '@lucide/svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import * as workspaceIpc from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
@@ -386,12 +388,13 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						{/each}
 					</div>
 				{:else}
-					<div class="flex flex-col items-center justify-center gap-2 py-20">
-						<p class="text-sm text-[var(--ag-text-muted)]">ウィジェットがまだ追加されていません</p>
-						<p class="text-xs text-[var(--ag-text-faint)]">
-							左の編集ボタンを押してウィジェットをドラッグで追加できます
-						</p>
-					</div>
+					<EmptyState
+						icon={LayoutGrid}
+						title="ウィジェットを追加しましょう"
+						description="編集モードに入って『+』からよく使うものを並べてください"
+						action={{ label: "編集モード開始", onClick: startEdit }}
+						testId="workspace-empty-state"
+					/>
 				{/if}
 			</div>
 
