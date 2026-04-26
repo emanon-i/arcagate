@@ -5,26 +5,49 @@ batch: 79
 type: 改善
 ---
 
-# PH-352: Widget coverage audit script + Plan テンプレ整備
+# PH-352: ts-rs で Rust → TS 型同期 + audit-widget-coverage.sh
 
 ## 横展開チェック実施済か
 
 - batch-74 で `audit-labels.sh` を機械化したのと同じパターン
-- Rust enum (`WidgetType`) と TS union の集合差分を検出する CI step が必要
+- ts-rs は cargo の type-sync 業界標準
 
 ## 仕様
 
-- `scripts/audit-widget-coverage.sh`:
-  - Rust `models/workspace.rs` から WidgetType arm を grep 抽出
-  - TS `types/workspace.ts` から union member を grep 抽出
-  - 集合差分が空でなければ exit 1
-- CI ci.yml に Label audit と並ぶ step として組み込み
-- Plan テンプレに「ウィジェット追加チェックリスト」必須節を追加（widget-add-checklist.md）
+### Rust 側 ts-rs 導入
+
+- `Cargo.toml` に `ts-rs = "10"` 追加
+- `src-tauri/src/models/workspace.rs` の `WidgetType` に:
+
+  ```rust
+  #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, ts_rs::TS)]
+  #[serde(rename_all = "snake_case")]
+  #[ts(export, export_to = "../src/lib/bindings/")]
+  pub enum WidgetType {
+      Favorites,
+      // ...
+  }
+  ```
+
+- `cargo test` 実行で `src/lib/bindings/WidgetType.ts` が自動生成
+
+### TS 側
+
+- `src/lib/types/workspace.ts` の `WidgetType` 手書き union を **削除**
+- `import type { WidgetType } from '$lib/bindings/WidgetType'`（または相対 path）に置換
+- `WIDGET_LABELS` も削除（PH-350 の registry に統合）
+- `Workspace` / `WorkspaceWidget` 型は別 export 維持
+
+### audit-widget-coverage.sh
+
+- Rust enum と TS registry の variant 集合差分検出（registry 側に WidgetType が漏れていれば fail）
+- CI ci.yml に Label audit と並ぶ step
 
 ## 受け入れ条件
 
-- [ ] audit-widget-coverage.sh が Rust と TS の widget_type 集合一致を検証
-- [ ] 意図的に片方だけ entry 追加すると exit 1 で fail することをテスト
+- [ ] cargo test で WidgetType.ts auto-generate
+- [ ] TS の手書き union 削除、auto-gen 参照に置換
+- [ ] audit-widget-coverage.sh が Rust と TS の集合一致を検証
+- [ ] 意図的に片方だけ entry 追加すると fail することをセルフテストで確認
 - [ ] CI step 統合
-- [ ] docs/widget-add-checklist.md 作成、Plan テンプレに参照リンク追加
 - [ ] `pnpm verify` 全通過

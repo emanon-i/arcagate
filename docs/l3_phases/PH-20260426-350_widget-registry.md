@@ -5,38 +5,80 @@ batch: 79
 type: 改善
 ---
 
-# PH-350: Widget Registry 単一情報源化（追加箇所 9 → 3 削減）
+# PH-350: TS folder-per-widget colocation + auto-collect registry
 
 ## 横展開チェック実施済か
 
 - 本日のウィジェット追加 5 回（DailyTask / Snippet / Clipboard / FileSearch / SystemMonitor）の実測で「9 ファイル touch / 300〜400 行」と判明
-- batch-72 で Sidebar palette への登録漏れが発生、batch-75 で WIDGET_LABELS 単一情報源化済 → 同思想を全 widget metadata に拡張
+- batch-72 で Sidebar palette 登録漏れ発生、batch-75 で WIDGET_LABELS 単一情報源化済 → 同思想を全 widget metadata に拡張
 
 ## 仕様
 
-- `src/lib/widgets/widget-registry.ts` に全ウィジェットの metadata を集約:
+### フォルダ構造（colocation）
 
-  ```typescript
-  export const WIDGETS: Record<WidgetType, WidgetMeta> = {
-    favorites: {
-      Component: FavoritesWidget,
-      icon: Star,
-      label: 'よく使うもの',
-      defaultConfig: { max_items: 10 },
-      addable: true,
-    },
-    // ... 14 entry
-  };
-  ```
+```
+src/lib/widgets/
+├── index.ts                    # import.meta.glob で auto-collect、widgetRegistry export
+├── _shared/                    # 共通型 / 共通 Shell（後続 PH-351 で活用）
+├── clock/
+│   ├── index.ts                # widgetType + meta export
+│   ├── ClockWidget.svelte      # 本体
+│   ├── ClockSettings.svelte    # 設定 UI（PH-351）
+│   └── types.ts                # config interface（必要なら）
+├── quick-note/...
+├── exe-folder/...
+├── daily-task/...
+├── snippet/...
+├── clipboard-history/...
+├── file-search/...
+├── system-monitor/...
+├── favorites/...
+├── recent/...
+├── projects/...
+├── stats/...
+├── item/...
+└── watched-folders/...
+```
 
-- `WIDGET_LABELS` を `widget-registry.ts` から自動 export（後方互換）
-- `WorkspaceLayout.widgetComponents`, `WorkspaceSidebar.availableWidgets` を registry から派生
-- `Record<WidgetType, WidgetMeta>` 型強制で漏れ compile-time fail
+### `widgets/<name>/index.ts` 形式
+
+```typescript
+import Component from './ClockWidget.svelte';
+import SettingsContent from './ClockSettings.svelte';
+import { Clock } from '@lucide/svelte';
+
+export const widgetType = 'clock' as const;
+export const meta = {
+	Component,
+	SettingsContent,
+	icon: Clock,
+	label: '時計',
+	defaultConfig: { show_seconds: true, show_date: true },
+	addable: true,
+};
+```
+
+### `widgets/index.ts`
+
+```typescript
+const modules = import.meta.glob<{ widgetType: WidgetType; meta: WidgetMeta }>(
+	'./*/index.ts',
+	{ eager: true },
+);
+export const widgetRegistry = Object.fromEntries(
+	Object.values(modules).map((m) => [m.widgetType, m.meta]),
+) as Record<WidgetType, WidgetMeta>;
+```
+
+### 既存ファイル統合
+
+- 既存 `src/lib/components/arcagate/workspace/<X>Widget.svelte` を `src/lib/widgets/<name>/<X>Widget.svelte` に移動
+- `WorkspaceLayout.widgetComponents` map / `WorkspaceSidebar.widgetIcons` map / `WIDGET_LABELS` を **削除**、widgetRegistry 参照に置換
 
 ## 受け入れ条件
 
-- [ ] widget-registry.ts に 14 entry 集約
-- [ ] WorkspaceLayout / WorkspaceSidebar が registry から派生
-- [ ] 既存 hardcoded import / map を削除
-- [ ] svelte-check で型漏れ 0
+- [ ] 14 widget が `src/lib/widgets/<name>/` 配下に colocation
+- [ ] `widgetRegistry` が 14 entry 完全網羅
+- [ ] 既存 hardcoded import / map / WIDGET_LABELS 削除
+- [ ] `Record<WidgetType, WidgetMeta>` 型強制で漏れ compile-time fail
 - [ ] `pnpm verify` 全通過
