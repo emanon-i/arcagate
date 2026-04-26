@@ -10,6 +10,7 @@ import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
+import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
 // PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
 // 通常の Settings 利用時にはバンドルから外して初回 paint を軽くする。
@@ -229,12 +230,15 @@ function handleNavKeydown(e: KeyboardEvent) {
 					id="settings-panel-library"
 					role="tabpanel"
 					aria-labelledby="tab-library"
-					class="space-y-4 px-6 py-5"
+					class="space-y-6 px-6 py-5"
 				>
 					<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 						ライブラリ
 					</h3>
 					<LibraryCardSettings />
+					<div class="border-t border-[var(--ag-border)] pt-5">
+						<WatchedFoldersSettings />
+					</div>
 				</div>
 			{:else if activeCategory === 'appearance'}
 				<div

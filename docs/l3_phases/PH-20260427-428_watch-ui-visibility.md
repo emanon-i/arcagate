@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-428
-status: todo
+status: done
 batch: 94
 type: 改善
 era: UX Audit Re-Validation Round 3
