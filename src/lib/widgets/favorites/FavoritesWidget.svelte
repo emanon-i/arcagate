@@ -11,8 +11,8 @@ import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
-import WidgetItemList from './WidgetItemList.svelte';
-import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
+import WidgetItemList from '$lib/components/arcagate/workspace/WidgetItemList.svelte';
+import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 
 interface Props {
 	widget?: WorkspaceWidget;

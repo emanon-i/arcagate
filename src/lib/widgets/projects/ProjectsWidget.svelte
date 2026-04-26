@@ -13,7 +13,7 @@ import type { Item } from '$lib/types/item';
 import type { WatchedPath } from '$lib/types/watched_path';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
-import WidgetSettingsDialog from './WidgetSettingsDialog.svelte';
+import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 
 interface Props {
 	widget?: WorkspaceWidget;
