@@ -6,6 +6,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 
@@ -64,7 +65,7 @@ $effect(() => {
 			entries = result;
 		})
 		.catch((e: unknown) => {
-			scanError = String(e);
+			scanError = getErrorMessage(e);
 			entries = [];
 		})
 		.finally(() => {

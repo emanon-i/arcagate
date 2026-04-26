@@ -1,5 +1,6 @@
 import * as workspaceIpc from '$lib/ipc/workspace';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 
 let workspaces = $state<Workspace[]>([]);
 let activeWorkspaceId = $state<string | null>(null);
@@ -58,7 +59,7 @@ async function loadWorkspaces(): Promise<void> {
 			await loadWidgets(workspaces[0].id);
 		}
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -73,7 +74,7 @@ async function createWorkspace(name: string): Promise<void> {
 		activeWorkspaceId = ws.id;
 		await seedDefaultWidgets(ws.id);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -86,7 +87,7 @@ async function updateWorkspace(id: string, name: string): Promise<void> {
 		const ws = await workspaceIpc.updateWorkspace(id, name);
 		workspaces = workspaces.map((w) => (w.id === id ? ws : w));
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -103,7 +104,7 @@ async function deleteWorkspace(id: string): Promise<void> {
 			widgets = activeWorkspaceId ? await workspaceIpc.listWidgets(activeWorkspaceId) : [];
 		}
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -123,7 +124,7 @@ async function loadWidgets(workspaceId: string): Promise<void> {
 			await seedDefaultWidgets(workspaceId);
 		}
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -157,7 +158,7 @@ async function addWidget(widgetType: WidgetType): Promise<void> {
 		}
 		widgets = [...widgets, widget];
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -174,7 +175,7 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 		widget.position_y = y;
 		widgets = [...widgets, widget];
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -187,7 +188,7 @@ async function removeWidget(id: string): Promise<void> {
 		await workspaceIpc.removeWidget(id);
 		widgets = widgets.filter((w) => w.id !== id);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -202,7 +203,7 @@ async function persistWidgetOrder(orderedWidgets: WorkspaceWidget[]): Promise<vo
 		);
 		widgets = orderedWidgets.map((w, i) => ({ ...w, position_y: i }));
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -212,7 +213,7 @@ async function updateWidgetConfig(id: string, config: string | null): Promise<vo
 		const updated = await workspaceIpc.updateWidgetConfig(id, config);
 		widgets = widgets.map((w) => (w.id === id ? updated : w));
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -230,7 +231,7 @@ async function resizeWidget(id: string, width: number, height: number): Promise<
 		);
 		widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : w));
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -258,7 +259,7 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 			target.height,
 		);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 		// Rollback
 		widgets = widgets.map((w) =>
 			w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
@@ -292,7 +293,7 @@ async function persistMoveAndResize(
 	try {
 		await workspaceIpc.updateWidgetPosition(id, x, y, width, height);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 		if (activeWorkspaceId) {
 			await loadWidgets(activeWorkspaceId);
 		}

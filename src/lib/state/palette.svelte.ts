@@ -6,6 +6,7 @@ import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import type { PaletteEntry } from '$lib/types/palette';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 
 let query = $state('');
@@ -76,7 +77,7 @@ async function fetchItems(fetcher: () => Promise<Item[]>): Promise<void> {
 		const items = await fetcher();
 		results = items.map((item) => ({ kind: 'item', item }));
 	} catch (e) {
-		lastError = String(e);
+		lastError = getErrorMessage(e);
 		results = [];
 	} finally {
 		loading = false;
@@ -110,7 +111,7 @@ async function search(q: string): Promise<void> {
 			}
 			results = merged.map((item) => ({ kind: 'item', item }));
 		} catch (e) {
-			lastError = String(e);
+			lastError = getErrorMessage(e);
 			results = [];
 		} finally {
 			loading = false;
@@ -177,7 +178,7 @@ async function launch(entry: PaletteEntry): Promise<void> {
 				break;
 		}
 	} catch (e) {
-		lastError = String(e);
+		lastError = getErrorMessage(e);
 		const label = entry.kind === 'item' ? entry.item.label : 'アイテム';
 		toastStore.add(formatLaunchError(label, e), 'error');
 	}

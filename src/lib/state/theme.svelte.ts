@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import * as themeIpc from '$lib/ipc/theme';
 import type { Theme, ThemeMode } from '$lib/types/theme';
+import { getErrorMessage } from '$lib/utils/format-error';
 
 let themes = $state<Theme[]>([]);
 let activeMode = $state<ThemeMode>('dark');
@@ -110,7 +111,7 @@ async function loadTheme(): Promise<void> {
 			});
 		}
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -120,7 +121,7 @@ async function setThemeMode(mode: ThemeMode): Promise<void> {
 	try {
 		await themeIpc.setActiveThemeMode(mode);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -135,7 +136,7 @@ async function createTheme(
 		themes = [...themes, theme];
 		return theme;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 		return null;
 	}
 }
@@ -156,7 +157,7 @@ async function updateTheme(
 		}
 		return updated;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 		return null;
 	}
 }
@@ -172,7 +173,7 @@ async function deleteTheme(id: string): Promise<void> {
 			applyTheme();
 		}
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -181,7 +182,7 @@ async function exportTheme(id: string): Promise<string | null> {
 	try {
 		return await themeIpc.exportThemeJson(id);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 		return null;
 	}
 }
@@ -193,7 +194,7 @@ async function importTheme(json: string): Promise<Theme | null> {
 		themes = [...themes, theme];
 		return theme;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 		return null;
 	}
 }
