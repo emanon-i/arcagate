@@ -2,6 +2,7 @@
 import { LayoutGrid, LayoutList, Package, Plus, Search, X as XIcon } from '@lucide/svelte';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
@@ -169,10 +170,7 @@ let filteredItems = $derived.by(() => {
 
 	<!-- Card grid / list -->
 	{#if itemStore.loading && itemStore.items.length === 0}
-		<div class="flex items-center justify-center py-20">
-			<span class="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--ag-accent)] border-t-transparent"></span>
-			<span class="text-sm text-[var(--ag-text-muted)]">読み込み中...</span>
-		</div>
+		<LoadingState description="ライブラリを読み込み中..." testId="library-loading" />
 	{:else if viewMode === 'list'}
 		<div class="overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] divide-y divide-[var(--ag-border)]">
 			{#each filteredItems as item (item.id)}
