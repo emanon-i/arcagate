@@ -5,8 +5,6 @@ import { fade, fly } from 'svelte/transition';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import { hiddenStore } from '$lib/state/hidden.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
-import { soundStore } from '$lib/state/sound.svelte';
-import { playClick } from '$lib/utils/sfx';
 import PaletteKeyGuide from './PaletteKeyGuide.svelte';
 import PaletteQuickContext from './PaletteQuickContext.svelte';
 import PaletteResultRow from './PaletteResultRow.svelte';
@@ -69,7 +67,6 @@ function handleKeydown(e: KeyboardEvent) {
 		e.preventDefault();
 		const selected = paletteStore.results[paletteStore.selectedIndex];
 		if (selected) {
-			if (soundStore.soundEnabled) void playClick(soundStore.soundVolume);
 			void paletteStore.launch(selected);
 			close();
 		}
@@ -147,7 +144,6 @@ function handleKeydown(e: KeyboardEvent) {
 									{index}
 									active={index === paletteStore.selectedIndex}
 									onclick={() => {
-										if (soundStore.soundEnabled) void playClick(soundStore.soundVolume);
 										void paletteStore.launch(entry);
 										close();
 									}}
