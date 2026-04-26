@@ -557,3 +557,35 @@ page: async ({ sharedBrowser }, use) => {
   2. Widget コンポーネントは `flex-1 min-h-0` 等で必ず外枠 fill する設計に統一
   3. 設定モーダルは全ウィジェット共通 UX（クリック or 編集モード歯車→モーダル）
   4. `$effect` / store subscribe の経路を設計時に明示して confirm する
+
+---
+
+## launchItem の virtual id prefix が DB find_by_id で NotFound（batch-69 で混入、batch-74 で修正）
+
+- **問題**: `launchItem('exe-folder:${exePath}')` のように virtual id prefix を渡しても、`launch_service` 内部の `item_repository::find_by_id` が DB lookup で NotFound を返し silently fail する。`.then` 成功 toast は出ず `.catch` のみ発火。
+- **根本原因**: `launchItem` IPC は DB のアイテム ID を前提に設計されている。virtual id 経路が用意されていなかった。
+- **修正**: 一時 launch には `cmd_open_path` (batch-72 で追加) を使う。`invoke('cmd_open_path', { path: exePath })` で OS デフォルト (`cmd /c start "" path`) で開く。
+- **再発防止**: ExeFolder / FileSearch のような「DB 経由しない一時起動」は全て `cmd_open_path` を使う。grep `launchItem.*\`[a-z_]+:` で同種パターン audit。
+- **参照**: PH-325 (batch-74) / `src-tauri/src/commands/file_search_commands.rs:cmd_open_path`
+
+---
+
+## lefthook + cargo test の GIT_\* env 漏出（batch-67〜76 で 4 段階に渡って究明）
+
+- **問題**: lefthook 経由で git push すると `utils::git::tests` 3 件が fail。直接 `cargo test --lib utils::git` を叩くと 5/5 件 pass。
+- **根本原因**: lefthook は hook 起動時に `GIT_DIR` / `GIT_WORK_TREE` / `GIT_INDEX_FILE` を親 repo 向けに設定して子プロセスに継承。テストの `Command::new("git").current_dir(tempdir)` で cwd を切り替えても git は env var を優先するため、tempdir ではなく親 repo を操作してしまう。
+- **修正**: `src-tauri/src/utils/git.rs` に `git_cmd()` helper を新設し、`env_remove` で `GIT_DIR` / `GIT_WORK_TREE` / `GIT_INDEX_FILE` / `GIT_OBJECT_DIRECTORY` / `GIT_NAMESPACE` / `GIT_COMMON_DIR` を除去。production の `run_git_command` も同 helper 経由（防御的措置）。
+- **再発防止**: lefthook 経由で git CLI を起動する全テストは GIT_\* env を明示的に除去せよ。production code でも parent process から漏れる可能性を考慮して同 helper 使用。
+- **参照**: PH-335 (batch-76) / `src-tauri/src/utils/git.rs:git_cmd()`
+
+---
+
+## ts-rs で Rust enum → TS bindings 自動生成（batch-79 PH-352）
+
+- **目的**: Rust の `WidgetType` enum と TS の手書き union を 4 重定義する手作業同期を廃止
+- **設定**: `Cargo.toml` に `ts-rs = "10"` 追加、enum に `#[derive(TS)]` + `#[ts(export, export_to = "../../src/lib/bindings/")]`
+- **生成タイミング**: `cargo test --lib export_bindings` で `src/lib/bindings/<TypeName>.ts` が生成される
+- **export_to の path**: `.rs` ファイル相対なので `src-tauri/src/models/workspace.rs` から `src/lib/bindings/` へは `../../src/lib/bindings/` (worktree root 起点ではない)
+- **biome 除外**: 自動生成ディレクトリは biome formatter と衝突するため `"!!src/lib/bindings/**"` を `biome.json` の `files.includes` に追加
+- **CI 検証**: `scripts/audit-widget-coverage.sh` で Rust enum / ts-rs bindings / WIDGET_LABELS Record の variant 集合一致を検証、lefthook + CI step に統合
+- **参照**: PH-352 (batch-79) / `src-tauri/src/models/workspace.rs` / `scripts/audit-widget-coverage.sh`
