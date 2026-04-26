@@ -1,8 +1,9 @@
 ---
 id: PH-20260426-351
-status: todo
+status: deferred
 batch: 79
 type: 改善
+note: Refactor Era 起動時に実施（user 判断、PH-350 と一括で）
 ---
 
 # PH-351: WidgetSettingsDialog 分割（雪だるま 9 ブランチ解体）
