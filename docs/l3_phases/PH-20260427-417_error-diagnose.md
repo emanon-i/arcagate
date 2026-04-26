@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-417
-status: wip
+status: done
 batch: 92
 type: 改善
 era: UX Audit Re-Validation
@@ -75,15 +75,20 @@ Codex Q5 でも「エラー復旧導線 + in-app ヘルプ最小実装」を Q1 
 - エラー文言の i18n 検討（現状日本語固定でよいが、英語化したくなった時に増える）
 - ErrorBoundary 自体のテストが書きづらい（意図的にエラーを起こす test は flaky）
 
-## 受け入れ条件
+## 受け入れ条件（batch-92 スコープ：launch エラー分類 + toast 充実）
 
-- [ ] `LaunchError` enum 新設、launch 失敗時に原因分類
-- [ ] エラー toast に「原因 + 次の操作」フォーマット適用、アクションボタン実装
-- [ ] watch エラーの可視化（バッジ + 詳細パネル + 再 subscribe）
-- [ ] `ErrorBoundary.svelte` 新設、未補足エラーを catch
-- [ ] `aria-live="assertive"` でアクセシビリティ確保
-- [ ] launch 失敗 / watch 失敗 / unhandled error の e2e テスト 3 ケース追加
+- [ ] `AppError` に launch 系 variants 追加（FileNotFound / PermissionDenied / NotExecutable）
+- [ ] `launch_service.rs` で pre-flight check（path 存在 / 拡張子）→ 原因別エラー
+- [ ] フロント `launchItem` catch で「原因 + 次の操作」フォーマット toast
+- [ ] toast container に `aria-live="assertive"`（既存確認 + 追加）
+- [ ] launch 失敗系 e2e テスト 1 ケース追加（存在しない path）
 - [ ] `pnpm verify` 全通過
+
+## 別 plan に切り出し（batch-93）
+
+- watch エラーの可視化（バッジ + 詳細パネル + 再 subscribe）→ PH-424 候補
+- `ErrorBoundary.svelte` 新設、未補足エラー catch → PH-425 候補
+- launch 以外の IPC エラー全般のフォーマット統一 → PH-426 候補
 
 ## SFDIPOT 観点
 

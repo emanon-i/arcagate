@@ -18,7 +18,7 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
 
     let item = Item {
         id: id.clone(),
-        item_type: input.item_type.clone(),
+        item_type: input.item_type,
         label: input.label,
         target: input.target,
         args: input.args,
@@ -280,7 +280,7 @@ mod tests {
         ];
         for item_type in types {
             let label = format!("{:?} App", item_type);
-            let result = create_item(&db, make_input(item_type.clone(), &label));
+            let result = create_item(&db, make_input(item_type, &label));
             assert!(result.is_ok(), "create_item failed for {:?}", item_type);
             let item = result.unwrap();
             assert_eq!(item.item_type, item_type);

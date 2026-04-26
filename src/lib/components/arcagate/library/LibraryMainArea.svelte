@@ -8,6 +8,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { formatLaunchError } from '$lib/utils/launch-error';
 import LibraryCard from './LibraryCard.svelte';
 
 interface Props {
@@ -183,7 +184,7 @@ let filteredItems = $derived.by(() => {
 						void launchItem(item.id)
 							.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
 							.catch((e: unknown) =>
-								toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
+								toastStore.add(formatLaunchError(item.label, e), 'error'),
 							);
 					}}
 				/>
@@ -222,7 +223,7 @@ let filteredItems = $derived.by(() => {
 						void launchItem(item.id)
 							.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
 							.catch((e: unknown) =>
-								toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
+								toastStore.add(formatLaunchError(item.label, e), 'error'),
 							);
 					}}
 				/>

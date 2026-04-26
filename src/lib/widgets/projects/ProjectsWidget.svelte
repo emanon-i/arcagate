@@ -13,6 +13,7 @@ import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
 import type { WatchedPath } from '$lib/types/watched_path';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
@@ -138,7 +139,7 @@ let menuItems = $derived(
 					void launchItem(item.id)
 						.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
 						.catch((e: unknown) =>
-							toastStore.add(`起動に失敗しました: ${String(e)}`, 'error'),
+							toastStore.add(formatLaunchError(item.label, e), 'error'),
 						);
 				}}
 				oncontextmenu={(e) => {

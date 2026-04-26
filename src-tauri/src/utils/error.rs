@@ -12,6 +12,15 @@ pub enum AppError {
     #[error("Launch failed: {0}")]
     LaunchFailed(String),
 
+    #[error("File not found: {0}")]
+    LaunchFileNotFound(String),
+
+    #[error("Permission denied: {0}")]
+    LaunchPermissionDenied(String),
+
+    #[error("Not executable: {0}")]
+    LaunchNotExecutable(String),
+
     #[error("Validation error: {0}")]
     Validation(String),
 

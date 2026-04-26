@@ -6,6 +6,7 @@ import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import type { PaletteEntry } from '$lib/types/palette';
+import { formatLaunchError } from '$lib/utils/launch-error';
 
 let query = $state('');
 let results = $state<PaletteEntry[]>([]);
@@ -177,7 +178,8 @@ async function launch(entry: PaletteEntry): Promise<void> {
 		}
 	} catch (e) {
 		lastError = String(e);
-		toastStore.add(`起動に失敗しました: ${String(e)}`, 'error');
+		const label = entry.kind === 'item' ? entry.item.label : 'アイテム';
+		toastStore.add(formatLaunchError(label, e), 'error');
 	}
 }
 
