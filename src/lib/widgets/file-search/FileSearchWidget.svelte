@@ -6,6 +6,7 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
 
 interface Props {
@@ -74,7 +75,7 @@ async function refresh() {
 		if (String(e).includes('Cancelled')) {
 			entries = [];
 		} else {
-			lastError = String(e);
+			lastError = getErrorMessage(e);
 			entries = [];
 		}
 	} finally {

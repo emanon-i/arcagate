@@ -3,6 +3,7 @@ import { cubicOut } from 'svelte/easing';
 import { fade, scale } from 'svelte/transition';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
+import { getErrorMessage } from '$lib/utils/format-error';
 import ItemForm from './ItemForm.svelte';
 
 let {
@@ -31,7 +32,7 @@ async function handleSubmit(input: CreateItemInput | UpdateItemInput) {
 		await onSubmit(input);
 		onClose();
 	} catch (e) {
-		submitError = String(e);
+		submitError = getErrorMessage(e);
 	} finally {
 		submitting = false;
 	}

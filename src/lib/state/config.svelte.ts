@@ -1,4 +1,5 @@
 import * as configIpc from '$lib/ipc/config';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { loadJSON, loadNumber, saveJSON, saveNumber } from '$lib/utils/local-storage';
 
 export type ItemSize = 'S' | 'M' | 'L';
@@ -118,7 +119,7 @@ async function loadConfig(): Promise<void> {
 		setupComplete = sc;
 		if (is === 'S' || is === 'M' || is === 'L') itemSize = is;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -129,7 +130,7 @@ async function saveItemSize(size: ItemSize): Promise<void> {
 		await configIpc.setConfig('item_size', size);
 		itemSize = size;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -140,7 +141,7 @@ async function saveHotkey(newHotkey: string): Promise<void> {
 		await configIpc.setHotkey(newHotkey);
 		hotkey = newHotkey;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -153,7 +154,7 @@ async function saveAutostart(enabled: boolean): Promise<void> {
 		await configIpc.setAutostart(enabled);
 		autostart = enabled;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -166,7 +167,7 @@ async function completeSetup(): Promise<void> {
 		await configIpc.markSetupComplete();
 		setupComplete = true;
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}

@@ -1,6 +1,7 @@
 import * as itemsIpc from '$lib/ipc/items';
 import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
 import type { CreateTagInput, Tag, TagWithCount } from '$lib/types/tag';
+import { getErrorMessage } from '$lib/utils/format-error';
 
 let items = $state<Item[]>([]);
 let tags = $state<Tag[]>([]);
@@ -16,7 +17,7 @@ async function loadItems(): Promise<void> {
 	try {
 		items = await itemsIpc.listItems();
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -29,7 +30,7 @@ async function createItem(input: CreateItemInput): Promise<void> {
 		const created = await itemsIpc.createItem(input);
 		items = [...items, created];
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -42,7 +43,7 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
 		const updated = await itemsIpc.updateItem(id, input);
 		items = items.map((item) => (item.id === id ? updated : item));
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -53,7 +54,7 @@ async function toggleStar(id: string, starred: boolean): Promise<void> {
 		const updated = await itemsIpc.toggleStar(id, starred);
 		items = items.map((item) => (item.id === id ? updated : item));
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	}
 }
 
@@ -64,7 +65,7 @@ async function deleteItem(id: string): Promise<void> {
 		await itemsIpc.deleteItem(id);
 		items = items.filter((item) => item.id !== id);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -76,7 +77,7 @@ async function loadItemsByTag(tagId: string, query: string): Promise<void> {
 	try {
 		tagItems = await itemsIpc.searchItemsInTag(tagId, query);
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -88,7 +89,7 @@ async function loadTags(): Promise<void> {
 	try {
 		tags = await itemsIpc.getTags();
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -100,7 +101,7 @@ async function loadLibraryStats(): Promise<void> {
 	try {
 		libraryStats = await itemsIpc.getLibraryStats();
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -112,7 +113,7 @@ async function loadTagWithCounts(): Promise<void> {
 	try {
 		tagWithCounts = await itemsIpc.getTagWithCounts();
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
@@ -125,7 +126,7 @@ async function createTag(input: CreateTagInput): Promise<void> {
 		const created = await itemsIpc.createTag(input);
 		tags = [...tags, created];
 	} catch (e) {
-		error = String(e);
+		error = getErrorMessage(e);
 	} finally {
 		loading = false;
 	}
