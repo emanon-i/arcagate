@@ -24,11 +24,14 @@ pre-commit:
       glob: "*.{svelte,ts,tsx}"
       run: bash scripts/audit-labels.sh {staged_files}
 
-# pre-push: 一時無効（worktree + lefthook v2.1.1 bug）。batch-68 で復活予定。
 # pre-push:
-#   parallel: true
-#   commands:
-#     svelte-check:
-#       run: pnpm check
-#     cargo-test:
-#       run: cargo test --manifest-path src-tauri/Cargo.toml --quiet
+# - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行
+#   （core.bare=false を worktree config に明示）
+# - svelte-check + cargo test を並列実行
+pre-push:
+  parallel: true
+  commands:
+    svelte-check:
+      run: pnpm check
+    cargo-test:
+      run: cargo test --manifest-path src-tauri/Cargo.toml --quiet

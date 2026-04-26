@@ -14,11 +14,16 @@ export type WidgetType =
 	| 'file_search'
 	| 'system_monitor';
 
-export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
+export const WIDGET_LABELS: Record<WidgetType, string> = {
 	favorites: 'よく使うもの',
 	recent: '最近使ったもの',
 	projects: 'プロジェクト',
-	exe_folder: 'Exe Folders',
+	watched_folders: 'ウォッチフォルダ',
+	item: 'アイテム',
+	clock: '時計',
+	stats: 'よく起動',
+	quick_note: 'クイックメモ',
+	exe_folder: 'Exe フォルダ監視',
 	daily_task: 'デイリータスク',
 	snippet: 'スニペット',
 	clipboard_history: 'クリップボード履歴',
