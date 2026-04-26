@@ -2676,6 +2676,74 @@ scope-cut 状況:
 
 ---
 
+## batch-79 完走 (2026-04-26)
+
+PR #125 merge 済み（rebase-and-merge、merge SHA `a8670cc`）。CI 全 SUCCESS。
+
+scope:
+
+- 当初 user spec で folder-per-widget colocation までを目指したが、user 判断で大リファクタリングは Refactor Era まで保留 → PH-350 / PH-351 を deferred
+
+主要変更:
+
+- PH-352 ts-rs で Rust WidgetType → TS bindings 自動生成（手書き union 削除、4 重定義廃止）
+- `scripts/audit-widget-coverage.sh`: Rust enum / ts-rs bindings / WIDGET_LABELS の集合差分検出 → lefthook + CI step
+- `docs/widget-add-checklist.md`: ウィジェット追加手順を網羅
+- biome に auto-gen ディレクトリ除外設定追加
+
+教訓:
+
+- ts-rs の `export_to` は `.rs` ファイル相対パス、`../../src/lib/bindings/` で worktree root の bindings/ に出力
+- 「書いて満足」を機械化する 4 段階パターン継続（純粋関数 → セルフテスト → lefthook → CI）
+
+---
+
+## batch-80 完走 (2026-04-26)
+
+PR #126 merge 済み（rebase-and-merge、merge SHA `3b3618f`）。CI 全 SUCCESS。
+
+主要変更:
+
+- PH-355 LibraryItemTagSection に検索 input + filterTagSuggestions 結合（batch-77 partial → batch-78 持越 → ここで解消）
+- PH-357 partial: lessons.md 4 件追加（virtual id / GIT_\* env / ts-rs / Refactor Era 優先順位）。e2e は batch-81 持越
+- PH-356 / PH-358 / PH-359: scope cut（手動確認依頼 e2e 消化と単体テスト追加は次バッチへ繰り越し）
+
+教訓:
+
+- 手動確認依頼の E2E 消化が累積しているため、batch-81 で集中消化する
+- ts-rs の biome / dprint 干渉問題: auto-gen ディレクトリは fmt 対象外にする必要あり
+
+---
+
+## 将来計画: Era ロードマップ
+
+ユーザ判断（2026-04-26）。3 つの Era を順に進めて配布水準まで磨く:
+
+| Era | バッチ数 | 主な内容 |
+|---|---|---|
+| **通常バッチ**（現在） | 継続 | 未消化フィードバック消化 / bug fix / UX 仕上げ |
+| **Refactor Era** | 4 | 計測 → 構造 → 簡素化 → 性能。**読みやすさ + フォルダ構成 + アーキテクチャを性能と同格 / 優先** |
+| **Polish Era** | 5〜8 | アプリアイコン / README / オンボーディング / 空状態 / About / スプラッシュ / コピー / Loading-Error-Empty / マイクロインタラクション / ツールチップ / **音声機能 最終判断** |
+| **Distribution Era** | 3〜5 | コード署名 / エラー境界 UI / バックアップ UI / アップデート機構 / クラッシュレポート / インアプリヘルプ / ショートカットチートシート / ユーザガイド |
+
+### 凍結
+
+- **音声機能**: 既存実装はデフォルト OFF 維持、新規追加・改修禁止。Refactor Era で削除候補判定、Polish Era で最終判断。memory `feedback_audio_freeze.md`
+
+### Era 起動条件
+
+- Refactor Era: 直近 3〜4 バッチで新規ユーザ指摘なし、手動確認依頼 ≤ 5 項目、agent 内部で「肥大化を感じる」サイン
+- Polish Era: Refactor Era 全 4 バッチ完走後
+- Distribution Era: Polish Era 完走 + 「自分で毎日使って違和感ゼロ」
+
+agent が判定し、ユーザに提案 → 承認後着手。memory `arcagate_product_direction.md` に詳細。
+
+次バッチ:
+
+- batch-81: PH-356 手動確認依頼 5 件 を E2E nightly 化 + PH-357 ExeFolder e2e + その他 polish
+
+---
+
 ## batch-77 完走 (2026-04-26)
 
 PR #122 merge 済み（rebase-and-merge、merge SHA `87ee14d`）。CI 全 SUCCESS。
