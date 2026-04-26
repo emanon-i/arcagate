@@ -494,6 +494,51 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 
 ---
 
+## 13. Workspace Canvas 編集 UX 規約 (batch-70)
+
+### Canvas パン操作
+
+| 操作                 | 入力                  | 挙動                                                         |
+| -------------------- | --------------------- | ------------------------------------------------------------ |
+| パン                 | 中ボタン drag         | scroll 即応、慣性なし、cursor: grab → grabbing               |
+| パン                 | Space + 左ボタン drag | 同上、入力欄 focus 中は無効                                  |
+| 編集モード scrollbar | -                     | 非表示（`scrollbar-width: none`、`.canvas-edit-mode` class） |
+| 通常モード scrollbar | -                     | 標準ブラウザスクロールバー                                   |
+
+実装: `WorkspaceLayout.svelte` の workspaceContainer に `pointerdown/move/up` ハンドラ + `setPointerCapture`。`page.mouse` 直接呼びは禁止（lessons.md batch-16）。
+
+### ウィジェットリサイズハンドル（段階実装中）
+
+batch-70 時点:
+
+| ハンドル         | cursor      | 軸          | aria-label                   |
+| ---------------- | ----------- | ----------- | ---------------------------- |
+| e (右端中央)     | ew-resize   | width のみ  | ウィジェットの幅を変更       |
+| s (下端中央)     | ns-resize   | height のみ | ウィジェットの高さを変更     |
+| se (右下 corner) | nwse-resize | 両軸        | ウィジェットの幅と高さを変更 |
+
+将来 (batch-71+):
+
+- workspaceStore に `optimisticMoveAndResize()` を追加し、n/w/nw/ne/sw 4 ハンドルを完成（position 同期必要）
+- visual regression baseline 追加
+
+### ウィジェット削除 / 選択
+
+- 編集モード時、選択 widget で **Delete / Backspace キー** → 削除確認ダイアログ
+- 入力欄 focus 中は無効
+- Trash2 ボタン (右上) も同経路
+- 削除確認ダイアログは batch-16 の getByRole('dialog') パターン踏襲
+
+### ホバー toolbar (TBD)
+
+batch-71 で実装予定:
+
+- 選択 widget のホバー時に右上 toolbar (Settings2 + Trash2)
+- aria-label は機能ベース（ラベル原則準拠）
+- 本体 cursor: grab / grabbing
+
+---
+
 ## 参照
 
 - `docs/l1_requirements/ux_design_vision.md` — UX ビジョン・ゲーム UI 原則
