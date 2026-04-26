@@ -9,6 +9,7 @@ import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemT
 import { artMap, typeLabel } from '$lib/constants/item-type';
 import { getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
+import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
@@ -265,7 +266,7 @@ let moreMenuItems = $derived.by(() => {
 			</span>
 		</label>
 
-		<!-- PH-290: per-card 設定 -->
+		<!-- PH-290 + PH-297: per-card 設定 -->
 		<div class="mt-4 space-y-2 border-t border-[var(--ag-border)] pt-4">
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0 flex-1">
@@ -288,8 +289,31 @@ let moreMenuItems = $derived.by(() => {
 					>
 						グローバル設定に戻す
 					</button>
+				{:else}
+					<button
+						type="button"
+						data-testid="card-override-enable"
+						class="shrink-0 rounded-lg border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-accent-active-bg)]"
+						onclick={() => {
+							// 現在の global 設定を override にコピー（編集の起点）
+							const current = JSON.stringify({
+								background: configStore.libraryCard.background,
+								style: configStore.libraryCard.style,
+							});
+							void itemStore.updateItem(selectedItem!.id, {
+								card_override_json: current,
+							});
+						}}
+					>
+						このカードだけ個別調整
+					</button>
 				{/if}
 			</div>
+			{#if selectedItem.card_override_json}
+				<p class="text-[11px] text-[var(--ag-text-muted)]">
+					詳細編集 UI は Settings > Library に統合予定（次バッチ）。当面はリセット → 再有効化で global の最新値を取り込めます。
+				</p>
+			{/if}
 		</div>
 
 	{:else}
