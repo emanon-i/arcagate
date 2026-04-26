@@ -13,6 +13,7 @@ use commands::config_commands::{
     cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_setup_complete,
     cmd_mark_setup_complete, cmd_set_autostart, cmd_set_config, cmd_set_hotkey,
 };
+use commands::exe_scanner_commands::cmd_scan_exe_folders;
 use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::item_commands::{
     cmd_auto_register_folder_items, cmd_check_is_directory, cmd_count_hidden_items,
@@ -244,6 +245,7 @@ pub fn run() {
             cmd_auto_register_folder_items,
             cmd_get_item_stats,
             cmd_get_item_metadata,
+            cmd_scan_exe_folders,
             cmd_list_themes,
             cmd_get_theme,
             cmd_create_theme,
