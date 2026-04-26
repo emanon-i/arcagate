@@ -2943,3 +2943,27 @@ Polish Era 起動条件: 4/5 ✅、実機計測のみ Polish Era 内で消化。
 - PH-387 /simplify レビュー指摘消化（NumberField 抽出 + shadcn Input 統一 + Generic Dialog shell）
 - PH-388 実機計測完走（起動 P95 + idle memory + 改善必要なら 1 件 commit）
 - PH-389 Polish 整理 + Distribution Era 起動提案
+
+---
+
+## batch-86 完走 (2026-04-27) — Polish Era 第 1 弾
+
+PR #139 merge 済み（merge SHA `4fbbeb2`）。CI 全 SUCCESS。
+
+Polish Era **第 1 弾** 完走。「他人に渡しても困らない」品質バーの土台整備。
+
+主要変更:
+
+- **PH-385 done (partial)**: 共通 `EmptyState.svelte` 新設、Workspace widget 0 件時に適用 + CTA「編集モード開始」
+- **PH-386 done**: Settings に About カテゴリ追加（`getVersion()` / `getTauriVersion()` で動的取得）
+- **PH-387 done**: hover tooltip としての `title` 属性 review → 0 件、現状達成済と判定
+- **PH-388 done**: README.md + LICENSE 新設（MIT）
+- **PH-389 done**: `docs/l2_architecture/polish-era-progress.md` 新設、batch-87 候補（PH-390〜394）を予告
+
+教訓:
+
+- README + LICENSE が未存在だった（Polish Era の最重要 gap）→ 即対応で配布水準の最低限を確保
+- About を Dialog ではなく Settings 内 section に変更（既存 2 ペイン Settings との UX 整合）
+- Tooltip の体系的導入は需要が顕在化するまで待機（YAGNI）
+
+次バッチ: **batch-87 Polish Era 第 2 弾**（PH-390〜394、feature/batch-20260427-87 で進行中）
