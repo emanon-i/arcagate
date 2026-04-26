@@ -3,7 +3,13 @@ import { GripVertical, Trash2 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
-import type { WidgetType } from '$lib/types/workspace';
+import { WIDGET_LABELS } from '$lib/types/workspace';
+import {
+	computeResize,
+	RESIZE_CURSORS,
+	RESIZE_LABELS,
+	type ResizeDir,
+} from '$lib/utils/resize-delta';
 import { clampWidget } from '$lib/utils/widget-grid';
 
 interface Props {
@@ -97,8 +103,6 @@ $effect(() => {
 	};
 });
 
-type ResizeDir = 'e' | 's' | 'se';
-
 function handleResizeStart(e: PointerEvent, widgetId: string, dir: ResizeDir = 'se') {
 	e.preventDefault();
 	e.stopPropagation();
@@ -109,24 +113,40 @@ function handleResizeStart(e: PointerEvent, widgetId: string, dir: ResizeDir = '
 	const startY = e.clientY;
 	const widget = workspaceStore.widgets.find((w) => w.id === widgetId);
 	if (!widget) return;
-	const startW = widget.width;
-	const startH = widget.height;
+	const start = {
+		x: widget.position_x,
+		y: widget.position_y,
+		w: widget.width,
+		h: widget.height,
+	};
+
+	const cellW = widgetW + 16;
+	const cellH = widgetH + 16;
 
 	function onMove(ev: PointerEvent) {
 		const dx = ev.clientX - startX;
 		const dy = ev.clientY - startY;
-		// dir に応じて軸ごとに変化を制限（PH-306: edge は 1 軸固定、corner は両軸）
-		const newW =
-			dir === 's' ? startW : Math.max(1, Math.min(MAX_SPAN, startW + Math.round(dx / widgetW)));
-		const newH =
-			dir === 'e' ? startH : Math.max(1, Math.min(MAX_SPAN, startH + Math.round(dy / widgetH)));
-		workspaceStore.optimisticResize(widgetId, newW, newH);
+		const stepDx = Math.round(dx / cellW);
+		const stepDy = Math.round(dy / cellH);
+		const next = computeResize(start, stepDx, stepDy, dir, {
+			maxSpan: MAX_SPAN,
+			maxCols: dynamicCols,
+		});
+		workspaceStore.optimisticMoveAndResize(widgetId, next.x, next.y, next.w, next.h);
 	}
 
 	function onUp(ev: PointerEvent) {
 		handle.releasePointerCapture(ev.pointerId);
 		const w = workspaceStore.widgets.find((ww) => ww.id === widgetId);
-		if (w) void workspaceStore.resizeWidget(widgetId, w.width, w.height);
+		if (w) {
+			void workspaceStore.persistMoveAndResize(
+				widgetId,
+				w.position_x,
+				w.position_y,
+				w.width,
+				w.height,
+			);
+		}
 		handle.removeEventListener('pointermove', onMove);
 		handle.removeEventListener('pointerup', onUp);
 	}
@@ -180,7 +200,7 @@ function handleMoveStart(e: PointerEvent, widgetId: string) {
 					class="relative transition-opacity"
 					class:opacity-60={isMoving}
 					role="group"
-					aria-label={widget.widget_type}
+					aria-label={WIDGET_LABELS[widget.widget_type] ?? widget.widget_type}
 					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};{selectedWidgetId === widget.id ? ' box-shadow: 0 0 0 2px var(--ag-surface), 0 0 0 4px var(--ag-accent); border-radius: var(--ag-radius-widget);' : ''}"
 					onclick={(e) => { e.stopPropagation(); onSelectedWidgetIdChange(widget.id); }}
 				>
@@ -205,23 +225,69 @@ function handleMoveStart(e: PointerEvent, widgetId: string) {
 					>
 						<Trash2 class="h-3 w-3" />
 					</button>
-					<!-- PH-306: Resize handles (e=right edge, s=bottom edge, se=corner) -->
+					<!-- PH-331: 8 方向 Resize handles (n/s/e/w + 4 corners) -->
+					<!-- 上辺 (n) -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
-						class="absolute right-0 top-1/2 z-10 h-12 w-2 -translate-y-1/2 cursor-ew-resize bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
-						aria-label="ウィジェットの幅を変更"
-						onpointerdown={(e) => handleResizeStart(e, widget.id, 'e')}
+						class="absolute left-1/2 top-0 z-10 h-2 w-12 -translate-x-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.n}"
+						aria-label={RESIZE_LABELS.n}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'n')}
 					></div>
+					<!-- 下辺 (s) -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
-						class="absolute bottom-0 left-1/2 z-10 h-2 w-12 -translate-x-1/2 cursor-ns-resize bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
-						aria-label="ウィジェットの高さを変更"
+						class="absolute bottom-0 left-1/2 z-10 h-2 w-12 -translate-x-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.s}"
+						aria-label={RESIZE_LABELS.s}
 						onpointerdown={(e) => handleResizeStart(e, widget.id, 's')}
 					></div>
+					<!-- 右辺 (e) -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
-						class="absolute bottom-1 right-1 z-20 flex h-6 w-6 cursor-nwse-resize items-center justify-center rounded bg-[var(--ag-accent)]/50 shadow transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-accent)]"
-						aria-label="ウィジェットの幅と高さを変更"
+						class="absolute right-0 top-1/2 z-10 h-12 w-2 -translate-y-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.e}"
+						aria-label={RESIZE_LABELS.e}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'e')}
+					></div>
+					<!-- 左辺 (w) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute left-0 top-1/2 z-10 h-12 w-2 -translate-y-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.w}"
+						aria-label={RESIZE_LABELS.w}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'w')}
+					></div>
+					<!-- 左上 (nw) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute left-0 top-0 z-15 h-3 w-3 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.nw}"
+						aria-label={RESIZE_LABELS.nw}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'nw')}
+					></div>
+					<!-- 右上 (ne) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute right-0 top-0 z-15 h-3 w-3 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.ne}"
+						aria-label={RESIZE_LABELS.ne}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'ne')}
+					></div>
+					<!-- 左下 (sw) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute bottom-0 left-0 z-15 h-3 w-3 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.sw}"
+						aria-label={RESIZE_LABELS.sw}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'sw')}
+					></div>
+					<!-- 右下 (se) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute bottom-1 right-1 z-20 flex h-6 w-6 items-center justify-center rounded bg-[var(--ag-accent)]/50 shadow transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-accent)]"
+						style="cursor: {RESIZE_CURSORS.se}"
+						aria-label={RESIZE_LABELS.se}
 						onpointerdown={(e) => handleResizeStart(e, widget.id, 'se')}
 					>
 						<GripVertical class="h-4 w-4 text-white" />

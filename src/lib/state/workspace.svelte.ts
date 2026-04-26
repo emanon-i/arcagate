@@ -270,6 +270,35 @@ function optimisticResize(id: string, width: number, height: number): void {
 	widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : w));
 }
 
+function optimisticMoveAndResize(
+	id: string,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+): void {
+	widgets = widgets.map((w) =>
+		w.id === id ? { ...w, position_x: x, position_y: y, width, height } : w,
+	);
+}
+
+async function persistMoveAndResize(
+	id: string,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+): Promise<void> {
+	try {
+		await workspaceIpc.updateWidgetPosition(id, x, y, width, height);
+	} catch (e) {
+		error = String(e);
+		if (activeWorkspaceId) {
+			await loadWidgets(activeWorkspaceId);
+		}
+	}
+}
+
 export const workspaceStore = {
 	get workspaces() {
 		return workspaces;
@@ -303,5 +332,7 @@ export const workspaceStore = {
 	resizeWidget,
 	moveWidget,
 	optimisticResize,
+	optimisticMoveAndResize,
+	persistMoveAndResize,
 	findFreePosition,
 };

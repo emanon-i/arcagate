@@ -20,7 +20,7 @@ import {
 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
-import type { WidgetType } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WidgetType } from '$lib/types/workspace';
 
 interface Props {
 	editMode: boolean;
@@ -34,21 +34,26 @@ let { editMode, onToggleEdit, onConfirmEdit, onCancelEdit }: Props = $props();
 const rm =
 	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = [
-	{ type: 'favorites', label: 'よく使うもの', icon: Star },
-	{ type: 'recent', label: '最近使ったもの', icon: Clock3 },
-	{ type: 'projects', label: 'プロジェクト', icon: GitBranch },
-	{ type: 'item', label: 'アイテム', icon: Package },
-	{ type: 'clock', label: '時計', icon: Clock },
-	{ type: 'stats', label: 'よく起動', icon: TrendingUp },
-	{ type: 'quick_note', label: 'クイックメモ', icon: NotebookPen },
-	{ type: 'exe_folder', label: 'Exe フォルダ監視', icon: FolderOpen },
-	{ type: 'daily_task', label: 'デイリータスク', icon: CheckSquare },
-	{ type: 'snippet', label: 'スニペット', icon: Clipboard },
-	{ type: 'clipboard_history', label: 'クリップボード履歴', icon: ClipboardList },
-	{ type: 'file_search', label: 'ファイル検索', icon: FileSearch },
-	{ type: 'system_monitor', label: 'システムモニタ', icon: Activity },
-];
+// label は WIDGET_LABELS（types/workspace.ts）の単一情報源を使用
+const widgetIcons: Partial<Record<WidgetType, Component>> = {
+	favorites: Star,
+	recent: Clock3,
+	projects: GitBranch,
+	item: Package,
+	clock: Clock,
+	stats: TrendingUp,
+	quick_note: NotebookPen,
+	exe_folder: FolderOpen,
+	daily_task: CheckSquare,
+	snippet: Clipboard,
+	clipboard_history: ClipboardList,
+	file_search: FileSearch,
+	system_monitor: Activity,
+};
+
+const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = (
+	Object.entries(widgetIcons) as [WidgetType, Component][]
+).map(([type, icon]) => ({ type, label: WIDGET_LABELS[type], icon }));
 
 function startDrag(e: PointerEvent, widgetType: WidgetType) {
 	e.preventDefault();
