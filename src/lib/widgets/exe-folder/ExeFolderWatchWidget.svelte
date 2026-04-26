@@ -6,6 +6,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 
 interface Props {
@@ -101,7 +102,7 @@ async function persistConfig(next: WidgetConfig) {
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
-		toastStore.add(`設定の保存に失敗しました: ${String(e)}`, 'error');
+		toastStore.add(`設定の保存に失敗しました: ${getErrorMessage(e)}`, 'error');
 	}
 }
 

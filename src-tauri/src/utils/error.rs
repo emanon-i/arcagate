@@ -71,11 +71,18 @@ impl AppError {
 }
 
 impl serde::Serialize for AppError {
+    /// PH-429: 構造化 serialize 形式 `{ code, message }`。
+    /// フロント側 catch で `e.code` / `e.message` でアクセス可能。
+    /// 旧 string 形式から移行 (PH-417/422 で AppError::code() 準備済)。
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("AppError", 2)?;
+        s.serialize_field("code", self.code())?;
+        s.serialize_field("message", &self.to_string())?;
+        s.end()
     }
 }
 

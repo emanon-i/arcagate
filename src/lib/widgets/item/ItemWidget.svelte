@@ -10,6 +10,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 
@@ -33,7 +34,7 @@ async function selectItem(item: Item) {
 		await updateWidgetConfig(widget.id, JSON.stringify({ item_id: item.id }));
 		await itemStore.loadItems();
 	} catch (e: unknown) {
-		toastStore.add(`設定の保存に失敗しました: ${String(e)}`, 'error');
+		toastStore.add(`設定の保存に失敗しました: ${getErrorMessage(e)}`, 'error');
 	}
 }
 
