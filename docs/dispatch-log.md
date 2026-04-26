@@ -2839,3 +2839,26 @@ PR #123 merge 済み（rebase-and-merge、merge SHA `10c29f4`）。CI 全 SUCCES
 次バッチ:
 
 - batch-79: ウィジェットシステム追加容易性向上（folder-per-widget colocation + ts-rs + Settings 分割 + audit）→ ユーザ承認済
+
+---
+
+## batch-83 完走 (2026-04-26)
+
+PR #131 merge 済み（rebase-and-merge、merge SHA `6ddbd70`）。CI 全 SUCCESS（check / changes / build / e2e）。
+
+Refactor Era **構造フェーズ** 完走。widget folder colocation の本丸を完遂し、ウィジェット追加容易性が大幅改善。
+
+主要変更:
+
+- **PH-370 done**: 14 widget 全件を `src/lib/widgets/<name>/` フォルダ構成に集約。`_shared/types.ts` に `WidgetMeta` を切り出し、各 widget が `index.ts` で `meta` を export。WorkspaceLayout / WorkspaceSidebar が registry 経由で widget を解決する設計に切替（if/else if の分岐を排除）
+- **PH-371 deferred → batch-84 PH-375 に再掲**: WidgetSettingsDialog 583 行解体は構造フェーズ内で着手不能と判断、簡素化フェーズに持越
+- **PH-372 deferred → batch-84 PH-376 に再掲**: Settings 内コンポーネント + utils/ 配置整理も簡素化フェーズに持越
+- **PH-373 done**: 防衛テスト（registry 完全網羅 / svelte-check 0 errors / 既存 e2e リグレッション 0）
+- **PH-374 done**: 整理（biome import sort 自動修正 + plan status 整理）
+
+教訓:
+
+- folder-per-widget colocation は構造変更の規模が大きいので、Settings 解体（PH-371）と utils/ 配置整理（PH-372）を同 PR に詰め込むと差分肥大化 → diff レビューが破綻する。**1 PR = 1 構造的テーマ**を維持して PH-371/372 を batch-84 に分離した判断は妥当
+- registry 化により WorkspaceLayout の widget 分岐が 33 行 → 9 行 に縮小、WorkspaceSidebar も 53 行 → 15 行 に縮小。fan-out 削減効果が観測できた
+
+次バッチ: batch-84 簡素化フェーズ（PH-375〜379、PH-377 ConfirmDialog 共通化は既に partial 着手済）
