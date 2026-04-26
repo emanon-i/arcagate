@@ -43,9 +43,9 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
 
-      - name: Run E2E smoke tests (PR — @smoke only)
+      - name: Run E2E core tests (PR — @core only, 5 tests)
         if: github.event_name == 'pull_request'
-        run: pnpm test:e2e:smoke
+        run: pnpm test:e2e:core
         env:
           WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
 
