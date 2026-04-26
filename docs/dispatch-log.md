@@ -2371,3 +2371,36 @@ library-card-spec / library-card-metadata / library-detail-ux / library-detail /
 
 - 現状: 20-30 分
 - batch-68 PH-295 後: **5 分以内**
+
+---
+
+## batch-67 完走 (2026-04-26)
+
+PR #102 merge 済み（rebase-and-merge、merge SHA `41c568f`）。
+CI 全 SUCCESS（lint / test / e2e / changes / build）、mergeStateStatus CLEAN。
+
+### main rebased commits
+
+- 41c568f revert(batch-67): dprint check を CI に戻す（誤削除の訂正）
+- 4d409e7 fix(batch-67): E2E PR スコープを @core 5 件に厳格化 + dprint CI 削除
+- 2725fa8 chore(batch-67): scripts/setup-worktree.sh 追加
+- (728eb40 相当) docs(batch-67): lefthook bug 究明 + CI workflow 解析記録
+- (929f2d5 相当) fix(batch-67): pre-push hook 一時無効
+- (6c24adb 相当) chore(batch-67): pre-commit / pre-push hook 拡充 + test:e2e:core script + PH-295 Plan
+- (167fd17 相当) fix(batch-67): ClockWidget DropdownMenu → settings modal 統合（横展開）
+- (8144753 相当) docs(batch-67): バッチキュー + 却下機能リスト
+- (dc8e5d5 相当) docs(batch-67): CLAUDE.md「Plan で横展開チェック実施済か明記」必須
+- (e37cfd5 相当) test+docs: PH-293 E2E + PH-294 ux_standards Library 規約
+- (ac67df5 相当) feat: PH-290 per-card override 表示状態 + リセットボタン
+- (72d82c0 相当) feat: PH-290 Library カード per-card 背景・文字 override
+- (4fdb361 相当) fix: PH-292 LibraryCard 背景なし時アイコンぼやけ修正
+- (b3c30b0 相当) feat: PH-292 左パネル 4 セクション分離 + アイコン強化
+- (27eb057 相当) feat: nav-items レジストリ + Settings/本体の icon・label 統一（横展開）
+- (bada78e 相当) feat: PH-291 ⭐ お気に入りボタン + 可視/不可視トグル（ラベル原則）
+- (93743d1 相当) docs: L3 Plan 5本 + ラベル原則制定
+
+### 教訓（batch-68 反映予定）
+
+- **削減は実測ベース**: dprint check を一律削除しようとしたが 1-2 秒で速度ボトルネックでなかった、ユーザ訂正で復活。実測 → 効果ある箇所のみ削減すべき
+- **E2E 削減は実測効果あり**: PR スコープ `@core` 5 件に厳格化（commit 4d409e7）、batch-66 の e2e 不安定問題が解消、CI 緑で merge 完走
+- **lefthook + worktree bug**: common config の `core.bare = true` が継承される、`config.worktree` で override 必要、setup script `scripts/setup-worktree.sh` で対応
