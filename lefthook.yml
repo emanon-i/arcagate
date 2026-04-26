@@ -11,7 +11,7 @@ pre-commit:
       stage_fixed: true
     dprint:
       glob: "*.{md,toml}"
-      run: pnpm dprint fmt {staged_files}
+      run: pnpm dprint fmt --allow-no-files {staged_files}
       stage_fixed: true
     rustfmt:
       glob: "src-tauri/**/*.rs"
