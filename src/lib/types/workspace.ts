@@ -6,12 +6,14 @@ export type WidgetType =
 	| 'item'
 	| 'clock'
 	| 'stats'
-	| 'quick_note';
+	| 'quick_note'
+	| 'exe_folder';
 
 export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
 	favorites: 'よく使うもの',
 	recent: '最近使ったもの',
 	projects: 'プロジェクト',
+	exe_folder: 'Exe Folders',
 };
 
 export interface Workspace {

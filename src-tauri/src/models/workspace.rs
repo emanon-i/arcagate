@@ -11,6 +11,7 @@ pub enum WidgetType {
     Clock,
     Stats,
     QuickNote,
+    ExeFolder,
 }
 
 impl WidgetType {
@@ -24,6 +25,7 @@ impl WidgetType {
             WidgetType::Clock => "clock",
             WidgetType::Stats => "stats",
             WidgetType::QuickNote => "quick_note",
+            WidgetType::ExeFolder => "exe_folder",
         }
     }
 
@@ -38,6 +40,7 @@ impl WidgetType {
             "clock" => Some(WidgetType::Clock),
             "stats" => Some(WidgetType::Stats),
             "quick_note" => Some(WidgetType::QuickNote),
+            "exe_folder" => Some(WidgetType::ExeFolder),
             _ => None,
         }
     }
@@ -104,6 +107,7 @@ mod tests {
         assert_eq!(WidgetType::Clock.as_str(), "clock");
         assert_eq!(WidgetType::Stats.as_str(), "stats");
         assert_eq!(WidgetType::QuickNote.as_str(), "quick_note");
+        assert_eq!(WidgetType::ExeFolder.as_str(), "exe_folder");
     }
 
     #[test]
@@ -125,6 +129,10 @@ mod tests {
             WidgetType::from_str("quick_note"),
             Some(WidgetType::QuickNote)
         );
+        assert_eq!(
+            WidgetType::from_str("exe_folder"),
+            Some(WidgetType::ExeFolder)
+        );
     }
 
     #[test]
@@ -145,6 +153,7 @@ mod tests {
             WidgetType::Clock,
             WidgetType::Stats,
             WidgetType::QuickNote,
+            WidgetType::ExeFolder,
         ];
         for t in &types {
             let s = t.as_str();
