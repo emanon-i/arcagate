@@ -9,7 +9,17 @@ import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
-import ThemeEditor from './ThemeEditor.svelte';
+
+// PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
+// 通常の Settings 利用時にはバンドルから外して初回 paint を軽くする。
+// biome-ignore lint/suspicious/noExplicitAny: dynamic-imported Svelte component
+let ThemeEditorComponent = $state<Component<any, any, any> | null>(null);
+
+async function ensureThemeEditorLoaded(): Promise<void> {
+	if (ThemeEditorComponent) return;
+	const mod = await import('./ThemeEditor.svelte');
+	ThemeEditorComponent = mod.default;
+}
 
 type CategoryId = NavSettingsId;
 
@@ -283,7 +293,14 @@ function handleNavKeydown(e: KeyboardEvent) {
 											<button
 												type="button"
 												class="rounded px-2 py-0.5 text-[11px] text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
-												onclick={() => (editingThemeId = editingThemeId === theme.id ? null : theme.id)}
+												onclick={() => {
+													if (editingThemeId === theme.id) {
+														editingThemeId = null;
+													} else {
+														editingThemeId = theme.id;
+														void ensureThemeEditorLoaded();
+													}
+												}}
 											>
 												{editingThemeId === theme.id ? '閉じる' : '編集'}
 											</button>
@@ -320,10 +337,12 @@ function handleNavKeydown(e: KeyboardEvent) {
 						{#if editingThemeId}
 							{@const editingTheme = themeStore.themes.find((t) => t.id === editingThemeId)}
 							{#if editingTheme}
-								<ThemeEditor
-									theme={editingTheme}
-									onClose={() => (editingThemeId = null)}
-								/>
+								{#if ThemeEditorComponent}
+									{@const TE = ThemeEditorComponent}
+									<TE theme={editingTheme} onClose={() => (editingThemeId = null)} />
+								{:else}
+									<div class="text-sm text-[var(--ag-text-muted)]">テーマエディタを読み込み中…</div>
+								{/if}
 							{/if}
 						{/if}
 
