@@ -1,4 +1,5 @@
 import { Package } from '@lucide/svelte';
+import CommonMaxItemsSettings from '../_shared/CommonMaxItemsSettings.svelte';
 import type { WidgetMeta } from '../_shared/types';
 import Component from './ItemWidget.svelte';
 
@@ -9,4 +10,5 @@ export const meta: WidgetMeta = {
 	icon: Package,
 	label: 'アイテム',
 	addable: true,
+	SettingsContent: CommonMaxItemsSettings,
 };
