@@ -12,6 +12,8 @@ pub enum WidgetType {
     Stats,
     QuickNote,
     ExeFolder,
+    DailyTask,
+    Snippet,
 }
 
 impl WidgetType {
@@ -26,6 +28,8 @@ impl WidgetType {
             WidgetType::Stats => "stats",
             WidgetType::QuickNote => "quick_note",
             WidgetType::ExeFolder => "exe_folder",
+            WidgetType::DailyTask => "daily_task",
+            WidgetType::Snippet => "snippet",
         }
     }
 
@@ -41,6 +45,8 @@ impl WidgetType {
             "stats" => Some(WidgetType::Stats),
             "quick_note" => Some(WidgetType::QuickNote),
             "exe_folder" => Some(WidgetType::ExeFolder),
+            "daily_task" => Some(WidgetType::DailyTask),
+            "snippet" => Some(WidgetType::Snippet),
             _ => None,
         }
     }
@@ -108,6 +114,8 @@ mod tests {
         assert_eq!(WidgetType::Stats.as_str(), "stats");
         assert_eq!(WidgetType::QuickNote.as_str(), "quick_note");
         assert_eq!(WidgetType::ExeFolder.as_str(), "exe_folder");
+        assert_eq!(WidgetType::DailyTask.as_str(), "daily_task");
+        assert_eq!(WidgetType::Snippet.as_str(), "snippet");
     }
 
     #[test]
@@ -133,6 +141,11 @@ mod tests {
             WidgetType::from_str("exe_folder"),
             Some(WidgetType::ExeFolder)
         );
+        assert_eq!(
+            WidgetType::from_str("daily_task"),
+            Some(WidgetType::DailyTask)
+        );
+        assert_eq!(WidgetType::from_str("snippet"), Some(WidgetType::Snippet));
     }
 
     #[test]
@@ -154,6 +167,8 @@ mod tests {
             WidgetType::Stats,
             WidgetType::QuickNote,
             WidgetType::ExeFolder,
+            WidgetType::DailyTask,
+            WidgetType::Snippet,
         ];
         for t in &types {
             let s = t.as_str();

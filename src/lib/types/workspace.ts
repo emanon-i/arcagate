@@ -7,13 +7,17 @@ export type WidgetType =
 	| 'clock'
 	| 'stats'
 	| 'quick_note'
-	| 'exe_folder';
+	| 'exe_folder'
+	| 'daily_task'
+	| 'snippet';
 
 export const WIDGET_LABELS: Partial<Record<WidgetType, string>> = {
 	favorites: 'よく使うもの',
 	recent: '最近使ったもの',
 	projects: 'プロジェクト',
 	exe_folder: 'Exe Folders',
+	daily_task: 'デイリータスク',
+	snippet: 'スニペット',
 };
 
 export interface Workspace {
