@@ -127,6 +127,27 @@ function onCanvasPointerUp(e: PointerEvent) {
 	workspaceContainer.style.cursor = panSpacePressed ? 'grab' : '';
 }
 
+// PH-307 Del キーで選択中ウィジェット削除（編集モード時のみ）
+$effect(() => {
+	function onKeyDown(e: KeyboardEvent) {
+		if (!editMode) return;
+		if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+		const target = e.target as HTMLElement | null;
+		if (
+			target?.tagName === 'INPUT' ||
+			target?.tagName === 'TEXTAREA' ||
+			target?.isContentEditable
+		) {
+			return;
+		}
+		if (selectedWidgetId) {
+			deleteConfirmId = selectedWidgetId;
+		}
+	}
+	window.addEventListener('keydown', onKeyDown);
+	return () => window.removeEventListener('keydown', onKeyDown);
+});
+
 // ウィジェットが占める最大列数（ウィンドウが狭くなっても下回らせない）
 let minGridCols = $derived(
 	workspaceStore.widgets.length > 0
