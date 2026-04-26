@@ -8,6 +8,7 @@ import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import ClockWidget from './ClockWidget.svelte';
+import ExeFolderWatchWidget from './ExeFolderWatchWidget.svelte';
 import FavoritesWidget from './FavoritesWidget.svelte';
 import ItemWidget from './ItemWidget.svelte';
 import PageTabBar from './PageTabBar.svelte';
@@ -137,6 +138,7 @@ const widgetComponents = {
 	clock: ClockWidget,
 	stats: StatsWidget,
 	quick_note: QuickNoteWidget,
+	exe_folder: ExeFolderWatchWidget,
 } as const;
 
 function handleItemContext(itemId: string) {
