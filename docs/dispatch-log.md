@@ -2989,3 +2989,20 @@ CI fail と修正:
 - 対応: Cargo.toml で `notify = "7"` に revert + lefthook dprint hook の `--allow-no-files` 追加（toml が dprint 対象外で hook fail する既知 bug 修正）
 
 次バッチ: batch-88 第 3 弾（PR #142、CI 中）
+
+---
+
+## batch-88 完走 (2026-04-27) — Polish Era 第 3 弾
+
+PR #142 merge 済み（merge SHA a8a9efc）。CI 全 SUCCESS。
+
+主要変更:
+
+- **PH-395 → batch-89 PH-400 持越**: Settings/utils 配置整理 専用バッチに分離
+- **PH-396 done**: 音声機能完全削除（sfx.ts / sound.svelte.ts / SettingsPanel sound カテゴリ / nav-items.ts Volume2 / PaletteOverlay playClick 2 箇所）。memory `feedback_audio_freeze.md` を「削除済」に更新
+- **PH-397 done partial**: LoadingState.svelte + ErrorState.svelte 新設、既存箇所適用は batch-89 PH-401 持越
+- **PH-398 done partial**: 防衛テスト 14 件追加（EmptyState 5 + LoadingState 4 + ErrorState 5）、AboutSection.test は batch-89 持越
+- **PH-399 done**: 整理 + batch-89 候補 + Distribution Era 5 plan 候補
+
+vitest: 119 → 142 件（+23）。
+次バッチ: batch-89 第 4 弾（Polish Era 完走判定）+ batch-90 Use Case Audit
