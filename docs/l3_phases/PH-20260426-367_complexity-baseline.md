@@ -1,6 +1,6 @@
 ---
 id: PH-20260426-367
-status: todo
+status: done
 batch: 82
 type: 改善
 era: Refactor Era / 計測フェーズ
