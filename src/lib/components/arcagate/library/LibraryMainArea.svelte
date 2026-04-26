@@ -1,11 +1,20 @@
 <script lang="ts">
-import { LayoutGrid, LayoutList, Package, Plus, Search, X as XIcon } from '@lucide/svelte';
+import {
+	HelpCircle,
+	LayoutGrid,
+	LayoutList,
+	Package,
+	Plus,
+	Search,
+	X as XIcon,
+} from '@lucide/svelte';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
+import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { formatLaunchError } from '$lib/utils/launch-error';
@@ -195,7 +204,15 @@ let filteredItems = $derived.by(() => {
 						icon={Package}
 						title="ライブラリが空です"
 						description="アプリ・フォルダ・URL などのショートカットを追加できます"
-						action={{ label: 'アイテムを追加', onClick: () => onAddItem?.() }}
+						actions={[
+							{ label: 'アイテムを追加', onClick: () => onAddItem?.(), variant: 'default' },
+							{
+								label: 'ヘルプを見る',
+								onClick: () => helpStore.open(),
+								variant: 'outline',
+								icon: HelpCircle,
+							},
+						]}
 						testId="library-empty-state"
 					/>
 				{:else}

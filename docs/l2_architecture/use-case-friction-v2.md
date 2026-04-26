@@ -447,28 +447,33 @@ batch-90 の「macro 0 件」判定は妥当（severity 4 = 0）が、**severity
 
 「Polish Era 完走」**判定は否定**（H10 / 一貫性 / 復旧導線が major 多数残）、batch-92 の PH-416/417/418 完走 + 必要に応じ batch-93 で再判定。
 
-### batch-92 残 Plan へのカバレッジ
+### severity 3 摩擦カバレッジ (batch-92 + batch-93 完走時点)
 
-| severity 3 摩擦                   | カバー Plan    |
-| --------------------------------- | -------------- |
-| H1 watch 監視状態                 | PH-417         |
-| H7 一括タグ付け                   | batch-93       |
-| H7 launch group                   | macro / Rule A |
-| H7 clipboard 検索                 | batch-93       |
-| H3 file-search cancel             | batch-93       |
-| H9 launch 失敗診断 / watch silent | PH-417         |
-| H10 in-app help（5 件）           | PH-418         |
-| H4 一貫性 micro                   | PH-416         |
+| severity 3 摩擦         | カバー Plan       | 状態                          |
+| ----------------------- | ----------------- | ----------------------------- |
+| H1 watch 監視状態 UI    | PH-428 (batch-94) | 未着手                        |
+| H7 一括タグ付け         | PH-430 (batch-94) | 未着手                        |
+| H7 launch group         | PH-431 (batch-94) | 未着手 Rule A                 |
+| H7 clipboard 検索       | PH-432 (batch-94) | 未着手                        |
+| H3 file-search cancel   | PH-420 (batch-93) | ✅ 解消 (Rust+UI)             |
+| H9 launch 失敗診断      | PH-417 (batch-92) | ✅ 解消                       |
+| H9 watch silent failure | PH-421 (batch-93) | ✅ 解消 (DB 整合)             |
+| H10 in-app help (5 件)  | PH-418 (batch-92) | ✅ 解消 (HelpPanel + ?キー)   |
+| H4 一貫性 micro         | PH-416 (batch-92) | ✅ 解消 (audit script 機械化) |
 
-batch-92 の PH-416/417/418 で **8 件 / 12 件 (67%)** の severity 3 を解消見込み。
-残 4 件は batch-93 で機能拡張系（launch group / 一括タグ付け / clipboard 検索 / file-search cancel）。
+batch-92 + batch-93 完走で **8 件 / 12 件 (67%)** の severity 3 を実装ベースで解消。
+残 4 件は batch-94 で機能拡張系 (一括タグ付け / launch group / clipboard 検索 / watch UI)。
 
-### batch-93 候補（dispatch-log 記録予定）
+### batch-94 候補 (Codex 推奨順位ベース、dispatch-log 記録)
 
-- PH-420 launch group（Rule A、ユーザ承認必要）
-- PH-421 一括タグ付け
-- PH-422 clipboard 検索 + file-search cancel
-- PH-423 個別深掘り audit（severity 3 残ケースを `audit-2026-04-27/` に記録）
+- PH-425 ErrorBoundary (横断耐障害性)
+- PH-426 IPC エラー全般のフォーマット統一
+- PH-427 OnboardingTour
+- PH-428 watch エラー UI 可視化 (バッジ + 再試行 + 取り込みフォルダ section UI)
+- PH-429 AppError serialize 形式変更 ({ code, message })
+- PH-430 一括タグ付け (H7、bulk-edit UI)
+- PH-431 launch group (H7、Rule A、機能拡張)
+- PH-432 clipboard 検索 (H7)
 
 ---
 

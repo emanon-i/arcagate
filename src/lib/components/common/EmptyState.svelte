@@ -2,15 +2,29 @@
 import type { Component } from 'svelte';
 import { Button } from '$lib/components/ui/button';
 
+// PH-424 / Codex Q5 #4: EmptyState actions slot 化 (複数導線 onboarding hint)
+interface Action {
+	label: string;
+	onClick: () => void;
+	variant?: 'default' | 'outline';
+	icon?: Component;
+}
+
 interface Props {
 	icon: Component;
 	title: string;
 	description?: string;
-	action?: { label: string; onClick: () => void };
+	action?: Action; // 後方互換 (単一)
+	actions?: Action[]; // 複数 (PH-424 新規)
 	testId?: string;
 }
 
-let { icon: Icon, title, description, action, testId }: Props = $props();
+let { icon: Icon, title, description, action, actions, testId }: Props = $props();
+
+// actions が指定されたらそれを使う、無ければ action (単一) から fallback、両方無ければ空
+let resolvedActions = $derived<Action[]>(
+	actions && actions.length > 0 ? actions : action ? [action] : [],
+);
 </script>
 
 <div
@@ -26,9 +40,22 @@ let { icon: Icon, title, description, action, testId }: Props = $props();
 			<p class="max-w-md text-xs text-[var(--ag-text-secondary)]">{description}</p>
 		{/if}
 	</div>
-	{#if action}
-		<Button type="button" variant="outline" size="sm" onclick={action.onClick}>
-			{action.label}
-		</Button>
+	{#if resolvedActions.length > 0}
+		<div class="flex flex-wrap items-center justify-center gap-2">
+			{#each resolvedActions as a, i (a.label)}
+				{@const ActionIcon = a.icon}
+				<Button
+					type="button"
+					variant={a.variant ?? (i === 0 ? 'default' : 'outline')}
+					size="sm"
+					onclick={a.onClick}
+				>
+					{#if ActionIcon}
+						<ActionIcon class="h-3.5 w-3.5" />
+					{/if}
+					{a.label}
+				</Button>
+			{/each}
+		</div>
 	{/if}
 </div>

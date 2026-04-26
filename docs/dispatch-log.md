@@ -3092,3 +3092,59 @@ batch-92 HE+CW 再監査で macro/micro/medium が再計測された後に再判
 ### 自律作成ログ
 
 - 2026-04-27: PH-410〜414 を Plan 自律作成（dispatch-operation §4d、5 件上限内）
+
+## 2026-04-27 [batch-93] UX Audit Re-Validation Round 2 完走
+
+### 経緯
+
+batch-92 Codex Rule C 再 review (2026-04-27) で「Polish Era 完走宣言時期尚早」と判定。
+Codex 推奨優先順位 + 8 件の見落とし指摘に基づき batch-93 を組み直し。
+
+### 5 Plan 結果
+
+| Plan   | 内容                                                    | status | Codex 指摘   |
+| ------ | ------------------------------------------------------- | ------ | ------------ |
+| PH-420 | file-search cancel (H3 長時間ブロック解消)              | done   | Q4 推奨 #1   |
+| PH-421 | watch silent failure 解消 (H9、DB 書き込み整合)         | done   | Q5 #1 最重要 |
+| PH-422 | Windows 引数安全化 + AppError::code() (Q5 #6)           | done   | Q5 #6        |
+| PH-423 | HelpPanel focus trap + e2e launch-error spec (Q5 #7 #8) | done   | Q5 #7 #8     |
+| PH-424 | EmptyState actions slot + use-case-friction-v2 update   | done   | Q5 #4        |
+
+### Codex Q5 残作業のカバレッジ (8 件中 5 件)
+
+- ✅ #1 watch silent failure → PH-421
+- ✅ #4 EmptyState actions slot → PH-424
+- ✅ #6 split_whitespace → PH-422
+- ✅ #7 HelpPanel focus trap → PH-423
+- ✅ #8 e2e 原因別文言 → PH-423
+- ⏸ #2 watch UI 可視化 → PH-428 (batch-94)
+- ⏸ #3 OnboardingTour → PH-427 (batch-94)
+- ⏸ #5 launch error 構造化 IPC serialize → PH-429 (batch-94)
+
+### Polish Era 完走宣言
+
+batch-92 + batch-93 で **severity 3 解消 8 件 / 12 件 (67%)**、残 4 件は機能拡張系で batch-94 へ。
+**完走宣言は引き続き保留** — Codex 3 回目の再 review で残作業 + 実機計測 (PH-419) を確認後に再判定。
+
+### batch-94 候補 (Codex 優先順位 + use-case-friction-v2)
+
+- PH-425 ErrorBoundary
+- PH-426 IPC エラー全般のフォーマット統一
+- PH-427 OnboardingTour (Codex Q5 #3)
+- PH-428 watch エラー UI 可視化 (Codex Q5 #2)
+- PH-429 AppError serialize 形式変更 ({ code, message })
+- PH-430 一括タグ付け (H7)
+- PH-431 launch group (H7、Rule A)
+- PH-432 clipboard 検索 (H7)
+
+batch-94 は 5 plan に絞る:
+
+1. PH-425 ErrorBoundary (改善)
+2. PH-427 OnboardingTour (改善 + Codex 残)
+3. PH-428 watch UI 可視化 (改善 + Codex 残)
+4. PH-429 AppError serialize 構造化 (整理)
+5. PH-426 IPC エラー全般統一 (防衛)
+
+### 自律作成ログ
+
+- 2026-04-27: PH-420〜424 を Plan 自律作成 (dispatch-operation §4d、5 件上限内)
