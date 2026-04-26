@@ -144,9 +144,10 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title || 'Exe Folders'} icon={FolderOpen} {menuItems}>
 	{#if !config.watch_path}
-		<p class="text-sm text-[var(--ag-text-muted)]">
-			設定からフォルダと階層を指定してください。
-		</p>
+		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-sm text-[var(--ag-text-muted)]">
+			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">監視フォルダを設定してください</p>
+			<p class="text-xs">設定モーダルで監視ルートを選ぶと、サブフォルダの exe が自動で表示されます。</p>
+		</div>
 	{:else if scanning}
 		<p class="text-sm text-[var(--ag-text-muted)]">スキャン中...</p>
 	{:else if scanError}

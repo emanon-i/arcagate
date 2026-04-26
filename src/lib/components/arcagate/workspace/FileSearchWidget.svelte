@@ -114,8 +114,11 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title || 'ファイル検索'} icon={FileSearch} {menuItems}>
 	{#if !root}
-		<div class="space-y-2">
-			<p class="text-xs text-[var(--ag-text-muted)]">検索ルートが未設定です</p>
+		<div class="space-y-2 rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2">
+			<div class="text-xs text-[var(--ag-text-muted)]">
+				<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">検索ルートを選んでください</p>
+				<p>選んだフォルダ以下のファイルを部分一致でフィルタして開けます。</p>
+			</div>
 			<button
 				type="button"
 				class="rounded bg-[var(--ag-accent-bg)] px-2 py-1 text-xs text-[var(--ag-accent-text)] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
