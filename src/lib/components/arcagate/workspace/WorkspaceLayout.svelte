@@ -1,6 +1,7 @@
 <script lang="ts">
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
+import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import * as workspaceIpc from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
@@ -423,42 +424,13 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	onCancel={() => (renameOpen = false)}
 />
 
-{#if cancelConfirmOpen}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-		role="dialog"
-		aria-modal="true"
-		tabindex="-1"
-		onclick={(e) => {
-			if (e.target === e.currentTarget) dismissCancel();
-		}}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') dismissCancel();
-			if (e.key === 'Enter') confirmCancel();
-		}}
-	>
-		<div class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]">
-			<h3 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">編集を破棄しますか？</h3>
-			<p class="mb-4 text-sm text-[var(--ag-text-secondary)]">
-				未確定の変更があります。破棄するとレイアウト変更は失われます。
-			</p>
-			<div class="flex justify-end gap-2">
-				<button
-					type="button"
-					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					onclick={dismissCancel}
-				>
-					編集に戻る
-				</button>
-				<button
-					type="button"
-					class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-red-500 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					onclick={confirmCancel}
-				>
-					破棄する
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<ConfirmDialog
+	open={cancelConfirmOpen}
+	title="編集を破棄しますか？"
+	description="未確定の変更があります。破棄するとレイアウト変更は失われます。"
+	confirmLabel="破棄する"
+	cancelLabel="編集に戻る"
+	confirmVariant="destructive"
+	onConfirm={confirmCancel}
+	onCancel={dismissCancel}
+/>
