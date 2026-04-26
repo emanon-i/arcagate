@@ -102,6 +102,14 @@
 	--ag-card-w-l: 256px;
 }
 
+/* PH-305 Canvas 編集モード時はスクロールバー非表示（パン操作専用） */
+.canvas-edit-mode {
+	scrollbar-width: none;
+}
+.canvas-edit-mode::-webkit-scrollbar {
+	display: none;
+}
+
 .dark {
 	/* Surface hierarchy */
 	--ag-surface-page: #090b10;

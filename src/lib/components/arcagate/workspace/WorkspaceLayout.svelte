@@ -58,6 +58,75 @@ $effect(() => {
 	return () => ro.disconnect();
 });
 
+// PH-305 Canvas パン: 中ボタン drag / Space + 左 drag
+let panActive = $state(false);
+let panSpacePressed = $state(false);
+let panStart = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 };
+
+$effect(() => {
+	function onKeyDown(e: KeyboardEvent) {
+		if (e.code !== 'Space') return;
+		const target = e.target as HTMLElement | null;
+		if (
+			target?.tagName === 'INPUT' ||
+			target?.tagName === 'TEXTAREA' ||
+			target?.isContentEditable
+		) {
+			return;
+		}
+		if (!editMode) return;
+		e.preventDefault();
+		panSpacePressed = true;
+		if (workspaceContainer && !panActive) {
+			workspaceContainer.style.cursor = 'grab';
+		}
+	}
+	function onKeyUp(e: KeyboardEvent) {
+		if (e.code === 'Space') {
+			panSpacePressed = false;
+			if (workspaceContainer && !panActive) {
+				workspaceContainer.style.cursor = '';
+			}
+		}
+	}
+	window.addEventListener('keydown', onKeyDown);
+	window.addEventListener('keyup', onKeyUp);
+	return () => {
+		window.removeEventListener('keydown', onKeyDown);
+		window.removeEventListener('keyup', onKeyUp);
+	};
+});
+
+function onCanvasPointerDown(e: PointerEvent) {
+	if (!editMode || !workspaceContainer) return;
+	const isMiddle = e.button === 1;
+	const isSpaceLeft = e.button === 0 && panSpacePressed;
+	if (!isMiddle && !isSpaceLeft) return;
+	e.preventDefault();
+	panActive = true;
+	panStart = {
+		x: e.clientX,
+		y: e.clientY,
+		scrollLeft: workspaceContainer.scrollLeft,
+		scrollTop: workspaceContainer.scrollTop,
+	};
+	workspaceContainer.setPointerCapture(e.pointerId);
+	workspaceContainer.style.cursor = 'grabbing';
+}
+
+function onCanvasPointerMove(e: PointerEvent) {
+	if (!panActive || !workspaceContainer) return;
+	workspaceContainer.scrollLeft = panStart.scrollLeft - (e.clientX - panStart.x);
+	workspaceContainer.scrollTop = panStart.scrollTop - (e.clientY - panStart.y);
+}
+
+function onCanvasPointerUp(e: PointerEvent) {
+	if (!panActive || !workspaceContainer) return;
+	panActive = false;
+	workspaceContainer.releasePointerCapture(e.pointerId);
+	workspaceContainer.style.cursor = panSpacePressed ? 'grab' : '';
+}
+
 // ウィジェットが占める最大列数（ウィンドウが狭くなっても下回らせない）
 let minGridCols = $derived(
 	workspaceStore.widgets.length > 0
@@ -203,7 +272,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] p-5"
+		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] p-5 {editMode ? 'canvas-edit-mode' : ''}"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
 			? 'radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
 			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
@@ -211,6 +280,9 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			: '100% 100%'};"
 		data-zoom={configStore.widgetZoom}
 		bind:this={workspaceContainer}
+		onpointerdown={onCanvasPointerDown}
+		onpointermove={onCanvasPointerMove}
+		onpointerup={onCanvasPointerUp}
 	>
 		<div class="mb-5" class:pointer-events-none={editMode} class:opacity-50={editMode}>
 			<PageTabBar onSelectWorkspace={handleSelectWorkspace} onRenameActive={() => (renameOpen = true)} />
