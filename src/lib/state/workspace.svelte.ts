@@ -1,5 +1,10 @@
 import * as workspaceIpc from '$lib/ipc/workspace';
-import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
+import type {
+	WallpaperSettings,
+	WidgetType,
+	Workspace,
+	WorkspaceWidget,
+} from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { workspaceHistory } from './workspace-history.svelte';
 
@@ -8,6 +13,9 @@ let activeWorkspaceId = $state<string | null>(null);
 let widgets = $state<WorkspaceWidget[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
+
+// PH-499: Library 共通 default 背景壁紙 (config table 駆動)
+let libraryWallpaper = $state<WallpaperSettings>({ path: null, opacity: 0.7, blur: 0 });
 
 const activeWorkspace = $derived(workspaces.find((w) => w.id === activeWorkspaceId) ?? null);
 
@@ -389,6 +397,83 @@ async function commitMoveAndResize(
 	}
 }
 
+// PH-499: 背景壁紙 helpers
+async function loadLibraryWallpaper(): Promise<void> {
+	try {
+		libraryWallpaper = await workspaceIpc.getLibraryWallpaper();
+	} catch (e) {
+		// 取得失敗は致命ではない (default にフォールバック)
+		error = getErrorMessage(e);
+	}
+}
+
+async function setLibraryWallpaper(
+	path: string | null,
+	opacity: number,
+	blur: number,
+): Promise<void> {
+	try {
+		await workspaceIpc.setLibraryWallpaper(path, opacity, blur);
+		libraryWallpaper = { path, opacity, blur };
+	} catch (e) {
+		error = getErrorMessage(e);
+	}
+}
+
+async function setActiveWorkspaceWallpaper(
+	path: string | null,
+	opacity: number,
+	blur: number,
+): Promise<void> {
+	if (!activeWorkspaceId) return;
+	try {
+		const updated = await workspaceIpc.setWorkspaceWallpaper(
+			activeWorkspaceId,
+			path,
+			opacity,
+			blur,
+		);
+		// PH-479: spread copy で keyed each + $derived の reactive 確実起動
+		workspaces = workspaces.map((w) => (w.id === updated.id ? { ...updated } : { ...w }));
+	} catch (e) {
+		error = getErrorMessage(e);
+	}
+}
+
+async function clearActiveWorkspaceWallpaper(): Promise<void> {
+	if (!activeWorkspaceId) return;
+	try {
+		const updated = await workspaceIpc.clearWorkspaceWallpaper(activeWorkspaceId);
+		workspaces = workspaces.map((w) => (w.id === updated.id ? { ...updated } : { ...w }));
+	} catch (e) {
+		error = getErrorMessage(e);
+	}
+}
+
+async function saveAndApplyLibraryWallpaper(srcPath: string): Promise<void> {
+	try {
+		const stored = await workspaceIpc.saveWallpaper(srcPath);
+		await setLibraryWallpaper(stored, libraryWallpaper.opacity, libraryWallpaper.blur);
+	} catch (e) {
+		error = getErrorMessage(e);
+	}
+}
+
+async function saveAndApplyWorkspaceWallpaper(srcPath: string): Promise<void> {
+	if (!activeWorkspaceId) return;
+	try {
+		const stored = await workspaceIpc.saveWallpaper(srcPath);
+		const ws = activeWorkspace;
+		await setActiveWorkspaceWallpaper(
+			stored,
+			ws?.wallpaper_opacity ?? 0.7,
+			ws?.wallpaper_blur ?? 0,
+		);
+	} catch (e) {
+		error = getErrorMessage(e);
+	}
+}
+
 export const workspaceStore = {
 	get workspaces() {
 		return workspaces;
@@ -407,6 +492,9 @@ export const workspaceStore = {
 	},
 	get error() {
 		return error;
+	},
+	get libraryWallpaper() {
+		return libraryWallpaper;
 	},
 	loadWorkspaces,
 	createWorkspace,
@@ -428,4 +516,11 @@ export const workspaceStore = {
 	findFreePosition,
 	wouldOverlapAt,
 	isCellOccupied,
+	// PH-499: 背景壁紙
+	loadLibraryWallpaper,
+	setLibraryWallpaper,
+	setActiveWorkspaceWallpaper,
+	clearActiveWorkspaceWallpaper,
+	saveAndApplyLibraryWallpaper,
+	saveAndApplyWorkspaceWallpaper,
 };
