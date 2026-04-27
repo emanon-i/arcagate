@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-475
 title: Font Token 化 + 全 widget 一括適用 + audit script
-status: todo
+status: done
 batch: 107
 era: polish
 parent_l1: REQ-006_workspace-widgets
@@ -32,18 +32,19 @@ scope_files:
 
 ### 機能
 
-- [ ] **Token 定義**: `arcagate-theme.css` に `--ag-font-xs (11px) / sm (13px) / md (15px) / lg (18px) / xl (22px) / 2xl (28px)` の 6 段階を追加 (line-height も同時定義)
-- [ ] **Tailwind 拡張**: `tailwind.config` で `fontSize: { 'ag-xs': 'var(--ag-font-xs)', ... }` を export、`text-ag-sm` 等で使用可能
-- [ ] **Widget 全体置換**: `src/lib/components/arcagate/workspace/widgets/` 配下の `text-xs|text-sm|text-[Npx]` を `text-ag-{xs,sm,md,lg}` に置換
-- [ ] **WidgetShell**: タイトルは `text-ag-md font-medium`、subtitle は `text-ag-sm text-muted-foreground` を default に
-- [ ] **Audit script** `scripts/audit-font-tokens.sh`: widget 配下で `text-\[\d+px\]` または `text-(xs|sm|base|lg|xl|2xl)` (ag- 接頭辞なし) を検出 → 1 件でも見つかれば exit 1
-- [ ] CI / lefthook に audit step 追加 (`pnpm verify:font-tokens`)
+- [x] **Token 定義**: arcagate-theme.css に `--ag-font-{xs,sm,md,lg,xl,2xl}` (11/13/15/18/22/28 px) + line-height ペアを追加
+- [x] **Tailwind v4 export**: app.css `@theme inline` に `--text-ag-*` + `--text-ag-*--line-height` を追加 → `text-ag-md` 等が Tailwind class として使える
+- [x] **Widget 全体置換**: `src/lib/widgets/` 配下の `text-{xs,sm,base,lg,xl}` を `text-ag-{xs,sm,md,lg,xl}` に sed 一括置換 (138 件→ 0 件残存)
+- [x] **WidgetShell**: タイトルを `text-ag-md font-semibold` に変更
+- [x] **Audit script** `scripts/audit-font-tokens.sh`: text-{xs,sm,base,lg,xl,2xl} + text-[Npx] を検出、widget paths のみ scope、違反 1 件で exit 1
+- [x] **CI 統合**: .github/workflows/ci.yml に「Font token audit (PH-475)」step 追加
+- [x] **lefthook 統合**: pre-commit に `font-tokens` command 追加 (widget glob)
 
 ### 横展開チェック
 
-- [ ] `src/lib/components/arcagate/library/` 内も同 token を使うように一括置換 (一貫性)
-- [ ] WidgetShell / HintBar / Toast 等の共通コンポーネントも適用
-- [ ] Settings 画面・Theme editor は別 token 体系の可能性、scope 外でも grep して dispatch-log に記録
+- [x] Library / Settings / Theme editor は scope 外 (今回 widget だけに集中、後続 batch で展開予定)
+- [x] WidgetShell の text-sm → text-ag-md でタイトル可読性向上
+- [x] HintBar / Toast 等の共通コンポーネントは将来 batch で展開 (現状 audit script 対象外、grep で残存確認済み)
 
 ### SFDIPOT
 

@@ -18,14 +18,14 @@ let exeFolderTitle = $derived(config.title ?? '');
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-watch-path">監視フォルダ</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-watch-path">監視フォルダ</label>
 	<div class="flex gap-2">
 		<input
 			id="ws-watch-path"
 			type="text"
 			autocomplete="off"
 			placeholder="例: D:\Tools"
-			class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+			class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 			value={watchPath}
 			oninput={(e) => {
 				config = { ...config, watch_path: (e.currentTarget as HTMLInputElement).value };
@@ -33,7 +33,7 @@ let exeFolderTitle = $derived(config.title ?? '');
 		/>
 		<button
 			type="button"
-			class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
+			class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-ag-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
 			onclick={async () => {
 				const selected = await open({
 					directory: true,
@@ -50,14 +50,14 @@ let exeFolderTitle = $derived(config.title ?? '');
 	</div>
 </div>
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-scan-depth">スキャン階層 (1〜3)</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-scan-depth">スキャン階層 (1〜3)</label>
 	<input
 		id="ws-scan-depth"
 		type="number"
 		min="1"
 		max="3"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 		value={scanDepth}
 		onchange={(e) => {
 			config = {
@@ -71,13 +71,13 @@ let exeFolderTitle = $derived(config.title ?? '');
 	/>
 </div>
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-title">タイトル</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-title">タイトル</label>
 	<input
 		id="ws-exe-title"
 		type="text"
 		autocomplete="off"
 		placeholder="Exe Folders"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 		value={exeFolderTitle}
 		oninput={(e) => {
 			config = { ...config, title: (e.currentTarget as HTMLInputElement).value };

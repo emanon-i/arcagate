@@ -28,7 +28,7 @@ let btnClass =
 			<div class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5">
 				<Icon class="h-4 w-4 text-[var(--ag-text-secondary)]" />
 			</div>
-			<div class="truncate text-sm font-semibold text-[var(--ag-text-primary)]">{title}</div>
+			<div class="truncate text-ag-md font-semibold text-[var(--ag-text-primary)]">{title}</div>
 		</div>
 		{#if menuItems.length === 1}
 			{@const sole = menuItems[0]}

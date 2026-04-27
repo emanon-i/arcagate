@@ -147,16 +147,16 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title || 'Exe Folders'} icon={FolderOpen} {menuItems}>
 	{#if !config.watch_path}
-		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-sm text-[var(--ag-text-muted)]">
+		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-ag-sm text-[var(--ag-text-muted)]">
 			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">監視フォルダを設定してください</p>
-			<p class="text-xs">設定モーダルで監視ルートを選ぶと、サブフォルダの exe が自動で表示されます。</p>
+			<p class="text-ag-xs">設定モーダルで監視ルートを選ぶと、サブフォルダの exe が自動で表示されます。</p>
 		</div>
 	{:else if scanning}
-		<p class="text-sm text-[var(--ag-text-muted)]">スキャン中...</p>
+		<p class="text-ag-sm text-[var(--ag-text-muted)]">スキャン中...</p>
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-text-error)]">エラー: {scanError}</p>
+		<p class="text-ag-sm text-[var(--ag-text-error)]">エラー: {scanError}</p>
 	{:else if entries.length === 0}
-		<p class="text-sm text-[var(--ag-text-muted)]">
+		<p class="text-ag-sm text-[var(--ag-text-muted)]">
 			指定フォルダ内に exe を含むサブフォルダがありません。
 		</p>
 	{:else}
@@ -167,7 +167,7 @@ let menuItems = $derived(
 				<li class="relative flex items-center gap-1">
 					<button
 						type="button"
-						class="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
+						class="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-ag-sm text-[var(--ag-text-primary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
 						aria-label="{entry.folderName} を起動"
 						onclick={() => launchEntry(entry)}
 					>
@@ -198,7 +198,7 @@ let menuItems = $derived(
 								<button
 									type="button"
 									role="menuitem"
-									class="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-3)]"
+									class="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-ag-xs text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-3)]"
 									onclick={() => void selectExe(entry, cand.path)}
 								>
 									<span class="min-w-0 flex-1 truncate">

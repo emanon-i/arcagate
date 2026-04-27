@@ -119,7 +119,7 @@ function handleContext(itemId: string) {
 			}}
 		>
 			<Pencil class="h-6 w-6" />
-			<span class="text-xs">アイテムを選択</span>
+			<span class="text-ag-xs">アイテムを選択</span>
 		</button>
 	{/if}
 </WidgetShell>
