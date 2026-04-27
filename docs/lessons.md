@@ -724,3 +724,14 @@ page: async ({ sharedBrowser }, use) => {
 - **安全性**: squash merge を採用しているため、BEHIND でも main へ squash 統合は線形履歴のまま。rebase merge と違って conflict 解決は merge コミット時、CI も最新 main で再走しないので保証は弱まるが、small PR では実用上問題なし
 - **大きい PR の場合**: 個別に `gh pr update-branch --rebase` で最新 main を取り込んでから auto-merge 予約する
 - **参照**: PH-435 + batch-100 / `docs/dispatch-operation.md` §8
+
+---
+
+## scheduled-task prompt の write action スコープ厳密化 (batch-104 PH-463)
+
+- **問題**: auto-kick scheduled-task の prompt で「send_message MANDATORY」と書いたが、agent は「write action 一般 (Edit / Bash 含む)」と拡大解釈。kick session が自ら docs を編集し始めて、本来の dispatch session 監視を逸脱
+- **根本原因**: scheduled-task の system prompt が「保守的に write を避ける」を default にしていて、それを上書きするために MANDATORY を強調 → agent が「全 write が MANDATORY」と曲解
+- **対策**: prompt に「write action は **send_message** のみ、その他の write tool (Edit / Bash の git commit / Write 等) は **PROHIBITED**」を厳密に書く
+- **設計原則**: scheduled-task は read-only または「特定 tool のみ実行」のモードを明示する。「ONLY X」「PROHIBITED Y」で list する
+- **再発防止**: prompt review で「ONLY / MANDATORY / PROHIBITED」のスコープを明確化、agent の広い解釈を防ぐ
+- **参照**: PH-463 (batch-104) / `arcagate-auto-kick` SKILL.md / 改修は PH-464 (batch-105)
