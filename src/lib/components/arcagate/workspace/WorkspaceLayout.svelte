@@ -352,7 +352,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 				{#if editMode}
 					<div class="mb-4">
 						<Tip tone="accent" tipId="workspace-edit-guide">
-							クリックで選択、ドラッグで移動、右下のハンドルでリサイズ、ゴミ箱で削除できます。
+							クリックで選択、上端のバーで移動、四隅のハンドルでリサイズ、× で削除。
 						</Tip>
 					</div>
 
