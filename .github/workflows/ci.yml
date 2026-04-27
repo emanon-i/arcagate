@@ -58,6 +58,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-hotkey-consistency.sh
 
+      - name: Version 3 点同期 audit (PH-454)
+        shell: bash
+        run: bash scripts/audit-version-sync.sh
+
       - name: Design token consistency audit
         shell: bash
         run: bash scripts/audit-design-tokens.sh
