@@ -447,3 +447,94 @@ strict=true 時代は `gh pr update-branch --rebase` 連打が必要だった。
 - auto-kick は idle 検知 + kick (5 分以上活動なし / failed PR / checkpoint 発言で 「進め」 prompt 投下)
 - spawn-on-pressure は context 限界対策 (1800 turn → 次世代に hand off)
 - 両者併用で 24/7 自律運用
+
+---
+
+## 11. User-redo depth-first 運用 (2026-04-28、batch-109 全体劣化を受けて)
+
+### 背景
+
+batch-107/108/109 の並行 push 運用 (1 batch = 5 plan、複数セッション並行、PR auto-merge) で:
+
+- **テスト pass / E2E pass の数字は嘘ではない**
+- しかし user の dev 目視で **「全体的に劣化した」** 判定 (体感品質との乖離)
+- 並行セッションが同 plan ID を取り合って duplicate PR 量産、merge 競合多発
+- 「✅ merged」と判定したものも **user の dev 目視がない以上は未確認**
+
+### 新運用ルール (§1-10 を上書き / 補完)
+
+#### Rule 1: 1 issue ずつ depth-first
+
+**並行 plan 着手 禁止**。1 user 指摘 = 1 issue として、以下のサイクルを完了させてから次へ:
+
+1. **(a) 事実確認**: コードの実態 / 再現手順 / 画面 screenshot / **root cause まで** 特定 (推測で plan 書かない)
+2. **(b) plan 文書化**: なぜ A 案を選ぶ / なぜ B 案を捨てる / 影響範囲 / 横展開対象、を 1 文書に明記
+3. **(c) 横展開チェック**: 同じ pattern が他 widget / 他 panel / 他 store にも無いか **grep / audit script で機械検証**
+4. **(d) PR を 1 本** で出す (plan + fix + 横展開 fix + E2E 全部入り)
+5. **(e) dev で目視確認 → user 検収 → user OK で完了**
+
+#### Rule 2: 「治った」の定義
+
+- ❌ pnpm verify pass = 治った と言わない
+- ❌ E2E pass = 治った と言わない
+- ✅ **user の dev session 目視で「治った」と user が言う** = 治った
+
+agent 側 CDP screenshot は補助、user 検収を待つのが最終条件。
+
+#### Rule 3: 並行 plan 禁止
+
+- 並行 PR 禁止 (1 PR が main 入って user 検収 OK まで次の PR 開かない)
+- 複数セッション並走時は **dispatch-queue.md の Active 行で当番 1 セッションを明記**、他セッションは待機 / 別 batch を担当
+- スピード <<< 確実性
+
+#### Rule 4: batch の再定義
+
+- 旧: 1 batch = 5 plan (改善 3 + 防衛 1 + 整理 1)、横並び実装
+- 新: 1 batch = **1 issue depth-first**、サイクル完了後に次 issue
+- batch-NN は user 指摘 1 件 = 1 batch として再採番想定 (運用見直し中、暫定)
+
+#### Rule 5: 既存 plan の凍結
+
+- 既 enqueue 済の plan (batch-109 Phase B / Phase C / Industrial Yellow 含む) は **archive せず `status: wip` で凍結**
+- user 指摘リスト全件を再 audit 後、必要なら復活、不要なら drop
+- 「✅ merged」判定済 plan も **未検収扱い**で再評価対象
+
+#### Rule 6: 平均所要時間
+
+- 1 issue 平均 30 分〜数時間 想定 (急がない)
+- 速度より「user の体感品質に届くかどうか」が第一指標
+
+#### Rule 7: dev push のたびに user 検収を取る
+
+- user は dev session を触っている前提
+- agent push 直後は idle で OK、user の「治った / まだダメ」コメント待ち
+
+### 旧 §1-10 ルールとの関係
+
+旧 §1-10 は「並行高速 push」前提。新 §11 はそれを置き換える。
+
+- §1 (canonical 流れ) → 新 §11 Rule 1 で上書き
+- §2 (5 plan 内訳) → 新 §11 Rule 4 で上書き
+- §4d (Plan 自律作成) → **当面停止**、user 指摘ベースのみ
+- §8 (auto-merge 必須) → 1 PR ずつなので auto-merge は使うが「次バッチに進む」前提は撤廃
+- §10 (spawn-on-pressure) → 信頼性問題既知、user-redo モードでは不要
+
+### 撤回 / 凍結対象 (2026-04-28 時点)
+
+- batch-109 Phase B (PH-499/500/504/505) は **merged 済でも user 未検収**、再評価対象
+- batch-109 per-widget polish 8 plan (PH-506-513) **凍結**
+- batch-110 Settings dialog polish 8 plan (PH-514-521) **凍結**
+- batch-111 Industrial Yellow 8 plan (PH-522-529) **凍結**
+- PH-503 Obsidian Canvas 続編は元から user OK 待ち、引き続き停止
+
+### 次世代セッションの起動ルール
+
+1. `memory/handoff_user_redo_start.md` を最初に読む (snapshot + 残作業 + 撤回方針)
+2. user 指摘リスト (memory `feedback_widget_editing_ux.md` 項目 1〜29) を **項目 1 から順次** depth-first で再開
+3. 1 項目ずつ:
+   - fact 確認 (コード read + dev session screenshot)
+   - plan ドラフト (A/B 案比較、横展開 grep)
+   - **user に plan 提示 → user OK 取得 → fix 着手** (この OK ステップが新規)
+   - PR 1 本で plan + fix + 横展開 fix
+   - user dev 検収 OK → 次項目へ
+4. 1 項目で 30 分〜数時間、急がない
