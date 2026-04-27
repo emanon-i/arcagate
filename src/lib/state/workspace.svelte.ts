@@ -86,7 +86,8 @@ async function updateWorkspace(id: string, name: string): Promise<void> {
 	error = null;
 	try {
 		const ws = await workspaceIpc.updateWorkspace(id, name);
-		workspaces = workspaces.map((w) => (w.id === id ? ws : w));
+		// PH-479: spread copy で reactive 確実化
+		workspaces = workspaces.map((w) => (w.id === id ? { ...ws } : { ...w }));
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
