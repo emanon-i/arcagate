@@ -51,8 +51,8 @@ let btnClass =
 	</div>
 
 	<!-- HOTFIX (PH-487 root cause): widget 内では横スクロール禁止、縦のみ。
-		全 widget の責務として overflow-x: hidden を WidgetShell で強制。 -->
-	<div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+		PH-489: scrollbar-gutter: stable で content と scrollbar の被り回避。 -->
+	<div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
 		{@render children()}
 	</div>
 </div>

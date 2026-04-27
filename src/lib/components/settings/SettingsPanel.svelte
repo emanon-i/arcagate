@@ -155,8 +155,8 @@ function handleNavKeydown(e: KeyboardEvent) {
 		{/each}
 	</div>
 
-	<!-- 右: コンテンツ -->
-	<div class="min-w-0 flex-1 overflow-y-auto">
+	<!-- 右: コンテンツ (PH-489: scrollbar gutter stable) -->
+	<div class="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
 		{#if configStore.loading}
 			<LoadingState description="設定を読み込み中..." testId="settings-loading" />
 		{:else}
