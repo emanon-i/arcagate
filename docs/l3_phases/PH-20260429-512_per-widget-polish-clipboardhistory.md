@@ -1,12 +1,13 @@
 ---
 id: PH-20260429-512
 title: Per-widget polish — ClipboardHistory (batch-109 Phase B)
-status: todo
+status: wip
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/clipboard-history/ClipboardHistoryWidget.svelte
+  - src/lib/widgets/clipboard-history/ClipboardHistoryWidget.svelte (listbox + keyboard nav + title attr + container query)
+  - tests/e2e/clipboard-history-polish.spec.ts (new)
 ---
 
 # PH-512: Per-widget polish — ClipboardHistory
