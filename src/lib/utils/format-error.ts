@@ -7,6 +7,8 @@
 
 export function getErrorMessage(error: unknown): string {
 	if (typeof error === 'string') return error;
+	// Error instance: message + name で表現 (PH-451 batch-99 で追加)
+	if (error instanceof Error) return error.message;
 	if (typeof error === 'object' && error !== null) {
 		const obj = error as { message?: unknown; toString?: () => string };
 		if (typeof obj.message === 'string') return obj.message;
