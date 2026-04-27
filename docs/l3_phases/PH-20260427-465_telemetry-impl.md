@@ -14,7 +14,7 @@ PH-460 (batch-104) で設計した匿名 Telemetry の実装着手。release 品
 
 ## 改修
 
-1. **endpoint 採用判断**: PostHog SaaS Free tier (月 1M events) または PostHog self-hosted。新 dep は POST に必要な HTTP client (PH-469 で実装済の `utils/http_client.rs` 流用)
+1. **endpoint 採用判断**: PostHog SaaS Free tier (月 1M events) または PostHog self-hosted。**SDK は使わず**、`utils/http_client.rs::post_json` で直接 POST (PH-469 batch-106 で確認: PH-469 のみで exe 19.89MB、20MB 上限 cap タイトすぎ。PostHog SDK 追加余地なし)
 2. `src-tauri/src/services/telemetry_service.rs` 新規:
    - `pub fn record_event(event: &str, props: &Value)` (内部 buffer に積む)
    - `pub fn flush() -> Result<(), AppError>` (buffer を一括 POST、24h interval で呼ぶ)

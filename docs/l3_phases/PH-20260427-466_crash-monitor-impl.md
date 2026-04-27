@@ -14,12 +14,12 @@ PH-461 (batch-104) で設計した Sentry self-hosted / SaaS Free tier への Cr
 
 ## 改修
 
-1. **Rust 側**: `sentry = { version = "0.34", default-features = false, features = ["panic", "backtrace"] }` 追加 (~5MB)
+1. **Rust 側**: **sentry-rust SDK は使わない** (PH-469 後の exe 19.89MB → +5MB で 20MB 超過)。代わりに `panic_hook` で stack trace を取得し、Sentry envelope endpoint に `utils/http_client.rs::post_json` で直接 POST。
    - `src-tauri/src/services/crash_monitor_service.rs` 新規:
-     - `pub fn init(dsn: Option<String>)` (env var or settings から DSN 読込)
-     - `panic_hook` 経由で sentry 統合
+     - `set_panic_hook()` (std::panic::set_hook で stack trace 文字列化)
+     - `pub fn report_panic(payload: &PanicReport) -> Result<(), AppError>` (Sentry envelope JSON を post_json)
      - file path redact (`C:/Users/<user>/AppData/...` → `<APPDATA>/...`)
-2. **フロント側**: `@sentry/svelte` (既存 `src/lib/components/common/ErrorBoundary.svelte` の `reportError` を Sentry SDK に切替)
+2. **フロント側**: `@sentry/svelte` も使わない (bundle size 配慮)。`reportError` から Rust 側 `cmd_report_crash` IPC を呼び、Rust 側で Sentry envelope POST。
    - default OFF 時は何もしない (toast のみ)
 3. **PRIVACY.md と整合**:
    - 送信: panic message / stack trace / app_version / os_build
@@ -29,7 +29,7 @@ PH-461 (batch-104) で設計した Sentry self-hosted / SaaS Free tier への Cr
 
 ## 受け入れ条件
 
-- [ ] sentry-rust + @sentry/svelte 採用 (依存サイズ計測 5MB 目安)
+- [ ] Sentry envelope endpoint 仕様調査 + 直接 POST 実装 (SDK 不使用、exe 20MB cap 維持)
 - [ ] crash_monitor_service 実装 + redact_path unit test
 - [ ] ErrorBoundary 拡張 (Sentry 統合 + Opt-in 判定)
 - [ ] PrivacySettings に Crash toggle 追加 (default OFF)

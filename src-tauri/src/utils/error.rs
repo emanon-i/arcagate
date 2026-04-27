@@ -44,6 +44,9 @@ pub enum AppError {
 
     #[error("Watch failed: {0}")]
     WatchFailed(String),
+
+    #[error("HTTP error: {0}")]
+    Http(String),
 }
 
 impl AppError {
@@ -66,6 +69,7 @@ impl AppError {
             AppError::InvalidInput(_) => "invalid_input",
             AppError::Cancelled => "cancelled",
             AppError::WatchFailed(_) => "watch.failed",
+            AppError::Http(_) => "http.error",
         }
     }
 }
