@@ -148,13 +148,13 @@ let menuItems = $derived(
 <WidgetShell title={config.title || 'ファイル検索'} icon={FileSearch} {menuItems}>
 	{#if !root}
 		<div class="space-y-2 rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2">
-			<div class="text-xs text-[var(--ag-text-muted)]">
+			<div class="text-ag-xs text-[var(--ag-text-muted)]">
 				<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">検索ルートを選んでください</p>
 				<p>選んだフォルダ以下のファイルを部分一致でフィルタして開けます。</p>
 			</div>
 			<button
 				type="button"
-				class="rounded bg-[var(--ag-accent-bg)] px-2 py-1 text-xs text-[var(--ag-accent-text)] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				class="rounded bg-[var(--ag-accent-bg)] px-2 py-1 text-ag-xs text-[var(--ag-accent-text)] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 				onclick={() => void pickRoot()}
 			>
 				ルートを選択
@@ -166,7 +166,7 @@ let menuItems = $derived(
 				<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
 				<input
 					type="text"
-					class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
+					class="min-w-0 flex-1 bg-transparent py-1 text-ag-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
 					placeholder="ファイル名でフィルタ..."
 					autocomplete="off"
 					bind:value={query}
@@ -175,10 +175,10 @@ let menuItems = $derived(
 		</div>
 		{#if loading}
 			<div class="flex items-center justify-between gap-2">
-				<p class="text-xs text-[var(--ag-text-muted)]">検索中...</p>
+				<p class="text-ag-xs text-[var(--ag-text-muted)]">検索中...</p>
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded border border-[var(--ag-border)] px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+					class="flex items-center gap-1 rounded border border-[var(--ag-border)] px-2 py-0.5 text-ag-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
 					aria-label="検索を中止"
 					data-testid="file-search-cancel"
 					onclick={() => void cancelCurrent()}
@@ -188,9 +188,9 @@ let menuItems = $derived(
 				</button>
 			</div>
 		{:else if lastError}
-			<p class="text-xs text-[var(--ag-text-warning,red)]">{lastError}</p>
+			<p class="text-ag-xs text-[var(--ag-text-warning,red)]">{lastError}</p>
 		{:else if filtered.length === 0}
-			<p class="text-xs text-[var(--ag-text-muted)]">
+			<p class="text-ag-xs text-[var(--ag-text-muted)]">
 				{query ? '一致するファイルがありません' : 'ファイルがありません'}
 			</p>
 		{:else}
@@ -199,7 +199,7 @@ let menuItems = $derived(
 					<li>
 						<button
 							type="button"
-							class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+							class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ag-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 							aria-label="{entry.name} を開く"
 							onclick={() => void openEntry(entry)}
 						>
