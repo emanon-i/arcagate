@@ -1,8 +1,10 @@
 ---
 id: PH-20260428-488
 title: タスク Widget リファクタ (文字サイズ大きく + 完了/未完了ツリー分割)
-status: todo
+status: done
 batch: 108
+pr: 195
+merged_at: 2026-04-27T16:54:20Z
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

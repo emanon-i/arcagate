@@ -1,8 +1,10 @@
 ---
 id: PH-20260428-492
 title: WatchFolder Widget 配置直後のアイテム残存問題 fix (state 初期化)
-status: todo
+status: done
 batch: 108
+pr: 192
+merged_at: 2026-04-27T16:47:49Z
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

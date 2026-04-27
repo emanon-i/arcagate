@@ -1,8 +1,11 @@
 ---
 id: PH-20260428-491
 title: 全 widget/button/panel でアイコン+文字列はみ出し禁止 (truncate + tooltip + size 上限)
-status: todo
+status: done
 batch: 108
+pr: 194
+merged_at: 2026-04-27T17:17:38Z
+note: audit-text-overflow.sh (warning 止まり、将来 error 化)
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

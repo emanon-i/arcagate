@@ -1,8 +1,11 @@
 ---
 id: PH-20260428-490
 title: WatchFolder 監視先変更で内容リセット + 名前+アイコン重なり/はみ出し fix
-status: todo
+status: done
 batch: 108
+pr: 192, 197, 198
+merged_at: 2026-04-27T17:01:12Z
+note: PH-490 (#192 path 変更時 entries reset) + PH-490 E2E (#197 回帰防止 spec) + PH-490b (#198 Clear ボタン)
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

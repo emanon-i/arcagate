@@ -1,8 +1,10 @@
 ---
 id: PH-20260428-489
 title: 全 layout で縦スクロールバー被り audit + 修正
-status: todo
+status: done
 batch: 108
+pr: 193
+merged_at: 2026-04-27T16:48:59Z
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

@@ -1,8 +1,10 @@
 ---
 id: PH-20260428-495
 title: Settings からズーム項目削除 (編集モード内に統合)
-status: todo
+status: done
 batch: 108
+pr: 190
+merged_at: 2026-04-27T16:42:51Z
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

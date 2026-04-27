@@ -1,8 +1,11 @@
 ---
 id: PH-20260428-494
 title: Widget 編集モード = Obsidian Canvas 風 大幅刷新 (pan + zoom + free layout)
-status: todo
+status: done
 batch: 108
+pr: 199
+merged_at: 2026-04-27T17:05:25Z
+note: MVP のみ (dotted grid + 表示領域拡大)、pan/zoom/Shift drag/Middle button/Ctrl wheel/transform: scale は Phase B で別 plan 化
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

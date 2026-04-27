@@ -1,8 +1,10 @@
 ---
 id: PH-20260428-496
 title: ウィジット切り替えボタン = 左上に固定配置
-status: todo
+status: done
 batch: 108
+pr: 191
+merged_at: 2026-04-27T16:44:07Z
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

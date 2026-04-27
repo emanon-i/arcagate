@@ -1,8 +1,10 @@
 ---
 id: PH-20260428-486
 title: Widget 削除ボタンを少し目立たせる
-status: todo
+status: done
 batch: 108
+pr: 189
+merged_at: 2026-04-27T16:39:54Z
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:
