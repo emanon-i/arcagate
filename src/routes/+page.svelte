@@ -22,6 +22,7 @@ import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { startUpdaterAutoCheck } from '$lib/state/updater.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
@@ -45,6 +46,11 @@ $effect(() => {
 // テーマ初期化（themeStore から読み込み）
 $effect(() => {
 	void themeStore.loadTheme();
+});
+
+// PH-456: Updater 自動チェック (起動時 + 24h)
+$effect(() => {
+	startUpdaterAutoCheck();
 });
 
 // Store エラー → トースト自動連携
