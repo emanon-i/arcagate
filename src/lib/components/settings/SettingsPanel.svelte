@@ -10,6 +10,7 @@ import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
+import PrivacySettings from './PrivacySettings.svelte';
 import UpdaterSettings from './UpdaterSettings.svelte';
 import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
@@ -410,6 +411,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 						データ
 					</h3>
 					<ExportImport />
+					<PrivacySettings />
 				</div>
 			{:else if activeCategory === 'about'}
 				<div

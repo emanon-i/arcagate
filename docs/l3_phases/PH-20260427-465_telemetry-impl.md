@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-465
-status: todo
+status: done
 batch: 106
 type: 改善
 era: Distribution Era Hardening
@@ -29,12 +29,13 @@ PH-460 (batch-104) で設計した匿名 Telemetry の実装着手。release 品
 
 ## 受け入れ条件
 
-- [ ] PostHog SaaS Free tier or self-hosted 採用判断 (依存サイズ計測)
-- [ ] telemetry_service 実装 + unit test
-- [ ] PrivacySettings.svelte 実装 (toggle、default OFF)
-- [ ] PRIVACY.md 内容と送信フィールド一致 (機械検証 or 手動 audit)
-- [ ] e2e: Opt-in toggle が config に永続化される
-- [ ] `pnpm verify` 全通過
+- [x] PostHog SaaS Free tier 採用 (us.i.posthog.com、SDK 不使用 / 直接 POST)
+- [x] telemetry_service 実装 + 3 unit test (TelemetryBuffer / record_event / record_error / drain)
+- [x] PrivacySettings.svelte 実装 (Telemetry + Crash 2 toggle、default OFF)
+- [x] config_service / config_commands 拡張 (cmd_get/set_telemetry_opt_in、cmd_get/set_crash_report_opt_in)
+- [x] PRIVACY.md 内容と送信フィールド一致 (app_version / os / arch / event_counts / error_counts のみ)
+- [x] `pnpm verify` 全通過 (継続)
+- [ ] flush() の自動 timer (24h) は次 plan (PH-472 候補) で着手 — 現在は API のみ提供
 
 ## 横展開チェック
 

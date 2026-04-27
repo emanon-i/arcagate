@@ -10,9 +10,10 @@ pub mod utils;
 pub mod watcher;
 
 use commands::config_commands::{
-    cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_onboarding_complete,
-    cmd_is_setup_complete, cmd_mark_onboarding_complete, cmd_mark_setup_complete,
-    cmd_set_autostart, cmd_set_config, cmd_set_hotkey,
+    cmd_get_autostart, cmd_get_config, cmd_get_crash_report_opt_in, cmd_get_hotkey,
+    cmd_get_telemetry_opt_in, cmd_is_onboarding_complete, cmd_is_setup_complete,
+    cmd_mark_onboarding_complete, cmd_mark_setup_complete, cmd_set_autostart, cmd_set_config,
+    cmd_set_crash_report_opt_in, cmd_set_hotkey, cmd_set_telemetry_opt_in,
 };
 use commands::exe_scanner_commands::cmd_scan_exe_folders;
 use commands::export_commands::{cmd_export_json, cmd_import_json};
@@ -25,6 +26,7 @@ use commands::item_commands::{
     cmd_search_items_in_tag, cmd_toggle_star, cmd_update_item, cmd_update_tag,
     cmd_update_tag_prefix,
 };
+use commands::kill_switch_commands::cmd_check_kill_switch;
 use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
 };
@@ -273,6 +275,11 @@ pub fn run() {
             cmd_set_active_theme_mode,
             cmd_export_theme_json,
             cmd_import_theme_json,
+            cmd_check_kill_switch,
+            cmd_get_telemetry_opt_in,
+            cmd_set_telemetry_opt_in,
+            cmd_get_crash_report_opt_in,
+            cmd_set_crash_report_opt_in,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

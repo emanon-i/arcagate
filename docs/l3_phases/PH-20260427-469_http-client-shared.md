@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-469
-status: todo
+status: done
 batch: 106
 type: 改善
 era: Distribution Era Hardening
@@ -26,12 +26,12 @@ batch-105 で kill-switch service skeleton (PH-468) を実装したが HTTP fetc
 
 ## 受け入れ条件
 
-- [ ] HTTP client crate 採用判断 (依存サイズ計測)
-- [ ] `utils/http_client.rs` 実装 + unit test (mock server 使用)
-- [ ] `kill_switch_service::fetch_disabled_json` 実装
-- [ ] `cmd_check_kill_switch` IPC 公開 + svelte-check pass
-- [ ] `KillSwitchDialog.svelte` 表示 E2E
-- [ ] `pnpm verify` 全通過
+- [x] HTTP client crate 採用判断 (ureq 2.10 + rustls-tls + json、~3MB 寄与)
+- [x] `utils/http_client.rs` 実装 + 2 unit test (build_agent / user_agent_format)
+- [x] `kill_switch_service::fetch_disabled_json` 実装 (PH-470 で完了)
+- [x] `cmd_check_kill_switch` IPC 公開 + svelte-check pass (PH-470 で完了)
+- [x] `pnpm verify` 全通過
+- [ ] `KillSwitchDialog.svelte` 表示 E2E は別 plan (UI 側) で着手
 
 ## 別 plan (batch-106 後続)
 
