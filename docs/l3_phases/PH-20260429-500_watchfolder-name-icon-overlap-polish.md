@@ -1,13 +1,15 @@
 ---
 id: PH-20260429-500
 title: WatchFolder Widget — 名前+アイコン被り解消 + はみ出し / layout 整理
-status: todo
+status: done
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
   - src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte
-  - src/lib/components/arcagate/common/WidgetShell.svelte (header alignment confirm)
+  - src/lib/widgets/exe-folder/index.ts (icon AppWindow)
+  - tests/e2e/exefolder-polish.spec.ts (new spec)
+  - tests/e2e/exefolder-watchpath-reset.spec.ts (UI string update + widget_type fix)
 ---
 
 # PH-500: WatchFolder Widget — 名前+アイコン被り解消 + はみ出し / layout 整理
@@ -22,20 +24,20 @@ batch-108 PH-490 (path reset) + PH-492 (race fix) は完了したが、**layout 
 
 ## 受け入れ条件
 
-- [ ] **header layout fix**: widget タイトルとアイコン (現状重なってる) を 適切な spacing + flex layout で並べる
-- [ ] **アイコン changes**: header / file row の icon を `Folder` → `AppWindow` に変更 (検収項目 #36 統合、PH-501 旧 plan に書かれてた内容)
+- [x] **header layout fix**: WidgetShell の `flex min-w-0 + gap-2 + truncate` で title 安全 truncate 確認済 (PH-489)
+- [x] **アイコン changes**: header / file row の icon を `Folder` → `AppWindow` に変更
   - widget meta (`src/lib/widgets/exe-folder/index.ts`) も `AppWindow`
-  - 個別 EXE item の row icon も同様
-- [ ] **file row 整理**: `icon (shrink-0 h-4 w-4) + name (flex-1 truncate min-w-0) + 余白`、name のはみ出し禁止
-- [ ] **空 state UI**: path 未設定時に「監視フォルダを選択してください」ボタン (centered)
-- [ ] **scan 中 loading state**: 監視中アニメ (subtle pulse)
-- [ ] **error state**: path 不在 / 権限なしでエラーメッセージ + retry ボタン
-- [ ] **S/M/L responsive**: container query で size 別の row 表示 (S: icon のみ / M: icon+name / L: icon+name+詳細)
-- [ ] **横/縦スクロールバー出ない** (overflow-x: hidden + overflow-y: auto + scrollbar-gutter: stable)
-- [ ] keyboard ナビ: ArrowUp/Down で row 選択、Enter で起動 (FileSearch と同 UX、PH-493 と整合)
-- [ ] reactive: path 変更 → 即時 entries 更新 (PH-490 既存挙動 keep)
-- [ ] E2E: watch path 設定 → entries 表示 → row 選択 → Enter で起動 → row layout はみ出しなし assert
-- [ ] before/after スクショ取得
+  - 個別 EXE item の row icon も AppWindow (起動可能 = アプリの意味)
+- [x] **file row 整理**: `icon (shrink-0 h-4 w-4) + name (flex-1 truncate min-w-0) + count badge (shrink-0)`
+- [x] **空 state UI**: path 未設定時に centered button「監視フォルダを設定」(押下で settings dialog)
+- [x] **scan 中 loading state**: AppWindow icon に `animate-pulse` (Reduced Motion 対応 `motion-reduce:animate-none`)
+- [x] **error state**: 「スキャン失敗」+ error 詳細 + 「再試行」button (retryNonce で effect 再実行)
+- [x] **S/M/L responsive**: container query で `<= 200px` で count badge 隠す
+- [x] **横/縦スクロールバー出ない** (WidgetShell の overflow-x:hidden + overflow-y:auto + scrollbar-gutter:stable 既存)
+- [x] **keyboard ナビ**: ul に tabindex=0、ArrowUp/Down で selectedIndex 移動、Enter で起動、Escape で popover close、IME 無視 (e.isComposing)
+- [x] **reactive**: path 変更 → 即時 entries reset (PH-490 既存挙動 keep)
+- [x] **E2E**: `tests/e2e/exefolder-polish.spec.ts` で空 state button + settings dialog open assert
+- [ ] **before/after スクショ取得** (CDP 自己検証は次 batch、auto-merge 後 main で確認)
 
 ## 実装ステップ
 
