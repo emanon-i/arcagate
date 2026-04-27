@@ -25,6 +25,7 @@ use commands::item_commands::{
     cmd_search_items_in_tag, cmd_toggle_star, cmd_update_item, cmd_update_tag,
     cmd_update_tag_prefix,
 };
+use commands::kill_switch_commands::cmd_check_kill_switch;
 use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
 };
@@ -273,6 +274,7 @@ pub fn run() {
             cmd_set_active_theme_mode,
             cmd_export_theme_json,
             cmd_import_theme_json,
+            cmd_check_kill_switch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

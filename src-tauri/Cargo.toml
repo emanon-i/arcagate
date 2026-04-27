@@ -44,3 +44,10 @@ ts-rs = { version = "10", features = ["serde-compat"] }
 shell-words = "1"
 tauri-plugin-updater = "2"
 ureq = { version = "2.10", default-features = false, features = ["tls", "json"] }
+
+# PH-470 batch-106: ureq + rustls 追加で 20MB cap 直前 → release profile 最適化で回収
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"
+opt-level = "z"

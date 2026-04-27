@@ -4,6 +4,7 @@ pub mod exe_scanner_commands;
 pub mod export_commands;
 pub mod file_search_commands;
 pub mod item_commands;
+pub mod kill_switch_commands;
 pub mod launch_commands;
 pub mod metadata_commands;
 pub mod system_monitor_commands;

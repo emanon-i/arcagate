@@ -1,18 +1,17 @@
-// kill-switch service (PH-468 batch-105)
+// kill-switch service (PH-468 batch-105 + PH-470 batch-106)
 //
 // 起動時に `disabled.json` を fetch して、現在 version が disabled なら起動阻止。
 // 設計: docs/l3_phases/archive/PH-20260427-462_kill-switch-design.md (A 方式 GitHub Releases)。
 //
 // 失敗時は best-effort で無視 (offline / fetch error でアプリを止めない)。
-// pubkey 検証は別 plan (Updater pubkey と統合、batch-106 以降)。
+// pubkey 検証は別 plan (Updater pubkey と統合)。
 
+use crate::utils::http_client;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
-// batch-106 で HTTP client 実装時に参照する定数
-#[allow(dead_code)]
 const DISABLED_JSON_URL: &str =
     "https://github.com/emanon-i/arcagate/releases/latest/download/disabled.json";
-#[allow(dead_code)]
 const FETCH_TIMEOUT_SECS: u64 = 5;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -54,10 +53,9 @@ pub fn check(current_version: &str) -> KillSwitchResult {
 }
 
 fn fetch_disabled_json() -> Result<DisabledJson, Box<dyn std::error::Error>> {
-    // ureq は std + small footprint、tokio runtime 不要
-    // ただし依存追加は別 plan、本実装では std のみで HTTP しない
-    // → fetch は別 plan (PH-465 Telemetry / PH-466 Crash 監視と同じ HTTP client を共有予定)
-    Err("kill-switch fetch is stub; HTTP client integration in batch-106".into())
+    let body = http_client::get_text(DISABLED_JSON_URL, Duration::from_secs(FETCH_TIMEOUT_SECS))?;
+    let json: DisabledJson = serde_json::from_str(&body)?;
+    Ok(json)
 }
 
 fn is_version_disabled(current: &str, json: &DisabledJson) -> bool {

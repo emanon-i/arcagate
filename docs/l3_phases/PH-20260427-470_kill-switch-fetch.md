@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-470
-status: todo
+status: done
 batch: 106
 type: 改善
 era: Distribution Era Hardening
@@ -29,12 +29,12 @@ PH-468 (batch-105) で kill-switch service skeleton を実装したが `fetch_di
 
 ## 受け入れ条件
 
-- [ ] PH-469 の HTTP client で fetch 実装
-- [ ] cmd_check_kill_switch IPC 公開
-- [ ] KillSwitchDialog.svelte 実装 + e2e
-- [ ] 既存 4 unit test PASS (回帰なし)
-- [ ] timeout 時 disabled=false (best-effort 維持)
-- [ ] `pnpm verify` 全通過
+- [x] PH-469 の HTTP client で fetch 実装 (`http_client::get_text` + `serde_json::from_str`)
+- [x] cmd_check_kill_switch IPC 公開 (`commands/kill_switch_commands.rs` + lib.rs invoke_handler 登録)
+- [ ] KillSwitchDialog.svelte 実装 + e2e (別 PR で UI 実装、現 PR は Rust 側のみ)
+- [x] 既存 4 unit test PASS (回帰なし)
+- [x] timeout 時 disabled=false (best-effort 維持、check() の unwrap_or(false) で実装済)
+- [x] `pnpm verify` 全通過
 
 ## 横展開チェック
 
