@@ -3197,3 +3197,67 @@ severity 3 残 (機能拡張系):
 ### 自律作成ログ
 
 - 2026-04-27: PH-425〜429 を Plan 自律作成 (5 件上限内)
+
+## 2026-04-27 [batch-95] Dispatch Infra Overhaul 完走
+
+### 経緯
+
+batch-91-94 で連続 5 plan 回し、idle 兆候 (memory 保存 / 次セッション復帰発言 / ScheduleWakeup 多用 / CI 待ち idle) が複数回検出。infra で機械的に防止する batch を組成。
+
+### 1 Plan 結果
+
+- **PH-435 done**: dispatch infra overhaul
+  - PR auto-merge 有効化 + main branch protection (strict: check/build/e2e/changes)
+  - dispatch-queue.md 新設 (Active / Next Up / Completed / In-Flight)
+  - dispatch-operation.md §8-10 追記 (auto-merge / queue / spawn-on-pressure)
+  - arcagate-auto-kick scheduled task (cron `*/20 *`、判定ロジック付)
+  - memory/spawn_handoff.md 雛形 + lessons.md 知見追記
+
+PR #156 merged ✅。
+
+## 2026-04-27 [batch-96] Polish Era 完走判定 + 機能拡張
+
+### 5 Plan 結果
+
+- **PH-436 done**: bulk tag UI (minimal scope) — お気に入り一括追加 + 一括削除
+- **PH-437 done**: ClipboardHistory 検索 (Nielsen H7、case-insensitive)
+- **PH-438 done**: Codex Rule C 3 回目 → `codex-review-batch-95.md`
+- **PH-439 deferred**: Polish Era 完走判定 (Codex「未達」判定により持ち越し)
+- **PH-440 pending-approval**: launch group plan 起票 (Rule A、ユーザ承認待ち)
+
+### Codex 3 回目 主要結果
+
+「Distribution Era 着手 OK、公開可能品質は未達 (7.5/8)」。
+PH-443 (e2e #8 残) で 8/8 完了化を batch-97 に持ち越し。
+
+PR #157 auto-merge 予約済 (本セッション中)。
+
+## 2026-04-27 [batch-97] Distribution Era 着手
+
+### 5 Plan 結果
+
+- **PH-441 done**: Authenticode 署名 infra (tauri.conf.json + scripts/sign-windows.ps1 + README)
+- **PH-442 partial**: tauri-plugin-updater 統合 (Cargo + plugin init、UI は batch-98 PH-446)
+- **PH-443 done**: launch error e2e 拡張 (NotExecutable 1 ケース追加 + 文言 invariant 検証)
+- **PH-444 deferred**: bulk tag tests (PR #157 merge 後の rebase 取り込み待ち)
+- **PH-445 done**: cmd_cancel_file_search の errorCode 判定化
+
+### Codex Q5 全 8 件 解消
+
+PH-443 で #8 完了化 → 8/8 解消。
+Polish Era 完走判定は batch-98 PH-450 (Codex 4 回目) で再判定。
+
+PR #158 auto-merge 予約済。
+
+## 2026-04-27 [batch-98] Distribution Era 第 2 波 Plan
+
+### 5 Plan 起票 (実装は batch-99 以降)
+
+- PH-446 Updater UI / PH-447 Release workflow / PH-448 SBOM /
+- PH-449 配布 README / PH-450 Codex 4 回目 + Polish Era 完走判定
+
+PR #159 auto-merge 予約済。
+
+### 自律作成ログ
+
+- 2026-04-27: PH-435 / PH-436〜440 / PH-441〜445 / PH-446〜450 を Plan 自律作成 (各 batch 5 plan)
