@@ -83,6 +83,10 @@ pwsh scripts/sign-windows.ps1
 証明書は OV / EV コード署名証明書 (Sectigo / DigiCert / Azure Trusted Signing 等) を別途取得。
 証明書なしビルドでも `sign-windows.ps1` は warning + skip するため CI 通過。
 
+## プライバシー
+
+[PRIVACY.md](PRIVACY.md) — デフォルトでは外部送信ゼロ、Telemetry / Crash 監視は将来 Opt-in で追加予定。
+
 ## ライセンス
 
 [MIT](LICENSE)
