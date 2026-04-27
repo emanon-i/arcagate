@@ -708,3 +708,19 @@ page: async ({ sharedBrowser }, use) => {
 - **CI rate limit 注意**: `gh pr checks` は GraphQL rate limit を消費する。連続多用するなら `gh run list --json` (REST) に切替
 - **squash merge 解禁**: dispatch-operation §7 の「squash merge 禁止」は auto-merge 経路では例外 (PH-435)
 - **参照**: PH-435 / `dispatch-operation.md` §8
+
+---
+
+## branch protection strict=false で auto-merge 滞留回避 (batch-100)
+
+- **問題**: `required_status_checks.strict=true` (Require branches to be up to date before merging) を ON にすると、複数 PR の auto-merge 並行予約時、main が進むたび残 PR が BEHIND になり、auto-merge が動かず滞留する
+- **解決**: `strict=false` に変更
+  ```bash
+  cat > /tmp/p.json <<'JSON'
+  {"required_status_checks":{"strict":false,"contexts":["check","build","e2e","changes"]},"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
+  JSON
+  gh api -X PUT repos/<owner>/<repo>/branches/main/protection --input /tmp/p.json
+  ```
+- **安全性**: squash merge を採用しているため、BEHIND でも main へ squash 統合は線形履歴のまま。rebase merge と違って conflict 解決は merge コミット時、CI も最新 main で再走しないので保証は弱まるが、small PR では実用上問題なし
+- **大きい PR の場合**: 個別に `gh pr update-branch --rebase` で最新 main を取り込んでから auto-merge 予約する
+- **参照**: PH-435 + batch-100 / `docs/dispatch-operation.md` §8

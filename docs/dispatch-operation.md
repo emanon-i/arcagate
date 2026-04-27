@@ -355,9 +355,18 @@ gh pr checks <#>                   # 1 回確認 (failed なら即 fix)
 
 ### branch protection (main)
 
-- required status checks: `check / build / e2e / changes` (strict mode)
+- required status checks: `check / build / e2e / changes` (**strict=false**、batch-100 で OFF 化)
 - 全 pass 必須 → auto-merge は緑になるまで待つ
 - force push / deletion 禁止
+- **strict=false の理由** (batch-100): squash merge 採用 + auto-merge を活用するため。
+  strict=true だと BEHIND PR が auto-merge できず、main 進行中に PR 滞留する。
+  squash で履歴は線形なので strict 不要。
+
+### auto-merge 滞留の回避
+
+複数 PR を並行 auto-merge 予約した際、main が進むと残 PR は BEHIND になる。
+**strict=false なら BEHIND でも auto-merge OK** → 順次 main 反映される。
+strict=true 時代は `gh pr update-branch --rebase` 連打が必要だった。
 
 ---
 
