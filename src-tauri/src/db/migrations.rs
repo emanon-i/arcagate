@@ -20,6 +20,7 @@ const MIGRATION_016: &str = include_str!("../../migrations/016_card_override.sql
 const MIGRATION_017: &str = include_str!("../../migrations/017_drop_watched_folders.sql");
 const MIGRATION_018: &str = include_str!("../../migrations/018_workspace_wallpaper.sql");
 const MIGRATION_019: &str = include_str!("../../migrations/019_widget_item_settings.sql");
+const MIGRATION_020: &str = include_str!("../../migrations/020_openers.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -42,6 +43,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_017),
         M::up(MIGRATION_018),
         M::up(MIGRATION_019),
+        M::up(MIGRATION_020),
     ])
 }
 

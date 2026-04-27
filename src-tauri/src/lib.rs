@@ -31,6 +31,10 @@ use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
 };
 use commands::metadata_commands::cmd_get_item_metadata;
+use commands::opener_commands::{
+    cmd_create_opener, cmd_delete_opener, cmd_get_opener, cmd_launch_with_opener, cmd_list_openers,
+    cmd_update_opener,
+};
 use commands::system_monitor_commands::{cmd_get_disk_stats, cmd_get_system_stats};
 use commands::theme_commands::{
     cmd_create_theme, cmd_delete_theme, cmd_export_theme_json, cmd_get_active_theme_mode,
@@ -315,6 +319,13 @@ pub fn run() {
             cmd_clear_widget_item_settings,
             cmd_prune_widget_item_settings,
             cmd_touch_widget_item_settings,
+            // PH-505: Opener registry
+            cmd_list_openers,
+            cmd_get_opener,
+            cmd_create_opener,
+            cmd_update_opener,
+            cmd_delete_opener,
+            cmd_launch_with_opener,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

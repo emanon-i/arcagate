@@ -9,6 +9,7 @@ pub mod item_service;
 pub mod kill_switch_service;
 pub mod launch_service;
 pub mod metadata_service;
+pub mod opener_service;
 pub mod system_monitor_service;
 pub mod telemetry_service;
 pub mod theme_service;

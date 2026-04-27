@@ -10,6 +10,7 @@ import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
+import OpenersSettings from './OpenersSettings.svelte';
 import PrivacySettings from './PrivacySettings.svelte';
 import UpdaterSettings from './UpdaterSettings.svelte';
 import WallpaperSettings from './WallpaperSettings.svelte';
@@ -197,6 +198,10 @@ function handleNavKeydown(e: KeyboardEvent) {
 					</div>
 					<div class="border-t border-[var(--ag-border)] pt-4">
 						<UpdaterSettings />
+					</div>
+					<!-- PH-505: Opener registry (general タブに置く: アプリ全体共通の起動設定) -->
+					<div class="border-t border-[var(--ag-border)] pt-4">
+						<OpenersSettings />
 					</div>
 				</div>
 			{:else if activeCategory === 'workspace'}

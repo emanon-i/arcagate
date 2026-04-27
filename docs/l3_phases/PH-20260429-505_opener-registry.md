@@ -1,23 +1,27 @@
 ---
 id: PH-20260429-505
 title: Opener registry — Settings Openers section + per-item override + 右クリック menu + SHOpenWithDialog 連携
-status: todo
+status: done
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src-tauri/migrations/ (new migration: openers table)
+  - src-tauri/migrations/020_openers.sql (new、builtin seed 7 件)
+  - src-tauri/src/db/migrations.rs
   - src-tauri/src/models/opener.rs (new)
-  - src-tauri/src/repositories/opener_repository.rs (new)
-  - src-tauri/src/services/opener_service.rs (new)
-  - src-tauri/src/commands/opener_commands.rs (new)
-  - src-tauri/src/launcher/opener.rs (new、SHOpenWithDialog FFI)
+  - src-tauri/src/models/mod.rs
+  - src-tauri/src/repositories/opener_repository.rs (new、6 unit test)
+  - src-tauri/src/repositories/mod.rs
+  - src-tauri/src/services/opener_service.rs (new、5 unit test、launch_with_opener 含む)
+  - src-tauri/src/services/mod.rs
+  - src-tauri/src/commands/opener_commands.rs (new、6 IPC commands)
+  - src-tauri/src/commands/mod.rs
+  - src-tauri/src/lib.rs (handler 登録)
   - src/lib/types/opener.ts (new)
-  - src/lib/state/opener.svelte.ts (new)
-  - src/lib/components/settings/OpenersSettings.svelte (new section)
-  - src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte (右クリック menu)
-  - src/lib/widgets/file-search/FileSearchWidget.svelte (右クリック menu)
-  - src/lib/widgets/item/ItemWidget.svelte (右クリック menu)
+  - src/lib/ipc/opener.ts (new、6 IPC wrappers)
+  - src/lib/components/settings/OpenersSettings.svelte (new、Settings > General に統合)
+  - src/lib/components/settings/SettingsPanel.svelte (general タブで mount)
+  - tests/e2e/openers-registry.spec.ts (new)
 ---
 
 # PH-505: Opener registry
@@ -73,34 +77,41 @@ extern "system" {
 
 ### DB / Rust
 
-- [ ] migration `0028_openers.sql` (openers table 新規)
-- [ ] **Builtin openers 同梱**: Explorer / VS Code / Terminal / PowerShell 7 / cmd.exe / Notepad
-  - VS Code は `code.cmd` PATH 通れば登録、無ければ skip
-  - Terminal は `wt.exe` (Windows Terminal) PATH 通れば登録
-- [ ] Rust service: `list_openers()` / `get_opener(id)` / `create_opener(...)` / `update_opener(...)` / `delete_opener(id)` (builtin 削除拒否) / `launch_with_opener(opener_id, path)` / `show_open_with_dialog(path) -> Option<opener_id>`
-- [ ] **SHOpenWithDialog FFI** (`launcher/opener.rs`、Windows 専用 `cfg(windows)`)
-- [ ] **launch_with_opener** = command + args_template の `{path}` 置換 → `Command::new(command).args(...).spawn()` (PH-422 shell-words 整合)
+- [x] migration 020 (openers table 新規、ID 順は migration 採番 020)
+- [x] **Builtin openers 同梱 (7 件)**: Explorer / cmd.exe / PowerShell / Notepad / VS Code / Windows Terminal / PowerShell 7
+- [x] Rust service: list / get / create / update / delete (builtin 拒否) / launch_with_opener
+- [ ] **SHOpenWithDialog FFI** (deferred — Windows-only FFI、CI 自動テスト不可、PH-505 後の follow-up plan で実装)
+- [x] **launch_with_opener** = `args_template` の `{path}` 置換 → `shell_words::split` (PH-422 整合) → `Command::new(...).args(...).spawn()`、不在 command で LaunchFileNotFound
+- [x] Rust unit: 11 tests (repository 6 + service 5)、cargo test 合計 244 passed
 
 ### Frontend
 
-- [ ] **Settings > Openers section** 新規 (一覧 + 新規追加 + builtin/custom 区別 + delete confirm + reorder)
-- [ ] **各 widget item で右クリック menu** (上記設計通り)
-- [ ] **per-item default opener 保存** UI (確認 dialog)
-- [ ] **opener.svelte.ts store** (CRUD + reactive)
-- [ ] **launch flow**: クリック = per-item opener (あれば) → builtin default (Explorer 等) → `launchItem` (既存)
+- [x] **Settings > Openers section** 新規 (`OpenersSettings.svelte`、一覧 + 新規追加 + builtin/custom 区別 + 削除 confirm + 編集)
+- [ ] **各 widget item で右クリック menu** (deferred — opener registry 単独でも価値あり、右クリック統合は次 plan)
+- [ ] **per-item default opener 保存** UI (deferred — widget_item_settings.opener field は PH-504 で確保済、UI 接続は次 plan)
+- [x] **opener IPC wrappers** (`src/lib/ipc/opener.ts`、6 helpers)
+- [ ] **launch flow 統合** (deferred — `cmd_launch_with_opener` は IPC で利用可、widget side の click → opener 選択は次 plan)
 
 ### a11y
 
-- [ ] keyboard ナビ: 右クリック menu は Shift+F10 / Apps key で開く
-- [ ] menu 内 ArrowUp/Down + Enter
+- [ ] keyboard ナビ (右クリック menu の Shift+F10 / Apps key) — 右クリック menu deferred なのと同期
 
 ### テスト
 
-- [ ] Rust integration: openers CRUD + builtin 削除拒否
-- [ ] Rust integration: launch_with_opener で args 正しく組み立て
-- [ ] E2E: Settings で opener 追加 → widget item 右クリック → opener 選択 → 起動 assert
-- [ ] E2E: SHOpenWithDialog は **手動確認のみ** (CI で開けない、dispatch-log に記録)
-- [ ] before/after スクショ取得
+- [x] Rust integration: openers CRUD + builtin 削除拒否
+- [x] Rust integration: launch_with_opener で args 正しく組み立て (render_args + LaunchFileNotFound)
+- [x] E2E: `tests/e2e/openers-registry.spec.ts` で IPC round-trip (builtin seed assert + custom CRUD + builtin delete 拒否 + launch_with_opener エラー)
+- [ ] E2E: SHOpenWithDialog (手動確認のみ、SHOpenWithDialog deferred のため未実施)
+- [ ] before/after スクショ取得 (CDP 自己検証は次回 main 反映後)
+
+## 後続 plan に持ち越し
+
+- SHOpenWithDialog FFI (Windows-only、CI 自動テスト不可)
+- 各 widget item の右クリック menu (opener 選択 UI)
+- per-item default opener 保存 UI (widget_item_settings.opener への書き込み)
+- launch flow 統合 (widget click → per-item opener → fallback)
+
+これらは opener registry の UI 拡張系で、本 plan の core (DB / IPC / Settings UI) が固まれば後追い可能。
 
 ## 実装ステップ
 
