@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-444
-status: deferred
-batch: 97
+status: done
+batch: 101
 type: 防衛
 era: Distribution Era + Codex Q5 残
 ---

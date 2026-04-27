@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-450
 status: deferred
-batch: 100
+batch: 101
 type: 防衛
 era: Distribution Era
 ---
