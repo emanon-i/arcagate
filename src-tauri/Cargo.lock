@@ -193,6 +193,7 @@ dependencies = [
  "ts-rs",
  "ureq",
  "uuid",
+ "window-vibrancy",
  "zip 2.4.2",
 ]
 

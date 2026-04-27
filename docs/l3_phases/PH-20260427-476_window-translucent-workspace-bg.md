@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-476
-title: Window 半透明 (Mica/Acrylic) + Workspace 背景壁紙
-status: todo
+title: Window 半透明 (Mica/Acrylic) + Workspace 背景壁紙 [MVP: 半透明のみ]
+status: done
 batch: 107
 era: polish
 parent_l1: REQ-007_visual-language
@@ -32,21 +32,23 @@ scope_files:
 
 ## 受け入れ条件
 
-### 機能
+### 機能 (MVP scope: 半透明のみ、背景画像は後続 plan)
 
-- [ ] **Mica/Acrylic 適用**: Windows 11 で `window_vibrancy = "mica"` フォールバック、Win10 で `acrylic`、`tauri.conf.json` か `lib.rs` で setup
-- [ ] `transparent: true` 設定 + 既存 `bg-*` を `bg-[var(--ag-surface)]/85` 程度に弱める (透過視認性)
-- [ ] **Reduced transparency 設定対応**: OS の「透明性を減らす」を尊重、不透明 fallback (Tauri / WebView API)
-- [ ] **Workspace 背景画像**: `workspaces` table に `background_image_path TEXT NULL` 追加 (migration)
-- [ ] **Library グローバル背景**: `app_config` に `library_background_image_path` 追加
-- [ ] **AppearanceSettings**: 「背景画像」セクション追加、グローバル (Library) + per-workspace 設定 UI、画像ピッカー (file dialog) + 削除 + プレビュー
-- [ ] WorkspaceLayout / LibraryMainArea: 背景画像が設定されていれば `background-image: url(asset://...)` で表示、画像上に半透明 overlay (`bg-[var(--ag-surface)]/60`)
-- [ ] 背景画像なし時は現状の単色維持 (regression なし)
+- [x] **Mica/Acrylic 適用**: `window-vibrancy = "0.6"` crate を Windows のみ `target.'cfg(target_os = "windows")'.dependencies` に追加。`lib.rs` setup で `apply_mica` (Win11) → fallback `apply_acrylic(18,18,18,125)` (Win10)
+- [x] **`transparent: true`**: tauri.conf.json main window に追加
+- [x] **body 背景半透明**: `app.css` で `color-mix(in srgb, var(--ag-surface-page) 88%, transparent)` → Mica が淡く透ける
+- [x] **Reduced transparency 対応**: `@media (prefers-reduced-transparency: reduce)` で不透明 fallback (a11y)
+
+### MVP 外 (PH-481 以降で対応予定)
+
+- [ ] Workspace 背景画像 (per-workspace): migration + IPC + UI (scope 大、batch-108 候補)
+- [ ] Library グローバル背景: app_config 拡張 + UI (上同様)
+- [ ] AppearanceSettings に背景画像 section
 
 ### 横展開チェック
 
-- [ ] palette window も transparent 連動するか? (現状すでに transparent: true)
-- [ ] Settings panel 背景は半透明にするとぼやけるので不透明維持 (engineering-principles §9 配布水準)
+- [x] palette window: 既に transparent: true、Mica は palette には適用しない (frosted glass 既存スタイル維持)
+- [x] Settings panel: dialog 背景は `--ag-surface-opaque` を使っており影響なし
 
 ### SFDIPOT
 
