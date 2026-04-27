@@ -1,8 +1,11 @@
 ---
 id: PH-20260428-487
 title: 全 widget で横スクロールバー禁止 audit + fix
-status: todo
+status: done
 batch: 108
+pr: 187, 193
+merged_at: 2026-04-27T16:48:59Z
+note: PH-498 hotfix (#187 ClockWidget overflow-x 封じ) + PH-489 (#193 scrollbar-gutter:stable) で実装完了
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:

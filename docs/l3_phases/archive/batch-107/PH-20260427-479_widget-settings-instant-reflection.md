@@ -1,8 +1,10 @@
 ---
 id: PH-20260427-479
 title: Widget 設定の即時反映 fix (画面切り替え不要に)
-status: wip
+status: done
 batch: 107
+pr: 184
+merged_at: 2026-04-27T15:30:14Z
 era: polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:

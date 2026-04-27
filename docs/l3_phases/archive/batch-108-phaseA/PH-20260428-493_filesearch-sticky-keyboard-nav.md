@@ -1,8 +1,10 @@
 ---
 id: PH-20260428-493
 title: FileSearch Widget — 検索バー sticky + ArrowUp/Down で結果選択
-status: todo
+status: done
 batch: 108
+pr: 196
+merged_at: 2026-04-27T17:55:46Z
 era: polish-round2
 parent_l1: REQ-006_workspace-widgets
 scope_files:
