@@ -241,7 +241,10 @@ async function updateWidgetConfig(id: string, config: string | null): Promise<vo
 	try {
 		error = null;
 		const updated = await workspaceIpc.updateWidgetConfig(id, config);
-		widgets = widgets.map((w) => (w.id === id ? updated : w));
+		// PH-479: 旧 .map では keyed each の widget prop が同 reference を保持するケースで
+		// 子 widget の $derived(parseWidgetConfig(widget?.config, ...)) が再計算されない事例があるため、
+		// **新オブジェクトに deep replace** + 全 widgets を新配列で置換 (Svelte 5 reactive を確実起動)
+		widgets = widgets.map((w) => (w.id === id ? { ...updated } : { ...w }));
 		// PH-477: config 変更を history に積む (idempotent な変更はスキップ)
 		if (before !== config) {
 			workspaceHistory.record({ kind: 'config', widgetId: id, before, after: config });
