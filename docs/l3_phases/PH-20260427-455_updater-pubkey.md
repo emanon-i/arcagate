@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-455
-status: todo
+status: held
 batch: 103
 type: 改善
 era: Distribution Era Hardening
