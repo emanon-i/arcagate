@@ -187,6 +187,18 @@ pub fn run() {
                 }
             });
 
+            // PH-476: Windows 11 Mica / 10 Acrylic backdrop を main window に適用 (透明 + ぼかし)
+            #[cfg(target_os = "windows")]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    use window_vibrancy::{apply_acrylic, apply_mica};
+                    if apply_mica(&window, Some(true)).is_err() {
+                        // Win10 fallback: Mica 非対応なら Acrylic
+                        let _ = apply_acrylic(&window, Some((18, 18, 18, 125)));
+                    }
+                }
+            }
+
             Ok(())
         })
         .on_window_event(|window, event| {

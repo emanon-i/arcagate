@@ -89,10 +89,20 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* PH-476: Window transparent + Mica/Acrylic backdrop が見えるよう body 背景は半透明
+   * - light: rgba(248,249,251,0.85) → Mica が淡く透ける
+   * - reduced-transparency: 不透明 fallback (a11y)
+   */
   body {
-    @apply bg-background text-foreground;
+    color: var(--foreground);
+    background-color: color-mix(in srgb, var(--ag-surface-page) 88%, transparent);
     user-select: none;
     -webkit-user-select: none;
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    body {
+      background-color: var(--ag-surface-page);
+    }
   }
   /* テキスト入力フィールドは選択可能にする */
   input, textarea, [contenteditable="true"] {
