@@ -5,6 +5,7 @@ pub mod export_service;
 pub mod file_search_service;
 pub mod file_search_state;
 pub mod item_service;
+pub mod kill_switch_service;
 pub mod launch_service;
 pub mod metadata_service;
 pub mod system_monitor_service;

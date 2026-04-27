@@ -3261,3 +3261,27 @@ PR #159 auto-merge 予約済。
 ### 自律作成ログ
 
 - 2026-04-27: PH-435 / PH-436〜440 / PH-441〜445 / PH-446〜450 を Plan 自律作成 (各 batch 5 plan)
+
+## 2026-04-27 [batch-105] Distribution Era Hardening (resume 8 直接実行)
+
+### 状況
+
+resume 11 scheduled-task fireAt 不発 → 自セッション (resume 8) で batch-105 直接着手。
+spawn-on-pressure 一旦見送り。
+
+### Plan 結果 (3 done + 2 deferred)
+
+- **PH-464 done**: auto-kick prompt refine (Allowed/Prohibited tool list 厳密化、send_message ONLY)
+- **PH-465 deferred → batch-106**: Telemetry 実装本体 (PostHog SDK or 自前 endpoint、新 dep 追加要、context 圧迫回避)
+- **PH-466 deferred → batch-106**: Crash 監視実装 (sentry-rust + @sentry/svelte、新 dep 追加要、context 圧迫回避)
+- **PH-467 done**: PRIVACY.md 新規作成 + README.md link
+- **PH-468 done**: kill-switch service skeleton (HTTP fetch は stub、4 unit test PASS、batch-106 で HTTP 統合)
+
+### Deferred 理由
+
+PH-465/466 は新 dependency 追加 (PostHog / sentry-rust) と Settings UI / opt-in toggle 統合が必要で、本 batch の context budget では完遂困難。
+batch-106 で HTTP client 共有実装 (kill-switch fetch も込み) として整理。
+
+### 自律作成ログ
+
+- 2026-04-27: PH-464〜468 を Plan 自律作成 (実装 3 + 設計済 deferred 2)

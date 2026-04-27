@@ -735,3 +735,16 @@ page: async ({ sharedBrowser }, use) => {
 - **設計原則**: scheduled-task は read-only または「特定 tool のみ実行」のモードを明示する。「ONLY X」「PROHIBITED Y」で list する
 - **再発防止**: prompt review で「ONLY / MANDATORY / PROHIBITED」のスコープを明確化、agent の広い解釈を防ぐ
 - **参照**: PH-463 (batch-104) / `arcagate-auto-kick` SKILL.md / 改修は PH-464 (batch-105)
+
+---
+
+## scheduled-task fireAt 不発の事実 (batch-105)
+
+- **問題**: `mcp__scheduled-tasks__create_scheduled_task` で fireAt 指定の one-shot task が、fireAt 過ぎても発火しないケース確認 (resume 11 が 07:28 UTC fireAt → 1h+ 経過しても lastRunAt 空、発火失敗)
+- **再発防止**:
+  1. **報告前に事実確認**: `date -u` で現在時刻を取得してから「発火済 / 未発火」判定する。「予定通り」「もうすぐ」と推測で答えない
+  2. **fireAt 1.5x 経過しても lastRunAt 空** = 発火失敗確定。即 disable + 削除して再投入
+  3. **次世代が必要なら別手段**: scheduled-task fireAt の信頼性が確認できるまで、context 限界対策は「resume 11 起動して退場」より「自セッションで実装続行」が安全
+- **代替手段**: 大きなタスクは scheduled-task fireAt に頼らず、自セッションで分割して PR 出す。長時間 monitor が必要なら cron task (recurring) で代用
+- **未解明**: fireAt 不発の原因 (Claude Desktop アプリ起動状態 / fireAt format / time zone) は調査が必要、別 plan で
+- **参照**: spawn-on-pressure 運用見直し (batch-105 PH-469 候補)
