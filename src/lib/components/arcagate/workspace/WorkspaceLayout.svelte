@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Crop, LayoutGrid } from '@lucide/svelte';
+import { Crop, LayoutGrid, Pencil } from '@lucide/svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -405,6 +405,20 @@ function cropToWidgets() {
 		onConfirmEdit={confirmEdit}
 		onCancelEdit={cancelEdit}
 	/>
+
+	<!-- PH-496: ウィジット切替ボタン (編集モード切替) を左上に固定
+		user fb 2026-04-28: 「ウィジットの切り替えのボタン。これ左上に固定にしてね」
+		編集モード非時のみ表示、編集モード時は sidebar 内の確定/キャンセルが取って代わる -->
+	{#if !editMode}
+		<button
+			type="button"
+			class="absolute left-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] text-[var(--ag-text-secondary)] shadow-md transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2"
+			aria-label="ウィジェット編集モード"
+			onclick={startEdit}
+		>
+			<Pencil class="h-4 w-4" />
+		</button>
+	{/if}
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
