@@ -127,7 +127,13 @@ function confirmSelection() {
 		</div>
 
 		<!-- Library card grid -->
-		<div class="min-h-0 flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable]">
+		<!-- HOTFIX: --ag-card-w を 100% で override
+			(LibraryMainArea でのみ --ag-card-w が定義されており、picker 内の LibraryCard で
+			 width: var(--ag-card-w) が空文字 → aspect-[4/3] が height 0 計算で潰れる問題の修正) -->
+		<div
+			class="min-h-0 flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable]"
+			style="--ag-card-w: 100%;"
+		>
 			{#if filteredItems.length === 0}
 				<div class="py-12 text-center text-sm text-[var(--ag-text-muted)]">
 					{debouncedQuery ? '一致するアイテムがありません' : 'アイテムがまだありません'}
