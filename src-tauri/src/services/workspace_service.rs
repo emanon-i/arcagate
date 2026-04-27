@@ -27,6 +27,9 @@ pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Wor
         id: id.clone(),
         name: ws_name.clone(),
         sort_order,
+        wallpaper_path: None,
+        wallpaper_opacity: 1.0,
+        wallpaper_blur: 0,
         created_at: String::new(),
         updated_at: String::new(),
     };
@@ -52,6 +55,48 @@ pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Wor
 pub fn list_workspaces(db: &DbState) -> Result<Vec<Workspace>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::find_all_workspaces(&conn)
+}
+
+// PH-499: Workspace 壁紙設定 (path/opacity/blur)
+
+/// 既存壁紙ファイルがあれば削除した上で新しい path をセット (best-effort cleanup)。
+/// path が None の場合は壁紙クリア。
+pub fn set_workspace_wallpaper(
+    db: &DbState,
+    id: &str,
+    path: Option<&str>,
+    opacity: f64,
+    blur: i64,
+) -> Result<Workspace, AppError> {
+    let opacity = opacity.clamp(0.0, 1.0);
+    let blur = blur.clamp(0, 40);
+
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+
+    // best-effort: 既存壁紙ファイルを削除 (新しい path と異なる場合のみ)
+    if let Ok(existing) = workspace_repository::find_workspace_by_id(&conn, id) {
+        if let Some(old_path) = existing.wallpaper_path {
+            if Some(old_path.as_str()) != path {
+                crate::services::wallpaper_service::delete_wallpaper(std::path::Path::new(
+                    &old_path,
+                ));
+            }
+        }
+    }
+
+    workspace_repository::update_workspace_wallpaper(&conn, id, path, opacity, blur)
+}
+
+pub fn clear_workspace_wallpaper(db: &DbState, id: &str) -> Result<Workspace, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+
+    if let Ok(existing) = workspace_repository::find_workspace_by_id(&conn, id) {
+        if let Some(old_path) = existing.wallpaper_path {
+            crate::services::wallpaper_service::delete_wallpaper(std::path::Path::new(&old_path));
+        }
+    }
+
+    workspace_repository::clear_workspace_wallpaper(&conn, id)
 }
 
 pub fn update_workspace(

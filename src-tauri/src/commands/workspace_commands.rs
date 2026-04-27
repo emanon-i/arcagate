@@ -34,6 +34,52 @@ pub fn cmd_delete_workspace(db: State<DbState>, id: String) -> Result<(), AppErr
     workspace_service::delete_workspace(&db, &id)
 }
 
+// PH-499: Workspace 壁紙設定 IPC
+
+#[tauri::command]
+pub fn cmd_set_workspace_wallpaper(
+    db: State<DbState>,
+    id: String,
+    path: Option<String>,
+    opacity: f64,
+    blur: i64,
+) -> Result<Workspace, AppError> {
+    workspace_service::set_workspace_wallpaper(&db, &id, path.as_deref(), opacity, blur)
+}
+
+#[tauri::command]
+pub fn cmd_clear_workspace_wallpaper(
+    db: State<DbState>,
+    id: String,
+) -> Result<Workspace, AppError> {
+    workspace_service::clear_workspace_wallpaper(&db, &id)
+}
+
+/// 画像を local app data の wallpapers/ にコピーして保存先 path を返す。
+///
+/// `wallpapers_dir` 解決は AppHandle 経由で行う。フロント側は受け取った path を
+/// `cmd_set_workspace_wallpaper` か `cmd_set_library_wallpaper_path` に渡す。
+#[tauri::command]
+pub fn cmd_save_wallpaper_file(
+    app: tauri::AppHandle,
+    src_path: String,
+) -> Result<String, AppError> {
+    use tauri::Manager;
+    let app_data = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::InvalidInput(format!("failed to resolve app_data_dir: {e}")))?;
+    let wallpapers_dir = app_data.join("wallpapers");
+    let stored = crate::services::wallpaper_service::save_wallpaper(
+        std::path::Path::new(&src_path),
+        &wallpapers_dir,
+    )?;
+    stored
+        .into_os_string()
+        .into_string()
+        .map_err(|_| AppError::InvalidInput("wallpaper path contains non-UTF-8 chars".into()))
+}
+
 #[tauri::command]
 pub fn cmd_add_widget(
     db: State<DbState>,

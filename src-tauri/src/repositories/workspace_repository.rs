@@ -10,8 +10,11 @@ fn row_to_workspace(row: &rusqlite::Row) -> rusqlite::Result<Workspace> {
         id: row.get(0)?,
         name: row.get(1)?,
         sort_order: row.get(2)?,
-        created_at: row.get(3)?,
-        updated_at: row.get(4)?,
+        wallpaper_path: row.get(3)?,
+        wallpaper_opacity: row.get(4)?,
+        wallpaper_blur: row.get(5)?,
+        created_at: row.get(6)?,
+        updated_at: row.get(7)?,
     })
 }
 
@@ -44,7 +47,7 @@ pub fn insert_workspace(conn: &Connection, ws: &Workspace) -> Result<(), AppErro
 
 pub fn find_workspace_by_id(conn: &Connection, id: &str) -> Result<Workspace, AppError> {
     let result = conn.query_row(
-        "SELECT id, name, sort_order, created_at, updated_at FROM workspaces WHERE id = ?1",
+        "SELECT id, name, sort_order, wallpaper_path, wallpaper_opacity, wallpaper_blur, created_at, updated_at FROM workspaces WHERE id = ?1",
         params![id],
         row_to_workspace,
     );
@@ -57,7 +60,7 @@ pub fn find_workspace_by_id(conn: &Connection, id: &str) -> Result<Workspace, Ap
 
 pub fn find_all_workspaces(conn: &Connection) -> Result<Vec<Workspace>, AppError> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, sort_order, created_at, updated_at FROM workspaces ORDER BY sort_order, name",
+        "SELECT id, name, sort_order, wallpaper_path, wallpaper_opacity, wallpaper_blur, created_at, updated_at FROM workspaces ORDER BY sort_order, name",
     )?;
     let workspaces = stmt
         .query_map([], row_to_workspace)?
@@ -79,6 +82,46 @@ pub fn delete_workspace(conn: &Connection, id: &str) -> Result<(), AppError> {
         return Err(AppError::NotFound(id.to_string()));
     }
     Ok(())
+}
+
+// PH-499: Workspace 壁紙設定の update / clear
+
+pub fn update_workspace_wallpaper(
+    conn: &Connection,
+    id: &str,
+    path: Option<&str>,
+    opacity: f64,
+    blur: i64,
+) -> Result<Workspace, AppError> {
+    let n = conn.execute(
+        "UPDATE workspaces
+           SET wallpaper_path = ?1,
+               wallpaper_opacity = ?2,
+               wallpaper_blur = ?3,
+               updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE id = ?4",
+        params![path, opacity, blur, id],
+    )?;
+    if n == 0 {
+        return Err(AppError::NotFound(id.to_string()));
+    }
+    find_workspace_by_id(conn, id)
+}
+
+pub fn clear_workspace_wallpaper(conn: &Connection, id: &str) -> Result<Workspace, AppError> {
+    let n = conn.execute(
+        "UPDATE workspaces
+           SET wallpaper_path = NULL,
+               wallpaper_opacity = 1.0,
+               wallpaper_blur = 0,
+               updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE id = ?1",
+        params![id],
+    )?;
+    if n == 0 {
+        return Err(AppError::NotFound(id.to_string()));
+    }
+    find_workspace_by_id(conn, id)
 }
 
 // --- Widget CRUD ---
@@ -239,6 +282,9 @@ mod tests {
             id: id.to_string(),
             name: name.to_string(),
             sort_order,
+            wallpaper_path: None,
+            wallpaper_opacity: 1.0,
+            wallpaper_blur: 0,
             created_at: String::new(),
             updated_at: String::new(),
         }

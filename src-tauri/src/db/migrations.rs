@@ -18,6 +18,7 @@ const MIGRATION_014: &str = include_str!("../../migrations/014_ubuntu_frosted_en
 const MIGRATION_015: &str = include_str!("../../migrations/015_liquid_glass_token_fix.sql");
 const MIGRATION_016: &str = include_str!("../../migrations/016_card_override.sql");
 const MIGRATION_017: &str = include_str!("../../migrations/017_drop_watched_folders.sql");
+const MIGRATION_018: &str = include_str!("../../migrations/018_workspace_wallpapers.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -38,6 +39,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_015),
         M::up(MIGRATION_016),
         M::up(MIGRATION_017),
+        M::up(MIGRATION_018),
     ])
 }
 

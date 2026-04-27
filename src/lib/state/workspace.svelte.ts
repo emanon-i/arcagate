@@ -95,6 +95,42 @@ async function updateWorkspace(id: string, name: string): Promise<void> {
 	}
 }
 
+// PH-499: Workspace 壁紙設定
+async function setWorkspaceWallpaper(
+	id: string,
+	path: string | null,
+	opacity: number,
+	blur: number,
+): Promise<void> {
+	error = null;
+	try {
+		const ws = await workspaceIpc.setWorkspaceWallpaper(id, path, opacity, blur);
+		workspaces = workspaces.map((w) => (w.id === id ? { ...ws } : { ...w }));
+	} catch (e) {
+		error = getErrorMessage(e);
+	}
+}
+
+async function clearWorkspaceWallpaper(id: string): Promise<void> {
+	error = null;
+	try {
+		const ws = await workspaceIpc.clearWorkspaceWallpaper(id);
+		workspaces = workspaces.map((w) => (w.id === id ? { ...ws } : { ...w }));
+	} catch (e) {
+		error = getErrorMessage(e);
+	}
+}
+
+async function saveWallpaperFile(srcPath: string): Promise<string | null> {
+	error = null;
+	try {
+		return await workspaceIpc.saveWallpaperFile(srcPath);
+	} catch (e) {
+		error = getErrorMessage(e);
+		return null;
+	}
+}
+
 async function deleteWorkspace(id: string): Promise<void> {
 	loading = true;
 	error = null;
@@ -412,6 +448,9 @@ export const workspaceStore = {
 	createWorkspace,
 	updateWorkspace,
 	deleteWorkspace,
+	setWorkspaceWallpaper,
+	clearWorkspaceWallpaper,
+	saveWallpaperFile,
 	selectWorkspace,
 	loadWidgets,
 	addWidget,

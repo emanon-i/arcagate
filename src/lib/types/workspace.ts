@@ -25,6 +25,12 @@ export interface Workspace {
 	id: string;
 	name: string;
 	sort_order: number;
+	/** PH-499: workspace 別の背景壁紙 path (null なら library_wallpaper_path を継承) */
+	wallpaper_path: string | null;
+	/** PH-499: 0.0..1.0、default 1.0 */
+	wallpaper_opacity: number;
+	/** PH-499: 0..40px、default 0 */
+	wallpaper_blur: number;
 	created_at: string;
 	updated_at: string;
 }

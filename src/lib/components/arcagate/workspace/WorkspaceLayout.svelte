@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Crop, LayoutGrid, Pencil } from '@lucide/svelte';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -41,6 +42,17 @@ let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
+
+// PH-499: 現在の workspace の壁紙を asset URL に変換 (Tauri asset protocol)
+const wallpaperUrl = $derived(() => {
+	const ws = workspaceStore.activeWorkspace;
+	if (!ws?.wallpaper_path) return null;
+	try {
+		return convertFileSrc(ws.wallpaper_path);
+	} catch {
+		return null;
+	}
+});
 
 $effect(() => {
 	const el = workspaceContainer;
@@ -427,7 +439,7 @@ function cropToWidgets() {
 		- dotted grid 背景を 16px 間隔 + より目立つ rgba(0,0,0,.18) で Obsidian 風に
 		次 wave (PH-494 polish): Ctrl+wheel zoom / free pan / 右下 toolbar / workspace 単位 persist -->
 	<div
-		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] {editMode
+		class="relative min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] {editMode
 			? 'p-2 canvas-edit-mode'
 			: 'p-5'}"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
@@ -441,7 +453,16 @@ function cropToWidgets() {
 		onpointermove={onCanvasPointerMove}
 		onpointerup={onCanvasPointerUp}
 	>
-		<div class="mb-5" class:pointer-events-none={editMode} class:opacity-50={editMode}>
+		{#if wallpaperUrl()}
+			{@const ws = workspaceStore.activeWorkspace}
+			<!-- PH-499: workspace 壁紙レイヤー (gradient より上、コンテンツより下) -->
+			<div
+				class="pointer-events-none absolute inset-0 bg-cover bg-center motion-reduce:!filter-none"
+				style="z-index: 0; background-image: url('{wallpaperUrl()}'); opacity: {ws?.wallpaper_opacity ?? 1}; filter: blur({ws?.wallpaper_blur ?? 0}px);"
+				data-testid="workspace-wallpaper-layer"
+			></div>
+		{/if}
+		<div class="relative z-10 mb-5" class:pointer-events-none={editMode} class:opacity-50={editMode}>
 			<PageTabBar onSelectWorkspace={handleSelectWorkspace} onRenameActive={() => (renameOpen = true)} />
 		</div>
 

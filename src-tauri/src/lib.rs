@@ -41,9 +41,10 @@ use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
 use commands::workspace_commands::{
-    cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
-    cmd_get_frequent_items, cmd_get_recent_items, cmd_git_status, cmd_list_widgets,
-    cmd_list_workspaces, cmd_remove_widget, cmd_update_widget_config, cmd_update_widget_position,
+    cmd_add_widget, cmd_clear_workspace_wallpaper, cmd_create_workspace, cmd_delete_workspace,
+    cmd_get_folder_items, cmd_get_frequent_items, cmd_get_recent_items, cmd_git_status,
+    cmd_list_widgets, cmd_list_workspaces, cmd_remove_widget, cmd_save_wallpaper_file,
+    cmd_set_workspace_wallpaper, cmd_update_widget_config, cmd_update_widget_position,
     cmd_update_workspace,
 };
 use tauri::{
@@ -257,6 +258,9 @@ pub fn run() {
             cmd_list_workspaces,
             cmd_update_workspace,
             cmd_delete_workspace,
+            cmd_set_workspace_wallpaper,
+            cmd_clear_workspace_wallpaper,
+            cmd_save_wallpaper_file,
             cmd_add_widget,
             cmd_list_widgets,
             cmd_update_widget_position,

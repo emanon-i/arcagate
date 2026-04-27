@@ -19,6 +19,25 @@ export async function deleteWorkspace(id: string): Promise<void> {
 	return invoke<void>('cmd_delete_workspace', { id });
 }
 
+// PH-499: Workspace 壁紙設定
+export async function setWorkspaceWallpaper(
+	id: string,
+	path: string | null,
+	opacity: number,
+	blur: number,
+): Promise<Workspace> {
+	return invoke<Workspace>('cmd_set_workspace_wallpaper', { id, path, opacity, blur });
+}
+
+export async function clearWorkspaceWallpaper(id: string): Promise<Workspace> {
+	return invoke<Workspace>('cmd_clear_workspace_wallpaper', { id });
+}
+
+/** ファイル選択 dialog で選んだ画像を `%LOCALAPPDATA%/.../wallpapers/<uuid>.<ext>` にコピーして path 返却 */
+export async function saveWallpaperFile(srcPath: string): Promise<string> {
+	return invoke<string>('cmd_save_wallpaper_file', { srcPath });
+}
+
 export async function addWidget(
 	workspaceId: string,
 	widgetType: WidgetType,

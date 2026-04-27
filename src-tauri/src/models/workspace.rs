@@ -65,6 +65,12 @@ pub struct Workspace {
     pub id: String,
     pub name: String,
     pub sort_order: i64,
+    /// PH-499: workspace 別の背景壁紙 path (None なら library_wallpaper_path を継承)
+    pub wallpaper_path: Option<String>,
+    /// PH-499: 0.0..1.0、default 1.0 (= 100%)
+    pub wallpaper_opacity: f64,
+    /// PH-499: 0..40px、default 0
+    pub wallpaper_blur: i64,
     pub created_at: String,
     pub updated_at: String,
 }
