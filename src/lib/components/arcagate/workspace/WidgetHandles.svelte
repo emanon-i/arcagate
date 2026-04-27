@@ -66,14 +66,15 @@ function cornerPosClass(dir: ResizeDir): string {
 	<GripHorizontal class="h-3.5 w-3.5" />
 </div>
 
-<!-- Delete button: right上 floating × (shadcn 風 ghost-icon, hover で destructive) -->
+<!-- PH-486: 削除 button をデフォルトで destructive 色に + サイズ微増 (24px → 28px)
+	+ focus visible 強化。「削除可能」が一目で分かるように。 -->
 <button
 	type="button"
-	class="absolute -right-3 -top-3 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface)] text-[var(--ag-text-muted)] shadow-sm transition-colors hover:border-destructive hover:bg-destructive hover:text-white"
+	class="absolute -right-3.5 -top-3.5 z-30 flex h-7 w-7 items-center justify-center rounded-full border-2 border-destructive bg-destructive/85 text-white shadow-md transition-[transform,background-color] duration-[var(--ag-duration-fast)] hover:scale-110 hover:bg-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface)]"
 	aria-label="ウィジェットを削除"
 	onclick={() => onDeleteClick(widgetId)}
 >
-	<X class="h-3.5 w-3.5" />
+	<X class="h-4 w-4" strokeWidth={2.5} />
 </button>
 
 <!-- Edge handles (4 sides): thin strip, transparent until hover -->
