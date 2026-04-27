@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-472
 title: Widget Move/Resize/Delete ハンドル普通化
-status: todo
+status: done
 batch: 107
 era: polish
 parent_l1: REQ-006_workspace-widgets
@@ -31,18 +31,19 @@ scope_files:
 
 ### 機能
 
-- [ ] **editMode=true かつ widget 選択中のみ**ハンドルが表示される (Figma / Notion 慣習)
-- [ ] move handle: widget ヘッダー全体を drag area にする (普通の DTP / window 慣習)
-- [ ] resize handle: 8 方向、選択時のみ表示、small square chip (4×4 px)、theme 連動色
-- [ ] delete: 右上 × ボタン (Lucide `X`)、shadcn `ghost-icon` 風、hover で `--destructive` 着色
-- [ ] hover 時カーソルが各方向に変わる (既存 RESIZE_CURSORS 流用)
-- [ ] 非選択時はハンドル完全非表示、widget content がフルに見える
-- [ ] focus visible: keyboard tab で widget 選択 → ハンドル表示
+- [x] **editMode=true かつ widget 選択中のみ**ハンドルが表示される (`{#if editMode && isSelected}` で WidgetHandles 描画)
+- [x] move handle: widget 上端 -top-3 の floating drag bar (普通の DTP / window タイトルバー慣習)
+- [x] resize handle: 8 方向 (4 corner + 4 edge)、選択時のみ表示、small square chip (10×10 px) + edge ストリップ、`--ag-accent` 連動
+- [x] delete: 右上 -top-3 -right-3 floating × (Lucide `X`)、`bg-[var(--ag-surface)] border` ghost-icon 風、hover で `bg-destructive text-white`
+- [x] hover 時カーソルが各方向に変わる (RESIZE_CURSORS 流用、各 handle の inline style)
+- [x] 非選択時はハンドル完全非表示、widget content がフル表示
+- [x] focus visible: `tabindex={editMode ? 0 : -1}` + `onfocus={() => onSelectedWidgetIdChange(widget.id)}` で keyboard tab → ハンドル表示
 
 ### 横展開チェック
 
-- [ ] grep: 他にも独自ハンドル実装が無いか (`absolute.*top-0.*z-1[05]` パターン audit) - 結果を Plan に記載
-- [ ] LibraryGrid 等で同様の resize / drag UI があるか確認
+- [x] grep: `aria-label="ウィジェットを移動"` `aria-label="ウィジェットを削除"` `RESIZE_LABELS` 参照は WidgetHandles.svelte のみに集約 (旧 WorkspaceWidgetGrid.svelte:219-305 から移行)
+- [x] LibraryGrid / Settings 等に同様の resize / drag UI なし (確認済み)
+- [x] WorkspaceLayout.svelte の Tip 文言を新仕様に更新 (「クリックで選択、上端のバーで移動、四隅のハンドルでリサイズ、× で削除」)
 
 ### SFDIPOT
 
