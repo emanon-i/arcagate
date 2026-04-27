@@ -3492,3 +3492,79 @@ batch-109 着手は user OK 後。
 6. PH-505 opener registry (重、DB + UI + FFI)
 7. **PH-503 Obsidian Canvas (最重、最優先 / 後半で本格集中)**
 8. PH-506-513 per-widget polish 8 plan (中、PH-499-505 完了後 + 統合)
+
+## 2026-04-28 [HARD ROLLBACK to Goal A `e36836c`]
+
+### Trigger
+
+User dev 目視で **「全体的に劣化した」** 判定 (2026-04-28)。
+batch-107/108/109 並行 push 運用で見た目品質が後退、テスト pass / E2E pass の数字と体感品質が乖離。
+`docs/dispatch-operation.md §11` で運用切替 (1 issue depth-first) を確定後、本日 user 判断で **main を Goal A に巻き戻し** 決定。
+
+### Rolled-back commits (29 件、上が新しい)
+
+```
+af80b60 docs(ops): §11 user-redo depth-first 運用 — 並行 push 全凍結 + 1 issue 1 PR + user 検収必須
+381de03 feat(PH-504): per-item settings persistence — widget_item_settings table (#211)
+ffdf202 feat(batch-109 PH-507): SystemMonitorWidget polish — error state + skeleton loading + S size (#210)
+79d9b98 feat(batch-109 PH-506): ClockWidget polish — XS size + a11y + prefix/seconds 分離 (#208)
+1b842f2 feat(PH-499): Workspace per-workspace 背景壁紙 + Library 共通 default (#206)
+9841cb8 feat(PH-500): WatchFolder Widget polish — empty/loading/error state + AppWindow icon + keyboard nav (#204)
+e0572b7 docs(PH-503a): Obsidian Canvas 仕様調査 + 取捨選択 (research-first) (#203)
+f1d9a96 feat(PH-501): はみ出し audit を warning → error 化 + 違反 4 件 fix + CI/lefthook 統合 (#202)
+04a4828 chore(batch-109): plan ID rename + 7 横断 plan 起票 + PH-503a research (#201)
+4dc860e chore(batch-107/108-phaseA): housekeeping — status: done + archive 移動 + log/queue 更新 (#200)
+281702c feat(PH-493): FileSearch — 検索バー sticky + ArrowUp/Down/Enter ナビ + IME 対応 (#196)
+c16c2cd chore(PH-491): audit-text-overflow.sh 追加 (warning 止まり、将来 error 化) (#194)
+f912d29 feat(PH-494 MVP): Obsidian Canvas 風 編集モード (dotted grid 強化 + 表示領域拡大) (#199)
+825e78a docs(batch-108/109/110 起票): Phase A 11 + Phase B 8 + Phase C 8 plan + 4 batch 構成 (#188)
+d5defec feat(PH-490b): WatchFolder Settings に Clear ボタン追加 (未設定状態に戻せる) (#198)
+56dd57e test(PH-490 回帰防止): ExeFolderWatch path 変更時 entries リセット E2E spec 追加 (#197)
+8633c1e feat(PH-488): タスク Widget 文字サイズ昇格 + 完了/未完了 ツリー分割 (#195)
+c156fbd fix(PH-489): scrollbar-gutter:stable を WidgetShell / LibrarySidebar / SettingsPanel に追加 (#193)
+14b4e00 fix(PH-490 + PH-492): ExeFolderWatchWidget — path 変更時 entries reset + race condition fix (#192)
+b43f5c6 feat(PH-496): ウィジット切替ボタン (編集モード) を左上固定 (#191)
+596e374 feat(PH-495): Settings からウィジェット拡大率 slider 削除 (#190)
+9982067 feat(PH-486): Widget 削除ボタンを少し目立たせる (#189)
+acda2fe fix(hotfix): ClockWidget 小サイズで縦/横スクロール出る問題 + WidgetShell overflow-x 封じ (#187)
+8855bb6 fix(hotfix): LibraryItemPicker dialog で LibraryCard 内容が潰れる問題 (#186)
+73b13c5 fix(batch-107 PH-479): App 全体 reactivity 監査 + sidebar 即時反映 + E2E + helper (#184)
+59c0c3e feat(batch-107 PH-472): Widget Move/Resize/Delete ハンドル普通化 (#176)
+f4666b2 feat(batch-107 PH-477): Widget Undo/Redo system (Ctrl+Z / Ctrl+Shift+Z) (#181)
+f269514 feat(batch-107 PH-478): Widget 編集 state 整理 (race-free + history clear) (#182)
+a783ddb docs(batch-107): Widget UX 全面改修 7 plan 起票 (PH-472〜478) (#175)
+```
+
+### Anchor
+
+- Goal A 達成点 `e36836c chore: batch-106 L3 plan アーカイブ + 完走記録 (Goal A 達成、v0.2.0 Go)`
+- exe size 11.97MB (LTO 適用済)
+- batch-106 までの implementation は維持 (Distribution Era infra: kill-switch / Telemetry / Crash backend)
+
+### 残 DB column (orphan、機能上害なし)
+
+- migration 018: `workspaces.wallpaper_path / wallpaper_opacity / wallpaper_blur` + `library_wallpaper_*` config keys
+- migration 019: `widget_item_settings` table
+
+migration は前進のみ、SQL revert はしない。新運用で再 migrate する時に rename / drop で整理。
+
+### 凍結対象 (削除でなく保留)
+
+- batch-107 (Widget UX 全面改修) plan 全 7 件
+- batch-108 Phase A (細部修正 round 2) plan 全 16 件
+- batch-109 Phase B (Widget core 改修) 横断 7 + per-widget 8 = 15 plan
+- batch-110 (Settings dialog polish) 8 plan
+- batch-111 (Industrial Yellow theme overhaul) 8 plan
+
+`docs/l3_phases/frozen/` ディレクトリへ移動、`status: frozen` ラベルで保留 (再評価 / 再採用は user-redo 順次着手の中で判断)。
+
+### 新運用へ
+
+`docs/dispatch-operation.md §11` で確定済の **「user-redo depth-first」** が今後の唯一の運用ルール:
+
+- 1 issue ずつ depth-first
+- 事実確認 → 横展開 → UX 本質 → plan 文書化 → user OK → 1 PR で fix → dev 目視 → user 検収
+- 並行禁止、user 検収のみが「治った」の定義
+- batch という単位は捨て、issue ごとに plan 1 本 = PR 1 本
+
+詳細は §11 + `docs/lessons.md` の retrospective を参照。
