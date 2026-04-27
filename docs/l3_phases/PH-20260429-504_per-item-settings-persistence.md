@@ -1,20 +1,28 @@
 ---
 id: PH-20260429-504
 title: Per-item settings persistence — widget_item_settings table (案 C、論理削除なし)
-status: todo
+status: done
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src-tauri/migrations/ (new migration)
+  - src-tauri/migrations/019_widget_item_settings.sql (new)
+  - src-tauri/src/db/migrations.rs
   - src-tauri/src/models/widget_item_settings.rs (new)
-  - src-tauri/src/repositories/widget_item_settings_repository.rs (new)
-  - src-tauri/src/services/widget_item_settings_service.rs (new)
-  - src-tauri/src/commands/widget_item_settings_commands.rs (new)
+  - src-tauri/src/models/mod.rs
+  - src-tauri/src/repositories/widget_item_settings_repository.rs (new、7 unit test)
+  - src-tauri/src/repositories/mod.rs
+  - src-tauri/src/services/widget_item_settings_service.rs (new、4 unit test)
+  - src-tauri/src/services/mod.rs
+  - src-tauri/src/commands/widget_item_settings_commands.rs (new、7 IPC commands)
+  - src-tauri/src/commands/mod.rs
+  - src-tauri/src/lib.rs (handler 登録)
   - src/lib/types/widget-item-settings.ts (new)
-  - src/lib/state/widget-item-settings.svelte.ts (new)
-  - src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte (settings lookup + merge)
-  - src/lib/widgets/exe-folder/ExeFolderSettings.svelte (orphan cleanup ボタン)
+  - src/lib/ipc/widget-item-settings.ts (new、7 IPC wrappers)
+  - src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte (settings lookup + merge + last_seen_at touch)
+  - src/lib/widgets/exe-folder/ExeFolderSettings.svelte (「過去設定をクリア」 button + min-w-0 audit fix)
+  - src/lib/components/arcagate/workspace/WidgetSettingsDialog.svelte (widgetId prop pass-through)
+  - tests/e2e/widget-item-settings.spec.ts (new)
 ---
 
 # PH-504: Per-item settings persistence
@@ -58,17 +66,17 @@ CREATE INDEX IF NOT EXISTS idx_widget_item_settings_last_seen ON widget_item_set
 
 ## 受け入れ条件
 
-- [ ] migration 1 本追加 (既存 schema に append)
-- [ ] Rust service: `get_settings(widget_id, item_key)` / `upsert_settings(widget_id, item_key, fields)` / `delete_settings(widget_id, item_key?)` / `prune_orphans(widget_id, expiry_days)`
-- [ ] Rust commands: 上記 service の wrapper IPC
-- [ ] TS types/store: `widgetItemSettingsStore`
-- [ ] **WatchFolder で entries 取得時に settings を lookup して merge** (entry display に opener/custom_label/custom_icon 反映)
-- [ ] **Unset / re-set シナリオで settings が persist** することを E2E で assert (path A → path B → path A 戻し → 旧 settings 復活)
-- [ ] **「過去設定をクリア」UI ボタン** (widget settings dialog 内、watch_path で active な widget で見える)
-- [ ] **論理削除なし** (`deleted_at` flag 不採用、user 直感通り)
-- [ ] **last_seen_at update**: entries scan のたびに見えた item は last_seen_at 更新 (orphan 判定用)
-- [ ] **opener / custom_label / custom_icon は本 plan では DB scheme のみ用意**、UI 編集は **PH-505 (opener registry)** で繋がる
-- [ ] before/after スクショ取得 (re-set で settings 復活 demo)
+- [x] migration 019 追加 (既存 schema に append)
+- [x] Rust service: get_settings / upsert_settings (partial update) / delete_settings / delete_all_for_widget / prune_orphans / touch_last_seen
+- [x] Rust commands: 7 IPC (get / list / upsert / delete / clear / prune / touch)
+- [x] TS types + IPC wrappers (`src/lib/types/widget-item-settings.ts` + `src/lib/ipc/widget-item-settings.ts`)
+- [x] **WatchFolder で entries 取得時に settings を lookup して merge** (`displayLabel(entry)` で custom_label を表示に反映)
+- [x] **Unset / re-set シナリオで settings が persist** — E2E `widget-item-settings.spec.ts` で widget config を空にしても settings が残ることを assert
+- [x] **「過去設定をクリア」UI ボタン** (ExeFolderSettings に `Eraser` icon ボタン、`cmd_clear_widget_item_settings` 呼び出し)
+- [x] **論理削除なし** (`deleted_at` flag 不採用、削除は物理 DELETE)
+- [x] **last_seen_at update**: scan 直後に visible item key を bulk `touch_last_seen` (transaction で N item を 1 lock)
+- [x] **opener / custom_label / custom_icon は DB scheme のみ用意** (custom_label のみ最小 UI 適用、opener は PH-505 で接続)
+- [ ] before/after スクショ取得 (CDP 自己検証は次回 main 反映後)
 
 ## 実装ステップ
 

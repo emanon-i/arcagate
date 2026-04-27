@@ -44,6 +44,11 @@ use commands::wallpaper_commands::{
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
+use commands::widget_item_settings_commands::{
+    cmd_clear_widget_item_settings, cmd_delete_widget_item_settings, cmd_get_widget_item_settings,
+    cmd_list_widget_item_settings, cmd_prune_widget_item_settings, cmd_touch_widget_item_settings,
+    cmd_upsert_widget_item_settings,
+};
 use commands::workspace_commands::{
     cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
     cmd_get_frequent_items, cmd_get_recent_items, cmd_git_status, cmd_list_widgets,
@@ -302,6 +307,14 @@ pub fn run() {
             cmd_clear_workspace_wallpaper,
             cmd_set_library_wallpaper,
             cmd_get_library_wallpaper,
+            // PH-504: Per-item settings persistence
+            cmd_get_widget_item_settings,
+            cmd_list_widget_item_settings,
+            cmd_upsert_widget_item_settings,
+            cmd_delete_widget_item_settings,
+            cmd_clear_widget_item_settings,
+            cmd_prune_widget_item_settings,
+            cmd_touch_widget_item_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
