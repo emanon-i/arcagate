@@ -1,4 +1,5 @@
 <script lang="ts">
+import { X } from '@lucide/svelte';
 import { open } from '@tauri-apps/plugin-dialog';
 
 interface Props {
@@ -15,6 +16,15 @@ let { config = $bindable() }: Props = $props();
 let watchPath = $derived(config.watch_path ?? '');
 let scanDepth = $derived(config.scan_depth ?? 2);
 let exeFolderTitle = $derived(config.title ?? '');
+
+// PH-490b: 監視 path を完全クリア (未設定状態に戻す)
+// path A → unset → path B の遷移をサポート、ウィジェットは「監視フォルダを設定してください」zero state に
+function clearWatchPath() {
+	const next = { ...config };
+	delete next.watch_path;
+	delete next.item_overrides; // path クリア時に override も clear (dead reference 排除)
+	config = next;
+}
 </script>
 
 <div class="space-y-1">
@@ -47,7 +57,24 @@ let exeFolderTitle = $derived(config.title ?? '');
 		>
 			参照
 		</button>
+		<!-- PH-490b: 未設定状態に戻す Clear button (path 設定済の時のみ表示) -->
+		{#if watchPath}
+			<button
+				type="button"
+				class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-2 text-[var(--ag-text-muted)] transition-colors hover:bg-destructive hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+				aria-label="監視フォルダをクリア"
+				title="監視フォルダをクリア (未設定状態に戻す)"
+				onclick={clearWatchPath}
+			>
+				<X class="h-4 w-4" />
+			</button>
+		{/if}
 	</div>
+	{#if watchPath}
+		<p class="text-ag-xs text-[var(--ag-text-muted)]">
+			クリアボタンで未設定状態に戻せます (widget 内容も即リセット)
+		</p>
+	{/if}
 </div>
 <div class="space-y-1">
 	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-scan-depth">スキャン階層 (1〜3)</label>
