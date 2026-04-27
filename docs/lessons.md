@@ -738,13 +738,20 @@ page: async ({ sharedBrowser }, use) => {
 
 ---
 
-## scheduled-task fireAt 不発の事実 (batch-105)
+## scheduled-task fireAt 不発の事実 (batch-105 → batch-106 で 2 連続失敗確認)
 
-- **問題**: `mcp__scheduled-tasks__create_scheduled_task` で fireAt 指定の one-shot task が、fireAt 過ぎても発火しないケース確認 (resume 11 が 07:28 UTC fireAt → 1h+ 経過しても lastRunAt 空、発火失敗)
+- **観測データ**:
+  - resume 9 (02:02 UTC、user active): fired ✅
+  - resume 10 (06:10 UTC、user active): fired ✅
+  - resume 11 (07:28 UTC、user idle 想定): **NOT fired** ❌ (1h+ 経過、lastRunAt 空)
+  - resume 12 (09:26 UTC、user active で +60s 短縮で挑戦): **NOT fired** ❌ (2 分 18 秒経過、lastRunAt 空)
+- **2 連続不発 = 信頼性問題ほぼ確定**。+60s 短縮 + user active でも fire せず
 - **再発防止**:
   1. **報告前に事実確認**: `date -u` で現在時刻を取得してから「発火済 / 未発火」判定する。「予定通り」「もうすぐ」と推測で答えない
-  2. **fireAt 1.5x 経過しても lastRunAt 空** = 発火失敗確定。即 disable + 削除して再投入
-  3. **次世代が必要なら別手段**: scheduled-task fireAt の信頼性が確認できるまで、context 限界対策は「resume 11 起動して退場」より「自セッションで実装続行」が安全
-- **代替手段**: 大きなタスクは scheduled-task fireAt に頼らず、自セッションで分割して PR 出す。長時間 monitor が必要なら cron task (recurring) で代用
-- **未解明**: fireAt 不発の原因 (Claude Desktop アプリ起動状態 / fireAt format / time zone) は調査が必要、別 plan で
-- **参照**: spawn-on-pressure 運用見直し (batch-105 PH-469 候補)
+  2. **fireAt 1.5x 経過しても lastRunAt 空** = 発火失敗確定。即 disable
+  3. **spawn-on-pressure は default 無効化** (batch-106 以降): scheduled-task fireAt の信頼性が確認できるまで、context 限界対策は「自セッションで分割実装」を default に
+- **代替手段**:
+  - 大きなタスクは fireAt に頼らず、自セッションで分割して PR 出す
+  - 長時間 monitor は cron task (recurring) で代用 (auto-kick が実証済)
+- **未解明**: fireAt 不発の原因 (Claude Desktop active session の必要性 / fireAt format / time zone / dispatch backend) は PH-471 (batch-106) で実機テスト
+- **参照**: PH-471 + dispatch-operation §10 更新予定
