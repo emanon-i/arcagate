@@ -207,22 +207,40 @@ function confirmRename(name: string) {
 	renameOpen = false;
 }
 
-function startEdit() {
-	editMode = true;
-	selectedWidgetId = null;
-	editSnapshot = workspaceStore.widgets.map((w) => ({
-		id: w.id,
-		x: w.position_x,
-		y: w.position_y,
-		w: w.width,
-		h: w.height,
-	}));
+// PH-478: edit session の race condition 防止フラグ
+// (start ↔ cancel/confirm の async 跨ぎで snapshot が混ざる問題を排除)
+let editTransitioning = $state(false);
+
+async function startEdit() {
+	if (editTransitioning) return;
+	editTransitioning = true;
+	try {
+		// PH-478: 前 session の cleanup が終わるまで sync 化、最新 widgets 取得
+		if (workspaceStore.activeWorkspaceId) {
+			await workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
+		}
+		// PH-477+478: history clear で過去 session の undo を断ち切る (再編集で前 draft 残らない)
+		workspaceHistory.clear();
+		editMode = true;
+		selectedWidgetId = null;
+		editSnapshot = workspaceStore.widgets.map((w) => ({
+			id: w.id,
+			x: w.position_x,
+			y: w.position_y,
+			w: w.width,
+			h: w.height,
+		}));
+	} finally {
+		editTransitioning = false;
+	}
 }
 
 function confirmEdit() {
 	editMode = false;
 	selectedWidgetId = null;
 	editSnapshot = [];
+	// PH-478: confirm 後も history は session 跨ぎで残さない (clarity 優先)
+	workspaceHistory.clear();
 }
 
 function hasUnsavedChanges(): boolean {
@@ -250,21 +268,35 @@ function hasUnsavedChanges(): boolean {
 
 let cancelConfirmOpen = $state(false);
 
-function cancelEdit() {
+async function cancelEdit() {
+	if (editTransitioning) return;
 	if (hasUnsavedChanges()) {
 		cancelConfirmOpen = true;
 		return;
 	}
-	editMode = false;
-	selectedWidgetId = null;
-	void doRestoreSnapshot();
+	editTransitioning = true;
+	try {
+		editMode = false;
+		selectedWidgetId = null;
+		await doRestoreSnapshot();
+		workspaceHistory.clear(); // PH-478: cancel 後の history を消去
+	} finally {
+		editTransitioning = false;
+	}
 }
 
-function confirmCancel() {
+async function confirmCancel() {
+	if (editTransitioning) return;
 	cancelConfirmOpen = false;
-	editMode = false;
-	selectedWidgetId = null;
-	void doRestoreSnapshot();
+	editTransitioning = true;
+	try {
+		editMode = false;
+		selectedWidgetId = null;
+		await doRestoreSnapshot();
+		workspaceHistory.clear();
+	} finally {
+		editTransitioning = false;
+	}
 }
 
 function dismissCancel() {
