@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Eye, EyeOff, HelpCircle, X } from '@lucide/svelte';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { onDestroy } from 'svelte';
@@ -25,6 +26,11 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { startUpdaterAutoCheck } from '$lib/state/updater.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
+
+// PH-499: Library 共通 背景壁紙 (path / opacity / blur) を CSS background-image で適用
+let wallpaperUrl = $derived(
+	configStore.wallpaper.path ? convertFileSrc(configStore.wallpaper.path) : '',
+);
 
 type ActiveView = 'library' | 'workspace';
 
@@ -211,8 +217,25 @@ function handleFormClose() {
 	</div>
 {/if}
 
-<!-- メインレイアウト -->
-<div class="flex h-screen flex-col bg-[var(--ag-surface-0)]">
+<!-- PH-499: 背景壁紙レイヤー (Library + Workspace 共通、Settings > 外観 > 背景壁紙)
+	アプリ全体の背景に固定配置、TitleBar / 各 layout は半透明な surface 色で透け感を出す。 -->
+{#if wallpaperUrl}
+	<div
+		class="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat motion-reduce:transition-none"
+		style="background-image: url('{wallpaperUrl}'); opacity: {configStore.wallpaper.opacity}; filter: blur({configStore.wallpaper.blur}px);"
+		aria-hidden="true"
+		data-testid="app-wallpaper-layer"
+	></div>
+{/if}
+
+<!-- メインレイアウト
+	PH-499: 壁紙設定時は背景透過 → 背後の wallpaper layer が透ける。
+	未設定時は surface-0 を維持 (既存挙動を変えない)。 -->
+<div
+	class="relative z-10 flex h-screen flex-col {wallpaperUrl
+		? 'bg-transparent'
+		: 'bg-[var(--ag-surface-0)]'}"
+>
 	<TitleBar>
 		{#snippet leftSlot()}
 			<TitleAction

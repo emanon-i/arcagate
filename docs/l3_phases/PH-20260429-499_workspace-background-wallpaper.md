@@ -1,19 +1,29 @@
 ---
 id: PH-20260429-499
-title: Workspace per-workspace 背景壁紙 + Library 共通設定
-status: todo
+title: Library 共通 背景壁紙 + (per-workspace は follow-up)
+status: wip
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
+scope_reduction_note: |
+  本 PR は **Library 共通 (Library + Workspace 全画面共通) の背景壁紙のみ** を実装。
+  per-workspace 別上書き は workspaces table への migration + WorkspaceSettingsDialog UI が必要なため
+  follow-up plan (PH-499b) で対応する。
+  最小スコープにすることで PR 当たりのレビュー負荷を抑え、まず user に体感価値を届ける。
 scope_files:
-  - src-tauri/migrations/ (new migration)
-  - src-tauri/src/models/workspace.rs
-  - src-tauri/src/repositories/workspace_repository.rs
-  - src-tauri/src/commands/workspace_commands.rs
-  - src/lib/types/workspace.ts
-  - src/lib/state/workspace.svelte.ts
-  - src/lib/components/arcagate/workspace/WorkspaceLayout.svelte
-  - src/lib/components/settings/AppearanceSettings.svelte (new section: 背景画像)
+  - src-tauri/Cargo.toml (tempfile dev-dep 追加)
+  - src-tauri/src/services/wallpaper_service.rs (new)
+  - src-tauri/src/services/mod.rs
+  - src-tauri/src/commands/wallpaper_commands.rs (new)
+  - src-tauri/src/commands/mod.rs
+  - src-tauri/src/lib.rs (invoke_handler 登録)
+  - src-tauri/tauri.conf.json (assetProtocol scope に wallpapers/** 追加)
+  - src/lib/ipc/wallpaper.ts (new)
+  - src/lib/state/config.svelte.ts (wallpaper state + load/save)
+  - src/lib/components/settings/WallpaperSettings.svelte (new)
+  - src/lib/components/settings/SettingsPanel.svelte (appearance タブにマウント)
+  - src/routes/+page.svelte (wallpaper layer + 透過処理)
+  - tests/e2e/wallpaper-settings.spec.ts (new)
 ---
 
 # PH-499: Workspace per-workspace 背景壁紙 + Library 共通設定

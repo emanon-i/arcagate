@@ -45,6 +45,9 @@ shell-words = "1"
 tauri-plugin-updater = "2"
 ureq = { version = "2.10", default-features = false, features = ["tls", "json"] }
 
+[dev-dependencies]
+tempfile = "3"
+
 # PH-476: Windows 11 Mica / 10 Acrylic backdrop (透明 window 視認性確保)
 [target.'cfg(target_os = "windows")'.dependencies]
 window-vibrancy = "0.6"

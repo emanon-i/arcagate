@@ -12,6 +12,7 @@ import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import PrivacySettings from './PrivacySettings.svelte';
 import UpdaterSettings from './UpdaterSettings.svelte';
+import WallpaperSettings from './WallpaperSettings.svelte';
 import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
 // PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
@@ -239,12 +240,13 @@ function handleNavKeydown(e: KeyboardEvent) {
 					id="settings-panel-appearance"
 					role="tabpanel"
 					aria-labelledby="tab-appearance"
-					class="space-y-4 px-6 py-5"
+					class="space-y-6 px-6 py-5"
 				>
 					<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 						外観
 					</h3>
-					<div>
+					<WallpaperSettings />
+					<div class="border-t border-[var(--ag-border)] pt-5">
 						<div class="mb-3 flex items-center justify-between">
 							<p class="text-sm font-medium text-[var(--ag-text-primary)]">テーマ</p>
 							<button

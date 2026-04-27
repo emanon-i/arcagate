@@ -43,7 +43,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/icons/**"]
+        "scope": ["$APPDATA/icons/**", "$APPDATA/wallpapers/**"]
       }
     }
   },
