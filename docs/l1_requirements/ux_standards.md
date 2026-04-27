@@ -283,8 +283,19 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 **必須要素**:
 
 - ヘッダ: ウィジェットタイプ名（アイコン + テキスト）
-- 編集モード時: 設定ボタン（⚙）+ 削除ボタン（🗑）が可視
+- 設定ボタン（⚙）: 各 widget 内 menu (kebab / WidgetShell `menuItems`) からアクセス
 - コンテンツ: スクロール可能（overflow-auto）、高さ fill-available
+
+**編集モード時の grid-level 操作 UI** (PH-issue-001 で確定、§13 に詳細):
+
+- 編集モード ON で **selection** state を導入
+- 非選択 widget: 通常表示、handle / ring 一切なし
+- 選択 widget のみ:
+  - selection ring: `ring-2 ring-[var(--ag-accent)]`
+  - 上端 drag bar (Notion 風 floating chip)
+  - 右上 × button (shadcn ghost-icon、hover で `bg-destructive`)
+  - 8 方向 resize handles (corner chip + edge strip)
+- Delete / Backspace キー: 選択 widget で削除確認 dialog (入力欄 focus 中は無効)
 
 **状態**:
 
@@ -514,35 +525,50 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 
 実装: `WorkspaceLayout.svelte` の workspaceContainer に `pointerdown/move/up` ハンドラ + `setPointerCapture`。`page.mouse` 直接呼びは禁止（lessons.md batch-16）。
 
-### ウィジェットリサイズハンドル（段階実装中）
+### ウィジェットリサイズハンドル（PH-issue-001 で完成）
 
-batch-70 時点:
+選択 widget のみ表示 (非選択 widget には出ない、P11 装飾は対象を邪魔しない)。
+
+**8 方向 完成 (n/s/e/w + 4 corner)**:
 
 | ハンドル         | cursor      | 軸          | aria-label                   |
 | ---------------- | ----------- | ----------- | ---------------------------- |
-| e (右端中央)     | ew-resize   | width のみ  | ウィジェットの幅を変更       |
-| s (下端中央)     | ns-resize   | height のみ | ウィジェットの高さを変更     |
+| n (上辺)         | ns-resize   | height のみ | ウィジェットの上辺を変更     |
+| s (下辺)         | ns-resize   | height のみ | ウィジェットの高さを変更     |
+| e (右辺)         | ew-resize   | width のみ  | ウィジェットの幅を変更       |
+| w (左辺)         | ew-resize   | width のみ  | ウィジェットの左辺を変更     |
+| nw (左上 corner) | nwse-resize | 両軸        | ウィジェットの左上を変更     |
+| ne (右上 corner) | nesw-resize | 両軸        | ウィジェットの右上を変更     |
+| sw (左下 corner) | nesw-resize | 両軸        | ウィジェットの左下を変更     |
 | se (右下 corner) | nwse-resize | 両軸        | ウィジェットの幅と高さを変更 |
 
-将来 (batch-71+):
+実装: `src/lib/components/arcagate/workspace/WidgetHandles.svelte` (PH-issue-001 で新設)。
+edge は細いストリップ (1.5px、hover で半透明 accent)、corner は 12×12 chip (hover で scale-125 + accent border)。
 
-- workspaceStore に `optimisticMoveAndResize()` を追加し、n/w/nw/ne/sw 4 ハンドルを完成（position 同期必要）
-- visual regression baseline 追加
+### ウィジェット削除 / 選択 / 移動
 
-### ウィジェット削除 / 選択
+- 編集モード ON で **selection** state を導入
+- widget click → 選択 (selectedWidgetId 更新)
+- canvas (空白) click → 選択解除
+- 選択 widget のみ:
+  - selection ring (`ring-2 ring-[var(--ag-accent)]`)
+  - 上端 drag bar (Notion 風 floating chip、`-top-3 left-1/2`、cursor-grab、`GripHorizontal` icon)
+  - 右上 × button (`-right-3 -top-3 floating`、shadcn ghost-icon、hover で `bg-destructive` + white text、`X` icon)
+  - 8 方向 resize handles
+- 削除動線:
+  - **Delete / Backspace キー**: 入力欄 focus 中は無効、削除確認 dialog 経由
+  - **× button click**: 同経路
+  - 削除確認 dialog は batch-16 の getByRole('dialog') パターン踏襲
 
-- 編集モード時、選択 widget で **Delete / Backspace キー** → 削除確認ダイアログ
-- 入力欄 focus 中は無効
-- Trash2 ボタン (右上) も同経路
-- 削除確認ダイアログは batch-16 の getByRole('dialog') パターン踏襲
+### ❌ 過去採用していて棄却した実装パターン (再発防止)
 
-### ホバー toolbar (TBD)
+| パターン                                                                | 棄却理由                                   | 引用元                          |
+| ----------------------------------------------------------------------- | ------------------------------------------ | ------------------------------- |
+| 編集モード ON 時に **全 widget で常時可視 chip handle + delete button** | P11 装飾は対象を邪魔しない違反、認知ノイズ | `desktop_ui_ux_agent_rules` P11 |
+| **`rounded-full bg-destructive/80` 派手丸**の delete button             | 「過度に派手 NG」「よく磨かれた工具」違反  | `arcagate-visual-language.md`   |
+| 選択状態を **box-shadow inline style で margin 表現**、ring なし        | 選択状態が認識困難、§6-1 規格違反          | `ux_standards §6-1`             |
 
-batch-71 で実装予定:
-
-- 選択 widget のホバー時に右上 toolbar (Settings2 + Trash2)
-- aria-label は機能ベース（ラベル原則準拠）
-- 本体 cursor: grab / grabbing
+これらは PH-issue-001 で全廃。`scripts/audit-handle-style.sh` で再発を機械検出。
 
 ---
 
