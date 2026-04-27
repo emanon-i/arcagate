@@ -240,31 +240,38 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 	if (!target) return;
 	error = null;
 
-	// Check for overlap at target position
+	// PH-473: 重なる場合は配置を**拒否**（旧 findFreePosition 自動移動は予測不能 UX）
 	const othersWithout = widgets.filter((w) => w.id !== id);
-	const finalPos = isOverlapping(x, y, target.width, target.height, othersWithout)
-		? findFreePosition(othersWithout, target.width, target.height)
-		: { x, y };
+	if (isOverlapping(x, y, target.width, target.height, othersWithout)) {
+		error = '他のウィジェットと重なるため配置できません';
+		return;
+	}
 
-	// Optimistic local update
-	widgets = widgets.map((w) =>
-		w.id === id ? { ...w, position_x: finalPos.x, position_y: finalPos.y } : w,
-	);
+	widgets = widgets.map((w) => (w.id === id ? { ...w, position_x: x, position_y: y } : w));
 	try {
-		await workspaceIpc.updateWidgetPosition(
-			id,
-			finalPos.x,
-			finalPos.y,
-			target.width,
-			target.height,
-		);
+		await workspaceIpc.updateWidgetPosition(id, x, y, target.width, target.height);
 	} catch (e) {
 		error = getErrorMessage(e);
-		// Rollback
 		widgets = widgets.map((w) =>
 			w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
 		);
 	}
+}
+
+/**
+ * PH-473 helper: 指定座標 (x,y) が他のウィジェットと重なるかをチェック。
+ * 移動 / drop preview の衝突判定で使用。
+ */
+function wouldOverlapAt(id: string, x: number, y: number): boolean {
+	const target = widgets.find((w) => w.id === id);
+	if (!target) return false;
+	const others = widgets.filter((w) => w.id !== id);
+	return isOverlapping(x, y, target.width, target.height, others);
+}
+
+/** PH-473: cell に既存 widget があるかどうか (drop preview 用) */
+function isCellOccupied(x: number, y: number, w = 1, h = 1): boolean {
+	return isOverlapping(x, y, w, h, widgets);
 }
 
 function optimisticResize(id: string, width: number, height: number): void {
@@ -336,4 +343,6 @@ export const workspaceStore = {
 	optimisticMoveAndResize,
 	persistMoveAndResize,
 	findFreePosition,
+	wouldOverlapAt,
+	isCellOccupied,
 };
