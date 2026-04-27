@@ -591,4 +591,101 @@ mod tests {
             "should return InvalidInput for non-directory"
         );
     }
+
+    // PH-444 (batch-101): bulk tag operations のテスト
+    #[test]
+    fn test_bulk_add_tag_creates_links() {
+        let db = initialize_in_memory();
+        ensure_system_tags(&db).unwrap();
+
+        let mut ids = Vec::new();
+        for i in 0..5 {
+            let item = create_item(&db, make_input(ItemType::Url, &format!("item-{}", i))).unwrap();
+            ids.push(item.id);
+        }
+
+        let count = bulk_add_tag(&db, ids.clone(), "sys-starred".to_string()).unwrap();
+        assert_eq!(count, 5);
+
+        // 全件で tag 取得できることを確認
+        for id in &ids {
+            let tags = get_item_tags(&db, id).unwrap();
+            assert!(
+                tags.iter().any(|t| t.id == "sys-starred"),
+                "item {} should have sys-starred tag",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_bulk_add_tag_empty_returns_zero() {
+        let db = initialize_in_memory();
+        let count = bulk_add_tag(&db, vec![], "sys-starred".to_string()).unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_bulk_add_tag_over_limit_returns_invalid_input() {
+        let db = initialize_in_memory();
+        let ids: Vec<String> = (0..1001).map(|i| format!("id-{}", i)).collect();
+        let result = bulk_add_tag(&db, ids, "sys-starred".to_string());
+        assert!(matches!(result, Err(AppError::InvalidInput(_))));
+    }
+
+    #[test]
+    fn test_bulk_remove_tag_removes_links() {
+        let db = initialize_in_memory();
+        ensure_system_tags(&db).unwrap();
+
+        let mut ids = Vec::new();
+        for i in 0..3 {
+            let item = create_item(&db, make_input(ItemType::Url, &format!("rm-{}", i))).unwrap();
+            ids.push(item.id);
+        }
+        bulk_add_tag(&db, ids.clone(), "sys-starred".to_string()).unwrap();
+
+        let count = bulk_remove_tag(&db, ids.clone(), "sys-starred".to_string()).unwrap();
+        assert_eq!(count, 3);
+
+        for id in &ids {
+            let tags = get_item_tags(&db, id).unwrap();
+            assert!(
+                !tags.iter().any(|t| t.id == "sys-starred"),
+                "item {} should NOT have sys-starred tag",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_bulk_delete_items_removes_all() {
+        let db = initialize_in_memory();
+        ensure_system_tags(&db).unwrap();
+
+        let mut ids = Vec::new();
+        for i in 0..4 {
+            let item = create_item(&db, make_input(ItemType::Url, &format!("del-{}", i))).unwrap();
+            ids.push(item.id);
+        }
+
+        let count = bulk_delete_items(&db, ids.clone()).unwrap();
+        assert_eq!(count, 4);
+
+        let remaining = list_items(&db).unwrap();
+        for id in &ids {
+            assert!(
+                !remaining.iter().any(|i| i.id == *id),
+                "item {} should be deleted",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_bulk_delete_empty_returns_zero() {
+        let db = initialize_in_memory();
+        let count = bulk_delete_items(&db, vec![]).unwrap();
+        assert_eq!(count, 0);
+    }
 }
