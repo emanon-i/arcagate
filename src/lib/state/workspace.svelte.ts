@@ -1,6 +1,7 @@
 import * as workspaceIpc from '$lib/ipc/workspace';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { workspaceHistory } from './workspace-history.svelte';
 
 let workspaces = $state<Workspace[]>([]);
 let activeWorkspaceId = $state<string | null>(null);
@@ -174,6 +175,15 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 		widget.position_x = x;
 		widget.position_y = y;
 		widgets = [...widgets, widget];
+		// PH-477: history 記録
+		workspaceHistory.record({
+			kind: 'add',
+			workspaceId: activeWorkspaceId,
+			widgetId: widget.id,
+			widgetType,
+			rect: { x, y, w: widget.width, h: widget.height },
+			config: widget.config ?? null,
+		});
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -184,9 +194,27 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 async function removeWidget(id: string): Promise<void> {
 	loading = true;
 	error = null;
+	const target = widgets.find((w) => w.id === id);
+	const wsId = activeWorkspaceId;
 	try {
 		await workspaceIpc.removeWidget(id);
 		widgets = widgets.filter((w) => w.id !== id);
+		// PH-477: history 記録 (undo で復元できるよう snapshot を取る)
+		if (target && wsId) {
+			workspaceHistory.record({
+				kind: 'remove',
+				workspaceId: wsId,
+				widgetId: id,
+				widgetType: target.widget_type as WidgetType,
+				rect: {
+					x: target.position_x,
+					y: target.position_y,
+					w: target.width,
+					h: target.height,
+				},
+				config: target.config ?? null,
+			});
+		}
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -208,10 +236,16 @@ async function persistWidgetOrder(orderedWidgets: WorkspaceWidget[]): Promise<vo
 }
 
 async function updateWidgetConfig(id: string, config: string | null): Promise<void> {
+	const target = widgets.find((w) => w.id === id);
+	const before = target?.config ?? null;
 	try {
 		error = null;
 		const updated = await workspaceIpc.updateWidgetConfig(id, config);
 		widgets = widgets.map((w) => (w.id === id ? updated : w));
+		// PH-477: config 変更を history に積む (idempotent な変更はスキップ)
+		if (before !== config) {
+			workspaceHistory.record({ kind: 'config', widgetId: id, before, after: config });
+		}
 	} catch (e) {
 		error = getErrorMessage(e);
 	}
@@ -240,31 +274,48 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 	if (!target) return;
 	error = null;
 
-	// Check for overlap at target position
+	// PH-473: 重なる場合は配置を**拒否**（旧 findFreePosition 自動移動は予測不能 UX）
 	const othersWithout = widgets.filter((w) => w.id !== id);
-	const finalPos = isOverlapping(x, y, target.width, target.height, othersWithout)
-		? findFreePosition(othersWithout, target.width, target.height)
-		: { x, y };
+	if (isOverlapping(x, y, target.width, target.height, othersWithout)) {
+		error = '他のウィジェットと重なるため配置できません';
+		return;
+	}
 
-	// Optimistic local update
-	widgets = widgets.map((w) =>
-		w.id === id ? { ...w, position_x: finalPos.x, position_y: finalPos.y } : w,
-	);
+	const before = { x: target.position_x, y: target.position_y, w: target.width, h: target.height };
+	widgets = widgets.map((w) => (w.id === id ? { ...w, position_x: x, position_y: y } : w));
 	try {
-		await workspaceIpc.updateWidgetPosition(
-			id,
-			finalPos.x,
-			finalPos.y,
-			target.width,
-			target.height,
-		);
+		await workspaceIpc.updateWidgetPosition(id, x, y, target.width, target.height);
+		// PH-477: history record (位置変化があった場合のみ)
+		if (before.x !== x || before.y !== y) {
+			workspaceHistory.record({
+				kind: 'move',
+				widgetId: id,
+				before,
+				after: { x, y, w: target.width, h: target.height },
+			});
+		}
 	} catch (e) {
 		error = getErrorMessage(e);
-		// Rollback
 		widgets = widgets.map((w) =>
 			w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
 		);
 	}
+}
+
+/**
+ * PH-473 helper: 指定座標 (x,y) が他のウィジェットと重なるかをチェック。
+ * 移動 / drop preview の衝突判定で使用。
+ */
+function wouldOverlapAt(id: string, x: number, y: number): boolean {
+	const target = widgets.find((w) => w.id === id);
+	if (!target) return false;
+	const others = widgets.filter((w) => w.id !== id);
+	return isOverlapping(x, y, target.width, target.height, others);
+}
+
+/** PH-473: cell に既存 widget があるかどうか (drop preview 用) */
+function isCellOccupied(x: number, y: number, w = 1, h = 1): boolean {
+	return isOverlapping(x, y, w, h, widgets);
 }
 
 function optimisticResize(id: string, width: number, height: number): void {
@@ -290,8 +341,41 @@ async function persistMoveAndResize(
 	width: number,
 	height: number,
 ): Promise<void> {
+	const target = widgets.find((w) => w.id === id);
+	// before snapshot は target が optimistic 更新済みのため、
+	// move/resize の history では呼び出し元で beforeSnap を別途 capture すること。
+	// ここでは IPC 永続のみ。
 	try {
 		await workspaceIpc.updateWidgetPosition(id, x, y, width, height);
+	} catch (e) {
+		error = getErrorMessage(e);
+		if (activeWorkspaceId) {
+			await loadWidgets(activeWorkspaceId);
+		}
+	}
+	void target; // 未使用警告抑制
+}
+
+/**
+ * PH-477: history 記録付きの move/resize commit。
+ * before snapshot を呼び出し側で渡し、確定後に history に積む。
+ */
+async function commitMoveAndResize(
+	id: string,
+	before: { x: number; y: number; w: number; h: number },
+	after: { x: number; y: number; w: number; h: number },
+	kind: 'move' | 'resize' = 'move',
+): Promise<void> {
+	try {
+		await workspaceIpc.updateWidgetPosition(id, after.x, after.y, after.w, after.h);
+		if (
+			before.x !== after.x ||
+			before.y !== after.y ||
+			before.w !== after.w ||
+			before.h !== after.h
+		) {
+			workspaceHistory.record({ kind, widgetId: id, before, after });
+		}
 	} catch (e) {
 		error = getErrorMessage(e);
 		if (activeWorkspaceId) {
@@ -335,5 +419,8 @@ export const workspaceStore = {
 	optimisticResize,
 	optimisticMoveAndResize,
 	persistMoveAndResize,
+	commitMoveAndResize,
 	findFreePosition,
+	wouldOverlapAt,
+	isCellOccupied,
 };

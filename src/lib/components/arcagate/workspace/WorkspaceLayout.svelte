@@ -1,5 +1,5 @@
 <script lang="ts">
-import { LayoutGrid } from '@lucide/svelte';
+import { Crop, LayoutGrid } from '@lucide/svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -9,6 +9,7 @@ import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
@@ -144,6 +145,39 @@ $effect(() => {
 	return () => window.removeEventListener('keydown', onKeyDown);
 });
 
+// PH-477: Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y) で widget 操作 undo/redo
+$effect(() => {
+	async function reload() {
+		if (workspaceStore.activeWorkspaceId) {
+			await workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
+		}
+	}
+	function onKeyDown(e: KeyboardEvent) {
+		if (!editMode) return;
+		const target = e.target as HTMLElement | null;
+		if (
+			target?.tagName === 'INPUT' ||
+			target?.tagName === 'TEXTAREA' ||
+			target?.isContentEditable
+		) {
+			return;
+		}
+		const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
+		const isRedo =
+			(e.ctrlKey || e.metaKey) &&
+			((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y');
+		if (isUndo) {
+			e.preventDefault();
+			void workspaceHistory.undo(reload);
+		} else if (isRedo) {
+			e.preventDefault();
+			void workspaceHistory.redo(reload);
+		}
+	}
+	window.addEventListener('keydown', onKeyDown);
+	return () => window.removeEventListener('keydown', onKeyDown);
+});
+
 // ウィジェットが占める最大列数（ウィンドウが狭くなっても下回らせない）
 let minGridCols = $derived(
 	workspaceStore.widgets.length > 0
@@ -173,22 +207,40 @@ function confirmRename(name: string) {
 	renameOpen = false;
 }
 
-function startEdit() {
-	editMode = true;
-	selectedWidgetId = null;
-	editSnapshot = workspaceStore.widgets.map((w) => ({
-		id: w.id,
-		x: w.position_x,
-		y: w.position_y,
-		w: w.width,
-		h: w.height,
-	}));
+// PH-478: edit session の race condition 防止フラグ
+// (start ↔ cancel/confirm の async 跨ぎで snapshot が混ざる問題を排除)
+let editTransitioning = $state(false);
+
+async function startEdit() {
+	if (editTransitioning) return;
+	editTransitioning = true;
+	try {
+		// PH-478: 前 session の cleanup が終わるまで sync 化、最新 widgets 取得
+		if (workspaceStore.activeWorkspaceId) {
+			await workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
+		}
+		// PH-477+478: history clear で過去 session の undo を断ち切る (再編集で前 draft 残らない)
+		workspaceHistory.clear();
+		editMode = true;
+		selectedWidgetId = null;
+		editSnapshot = workspaceStore.widgets.map((w) => ({
+			id: w.id,
+			x: w.position_x,
+			y: w.position_y,
+			w: w.width,
+			h: w.height,
+		}));
+	} finally {
+		editTransitioning = false;
+	}
 }
 
 function confirmEdit() {
 	editMode = false;
 	selectedWidgetId = null;
 	editSnapshot = [];
+	// PH-478: confirm 後も history は session 跨ぎで残さない (clarity 優先)
+	workspaceHistory.clear();
 }
 
 function hasUnsavedChanges(): boolean {
@@ -216,21 +268,35 @@ function hasUnsavedChanges(): boolean {
 
 let cancelConfirmOpen = $state(false);
 
-function cancelEdit() {
+async function cancelEdit() {
+	if (editTransitioning) return;
 	if (hasUnsavedChanges()) {
 		cancelConfirmOpen = true;
 		return;
 	}
-	editMode = false;
-	selectedWidgetId = null;
-	void doRestoreSnapshot();
+	editTransitioning = true;
+	try {
+		editMode = false;
+		selectedWidgetId = null;
+		await doRestoreSnapshot();
+		workspaceHistory.clear(); // PH-478: cancel 後の history を消去
+	} finally {
+		editTransitioning = false;
+	}
 }
 
-function confirmCancel() {
+async function confirmCancel() {
+	if (editTransitioning) return;
 	cancelConfirmOpen = false;
-	editMode = false;
-	selectedWidgetId = null;
-	void doRestoreSnapshot();
+	editTransitioning = true;
+	try {
+		editMode = false;
+		selectedWidgetId = null;
+		await doRestoreSnapshot();
+		workspaceHistory.clear();
+	} finally {
+		editTransitioning = false;
+	}
 }
 
 function dismissCancel() {
@@ -265,7 +331,26 @@ function handleItemContext(itemId: string) {
 	contextItemId = itemId;
 }
 
-let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
+// PH-473: 配置余地確保のため最低 maxRow を 8 に拡張、widgets が増えても +4 行の余白を保つ
+let maxRow = $derived(
+	Math.max(8, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
+);
+
+// PH-473: bounding box にスクロール (Crop ボタン用)
+function cropToWidgets() {
+	const el = workspaceContainer;
+	const ws = workspaceStore.widgets;
+	if (!el || ws.length === 0) return;
+	const cellW = zoom.widgetW + 16;
+	const cellH = zoom.widgetH + 16;
+	const minX = Math.min(...ws.map((w) => w.position_x));
+	const minY = Math.min(...ws.map((w) => w.position_y));
+	el.scrollTo({
+		left: Math.max(0, minX * cellW - 24),
+		top: Math.max(0, minY * cellH - 24),
+		behavior: 'smooth',
+	});
+}
 </script>
 
 <svelte:window
@@ -352,7 +437,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 				{#if editMode}
 					<div class="mb-4">
 						<Tip tone="accent" tipId="workspace-edit-guide">
-							クリックで選択、ドラッグで移動、右下のハンドルでリサイズ、ゴミ箱で削除できます。
+							クリックで選択、上端のバーで移動、四隅のハンドルでリサイズ、× で削除。
 						</Tip>
 					</div>
 
@@ -410,6 +495,19 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		</div>
 	</div>
 </div>
+
+<!-- PH-473: Crop to widgets ボタン (workspace 右下 floating, 編集モード時のみ) -->
+{#if workspaceStore.widgets.length > 0}
+	<button
+		type="button"
+		class="absolute bottom-6 right-6 z-30 flex h-10 items-center gap-2 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface)] px-4 text-sm text-[var(--ag-text-secondary)] shadow-md transition-colors hover:bg-[var(--ag-surface-3)]"
+		aria-label="ウィジェットに合わせてスクロール"
+		onclick={cropToWidgets}
+	>
+		<Crop class="h-4 w-4" />
+		<span>表示を合わせる</span>
+	</button>
+{/if}
 
 <WorkspaceDeleteConfirmDialog
 	widgetId={deleteConfirmId}

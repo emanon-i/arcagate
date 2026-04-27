@@ -111,9 +111,9 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title || 'システムモニタ'} icon={Activity} {menuItems}>
 	{#if !stats}
-		<p class="text-xs text-[var(--ag-text-muted)]">取得中...</p>
+		<p class="text-ag-xs text-[var(--ag-text-muted)]">取得中...</p>
 	{:else}
-		<div class="space-y-2 text-xs">
+		<div class="space-y-2 text-ag-xs">
 			{#if showCpu}
 				<div class="space-y-0.5">
 					<div class="flex items-baseline justify-between text-[var(--ag-text-primary)]">

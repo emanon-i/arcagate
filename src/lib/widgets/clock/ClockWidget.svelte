@@ -70,7 +70,7 @@ let menuItems = $derived(
 			{timeStr}
 		</span>
 		{#if dateStr}
-			<span class="text-sm text-[var(--ag-text-muted)]">{dateStr}</span>
+			<span class="text-ag-sm text-[var(--ag-text-muted)]">{dateStr}</span>
 		{/if}
 	</div>
 </WidgetShell>

@@ -18,9 +18,9 @@ let { widget }: Props = $props();
 const MAX_CHARS = 500;
 
 const FONT_SIZE_CLASS: Record<QuickNoteFontSize, string> = {
-	sm: 'text-xs',
-	md: 'text-sm',
-	lg: 'text-base',
+	sm: 'text-ag-xs',
+	md: 'text-ag-sm',
+	lg: 'text-ag-md',
 };
 
 let config = $derived(parseWidgetConfig(widget?.config, QUICK_NOTE_DEFAULTS));

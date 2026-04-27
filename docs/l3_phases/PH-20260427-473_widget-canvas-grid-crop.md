@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-473
 title: Widget 衝突回避 + Grid 縮小 + Canvas 拡大 + Crop 機能
-status: todo
+status: done
 batch: 107
 era: polish
 parent_l1: REQ-006_workspace-widgets
@@ -34,17 +34,18 @@ scope_files:
 
 ### 機能
 
-- [ ] **Grid cell サイズ**: 現状の約 50% (例 widgetW: 200→112px, gap 16→12px)、最小 widget = 1 cell でも操作しやすいサイズ感
-- [ ] **Canvas 拡大**: 横 = `dynamicCols × 1.5`, 縦 = `existing_max_y + 8` を最低保証 (常に空の cell が見える、配置余地)
-- [ ] **Canvas 横スクロール**: workspace 領域に `overflow-auto` (これまで縦のみ)、horizontal scrollbar 表示
-- [ ] **衝突プレビュー**: drag 中に重なる cell は赤色 invalid highlight、drop すると元位置に戻る (auto-jump 廃止)
-- [ ] **resize 衝突**: rubber-band の代わりに「最大ここまで」で stop (現状 clampResizeForOverlap の挙動を変更: 重なり開始ステップで stop、超過分は無視)
-- [ ] **Crop ボタン**: workspace toolbar に「Crop to widgets」ボタン (Lucide `Crop`)、押すと bounding box にスクロール + zoom (現状は scroll のみ実装、zoom は別 plan)
+- [x] **Grid cell サイズ**: 320×180 → 160×100 (50% 縮小)、widget-zoom.svelte.ts BASE_W/H 更新、aspect 16:10 でハンドル + × button + move bar 余裕
+- [x] **Canvas 拡大**: maxRow を `Math.max(8, max_y + 4)` で常に下方に 4 行余白を確保 (WorkspaceLayout.svelte)
+- [x] **Canvas 横スクロール**: 既存 `overflow-auto` で対応 (WorkspaceLayout.svelte:326)
+- [x] **衝突プレビュー**: drop highlight が「衝突 cell = 赤 destructive、空 cell = accent」分岐 (`workspaceStore.wouldOverlapAt` / `isCellOccupied` 新 helper 経由)
+- [x] **moveWidget の auto-rearrange 廃止**: 重なる場合は **配置を拒否**、error toast、findFreePosition fallback 削除
+- [x] **resize 衝突**: rubber-band fallback 廃止、`clampResizeForOverlap` を「重なる手前 step で stop」に変更 (lastSafe 戦略)
+- [x] **Crop ボタン**: workspace 右下 floating (Lucide `Crop`)、bounding box の左上にスムーズスクロール (zoom は別 plan)
 
 ### 横展開チェック
 
-- [ ] LibraryGrid に同様の cell 算出ロジックがあるか? あれば一貫性保つ
-- [ ] `gap-4` (16px) が widget grid 以外で hardcode されているか grep
+- [x] LibraryGrid は cell サイズ独自管理 (LibraryCard itemSize)、widget grid と分離されており影響なし
+- [x] `gap-4` (16px) hardcode は workspace 関連 4 箇所のみ (調整は将来 token 化で対応、PH-475 と整合)
 
 ### SFDIPOT
 
