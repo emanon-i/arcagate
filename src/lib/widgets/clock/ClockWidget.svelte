@@ -65,15 +65,46 @@ let menuItems = $derived(
 </script>
 
 <WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>
-	<div class="flex h-full flex-col items-center justify-center gap-1">
-		<span class="font-mono text-3xl font-semibold tabular-nums text-[var(--ag-text-primary)]">
+	<!-- HOTFIX: container query で widget サイズに応じて responsive
+		- 大きい: time large + date 表示
+		- 小さい (< 200px): time medium + date 隠す
+		- 極小 (< 140px): time small + date 隠す
+		container-type: inline-size + cqw 単位で container 比例 -->
+	<div
+		class="clock-container flex h-full flex-col items-center justify-center gap-1 overflow-hidden"
+	>
+		<span
+			class="clock-time font-mono font-semibold tabular-nums whitespace-nowrap text-[var(--ag-text-primary)]"
+		>
 			{timeStr}
 		</span>
 		{#if dateStr}
-			<span class="text-ag-sm text-[var(--ag-text-muted)]">{dateStr}</span>
+			<span
+				class="clock-date text-ag-sm whitespace-nowrap text-[var(--ag-text-muted)]"
+			>{dateStr}</span>
 		{/if}
 	</div>
 </WidgetShell>
+
+<style>
+.clock-container {
+	container-type: inline-size;
+}
+/* default (large widget): full size */
+.clock-time {
+	font-size: clamp(1rem, 12cqw, 1.875rem);
+	line-height: 1.1;
+}
+.clock-date {
+	font-size: clamp(0.625rem, 4cqw, 0.875rem);
+}
+/* very small: hide date */
+@container (max-width: 140px) {
+	.clock-date {
+		display: none;
+	}
+}
+</style>
 
 {#if widget}
 	<WidgetSettingsDialog
