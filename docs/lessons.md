@@ -837,11 +837,13 @@ await Promise.all([
 ]);
 ```
 
-### 将来の改善 (TODO)
+### 改善 (PH-479 後続実装済 / 段階的)
 
-- store mutation + reload を 1 ペアにする helper / wrapper を導入して呼び忘れ防止
-  - 例: `withReload(() => itemsIpc.toggleStar(...), [loadTagWithCounts, loadLibraryStats])`
-- E2E test で「mutation → 同 page で sidebar/render 即時反映」を assert (現状未追加)
+- ✅ store mutation + reload を 1 ペアにする helper を導入 (`src/lib/state/_helpers/with-reload.ts`)
+  - `withReload(action, ...reloads)` 形式で reload の呼び忘れ防止
+  - 既存 store への適用は段階的 (新規 mutation で必須化、既存は機能維持で順次 refactor)
+- ✅ E2E test で「mutation → 同 page で sidebar/render 即時反映」を 7 シナリオ追加
+  - `tests/e2e/reactive-{favorites-toggle,icon-change,widget-settings,library-delete,bulk-tag,clipboard-search,settings-change}.spec.ts`
 
 ### 参照
 
