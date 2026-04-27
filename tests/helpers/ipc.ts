@@ -15,10 +15,6 @@ export interface Workspace {
 	sort_order: number;
 	created_at: string;
 	updated_at: string;
-	// PH-499: 背景壁紙 (Rust struct と整合)
-	wallpaper_path: string | null;
-	wallpaper_opacity: number;
-	wallpaper_blur: number;
 }
 
 export interface Widget {

@@ -6,5 +6,4 @@ pub mod launch;
 pub mod tag;
 pub mod theme;
 pub mod watched_path;
-pub mod widget_item_settings;
 pub mod workspace;

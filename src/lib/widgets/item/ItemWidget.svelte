@@ -1,14 +1,14 @@
 <script lang="ts">
 import { Package, Pencil } from '@lucide/svelte';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
-import LibraryCard from '$lib/components/arcagate/library/LibraryCard.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { updateWidgetConfig } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
-import { ITEM_WIDGET_DEFAULTS, type ItemWidgetConfig } from '$lib/types/widget-configs';
+import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
@@ -23,40 +23,19 @@ let { widget, onItemContext }: Props = $props();
 
 let pickerOpen = $state(false);
 
-let config = $derived(parseWidgetConfig(widget?.config, ITEM_WIDGET_DEFAULTS) as ItemWidgetConfig);
+let itemId = $derived(parseWidgetConfig(widget?.config, ITEM_WIDGET_DEFAULTS).item_id);
 
-// PH-474: item_ids (新) > item_id (旧、後方互換) の優先順
-let pinnedIds = $derived.by<string[]>(() => {
-	if (config.item_ids && config.item_ids.length > 0) return config.item_ids;
-	if (config.item_id) return [config.item_id];
-	return [];
-});
+let pinnedItem = $derived(itemId ? (itemStore.items.find((i) => i.id === itemId) ?? null) : null);
 
-let pinnedItems = $derived(
-	pinnedIds.map((id) => itemStore.items.find((i) => i.id === id)).filter((i): i is Item => !!i),
-);
-
-async function persistSelection(items: Item[]) {
+async function selectItem(item: Item) {
 	pickerOpen = false;
 	if (!widget) return;
 	try {
-		const next: ItemWidgetConfig = {
-			item_id: items.length === 1 ? items[0].id : null,
-			item_ids: items.length > 1 ? items.map((i) => i.id) : [],
-		};
-		await updateWidgetConfig(widget.id, JSON.stringify(next));
+		await updateWidgetConfig(widget.id, JSON.stringify({ item_id: item.id }));
 		await itemStore.loadItems();
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '設定の保存' }, e), 'error');
 	}
-}
-
-function singleSelect(item: Item) {
-	void persistSelection([item]);
-}
-
-function multiConfirm(items: Item[]) {
-	void persistSelection(items);
 }
 
 let menuItems = $derived(
@@ -71,67 +50,44 @@ let menuItems = $derived(
 			]
 		: [],
 );
-
-function handleLaunch(item: Item) {
-	void launchItem(item.id)
-		.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
-		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
-}
-
-function handleContext(itemId: string) {
-	if (onItemContext) onItemContext(itemId);
-}
 </script>
 
-<WidgetShell
-	title={pinnedItems.length === 1 ? pinnedItems[0].label : WIDGET_LABELS.item}
-	icon={Package}
-	{menuItems}
->
-	{#if pinnedItems.length > 1}
-		<!-- 複数アイテム: LibraryCard grid 表示 (PH-474) -->
-		<div
-			class="grid gap-2"
-			style="grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));"
+<WidgetShell title={pinnedItem?.label ?? WIDGET_LABELS.item} icon={Package} {menuItems}>
+	{#if pinnedItem}
+		<button
+			type="button"
+			class="flex w-full flex-col items-center gap-3 rounded-[var(--ag-radius-card)] p-4 transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
+			onclick={() => {
+				void launchItem(pinnedItem!.id)
+					.then(() => toastStore.add(`${pinnedItem!.label} を起動しました`, 'success'))
+					.catch((e: unknown) =>
+						toastStore.add(formatLaunchError(pinnedItem!.label, e), 'error'),
+					);
+			}}
+			oncontextmenu={(e) => {
+				if (onItemContext && pinnedItem) {
+					e.preventDefault();
+					onItemContext(pinnedItem.id);
+				}
+			}}
 		>
-			{#each pinnedItems as item (item.id)}
-				<div
-					class="relative"
-					oncontextmenu={(e) => {
-						e.preventDefault();
-						handleContext(item.id);
-					}}
-					role="presentation"
-				>
-					<LibraryCard {item} viewMode="grid" onclick={() => handleLaunch(item)} />
-				</div>
-			{/each}
-		</div>
-	{:else if pinnedItems.length === 1}
-		{@const item = pinnedItems[0]}
-		<LibraryCard {item} viewMode="grid" onclick={() => handleLaunch(item)} />
+			<div class="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)]">
+				<ItemIcon iconPath={pinnedItem.icon_path} itemType={pinnedItem.item_type} alt="{pinnedItem.label} icon" class="h-10 w-10 object-contain" />
+			</div>
+			<span class="line-clamp-2 text-center text-sm font-medium text-[var(--ag-text-primary)]">{pinnedItem.label}</span>
+		</button>
 	{:else}
 		<button
 			type="button"
 			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-8 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] hover:border-[var(--ag-accent)] hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			onclick={() => {
-				pickerOpen = true;
-			}}
+			onclick={() => { pickerOpen = true; }}
 		>
 			<Pencil class="h-6 w-6" />
-			<span class="text-ag-xs">アイテムを選択</span>
+			<span class="text-xs">アイテムを選択</span>
 		</button>
 	{/if}
 </WidgetShell>
 
 {#if pickerOpen}
-	<LibraryItemPicker
-		multi={true}
-		initialSelectedIds={pinnedIds}
-		onConfirm={multiConfirm}
-		onSelect={singleSelect}
-		onClose={() => {
-			pickerOpen = false;
-		}}
-	/>
+	<LibraryItemPicker onSelect={selectItem} onClose={() => { pickerOpen = false; }} />
 {/if}

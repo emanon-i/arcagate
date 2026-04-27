@@ -34,11 +34,10 @@ let config = $derived.by<DailyTaskConfig>(() => {
 	}
 });
 
-// PH-488: 完了/未完了をツリー分割
-let pendingTasks = $derived((config.tasks ?? []).filter((t) => !t.done));
-let doneTasks = $derived((config.tasks ?? []).filter((t) => t.done));
-// 完了 group の折りたたみ state (default 折りたたみ)
-let doneOpen = $state(false);
+let visibleTasks = $derived.by(() => {
+	const tasks = config.tasks ?? [];
+	return config.hideCompleted ? tasks.filter((t) => !t.done) : tasks;
+});
 
 async function persist(next: DailyTaskConfig) {
 	if (!widget) return;
@@ -88,7 +87,7 @@ let menuItems = $derived(
 	>
 		<input
 			type="text"
-			class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-ag-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
+			class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
 			placeholder="タスクを追加..."
 			autocomplete="off"
 			bind:value={newTaskInput}
@@ -102,90 +101,40 @@ let menuItems = $derived(
 			<Plus class="h-3 w-3" />
 		</button>
 	</form>
-	<!-- PH-488: 未完了 + 完了済み の 2 group ツリー、文字 ag-xs → ag-sm -->
-	{#if (config.tasks?.length ?? 0) === 0}
-		<p class="text-ag-sm text-[var(--ag-text-muted)]">タスクなし</p>
+	{#if visibleTasks.length === 0}
+		<p class="text-xs text-[var(--ag-text-muted)]">
+			{config.hideCompleted && (config.tasks?.length ?? 0) > 0
+				? '未完了のタスクなし'
+				: 'タスクなし'}
+		</p>
 	{:else}
-		<!-- 未完了 group (default 展開) -->
-		<div class="mb-2">
-			<div
-				class="mb-1 flex items-center gap-2 text-ag-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]"
-			>
-				<span>未完了</span>
-				<span class="rounded-full bg-[var(--ag-surface-3)] px-1.5 text-[10px]">{pendingTasks.length}</span>
-			</div>
-			{#if pendingTasks.length === 0}
-				<p class="pl-2 text-ag-xs text-[var(--ag-text-muted)]">未完了のタスクなし</p>
-			{:else}
-				<ul class="space-y-1">
-					{#each pendingTasks as task (task.id)}
-						<li class="group flex items-center gap-2 text-ag-sm">
-							<input
-								type="checkbox"
-								class="h-4 w-4 shrink-0 cursor-pointer accent-[var(--ag-accent-text)]"
-								checked={task.done}
-								onchange={() => toggleTask(task.id)}
-							/>
-							<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={task.text}>
-								{task.text}
-							</span>
-							<button
-								type="button"
-								class="rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
-								aria-label="タスクを削除"
-								onclick={() => deleteTask(task.id)}
-							>
-								<X class="h-3 w-3" />
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</div>
-
-		<!-- 完了済み group (default 折りたたみ) -->
-		{#if doneTasks.length > 0}
-			<div>
-				<button
-					type="button"
-					class="mb-1 flex w-full items-center gap-2 text-ag-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)] transition-colors hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					aria-expanded={doneOpen}
-					onclick={() => (doneOpen = !doneOpen)}
-				>
-					<span>{doneOpen ? '▾' : '▸'}</span>
-					<span>完了済み</span>
-					<span class="rounded-full bg-[var(--ag-surface-3)] px-1.5 text-[10px] normal-case">{doneTasks.length}</span>
-				</button>
-				{#if doneOpen}
-					<ul class="space-y-1">
-						{#each doneTasks as task (task.id)}
-							<li class="group flex items-center gap-2 text-ag-sm">
-								<input
-									type="checkbox"
-									class="h-4 w-4 shrink-0 cursor-pointer accent-[var(--ag-accent-text)]"
-									checked={task.done}
-									onchange={() => toggleTask(task.id)}
-								/>
-								<span
-									class="min-w-0 flex-1 truncate text-[var(--ag-text-muted)] line-through"
-									title={task.text}
-								>
-									{task.text}
-								</span>
-								<button
-									type="button"
-									class="rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
-									aria-label="タスクを削除"
-									onclick={() => deleteTask(task.id)}
-								>
-									<X class="h-3 w-3" />
-								</button>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-		{/if}
+		<ul class="space-y-1">
+			{#each visibleTasks as task (task.id)}
+				<li class="group flex items-center gap-2 text-xs">
+					<input
+						type="checkbox"
+						class="h-3 w-3 cursor-pointer accent-[var(--ag-accent-text)]"
+						checked={task.done}
+						onchange={() => toggleTask(task.id)}
+					/>
+					<span
+						class="min-w-0 flex-1 truncate {task.done
+							? 'text-[var(--ag-text-muted)] line-through'
+							: 'text-[var(--ag-text-primary)]'}"
+					>
+						{task.text}
+					</span>
+					<button
+						type="button"
+						class="rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
+						aria-label="タスクを削除"
+						onclick={() => deleteTask(task.id)}
+					>
+						<X class="h-3 w-3" />
+					</button>
+				</li>
+			{/each}
+		</ul>
 	{/if}
 </WidgetShell>
 

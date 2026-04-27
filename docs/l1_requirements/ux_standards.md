@@ -417,36 +417,6 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - `line-clamp-*` と `truncate` の混在禁止（親コンテナ単位で統一）
 - 必要な場合は `break-all` を追加するが、原則は `break-words`
 
-### 9-2. はみ出し audit (PH-501、CI 機械強制)
-
-`scripts/audit-text-overflow.sh` で **flex container + flex-1 child** に対する safety mechanism (`min-w-0` / `truncate` / `break-words` / `overflow-hidden` / `whitespace-nowrap`) を CI で強制 (warning ではなく **error**)。
-
-**必須パターン:**
-
-```svelte
-<!-- ✅ 正解: 親 flex + 子 flex-1 + min-w-0 + truncate -->
-<div class="flex items-center gap-2">
-  <Icon class="h-4 w-4 shrink-0" />
-  <span class="min-w-0 flex-1 truncate">{longText}</span>
-</div>
-
-<!-- ❌ 違反: flex-1 だけだと content が容器を破る -->
-<div class="flex items-center gap-2">
-  <Icon class="h-4 w-4" />
-  <span class="flex-1">{longText}</span>
-</div>
-```
-
-**例外指定 (false positive 時):** scope file 上部に `<!-- NO_OVERFLOW_AUDIT_OK: 理由 -->` コメントを追加。例: drag region spacer (空 div、テキストなし)、form control (button/range)。
-
-**対象 path:**
-
-- `src/lib/widgets/**/*.svelte`
-- `src/lib/components/arcagate/**/*.svelte`
-- `src/lib/components/settings/**/*.svelte`
-
-**ローカル確認:** `pnpm audit:text-overflow` (`pnpm audit:all` にも統合済)、lefthook pre-commit でも強制。
-
 ## 10. スクロール・レイアウトルール
 
 スクロール可能なコンテナには `[scrollbar-gutter:stable]` を付与し、スクロールバーとコンテンツの重なりを防ぐ。

@@ -71,11 +71,9 @@ function overlaps(a: Rect, b: OverlapTarget): boolean {
 }
 
 /**
- * PH-473: 提案された rect が他と重なる場合、**重なる手前の step で stop**。
- * 旧 rubber-band（全 step で縮めて non-overlap を探す）は予測不能 UX のため廃止。
- *
- * 戦略: start から proposed までを N step に分け、各 step で衝突チェック。
- * 最後に non-overlap だった rect を返す（= 重なり開始の手前）。
+ * 提案された rect が他のウィジェットと重なる場合、重ならない最大に丸める。
+ * 1 step ずつ start に向けて縮め、最初に non-overlap になった rect を返す。
+ * 全 step で重なるなら start を返す（rubber-band 動作）。
  */
 export function clampResizeForOverlap(start: Rect, proposed: Rect, others: OverlapTarget[]): Rect {
 	if (!others.some((o) => overlaps(proposed, o))) return proposed;
@@ -85,8 +83,7 @@ export function clampResizeForOverlap(start: Rect, proposed: Rect, others: Overl
 	const dw = proposed.w - start.w;
 	const dh = proposed.h - start.h;
 	const steps = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dw), Math.abs(dh));
-	let lastSafe: Rect = start;
-	for (let i = 0; i <= steps; i++) {
+	for (let i = steps; i >= 0; i--) {
 		const ratio = steps > 0 ? i / steps : 0;
 		const cur: Rect = {
 			x: Math.round(start.x + dx * ratio),
@@ -94,10 +91,9 @@ export function clampResizeForOverlap(start: Rect, proposed: Rect, others: Overl
 			w: Math.max(1, Math.round(start.w + dw * ratio)),
 			h: Math.max(1, Math.round(start.h + dh * ratio)),
 		};
-		if (others.some((o) => overlaps(cur, o))) return lastSafe;
-		lastSafe = cur;
+		if (!others.some((o) => overlaps(cur, o))) return cur;
 	}
-	return lastSafe;
+	return start;
 }
 
 export const RESIZE_CURSORS: Record<ResizeDir, string> = {

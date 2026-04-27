@@ -32,12 +32,6 @@ pre-commit:
     design-tokens:
       glob: "src/**/*.{svelte,css}"
       run: bash scripts/audit-design-tokens.sh
-    font-tokens:
-      glob: "{src/lib/widgets/**/*.svelte,src/lib/components/arcagate/common/WidgetShell.svelte}"
-      run: bash scripts/audit-font-tokens.sh
-    text-overflow:
-      glob: "src/lib/{widgets,components/arcagate,components/settings}/**/*.svelte"
-      run: bash scripts/audit-text-overflow.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

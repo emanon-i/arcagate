@@ -78,7 +78,7 @@ async function handleSave() {
 			>
 				<div class="space-y-4">
 					{#if SettingsContent}
-						<SettingsContent bind:config widgetId={widget.id} />
+						<SettingsContent bind:config />
 					{:else}
 						<p class="text-sm text-[var(--ag-text-secondary)]">このウィジェットには設定項目がありません。</p>
 					{/if}

@@ -1,6 +1,5 @@
 <script lang="ts">
-import { Crop, LayoutGrid, Pencil } from '@lucide/svelte';
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { LayoutGrid } from '@lucide/svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -10,7 +9,6 @@ import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
-import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
@@ -30,27 +28,7 @@ const zoom = useWidgetZoom(() => workspaceContainer);
 
 $effect(() => {
 	void workspaceStore.loadWorkspaces();
-	// PH-499: Library 共通 default 壁紙を初期 load
-	void workspaceStore.loadLibraryWallpaper();
 });
-
-// PH-499: アクティブ workspace の壁紙設定 → 未設定なら library default を継承
-let activeWallpaper = $derived.by(() => {
-	const ws = workspaceStore.activeWorkspace;
-	if (ws?.wallpaper_path) {
-		return {
-			path: ws.wallpaper_path,
-			opacity: ws.wallpaper_opacity ?? 0.7,
-			blur: ws.wallpaper_blur ?? 0,
-		};
-	}
-	return workspaceStore.libraryWallpaper;
-});
-
-let wallpaperSrc = $derived(activeWallpaper.path ? convertFileSrc(activeWallpaper.path) : null);
-let wallpaperBackgroundCss = $derived(
-	wallpaperSrc ? `url("${wallpaperSrc}") center/cover no-repeat` : 'transparent',
-);
 
 type WidgetSnapshot = { id: string; x: number; y: number; w: number; h: number };
 
@@ -166,39 +144,6 @@ $effect(() => {
 	return () => window.removeEventListener('keydown', onKeyDown);
 });
 
-// PH-477: Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y) で widget 操作 undo/redo
-$effect(() => {
-	async function reload() {
-		if (workspaceStore.activeWorkspaceId) {
-			await workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
-		}
-	}
-	function onKeyDown(e: KeyboardEvent) {
-		if (!editMode) return;
-		const target = e.target as HTMLElement | null;
-		if (
-			target?.tagName === 'INPUT' ||
-			target?.tagName === 'TEXTAREA' ||
-			target?.isContentEditable
-		) {
-			return;
-		}
-		const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
-		const isRedo =
-			(e.ctrlKey || e.metaKey) &&
-			((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y');
-		if (isUndo) {
-			e.preventDefault();
-			void workspaceHistory.undo(reload);
-		} else if (isRedo) {
-			e.preventDefault();
-			void workspaceHistory.redo(reload);
-		}
-	}
-	window.addEventListener('keydown', onKeyDown);
-	return () => window.removeEventListener('keydown', onKeyDown);
-});
-
 // ウィジェットが占める最大列数（ウィンドウが狭くなっても下回らせない）
 let minGridCols = $derived(
 	workspaceStore.widgets.length > 0
@@ -228,40 +173,22 @@ function confirmRename(name: string) {
 	renameOpen = false;
 }
 
-// PH-478: edit session の race condition 防止フラグ
-// (start ↔ cancel/confirm の async 跨ぎで snapshot が混ざる問題を排除)
-let editTransitioning = $state(false);
-
-async function startEdit() {
-	if (editTransitioning) return;
-	editTransitioning = true;
-	try {
-		// PH-478: 前 session の cleanup が終わるまで sync 化、最新 widgets 取得
-		if (workspaceStore.activeWorkspaceId) {
-			await workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
-		}
-		// PH-477+478: history clear で過去 session の undo を断ち切る (再編集で前 draft 残らない)
-		workspaceHistory.clear();
-		editMode = true;
-		selectedWidgetId = null;
-		editSnapshot = workspaceStore.widgets.map((w) => ({
-			id: w.id,
-			x: w.position_x,
-			y: w.position_y,
-			w: w.width,
-			h: w.height,
-		}));
-	} finally {
-		editTransitioning = false;
-	}
+function startEdit() {
+	editMode = true;
+	selectedWidgetId = null;
+	editSnapshot = workspaceStore.widgets.map((w) => ({
+		id: w.id,
+		x: w.position_x,
+		y: w.position_y,
+		w: w.width,
+		h: w.height,
+	}));
 }
 
 function confirmEdit() {
 	editMode = false;
 	selectedWidgetId = null;
 	editSnapshot = [];
-	// PH-478: confirm 後も history は session 跨ぎで残さない (clarity 優先)
-	workspaceHistory.clear();
 }
 
 function hasUnsavedChanges(): boolean {
@@ -289,35 +216,21 @@ function hasUnsavedChanges(): boolean {
 
 let cancelConfirmOpen = $state(false);
 
-async function cancelEdit() {
-	if (editTransitioning) return;
+function cancelEdit() {
 	if (hasUnsavedChanges()) {
 		cancelConfirmOpen = true;
 		return;
 	}
-	editTransitioning = true;
-	try {
-		editMode = false;
-		selectedWidgetId = null;
-		await doRestoreSnapshot();
-		workspaceHistory.clear(); // PH-478: cancel 後の history を消去
-	} finally {
-		editTransitioning = false;
-	}
+	editMode = false;
+	selectedWidgetId = null;
+	void doRestoreSnapshot();
 }
 
-async function confirmCancel() {
-	if (editTransitioning) return;
+function confirmCancel() {
 	cancelConfirmOpen = false;
-	editTransitioning = true;
-	try {
-		editMode = false;
-		selectedWidgetId = null;
-		await doRestoreSnapshot();
-		workspaceHistory.clear();
-	} finally {
-		editTransitioning = false;
-	}
+	editMode = false;
+	selectedWidgetId = null;
+	void doRestoreSnapshot();
 }
 
 function dismissCancel() {
@@ -352,26 +265,7 @@ function handleItemContext(itemId: string) {
 	contextItemId = itemId;
 }
 
-// PH-473: 配置余地確保のため最低 maxRow を 8 に拡張、widgets が増えても +4 行の余白を保つ
-let maxRow = $derived(
-	Math.max(8, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
-);
-
-// PH-473: bounding box にスクロール (Crop ボタン用)
-function cropToWidgets() {
-	const el = workspaceContainer;
-	const ws = workspaceStore.widgets;
-	if (!el || ws.length === 0) return;
-	const cellW = zoom.widgetW + 16;
-	const cellH = zoom.widgetH + 16;
-	const minX = Math.min(...ws.map((w) => w.position_x));
-	const minY = Math.min(...ws.map((w) => w.position_y));
-	el.scrollTo({
-		left: Math.max(0, minX * cellW - 24),
-		top: Math.max(0, minY * cellH - 24),
-		behavior: 'smooth',
-	});
-}
+let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
 </script>
 
 <svelte:window
@@ -427,47 +321,13 @@ function cropToWidgets() {
 		onCancelEdit={cancelEdit}
 	/>
 
-	<!-- PH-496: ウィジット切替ボタン (編集モード切替) を左上に固定
-		user fb 2026-04-28: 「ウィジットの切り替えのボタン。これ左上に固定にしてね」
-		編集モード非時のみ表示、編集モード時は sidebar 内の確定/キャンセルが取って代わる -->
-	{#if !editMode}
-		<button
-			type="button"
-			class="absolute left-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] text-[var(--ag-text-secondary)] shadow-md transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2"
-			aria-label="ウィジェット編集モード"
-			onclick={startEdit}
-		>
-			<Pencil class="h-4 w-4" />
-		</button>
-	{/if}
-
-	<!-- PH-499: 壁紙 layer は overflow-auto の OUTSIDE に置いて scroll しないようにする -->
-	<div class="relative min-w-0 flex-1">
-		{#if wallpaperSrc}
-			<div
-				class="pointer-events-none absolute inset-0 z-0 motion-reduce:!filter-none"
-				style="
-					background: {wallpaperBackgroundCss};
-					opacity: {activeWallpaper.opacity};
-					filter: blur({activeWallpaper.blur}px);
-				"
-				aria-hidden="true"
-				data-testid="workspace-wallpaper-layer"
-			></div>
-		{/if}
-
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<!-- PH-494 MVP: Obsidian Canvas 風 (dotted grid 背景 + 表示領域拡大) -->
 	<div
-		class="relative z-10 h-full overflow-auto [scrollbar-gutter:stable] {editMode
-			? 'p-2 canvas-edit-mode'
-			: 'p-5'}"
+		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] p-5 {editMode ? 'canvas-edit-mode' : ''}"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
-			? 'radial-gradient(circle, rgba(120,120,120,0.28) 1.2px, transparent 1.4px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
-			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-color: {wallpaperSrc
-			? 'transparent'
-			: 'var(--ag-surface-page)'}; background-size: {editMode
-			? '16px 16px, 100% 100%'
+			? 'radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
+			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
+			? '24px 24px, 100% 100%'
 			: '100% 100%'};"
 		data-zoom={configStore.widgetZoom}
 		bind:this={workspaceContainer}
@@ -492,7 +352,7 @@ function cropToWidgets() {
 				{#if editMode}
 					<div class="mb-4">
 						<Tip tone="accent" tipId="workspace-edit-guide">
-							クリックで選択、上端のバーで移動、四隅のハンドルでリサイズ、× で削除。
+							クリックで選択、ドラッグで移動、右下のハンドルでリサイズ、ゴミ箱で削除できます。
 						</Tip>
 					</div>
 
@@ -549,22 +409,7 @@ function cropToWidgets() {
 			{/if}
 		</div>
 	</div>
-	<!-- PH-499: 壁紙 wrapper の close -->
-	</div>
 </div>
-
-<!-- PH-473: Crop to widgets ボタン (workspace 右下 floating, 編集モード時のみ) -->
-{#if workspaceStore.widgets.length > 0}
-	<button
-		type="button"
-		class="absolute bottom-6 right-6 z-30 flex h-10 items-center gap-2 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface)] px-4 text-sm text-[var(--ag-text-secondary)] shadow-md transition-colors hover:bg-[var(--ag-surface-3)]"
-		aria-label="ウィジェットに合わせてスクロール"
-		onclick={cropToWidgets}
-	>
-		<Crop class="h-4 w-4" />
-		<span>表示を合わせる</span>
-	</button>
-{/if}
 
 <WorkspaceDeleteConfirmDialog
 	widgetId={deleteConfirmId}

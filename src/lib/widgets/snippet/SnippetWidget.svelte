@@ -71,7 +71,7 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title || 'スニペット'} icon={Clipboard} {menuItems}>
 	{#if snippets.length === 0}
-		<p class="text-ag-xs text-[var(--ag-text-muted)]">
+		<p class="text-xs text-[var(--ag-text-muted)]">
 			設定からスニペットを追加してください。
 		</p>
 	{:else}
@@ -80,7 +80,7 @@ let menuItems = $derived(
 				<li class="group flex items-center gap-1">
 					<button
 						type="button"
-						class="flex flex-1 flex-col items-start gap-0.5 rounded-md px-2 py-1 text-left text-ag-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+						class="flex flex-1 flex-col items-start gap-0.5 rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 						aria-label="{snip.label} をクリップボードにコピー"
 						onclick={() => void copySnippet(snip)}
 					>

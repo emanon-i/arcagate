@@ -150,8 +150,7 @@ async function updateTheme(
 	error = null;
 	try {
 		const updated = await themeIpc.updateTheme(id, name, baseTheme, cssVars);
-		// PH-479: spread copy で reactive 確実化
-		themes = themes.map((t) => (t.id === id ? { ...updated } : { ...t }));
+		themes = themes.map((t) => (t.id === id ? updated : t));
 		// Re-apply if this is the active theme
 		if (activeMode === id) {
 			applyTheme();

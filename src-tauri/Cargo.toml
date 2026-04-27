@@ -45,10 +45,6 @@ shell-words = "1"
 tauri-plugin-updater = "2"
 ureq = { version = "2.10", default-features = false, features = ["tls", "json"] }
 
-# PH-476: Windows 11 Mica / 10 Acrylic backdrop (透明 window 視認性確保)
-[target.'cfg(target_os = "windows")'.dependencies]
-window-vibrancy = "0.6"
-
 # PH-470 batch-106: ureq + rustls 追加で 20MB cap 直前 → release profile 最適化で回収
 [profile.release]
 lto = true

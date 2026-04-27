@@ -16,14 +16,14 @@ let clipboardTitle = $derived(config.title ?? '');
 </script>
 
 <div class="space-y-1">
-	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-max">保持する履歴数 (1〜200)</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-max">保持する履歴数 (1〜200)</label>
 	<input
 		id="ws-clip-max"
 		type="number"
 		min="1"
 		max="200"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={clipboardMaxItems}
 		onchange={(e) => {
 			config = {
@@ -37,7 +37,7 @@ let clipboardTitle = $derived(config.title ?? '');
 	/>
 </div>
 <div class="space-y-1">
-	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-poll">ポーリング間隔（ミリ秒、500〜10000）</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-poll">ポーリング間隔（ミリ秒、500〜10000）</label>
 	<input
 		id="ws-clip-poll"
 		type="number"
@@ -45,7 +45,7 @@ let clipboardTitle = $derived(config.title ?? '');
 		max="10000"
 		step="100"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={clipboardPollMs}
 		onchange={(e) => {
 			config = {
@@ -59,13 +59,13 @@ let clipboardTitle = $derived(config.title ?? '');
 	/>
 </div>
 <div class="space-y-1">
-	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-title">タイトル</label>
 	<input
 		id="ws-clip-title"
 		type="text"
 		autocomplete="off"
 		placeholder="クリップボード履歴"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={clipboardTitle}
 		oninput={(e) => {
 			config = { ...config, title: (e.currentTarget as HTMLInputElement).value };

@@ -46,14 +46,11 @@ export const SCREENS: HelpScreenSection[] = [
 			{ keys: '編集モード切替', description: '右上のボタンでウィジェット追加 / 配置' },
 			{ keys: '右クリック', description: 'ウィジェット設定メニュー' },
 			{ keys: 'ダブルクリック', description: 'ウィジェット内アイテムを起動' },
-			{ keys: 'Ctrl+Z', description: 'ウィジェット操作を取り消し (PH-477)' },
-			{ keys: 'Ctrl+Shift+Z / Ctrl+Y', description: '取り消した操作をやり直し' },
 		],
 		tips: [
 			'Workspace タブで複数構成を切替可能',
 			'ウィジェットはグリッドで自由配置 / リサイズ',
 			'Favorites / Recent / Stats / QuickNote 等から組み合わせて作る',
-			'操作を間違えても Ctrl+Z で 50 件まで戻せる',
 		],
 	},
 	{

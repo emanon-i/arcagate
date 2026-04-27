@@ -12,15 +12,8 @@ fn row_to_workspace(row: &rusqlite::Row) -> rusqlite::Result<Workspace> {
         sort_order: row.get(2)?,
         created_at: row.get(3)?,
         updated_at: row.get(4)?,
-        // PH-499: 背景壁紙列 (column 5/6/7、migration 018 で追加)
-        wallpaper_path: row.get(5)?,
-        wallpaper_opacity: row.get(6)?,
-        wallpaper_blur: row.get(7)?,
     })
 }
-
-const SELECT_WORKSPACE_COLS: &str =
-    "id, name, sort_order, created_at, updated_at, wallpaper_path, wallpaper_opacity, wallpaper_blur";
 
 fn row_to_widget(row: &rusqlite::Row) -> rusqlite::Result<WorkspaceWidget> {
     let widget_type_str: String = row.get(2)?;
@@ -50,8 +43,11 @@ pub fn insert_workspace(conn: &Connection, ws: &Workspace) -> Result<(), AppErro
 }
 
 pub fn find_workspace_by_id(conn: &Connection, id: &str) -> Result<Workspace, AppError> {
-    let sql = format!("SELECT {SELECT_WORKSPACE_COLS} FROM workspaces WHERE id = ?1");
-    let result = conn.query_row(&sql, params![id], row_to_workspace);
+    let result = conn.query_row(
+        "SELECT id, name, sort_order, created_at, updated_at FROM workspaces WHERE id = ?1",
+        params![id],
+        row_to_workspace,
+    );
     match result {
         Ok(ws) => Ok(ws),
         Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
@@ -60,8 +56,9 @@ pub fn find_workspace_by_id(conn: &Connection, id: &str) -> Result<Workspace, Ap
 }
 
 pub fn find_all_workspaces(conn: &Connection) -> Result<Vec<Workspace>, AppError> {
-    let sql = format!("SELECT {SELECT_WORKSPACE_COLS} FROM workspaces ORDER BY sort_order, name");
-    let mut stmt = conn.prepare(&sql)?;
+    let mut stmt = conn.prepare(
+        "SELECT id, name, sort_order, created_at, updated_at FROM workspaces ORDER BY sort_order, name",
+    )?;
     let workspaces = stmt
         .query_map([], row_to_workspace)?
         .collect::<rusqlite::Result<Vec<Workspace>>>()?;
@@ -73,27 +70,6 @@ pub fn update_workspace(conn: &Connection, id: &str, name: &str) -> Result<Works
         "UPDATE workspaces SET name = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?2",
         params![name, id],
     )?;
-    find_workspace_by_id(conn, id)
-}
-
-// PH-499: Workspace 背景壁紙の更新
-pub fn update_workspace_wallpaper(
-    conn: &Connection,
-    id: &str,
-    path: Option<&str>,
-    opacity: f64,
-    blur: i64,
-) -> Result<Workspace, AppError> {
-    let n = conn.execute(
-        "UPDATE workspaces
-         SET wallpaper_path = ?1, wallpaper_opacity = ?2, wallpaper_blur = ?3,
-             updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-         WHERE id = ?4",
-        params![path, opacity, blur, id],
-    )?;
-    if n == 0 {
-        return Err(AppError::NotFound(id.to_string()));
-    }
     find_workspace_by_id(conn, id)
 }
 
@@ -265,9 +241,6 @@ mod tests {
             sort_order,
             created_at: String::new(),
             updated_at: String::new(),
-            wallpaper_path: None,
-            wallpaper_opacity: 0.7,
-            wallpaper_blur: 0,
         }
     }
 
