@@ -35,6 +35,30 @@ pub fn cmd_delete_item(db: State<DbState>, id: String) -> Result<(), AppError> {
     item_service::delete_item(&db, &id)
 }
 
+// PH-436 / Nielsen H7: 一括操作 (transaction、最大 1000 件)
+#[tauri::command]
+pub fn cmd_bulk_add_tag(
+    db: State<DbState>,
+    item_ids: Vec<String>,
+    tag_id: String,
+) -> Result<usize, AppError> {
+    item_service::bulk_add_tag(&db, item_ids, tag_id)
+}
+
+#[tauri::command]
+pub fn cmd_bulk_remove_tag(
+    db: State<DbState>,
+    item_ids: Vec<String>,
+    tag_id: String,
+) -> Result<usize, AppError> {
+    item_service::bulk_remove_tag(&db, item_ids, tag_id)
+}
+
+#[tauri::command]
+pub fn cmd_bulk_delete_items(db: State<DbState>, item_ids: Vec<String>) -> Result<usize, AppError> {
+    item_service::bulk_delete_items(&db, item_ids)
+}
+
 #[tauri::command]
 pub fn cmd_get_tags(db: State<DbState>) -> Result<Vec<Tag>, AppError> {
     item_service::get_tags(&db)

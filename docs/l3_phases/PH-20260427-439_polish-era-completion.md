@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-439
-status: todo
+status: deferred
 batch: 96
 type: 防衛
 era: Polish Era 完走判定 + 機能拡張
@@ -52,3 +52,9 @@ batch-95 の dispatch infra も含めて以下を全て満たす:
 ## 注意
 
 PH-438 で Codex 「公開水準未達」判定が出たら、本 plan は status: deferred にして batch-97 以降に持ち越し。
+
+## 確定: deferred (batch-97 以降に持ち越し)
+
+PH-438 Codex Rule C 3 回目で「Distribution Era 着手 OK、公開可能品質は未達」判定。
+署名 / Updater / SBOM 未実装 + 残テスト (e2e 原因別文言、bulk tag) のため、本 plan は **deferred**。
+Polish Era 完走判定は **batch-97 完走 (Authenticode + テスト充足) 後** に再判定。

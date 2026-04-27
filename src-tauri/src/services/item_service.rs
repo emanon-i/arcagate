@@ -142,6 +142,87 @@ pub fn get_tag_counts(db: &DbState) -> Result<Vec<TagWithCount>, AppError> {
     tag_repository::find_all_with_counts(&conn)
 }
 
+/// PH-436: 複数アイテムに同一タグを一括追加 (transaction)。
+/// item_ids は最大 1000 件 (UI で実用上の上限)。
+pub fn bulk_add_tag(
+    db: &DbState,
+    item_ids: Vec<String>,
+    tag_id: String,
+) -> Result<usize, AppError> {
+    if item_ids.is_empty() {
+        return Ok(0);
+    }
+    if item_ids.len() > 1000 {
+        return Err(AppError::InvalidInput(
+            "bulk operation limit exceeded (>1000 items)".into(),
+        ));
+    }
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
+    let mut count = 0;
+    for item_id in &item_ids {
+        tx.execute(
+            "INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
+            rusqlite::params![item_id, tag_id],
+        )?;
+        count += 1;
+    }
+    tx.commit()?;
+    Ok(count)
+}
+
+/// PH-436: 複数アイテムから同一タグを一括削除 (transaction)。
+pub fn bulk_remove_tag(
+    db: &DbState,
+    item_ids: Vec<String>,
+    tag_id: String,
+) -> Result<usize, AppError> {
+    if item_ids.is_empty() {
+        return Ok(0);
+    }
+    if item_ids.len() > 1000 {
+        return Err(AppError::InvalidInput(
+            "bulk operation limit exceeded (>1000 items)".into(),
+        ));
+    }
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
+    let mut count = 0;
+    for item_id in &item_ids {
+        tx.execute(
+            "DELETE FROM item_tags WHERE item_id = ?1 AND tag_id = ?2",
+            rusqlite::params![item_id, tag_id],
+        )?;
+        count += 1;
+    }
+    tx.commit()?;
+    Ok(count)
+}
+
+/// PH-436: 複数アイテムを一括削除 (transaction、item_tags は CASCADE)。
+pub fn bulk_delete_items(db: &DbState, item_ids: Vec<String>) -> Result<usize, AppError> {
+    if item_ids.is_empty() {
+        return Ok(0);
+    }
+    if item_ids.len() > 1000 {
+        return Err(AppError::InvalidInput(
+            "bulk operation limit exceeded (>1000 items)".into(),
+        ));
+    }
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
+    let mut count = 0;
+    for item_id in &item_ids {
+        tx.execute(
+            "DELETE FROM items WHERE id = ?1",
+            rusqlite::params![item_id],
+        )?;
+        count += 1;
+    }
+    tx.commit()?;
+    Ok(count)
+}
+
 pub fn get_item_tags(db: &DbState, item_id: &str) -> Result<Vec<Tag>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     tag_repository::find_by_item_id(&conn, item_id)
