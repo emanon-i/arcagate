@@ -1,5 +1,5 @@
 ---
-id: PH-20260430-510
+id: PH-20260430-517
 title: Settings dialog polish — Settings > 監視フォルダ (watched_paths CRUD) (batch-110 Phase C)
 status: todo
 batch: 110
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/components/settings/
 ---
 
-# PH-510: Settings dialog polish — Settings > 監視フォルダ (watched_paths CRUD)
+# PH-517: Settings dialog polish — Settings > 監視フォルダ (watched_paths CRUD)
 
 ## 共通品質 checklist
 

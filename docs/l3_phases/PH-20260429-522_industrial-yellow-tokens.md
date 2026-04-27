@@ -1,8 +1,8 @@
 ---
-id: PH-20260429-497
+id: PH-20260429-522
 title: Industrial Yellow Token 定義 + Tailwind config 拡張
 status: todo
-batch: 109
+batch: 111
 era: design-overhaul
 parent_l1: REQ-007_visual-language
 scope_files:

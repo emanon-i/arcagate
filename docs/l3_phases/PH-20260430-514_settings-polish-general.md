@@ -1,6 +1,6 @@
 ---
-id: PH-20260430-509
-title: Settings dialog polish — Settings > 外観 (theme / Library カード style) (batch-110 Phase C)
+id: PH-20260430-514
+title: Settings dialog polish — Settings > 一般 (hotkey / autostart / setupComplete) (batch-110 Phase C)
 status: todo
 batch: 110
 era: settings-form-polish
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/components/settings/
 ---
 
-# PH-509: Settings dialog polish — Settings > 外観 (theme / Library カード style)
+# PH-514: Settings dialog polish — Settings > 一般 (hotkey / autostart / setupComplete)
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-Settings > 外観 (theme / Library カード style)
+Settings > 一般 (hotkey / autostart / setupComplete)
 
 ## 実装ステップ
 

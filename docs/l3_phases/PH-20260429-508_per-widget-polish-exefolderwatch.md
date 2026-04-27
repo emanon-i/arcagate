@@ -1,5 +1,5 @@
 ---
-id: PH-20260429-501
+id: PH-20260429-508
 title: Per-widget polish — ExeFolderWatch (batch-109 Phase B)
 status: todo
 batch: 109
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte
 ---
 
-# PH-501: Per-widget polish — ExeFolderWatch
+# PH-508: Per-widget polish — ExeFolderWatch
 
 ## 共通品質 checklist
 

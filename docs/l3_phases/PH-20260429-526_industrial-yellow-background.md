@@ -1,8 +1,8 @@
 ---
-id: PH-20260429-501
+id: PH-20260429-526
 title: Industrial Yellow 背景レイヤー (等高線 + dot-fade) AppShell 適用
 status: todo
-batch: 109
+batch: 111
 era: design-overhaul
 parent_l1: REQ-007_visual-language
 scope_files:

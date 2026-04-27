@@ -1,8 +1,8 @@
 ---
-id: PH-20260429-498
+id: PH-20260429-523
 title: Industrial Yellow Halftone / Dot-Fade / Hatch Utility
 status: todo
-batch: 109
+batch: 111
 era: design-overhaul
 parent_l1: REQ-007_visual-language
 scope_files:

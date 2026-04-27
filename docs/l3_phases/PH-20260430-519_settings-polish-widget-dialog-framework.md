@@ -1,6 +1,6 @@
 ---
-id: PH-20260430-508
-title: Settings dialog polish — Settings > Library (itemSize / カード設定) (batch-110 Phase C)
+id: PH-20260430-519
+title: Settings dialog polish — WidgetSettingsDialog (共通枠 framework polish) (batch-110 Phase C)
 status: todo
 batch: 110
 era: settings-form-polish
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/components/settings/
 ---
 
-# PH-508: Settings dialog polish — Settings > Library (itemSize / カード設定)
+# PH-519: Settings dialog polish — WidgetSettingsDialog (共通枠 framework polish)
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-Settings > Library (itemSize / カード設定)
+WidgetSettingsDialog (共通枠 framework polish)
 
 ## 実装ステップ
 

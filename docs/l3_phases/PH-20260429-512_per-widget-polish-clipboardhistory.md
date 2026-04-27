@@ -1,15 +1,15 @@
 ---
-id: PH-20260429-506
-title: Per-widget polish — DailyTask (batch-109 Phase B)
+id: PH-20260429-512
+title: Per-widget polish — ClipboardHistory (batch-109 Phase B)
 status: todo
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/daily-task/DailyTaskWidget.svelte
+  - src/lib/widgets/clipboard-history/ClipboardHistoryWidget.svelte
 ---
 
-# PH-506: Per-widget polish — DailyTask
+# PH-512: Per-widget polish — ClipboardHistory
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-PH-488 完了/未完了ツリーを本実装 + polish、各タスク drag 並べ替え (将来)
+history list responsive、長文 truncate + tooltip、空 state、コピー時のフィードバック
 
 ## 実装ステップ
 

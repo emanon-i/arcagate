@@ -1,15 +1,15 @@
 ---
-id: PH-20260429-500
-title: Per-widget polish — SystemMonitor (batch-109 Phase B)
+id: PH-20260429-509
+title: Per-widget polish — WatchFolder 互換 (batch-109 Phase B)
 status: todo
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/system-monitor/SystemMonitorWidget.svelte
+  - src/lib/widgets/exe-folder/ExeFolderSettings.svelte
 ---
 
-# PH-500: Per-widget polish — SystemMonitor
+# PH-509: Per-widget polish — WatchFolder 互換
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-CPU/MEM/Disk gauge の responsive、数値 truncate、S サイズで gauge 縮小・label 省略
+settings 内 form polish (PH-501 と組)、folder 選択 UI
 
 ## 実装ステップ
 

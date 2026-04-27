@@ -1,15 +1,15 @@
 ---
-id: PH-20260429-505
-title: Per-widget polish — ClipboardHistory (batch-109 Phase B)
+id: PH-20260429-507
+title: Per-widget polish — SystemMonitor (batch-109 Phase B)
 status: todo
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/clipboard-history/ClipboardHistoryWidget.svelte
+  - src/lib/widgets/system-monitor/SystemMonitorWidget.svelte
 ---
 
-# PH-505: Per-widget polish — ClipboardHistory
+# PH-507: Per-widget polish — SystemMonitor
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-history list responsive、長文 truncate + tooltip、空 state、コピー時のフィードバック
+CPU/MEM/Disk gauge の responsive、数値 truncate、S サイズで gauge 縮小・label 省略
 
 ## 実装ステップ
 

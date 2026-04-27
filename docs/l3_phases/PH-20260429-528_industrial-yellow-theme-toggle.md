@@ -1,8 +1,8 @@
 ---
-id: PH-20260429-503
+id: PH-20260429-528
 title: Settings Theme list 拡張 (Industrial Yellow 選択可能化)
 status: todo
-batch: 109
+batch: 111
 era: design-overhaul
 parent_l1: REQ-007_visual-language
 scope_files:

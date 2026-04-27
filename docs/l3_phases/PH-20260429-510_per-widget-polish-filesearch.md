@@ -1,5 +1,5 @@
 ---
-id: PH-20260429-503
+id: PH-20260429-510
 title: Per-widget polish — FileSearch (batch-109 Phase B)
 status: todo
 batch: 109
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/widgets/file-search/FileSearchWidget.svelte
 ---
 
-# PH-503: Per-widget polish — FileSearch
+# PH-510: Per-widget polish — FileSearch
 
 ## 共通品質 checklist
 
