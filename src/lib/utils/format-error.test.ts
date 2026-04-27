@@ -26,6 +26,16 @@ describe('getErrorMessage', () => {
 		expect(getErrorMessage(undefined)).toBe('undefined');
 		expect(getErrorMessage(42)).toBe('42');
 	});
+
+	it('extracts Error instance message (batch-99 / PH-451)', () => {
+		const e = new Error('throw boom');
+		expect(getErrorMessage(e)).toBe('throw boom');
+	});
+
+	it('Error subclass also works', () => {
+		const e = new TypeError('type mismatch');
+		expect(getErrorMessage(e)).toBe('type mismatch');
+	});
 });
 
 describe('getErrorCode', () => {
