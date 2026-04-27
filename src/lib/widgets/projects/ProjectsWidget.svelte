@@ -127,7 +127,7 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title} icon={GitBranch} {menuItems}>
 	{#if config.description}
-		<p class="mb-3 text-xs text-[var(--ag-text-muted)]">{config.description}</p>
+		<p class="mb-3 text-ag-xs text-[var(--ag-text-muted)]">{config.description}</p>
 	{/if}
 	<div class="grid gap-3 md:grid-cols-3">
 		{#each folderItems as item (item.id)}
@@ -150,12 +150,12 @@ let menuItems = $derived(
 				}}
 			>
 				<div class="mb-2 flex items-center justify-between">
-					<div class="text-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
+					<div class="text-ag-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
 					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-6 w-6 shrink-0 object-cover" />
 				</div>
-				<div class="truncate text-xs text-[var(--ag-text-muted)]">{item.target}</div>
+				<div class="truncate text-ag-xs text-[var(--ag-text-muted)]">{item.target}</div>
 				{#if gs}
-					<div class="mt-2 flex items-center gap-2 text-xs text-[var(--ag-text-secondary)]">
+					<div class="mt-2 flex items-center gap-2 text-ag-xs text-[var(--ag-text-secondary)]">
 						<GitBranch class="h-3.5 w-3.5" />
 						<span class="truncate">{gs.branch}</span>
 						{#if gs.has_changes}
@@ -175,13 +175,13 @@ let menuItems = $derived(
 
 	{#if watchedPaths.length > 0}
 		<div class="mt-4 border-t border-[var(--ag-border)] pt-3">
-			<div class="mb-2 flex items-center gap-2 text-xs font-medium text-[var(--ag-text-muted)]">
+			<div class="mb-2 flex items-center gap-2 text-ag-xs font-medium text-[var(--ag-text-muted)]">
 				<Eye class="h-3.5 w-3.5" />
 				監視フォルダ
 			</div>
 			<div class="space-y-1">
 				{#each watchedPaths as wp (wp.id)}
-					<div class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-[var(--ag-text-secondary)]">
+					<div class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-ag-xs text-[var(--ag-text-secondary)]">
 						<FolderKanban class="h-3.5 w-3.5 text-[var(--ag-text-faint)]" />
 						<span class="truncate">{wp.label || wp.path}</span>
 					</div>
@@ -191,7 +191,7 @@ let menuItems = $derived(
 	{/if}
 
 	{#if folderItems.length === 0 && watchedPaths.length === 0}
-		<div class="py-4 text-center text-xs text-[var(--ag-text-muted)]">
+		<div class="py-4 text-center text-ag-xs text-[var(--ag-text-muted)]">
 			フォルダ型アイテムがここに表示されます
 		</div>
 	{/if}
