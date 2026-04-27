@@ -383,23 +383,40 @@ strict=true 時代は `gh pr update-branch --rebase` 連打が必要だった。
 
 ---
 
-## 10. spawn-on-context-pressure（PH-435 batch-95）
+## 10. spawn-on-context-pressure（PH-435 batch-95、PH-471 batch-106 で運用見直し）
 
-### 発動条件
+### ⚠️ 信頼性問題 (batch-106 PH-471 観測)
 
-- assistant turn 数 ≥ 1800 (compaction 直前)
-- または `<system-reminder>` で context budget 警告
+`mcp__scheduled-tasks__create_scheduled_task` の `fireAt` (one-shot) は **2 連続不発を確認** (resume 11 / resume 12)。
+完全な再現条件は未解明だが、**spawn-on-pressure は default 無効化**運用に切替。
 
-### 発動時の手順
+| Resume | fireAt               | user 状態 | 結果         |
+| ------ | -------------------- | --------- | ------------ |
+| 9      | 02:02 UTC            | active    | fired ✅     |
+| 10     | 06:10 UTC            | active    | fired ✅     |
+| 11     | 07:28 UTC            | idle 想定 | NOT fired ❌ |
+| 12     | 09:26 UTC、+60s 短縮 | active    | NOT fired ❌ |
+
+### 現行運用 (batch-106 以降)
+
+1. **default**: 自セッションで分割実装、context 限界まで使い切る
+2. context 切迫時は `memory/spawn_handoff.md` を完全更新して退場する
+3. ユーザは `mcp__dispatch__start_task` を直接叩いて次世代を起動
+
+### 旧運用 (信頼性確認後に再開予定)
+
+- assistant turn 数 ≥ 1800 で `arcagate-dispatch-resume-N` 自動 spawn
+- handoff 読んで queue 続行 → 自セッション退場
+
+### 発動時の手順 (将来の自動化向け)
 
 1. `memory/spawn_handoff.md` に snapshot:
    - 現在の active batch / branch / PR 番号
    - dispatch-queue.md の Active + Next Up 抜粋
    - 進行中の plan の status (wip / 残作業)
    - 最後に走らせた CI の状態
-2. `mcp__dispatch__start_task` で「Arcagate dispatch resume N+1」を起こす
-   - prompt: handoff 読んで queue 続行
-3. 自セッションは「次世代起動済み、退場」で終了
+2. ~~`mcp__dispatch__start_task` で起動~~ → 信頼性問題のため一時停止、ユーザ手動起動依頼
+3. 自セッションは「memory 完全更新済、ユーザ起動依頼」で終了
 
 ### handoff フォーマット
 

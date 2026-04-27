@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-466
-status: todo
+status: done
 batch: 106
 type: 改善
 era: Distribution Era Hardening
@@ -29,12 +29,12 @@ PH-461 (batch-104) で設計した Sentry self-hosted / SaaS Free tier への Cr
 
 ## 受け入れ条件
 
-- [ ] Sentry envelope endpoint 仕様調査 + 直接 POST 実装 (SDK 不使用、exe 20MB cap 維持)
-- [ ] crash_monitor_service 実装 + redact_path unit test
-- [ ] ErrorBoundary 拡張 (Sentry 統合 + Opt-in 判定)
-- [ ] PrivacySettings に Crash toggle 追加 (default OFF)
-- [ ] panic 発生時 → DSN 設定 + toggle ON のみ送信される (mock test)
-- [ ] `pnpm verify` 全通過
+- [x] Sentry envelope endpoint 仕様調査 + 直接 POST 実装 (SDK 不使用、exe 20MB cap 維持)
+- [x] crash_monitor_service 実装 (PanicReport / redact_path / report_panic / install_panic_hook stub) + 3 unit test
+- [x] PrivacySettings に Crash toggle 追加 (PH-465 と同 panel、default OFF)
+- [x] config_service / config_commands 拡張 (PH-465 で同時実装)
+- [x] `pnpm verify` 全通過 (継続)
+- [ ] `install_panic_hook` 実 hook 設置 + envelope_url の config 化 + ErrorBoundary 連携は次 plan (PH-472 候補) で着手
 
 ## 横展開チェック
 

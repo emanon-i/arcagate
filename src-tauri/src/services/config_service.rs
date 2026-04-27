@@ -50,6 +50,37 @@ pub fn mark_onboarding_complete(db: &DbState) -> Result<(), AppError> {
     config_repository::set(&conn, config::KEY_ONBOARDING_COMPLETE, "true")
 }
 
+// PH-465 / PH-466 batch-106: Telemetry / Crash 監視 Opt-in (default OFF)
+pub fn get_telemetry_opt_in(db: &DbState) -> Result<bool, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let val = config_repository::get_or_default(&conn, config::KEY_TELEMETRY_OPT_IN, "false")?;
+    Ok(val == "true")
+}
+
+pub fn set_telemetry_opt_in(db: &DbState, enabled: bool) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    config_repository::set(
+        &conn,
+        config::KEY_TELEMETRY_OPT_IN,
+        if enabled { "true" } else { "false" },
+    )
+}
+
+pub fn get_crash_report_opt_in(db: &DbState) -> Result<bool, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let val = config_repository::get_or_default(&conn, config::KEY_CRASH_REPORT_OPT_IN, "false")?;
+    Ok(val == "true")
+}
+
+pub fn set_crash_report_opt_in(db: &DbState, enabled: bool) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    config_repository::set(
+        &conn,
+        config::KEY_CRASH_REPORT_OPT_IN,
+        if enabled { "true" } else { "false" },
+    )
+}
+
 pub fn get_config(db: &DbState, key: &str) -> Result<Option<String>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     config_repository::get(&conn, key)

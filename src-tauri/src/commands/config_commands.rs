@@ -66,3 +66,24 @@ pub fn cmd_is_onboarding_complete(db: State<DbState>) -> Result<bool, AppError> 
 pub fn cmd_mark_onboarding_complete(db: State<DbState>) -> Result<(), AppError> {
     config_service::mark_onboarding_complete(&db)
 }
+
+// PH-465 / PH-466 batch-106: Telemetry / Crash 監視 Opt-in
+#[tauri::command]
+pub fn cmd_get_telemetry_opt_in(db: State<DbState>) -> Result<bool, AppError> {
+    config_service::get_telemetry_opt_in(&db)
+}
+
+#[tauri::command]
+pub fn cmd_set_telemetry_opt_in(db: State<DbState>, enabled: bool) -> Result<(), AppError> {
+    config_service::set_telemetry_opt_in(&db, enabled)
+}
+
+#[tauri::command]
+pub fn cmd_get_crash_report_opt_in(db: State<DbState>) -> Result<bool, AppError> {
+    config_service::get_crash_report_opt_in(&db)
+}
+
+#[tauri::command]
+pub fn cmd_set_crash_report_opt_in(db: State<DbState>, enabled: bool) -> Result<(), AppError> {
+    config_service::set_crash_report_opt_in(&db, enabled)
+}
