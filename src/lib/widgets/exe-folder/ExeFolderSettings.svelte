@@ -1,6 +1,8 @@
 <script lang="ts">
-import { X } from '@lucide/svelte';
+import { Eraser, X } from '@lucide/svelte';
 import { open } from '@tauri-apps/plugin-dialog';
+import * as widgetItemSettingsIpc from '$lib/ipc/widget-item-settings';
+import { toastStore } from '$lib/state/toast.svelte';
 
 interface Props {
 	config: {
@@ -9,21 +11,36 @@ interface Props {
 		title?: string;
 		item_overrides?: Record<string, string>;
 	};
+	widgetId?: string;
 }
 
-let { config = $bindable() }: Props = $props();
+let { config = $bindable(), widgetId }: Props = $props();
 
 let watchPath = $derived(config.watch_path ?? '');
 let scanDepth = $derived(config.scan_depth ?? 2);
 let exeFolderTitle = $derived(config.title ?? '');
+let pruning = $state(false);
 
 // PH-490b: 監視 path を完全クリア (未設定状態に戻す)
-// path A → unset → path B の遷移をサポート、ウィジェットは「監視フォルダを設定してください」zero state に
 function clearWatchPath() {
 	const next = { ...config };
 	delete next.watch_path;
-	delete next.item_overrides; // path クリア時に override も clear (dead reference 排除)
+	delete next.item_overrides;
 	config = next;
+}
+
+// PH-504: per-item settings 全クリア (custom_label / favorite / opener override も含めて全消去)
+async function clearAllItemSettings() {
+	if (!widgetId) return;
+	pruning = true;
+	try {
+		const removed = await widgetItemSettingsIpc.clearWidgetItemSettings(widgetId);
+		toastStore.add(`過去のアイテム設定 ${removed} 件を削除しました`, 'success');
+	} catch {
+		toastStore.add('アイテム設定のクリアに失敗しました', 'error');
+	} finally {
+		pruning = false;
+	}
 }
 </script>
 
@@ -35,7 +52,7 @@ function clearWatchPath() {
 			type="text"
 			autocomplete="off"
 			placeholder="例: D:\Tools"
-			class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
+			class="min-w-0 flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 			value={watchPath}
 			oninput={(e) => {
 				config = { ...config, watch_path: (e.currentTarget as HTMLInputElement).value };
@@ -111,3 +128,24 @@ function clearWatchPath() {
 		}}
 	/>
 </div>
+
+{#if widgetId}
+	<!-- PH-504: 過去のアイテム設定をクリア (Unset 後に残る per-item override を 1 ボタンで削除) -->
+	<div class="space-y-1 border-t border-[var(--ag-border)] pt-3">
+		<p class="text-ag-sm font-medium text-[var(--ag-text-primary)]">過去のアイテム設定</p>
+		<p class="text-ag-xs text-[var(--ag-text-muted)]">
+			path を unset しても per-item の opener / 名前 / お気に入りは別テーブルに残ります。
+			完全に消したい場合のみ使用。
+		</p>
+		<button
+			type="button"
+			class="inline-flex items-center gap-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-ag-xs text-[var(--ag-text-muted)] transition-colors hover:bg-destructive hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive disabled:opacity-50"
+			data-testid="exe-folder-clear-item-settings"
+			disabled={pruning}
+			onclick={() => void clearAllItemSettings()}
+		>
+			<Eraser class="h-3 w-3" />
+			過去設定をクリア
+		</button>
+	</div>
+{/if}
