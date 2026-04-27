@@ -70,3 +70,16 @@ export async function autoRegisterFolderItems(rootPath: string): Promise<Item[]>
 export async function toggleStar(itemId: string, starred: boolean): Promise<Item> {
 	return invoke<Item>('cmd_toggle_star', { itemId, starred });
 }
+
+// PH-436: 一括タグ操作 (transaction、最大 1000 件)
+export async function bulkAddTag(itemIds: string[], tagId: string): Promise<number> {
+	return invoke<number>('cmd_bulk_add_tag', { itemIds, tagId });
+}
+
+export async function bulkRemoveTag(itemIds: string[], tagId: string): Promise<number> {
+	return invoke<number>('cmd_bulk_remove_tag', { itemIds, tagId });
+}
+
+export async function bulkDeleteItems(itemIds: string[]): Promise<number> {
+	return invoke<number>('cmd_bulk_delete_items', { itemIds });
+}

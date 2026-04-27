@@ -11,12 +11,14 @@ import {
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
-import { searchItemsInTag } from '$lib/ipc/items';
+import { Button } from '$lib/components/ui/button';
+import { bulkAddTag, bulkDeleteItems, searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import LibraryCard from './LibraryCard.svelte';
 
@@ -32,6 +34,53 @@ let searchQuery = $state('');
 let debouncedQuery = $state('');
 let searchInputEl = $state<HTMLInputElement | null>(null);
 let viewMode = $state<'grid' | 'list'>('grid');
+
+// PH-436: 複数選択モード (Nielsen H7)
+let selectionMode = $state(false);
+let selectedIds = $state<Set<string>>(new Set());
+
+function toggleSelection(id: string) {
+	const next = new Set(selectedIds);
+	if (next.has(id)) next.delete(id);
+	else next.add(id);
+	selectedIds = next;
+}
+
+function clearSelection() {
+	selectedIds = new Set();
+}
+
+function exitSelectionMode() {
+	selectionMode = false;
+	clearSelection();
+}
+
+async function handleBulkStar() {
+	if (selectedIds.size === 0) return;
+	try {
+		const ids = Array.from(selectedIds);
+		const count = await bulkAddTag(ids, 'sys-starred');
+		toastStore.add(`${count} 件をお気に入りに追加しました`, 'success');
+		await itemStore.loadItems();
+		exitSelectionMode();
+	} catch (e: unknown) {
+		toastStore.add(formatIpcError({ operation: '一括お気に入り追加' }, e), 'error');
+	}
+}
+
+async function handleBulkDelete() {
+	if (selectedIds.size === 0) return;
+	if (!window.confirm(`${selectedIds.size} 件を削除しますか? (元に戻せません)`)) return;
+	try {
+		const ids = Array.from(selectedIds);
+		const count = await bulkDeleteItems(ids);
+		toastStore.add(`${count} 件を削除しました`, 'success');
+		await itemStore.loadItems();
+		exitSelectionMode();
+	} catch (e: unknown) {
+		toastStore.add(formatIpcError({ operation: '一括削除' }, e), 'error');
+	}
+}
 
 // 150ms デバウンス: キーストロークごとの IPC を抑制
 $effect(() => {
@@ -166,8 +215,40 @@ let filteredItems = $derived.by(() => {
 				<Plus class="h-4 w-4" />
 				アイテムを追加
 			</button>
+			<button
+				type="button"
+				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {selectionMode ? 'bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]' : 'bg-[var(--ag-surface-3)]'}"
+				aria-label={selectionMode ? '選択モード終了' : '複数選択モード'}
+				data-testid="library-selection-toggle"
+				onclick={() => {
+					selectionMode = !selectionMode;
+					if (!selectionMode) clearSelection();
+				}}
+			>
+				{selectionMode ? '選択解除' : '複数選択'}
+			</button>
 		</div>
 	</div>
+
+	<!-- PH-436: 選択モード action bar -->
+	{#if selectionMode && selectedIds.size > 0}
+		<div
+			class="mb-4 flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-4 py-2 text-sm"
+			data-testid="library-selection-actionbar"
+		>
+			<span class="text-[var(--ag-accent-text)]">{selectedIds.size} 件選択中</span>
+			<div class="flex-1" />
+			<Button type="button" variant="default" size="sm" onclick={() => void handleBulkStar()}>
+				お気に入りに追加
+			</Button>
+			<Button type="button" variant="destructive" size="sm" onclick={() => void handleBulkDelete()}>
+				削除
+			</Button>
+			<Button type="button" variant="outline" size="sm" onclick={exitSelectionMode}>
+				キャンセル
+			</Button>
+		</div>
+	{/if}
 
 	<!-- Stat cards -->
 	{#if itemStore.libraryStats}
@@ -188,7 +269,10 @@ let filteredItems = $derived.by(() => {
 					{item}
 					{viewMode}
 					isStarred={starredIds.has(item.id)}
-					onclick={() => onSelectItem?.(item.id)}
+					onclick={() => {
+						if (selectionMode) toggleSelection(item.id);
+						else onSelectItem?.(item.id);
+					}}
 					ondblclick={() => {
 						void launchItem(item.id)
 							.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
@@ -235,7 +319,10 @@ let filteredItems = $derived.by(() => {
 				<LibraryCard
 					{item}
 					isStarred={starredIds.has(item.id)}
-					onclick={() => onSelectItem?.(item.id)}
+					onclick={() => {
+						if (selectionMode) toggleSelection(item.id);
+						else onSelectItem?.(item.id);
+					}}
 					ondblclick={() => {
 						void launchItem(item.id)
 							.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))

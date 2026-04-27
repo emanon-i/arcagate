@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ClipboardList, X } from '@lucide/svelte';
+import { ClipboardList, Search, X } from '@lucide/svelte';
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
@@ -39,6 +39,14 @@ let config = $derived.by<ClipboardHistoryConfig>(() => {
 let history = $derived(config.history ?? []);
 let maxItems = $derived(config.max_items ?? 20);
 let pollMs = $derived(Math.max(500, Math.min(10_000, config.poll_interval_ms ?? 1500)));
+
+// PH-437: 検索 (Nielsen H7) — 部分一致 case-insensitive
+let query = $state('');
+let filteredHistory = $derived.by(() => {
+	const q = query.trim().toLowerCase();
+	if (!q) return history;
+	return history.filter((e) => e.text.toLowerCase().includes(q));
+});
 
 async function persist(next: ClipboardHistoryConfig) {
 	if (!widget) return;
@@ -105,8 +113,37 @@ function previewText(text: string): string {
 			<p>テキストをコピーすると ここに溜まり、クリックで再コピーできます。</p>
 		</div>
 	{:else}
+		<div class="mb-2 flex items-center gap-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2">
+			<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
+			<input
+				type="text"
+				class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
+				placeholder="履歴を検索..."
+				autocomplete="off"
+				bind:value={query}
+				data-testid="clipboard-history-search"
+			/>
+			{#if query}
+				<button
+					type="button"
+					class="rounded p-0.5 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+					aria-label="検索クエリをクリア"
+					onclick={() => (query = '')}
+				>
+					<X class="h-3 w-3" />
+				</button>
+			{/if}
+		</div>
+		{#if query}
+			<p class="mb-1 text-[10px] text-[var(--ag-text-muted)]">
+				{history.length} 件中 {filteredHistory.length} 件表示
+			</p>
+		{/if}
+		{#if filteredHistory.length === 0}
+			<p class="text-xs text-[var(--ag-text-muted)]">「{query}」に一致する履歴はありません</p>
+		{:else}
 		<ul class="space-y-1">
-			{#each history as entry (entry.id)}
+			{#each filteredHistory as entry (entry.id)}
 				<li class="group flex items-center gap-1">
 					<button
 						type="button"
@@ -127,6 +164,7 @@ function previewText(text: string): string {
 				</li>
 			{/each}
 		</ul>
+		{/if}
 	{/if}
 </WidgetShell>
 
