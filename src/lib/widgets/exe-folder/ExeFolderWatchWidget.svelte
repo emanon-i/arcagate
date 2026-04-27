@@ -3,6 +3,7 @@ import { AppWindow, FolderOpen, MoreHorizontal, RotateCw } from '@lucide/svelte'
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import * as widgetItemSettingsIpc from '$lib/ipc/widget-item-settings';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -50,6 +51,10 @@ let entries = $state<ExeFolderEntry[]>([]);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
 
+// PH-504: per-item settings lookup map (item_key=folderPath → settings)
+// 案 C: entries は揮発、settings は別永続テーブル。再 set で同 item_key 出現すれば自動復活。
+let itemSettingsMap = $state<Record<string, { customLabel?: string; favorite?: boolean }>>({});
+
 // PH-490 + PH-492: race condition / 旧 cache 残存防止
 // PH-500: retry でも同 effect を走らせるため retryNonce を依存に追加
 let scanRequestId = 0;
@@ -61,6 +66,7 @@ $effect(() => {
 	const _retry = retryNonce;
 	entries = [];
 	scanError = null;
+	itemSettingsMap = {};
 	if (!path) {
 		scanning = false;
 		return;
@@ -68,9 +74,32 @@ $effect(() => {
 	scanning = true;
 	const myId = ++scanRequestId;
 	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { root: path, depth })
-		.then((result) => {
+		.then(async (result) => {
 			if (myId !== scanRequestId) return;
 			entries = result;
+			// PH-504: scan 後、widget 単位の per-item settings を bulk lookup
+			if (widget) {
+				try {
+					const all = await widgetItemSettingsIpc.listWidgetItemSettings(widget.id);
+					const map: typeof itemSettingsMap = {};
+					for (const s of all) {
+						map[s.item_key] = {
+							customLabel: s.custom_label ?? undefined,
+							favorite: s.favorite,
+						};
+					}
+					if (myId === scanRequestId) itemSettingsMap = map;
+					// PH-504: 見えた items の last_seen_at を bulk touch (orphan 判定用)
+					const visibleKeys = result.map((e) => e.folderPath);
+					if (visibleKeys.length > 0) {
+						void widgetItemSettingsIpc
+							.touchWidgetItemSettings(widget.id, visibleKeys)
+							.catch(() => {});
+					}
+				} catch {
+					// settings load 失敗は致命ではない (entries は表示する)
+				}
+			}
 		})
 		.catch((e: unknown) => {
 			if (myId !== scanRequestId) return;
@@ -81,6 +110,12 @@ $effect(() => {
 			if (myId === scanRequestId) scanning = false;
 		});
 });
+
+// PH-504: 表示 label を per-item settings の custom_label で上書き (なければ folderName)
+function displayLabel(entry: ExeFolderEntry): string {
+	const s = itemSettingsMap[entry.folderPath];
+	return s?.customLabel ?? entry.folderName;
+}
 
 let candidatePopoverFor = $state<string | null>(null);
 
@@ -283,7 +318,7 @@ let menuItems = $derived(
 								: ''}"
 							role="option"
 							aria-selected={isSelected}
-							aria-label="{entry.folderName} を起動"
+							aria-label="{displayLabel(entry)} を起動"
 							data-testid="exe-folder-row"
 							onclick={() => {
 								selectedIndex = idx;
@@ -291,7 +326,7 @@ let menuItems = $derived(
 							}}
 						>
 							<AppWindow class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
-							<span class="min-w-0 flex-1 truncate" title={entry.folderName}>{entry.folderName}</span>
+							<span class="min-w-0 flex-1 truncate" title={displayLabel(entry)}>{displayLabel(entry)}</span>
 							<span
 								class="exe-folder-badge shrink-0 text-[10px] {hasOverride
 									? 'text-[var(--ag-accent-text)]'
