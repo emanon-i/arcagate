@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
-# audit-text-overflow.sh (PH-491)
+# audit-text-overflow.sh (PH-501)
 #
-# widget / panel / button で text overflow が発生しやすいパターンを検出し、warning 表示。
-# false positive 多めだが、コードレビュー指針として有用。
+# widget / panel / button で text overflow が発生しやすいパターンを検出、CI error。
 #
-# 検出対象:
-#   - `flex items-center` を持つ container で `min-w-0` が周辺に無いケース
-#   - text を含む button で `truncate` または `whitespace-nowrap` が無いケース
+# 検出ルール:
+#   - .svelte ファイル内で `flex` + items-center/justify-* と一緒に
+#     子要素 `flex-1` を持つのに、ファイル内のどこにも
+#     `min-w-0` も `truncate` も `break-words` も
+#     `overflow-hidden` も `whitespace-nowrap` も無い
+#     → 高確率で overflow 違反 (truncate/min-w-0 不在)
 #
 # 対象 path:
 #   - src/lib/widgets/**/*.svelte
 #   - src/lib/components/arcagate/**/*.svelte
 #   - src/lib/components/settings/**/*.svelte
 #
-# 動作: warning 表示のみ (exit 0)、将来 error 化検討。
+# 動作: 違反 0 → exit 0、違反あり → 一覧出力 + exit 1 (CI fail)
+#
+# 例外: scope_files に明示的に NO_OVERFLOW_AUDIT_OK comment がある場合は skip
 
 set -euo pipefail
 
@@ -25,17 +29,50 @@ paths=(
 	"src/lib/components/settings"
 )
 
-# Pattern 1: `flex items-center` を持つ class の中に同行 `min-w-0` も子要素 `truncate` も無い
-# (簡易検出: 目視確認向けの hint)
-total=0
+violations=()
+scanned=0
+
 for p in "${paths[@]}"; do
 	if [[ ! -d "$p" ]]; then continue; fi
-	# rg: `flex items-center` を持つが `min-w-0` を含まない line 数
-	count=$(rg -l 'flex.*items-center' "$p" --glob '*.svelte' 2>/dev/null | wc -l)
-	total=$((total + count))
+	while IFS= read -r f; do
+		scanned=$((scanned + 1))
+		# 例外指定 (overflow audit を意図的に bypass、コメントで明示)
+		if grep -q 'NO_OVERFLOW_AUDIT_OK' "$f"; then
+			continue
+		fi
+		# flex container check (flex + items-center や justify-* と一緒の line)
+		# Use grep -E for extended regex
+		if ! grep -qE 'flex[^"]*\b(items-center|justify-(start|center|end|between|around|evenly))\b' "$f"; then
+			continue
+		fi
+		# flex-1 child check
+		if ! grep -qE '\bflex-1\b' "$f"; then
+			continue
+		fi
+		# safety check (min-w-0 / truncate / break-words / overflow-hidden / whitespace-nowrap)
+		if grep -qE '\b(min-w-0|truncate|break-words|overflow-hidden|whitespace-nowrap)\b' "$f"; then
+			continue
+		fi
+		# violation
+		violations+=("$f")
+	done < <(find "$p" -name '*.svelte')
 done
 
-echo "✓ text-overflow audit (PH-491): scanned $total .svelte files"
-echo "  Note: warning only, manual review recommended for new flex+text patterns."
-echo "  Pattern: flex items-center → 必ず min-w-0 + truncate を子要素に付与"
+if [[ ${#violations[@]} -gt 0 ]]; then
+	echo "❌ text-overflow audit (PH-501) FAILED — ${#violations[@]} violations of $scanned scanned"
+	for v in "${violations[@]}"; do
+		echo "  - $v"
+	done
+	echo ""
+	echo "Fix hint:"
+	echo "  - Add 'min-w-0' to flex-1 element (parent flex の direct child)"
+	echo "  - Or 'truncate' to text element (1 行省略)"
+	echo "  - Or 'break-words' to text container (折返し許可)"
+	echo "  - Or 'overflow-hidden' to outer container"
+	echo "  - 例外時は scope file 上部に <!-- NO_OVERFLOW_AUDIT_OK: 理由 --> コメントを追加"
+	echo "Reference: docs/lessons.md (Svelte 5 reactive + text overflow)"
+	exit 1
+fi
+
+echo "✓ text-overflow audit (PH-501): scanned $scanned .svelte files, 0 violations"
 exit 0

@@ -35,7 +35,7 @@ const typeStyles: Record<string, string> = {
 				in:fly={{ x: 100, duration: dNormal }}
 				out:fade={{ duration: dFast }}
 			>
-				<span class="flex-1">{toast.message}</span>
+				<span class="min-w-0 flex-1 break-words">{toast.message}</span>
 				<button
 					type="button"
 					class="shrink-0 opacity-60 transition-opacity duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-100"
