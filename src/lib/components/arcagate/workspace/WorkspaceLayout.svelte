@@ -407,12 +407,19 @@ function cropToWidgets() {
 	/>
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- PH-494 MVP: Obsidian Canvas 風 (dotted grid 背景 + 表示領域拡大)
+		編集モード時:
+		- padding 縮小 (p-5 → p-2) で表示領域拡大
+		- dotted grid 背景を 16px 間隔 + より目立つ rgba(0,0,0,.18) で Obsidian 風に
+		次 wave (PH-494 polish): Ctrl+wheel zoom / free pan / 右下 toolbar / workspace 単位 persist -->
 	<div
-		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] p-5 {editMode ? 'canvas-edit-mode' : ''}"
+		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] {editMode
+			? 'p-2 canvas-edit-mode'
+			: 'p-5'}"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
-			? 'radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
+			? 'radial-gradient(circle, rgba(120,120,120,0.28) 1.2px, transparent 1.4px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
 			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
-			? '24px 24px, 100% 100%'
+			? '16px 16px, 100% 100%'
 			: '100% 100%'};"
 		data-zoom={configStore.widgetZoom}
 		bind:this={workspaceContainer}
