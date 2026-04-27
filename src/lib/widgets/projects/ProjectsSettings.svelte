@@ -34,14 +34,14 @@ async function handlePickFolder() {
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数</label>
 	<input
 		id="ws-max-items"
 		type="number"
 		min="1"
 		max="100"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 		value={maxItems}
 		onchange={(e) => {
 			config = {
@@ -53,14 +53,14 @@ async function handlePickFolder() {
 </div>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-git-poll">Git ポーリング間隔（秒）</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-git-poll">Git ポーリング間隔（秒）</label>
 	<input
 		id="ws-git-poll"
 		type="number"
 		min="10"
 		max="600"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 		value={gitPollInterval}
 		onchange={(e) => {
 			config = {
@@ -72,12 +72,12 @@ async function handlePickFolder() {
 </div>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-title">タイトル</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-title">タイトル</label>
 	<input
 		id="ws-title"
 		type="text"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 		value={wsTitle}
 		oninput={(e) => {
 			config = { ...config, title: (e.target as HTMLInputElement).value };
@@ -86,12 +86,12 @@ async function handlePickFolder() {
 </div>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-description">説明</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-description">説明</label>
 	<input
 		id="ws-description"
 		type="text"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
 		value={wsDescription}
 		oninput={(e) => {
 			config = { ...config, description: (e.target as HTMLInputElement).value };
@@ -100,9 +100,9 @@ async function handlePickFolder() {
 </div>
 
 <div class="space-y-1">
-	<span class="text-sm font-medium text-[var(--ag-text-primary)]">監視対象フォルダ</span>
+	<span class="text-ag-sm font-medium text-[var(--ag-text-primary)]">監視対象フォルダ</span>
 	<div class="flex items-center gap-2">
-		<div class="min-w-0 flex-1 truncate rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-secondary)]">
+		<div class="min-w-0 flex-1 truncate rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-secondary)]">
 			{watchedFolder || '未選択'}
 		</div>
 		<Button type="button" variant="outline" size="sm" onclick={handlePickFolder}>選択</Button>
@@ -119,5 +119,5 @@ async function handlePickFolder() {
 			config = { ...config, auto_add: (e.target as HTMLInputElement).checked };
 		}}
 	/>
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-auto-add">自動追加</label>
+	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-auto-add">自動追加</label>
 </div>
