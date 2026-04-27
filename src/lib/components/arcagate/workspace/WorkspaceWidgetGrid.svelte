@@ -140,12 +140,12 @@ function handleResizeStart(e: PointerEvent, widgetId: string, dir: ResizeDir = '
 		handle.releasePointerCapture(ev.pointerId);
 		const w = workspaceStore.widgets.find((ww) => ww.id === widgetId);
 		if (w) {
-			void workspaceStore.persistMoveAndResize(
+			// PH-477: commit (history record 付き)
+			void workspaceStore.commitMoveAndResize(
 				widgetId,
-				w.position_x,
-				w.position_y,
-				w.width,
-				w.height,
+				start,
+				{ x: w.position_x, y: w.position_y, w: w.width, h: w.height },
+				'resize',
 			);
 		}
 		handle.removeEventListener('pointermove', onMove);

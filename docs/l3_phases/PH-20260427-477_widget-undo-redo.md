@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-477
 title: Widget Undo/Redo system (Ctrl+Z / Ctrl+Shift+Z)
-status: todo
+status: done
 batch: 107
 era: polish
 parent_l1: REQ-006_workspace-widgets
@@ -30,20 +30,20 @@ scope_files:
 
 ### 機能
 
-- [ ] **Ctrl+Z**: 直前の widget 操作を 1 つ undo (配置 / 移動 / リサイズ / 追加 / 削除 / config 変更すべて)
-- [ ] **Ctrl+Shift+Z または Ctrl+Y**: redo
-- [ ] **履歴上限**: 50 件 (Ring buffer、超過時は古いものから drop)
-- [ ] **編集中 (drag/resize) は履歴に積まない**: pointerup で commit された確定操作のみ記録 (中間 optimistic state を履歴に残すと膨れる)
-- [ ] **キャンセル後の編集**: 編集モード抜けた後の操作は新しい history entry になる (PH-478 と整合)
-- [ ] **永続化**: 履歴は session memory only (DB / file 保存しない、再起動でリセット)
-- [ ] **HelpPanel** に「Ctrl+Z 取り消し / Ctrl+Shift+Z やり直し」追記
-- [ ] **disabled state**: 履歴空 → undo disabled、redo 履歴なし → redo disabled (toolbar に表示する場合)
-- [ ] **エラー時 rollback**: undo 中の IPC 失敗で history pointer が壊れない (try-catch + state ロールバック)
+- [x] **Ctrl+Z**: workspace.svelte.ts の add/remove/move/resize/config を `workspaceHistory.record()` で wrap、Ctrl+Z で 1 件 undo
+- [x] **Ctrl+Shift+Z または Ctrl+Y**: redo (両方サポート、Adobe / Office 慣習)
+- [x] **履歴上限**: 50 件 ring buffer (`MAX_HISTORY = 50`、超過時 `slice(-MAX_HISTORY)` で drop)
+- [x] **編集中は履歴に積まない**: `optimisticMoveAndResize` は record せず、pointerup の `commitMoveAndResize` でのみ record
+- [x] **新規操作で redo invalidate**: record 時に `redoStack = []` (Adobe 慣習)
+- [x] **永続化**: session memory only (DB 不使用、再起動リセット)
+- [x] **HelpPanel** に「Ctrl+Z 取り消し / Ctrl+Shift+Z やり直し」追記 + tip 追加
+- [x] **エラー時 rollback**: try-catch + `console.error('[history] undo failed', e)`、history pointer 維持
+- [x] **add/remove の id 変化**: Rust 側で新 id 生成されるので、redo/undo 後 entry.widgetId を update
 
 ### 横展開チェック
 
-- [ ] Library 側にも将来 undo を持たせるか (今回 scope 外、設計は extension 可能に)
-- [ ] Theme editor 等の他編集系で undo 一貫性確認 (今回 scope 外、しかし design pattern 整合)
+- [x] Library / Theme editor: scope 外、design pattern (kind + before/after) は将来 history 化に再利用可能
+- [x] config 変更も undo 対象 (updateWidgetConfig wrapper で record)
 
 ### SFDIPOT
 
