@@ -24,12 +24,18 @@ $effect(() => {
 
 let config = $derived(parseWidgetConfig(widget?.config, CLOCK_WIDGET_DEFAULTS));
 
-let timeStr = $derived.by(() => {
+// PH-506: prefix / core / seconds に分解してそれぞれ span に。
+// XS (< 100px) では seconds を CSS で隠すことで HH:MM のみに自動降格できる。
+let timeParts = $derived.by(() => {
 	const h = config.use_24h ? now.getHours() : now.getHours() % 12 || 12;
 	const m = String(now.getMinutes()).padStart(2, '0');
 	const s = String(now.getSeconds()).padStart(2, '0');
-	const prefix = config.use_24h ? '' : now.getHours() < 12 ? 'AM ' : 'PM ';
-	return `${prefix}${String(h).padStart(2, '0')}:${m}${config.show_seconds ? `:${s}` : ''}`;
+	const prefix = config.use_24h ? '' : now.getHours() < 12 ? 'AM' : 'PM';
+	return {
+		prefix,
+		core: `${String(h).padStart(2, '0')}:${m}`,
+		seconds: config.show_seconds ? s : '',
+	};
 });
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -47,9 +53,12 @@ let dateStr = $derived.by(() => {
 	return parts.join(' ');
 });
 
-// menuItems = 1 個（「設定」即モーダル）に統一。
-// 旧: 4 項目 DropdownMenu（秒/日付/曜日/12-24h トグル）→ CLAUDE.md「選択肢1個のメニューを挟むな」に従い
-// 全ウィジェット共通の WidgetSettingsDialog へ統合。
+// SR 用 ARIA label (時刻全体を 1 行で読ませる)
+let ariaTimeLabel = $derived.by(() => {
+	const tp = timeParts;
+	return [tp.prefix, tp.core, tp.seconds, dateStr].filter(Boolean).join(' ');
+});
+
 let menuItems = $derived(
 	widget
 		? [
@@ -65,23 +74,35 @@ let menuItems = $derived(
 </script>
 
 <WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>
-	<!-- HOTFIX: container query で widget サイズに応じて responsive
-		- 大きい: time large + date 表示
-		- 小さい (< 200px): time medium + date 隠す
-		- 極小 (< 140px): time small + date 隠す
-		container-type: inline-size + cqw 単位で container 比例 -->
+	<!--
+		PH-498 (hotfix) で responsive 化、PH-506 で polish:
+		- L/M (>= 200px): time + date + weekday + (秒)
+		- S (140-199px): time のみ、date 非表示
+		- XS (< 100px): prefix (AM/PM) + seconds を CSS で hide → HH:MM のみ
+		container-type: inline-size + cqw 単位で widget 幅に追従。
+	-->
 	<div
 		class="clock-container flex h-full flex-col items-center justify-center gap-1 overflow-hidden"
+		role="group"
+		aria-label="現在時刻"
+		aria-live="polite"
 	>
 		<span
 			class="clock-time font-mono font-semibold tabular-nums whitespace-nowrap text-[var(--ag-text-primary)]"
+			aria-label={ariaTimeLabel}
 		>
-			{timeStr}
+			{#if timeParts.prefix}
+				<span class="clock-prefix">{timeParts.prefix}&nbsp;</span>
+			{/if}
+			<span>{timeParts.core}</span>
+			{#if timeParts.seconds}
+				<span class="clock-seconds">:{timeParts.seconds}</span>
+			{/if}
 		</span>
 		{#if dateStr}
-			<span
-				class="clock-date text-ag-sm whitespace-nowrap text-[var(--ag-text-muted)]"
-			>{dateStr}</span>
+			<span class="clock-date text-ag-sm whitespace-nowrap text-[var(--ag-text-muted)]">
+				{dateStr}
+			</span>
 		{/if}
 	</div>
 </WidgetShell>
@@ -90,7 +111,7 @@ let menuItems = $derived(
 .clock-container {
 	container-type: inline-size;
 }
-/* default (large widget): full size */
+/* default (L / M): full size */
 .clock-time {
 	font-size: clamp(1rem, 12cqw, 1.875rem);
 	line-height: 1.1;
@@ -98,18 +119,21 @@ let menuItems = $derived(
 .clock-date {
 	font-size: clamp(0.625rem, 4cqw, 0.875rem);
 }
-/* very small: hide date */
+/* S: hide date (date-only suppression) */
 @container (max-width: 140px) {
 	.clock-date {
+		display: none;
+	}
+}
+/* XS: hide seconds + prefix → HH:MM only */
+@container (max-width: 100px) {
+	.clock-seconds,
+	.clock-prefix {
 		display: none;
 	}
 }
 </style>
 
 {#if widget}
-	<WidgetSettingsDialog
-		{widget}
-		open={settingsOpen}
-		onClose={() => (settingsOpen = false)}
-	/>
+	<WidgetSettingsDialog {widget} open={settingsOpen} onClose={() => (settingsOpen = false)} />
 {/if}
