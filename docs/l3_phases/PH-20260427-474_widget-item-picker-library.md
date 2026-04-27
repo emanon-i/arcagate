@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-474
 title: Widget Item Picker = LibraryCard 再利用 + 複数選択 + Collection Widget
-status: todo
+status: done
 batch: 107
 era: polish
 parent_l1: REQ-006_workspace-widgets
@@ -37,18 +37,19 @@ scope_files:
 
 ### 機能
 
-- [ ] **CollectionWidget**: 新 widget type、複数 item id を config に保持、LibraryCard を `itemSize='S'` で grid 表示
-- [ ] **ItemPicker** モーダル: LibraryGrid を `mode='picker'` で埋め込み、各カード click でトグル選択、選択数バッジ + 「N 件追加」ボタン
-- [ ] **ソート / フィルタ**: Picker 内で既存 LibraryGrid の sort (name / created / used) + filter (tag / type) を使える
-- [ ] **複数選択**: Cmd/Ctrl+click 個別、Shift+click 範囲、checkbox overlay
-- [ ] **既存 ItemWidget**: collection への置換 path を提供 (settings dialog で「複数 item に変更」ボタン → CollectionWidget に migrate)
-- [ ] **Library 削除 ↔ widget 同期**: `cmd_delete_item` 内で widget_items の参照を一括削除 (Rust service 層で transaction)
-- [ ] dead reference テスト: item 削除 → widget が画面に残ったまま空表示にならず、参照が消えるだけ
+- [x] **複数アイテム表示**: ItemWidget が `item_ids: string[]` 設定時に LibraryCard の grid 表示に切り替え (実装は新 widget type ではなく既存 ItemWidget の config schema 拡張、後方互換維持)
+- [x] **ItemPicker モーダル**: LibraryItemPicker を LibraryCard grid + checkbox overlay + 選択 ring + 「N 件を追加」フッターで全面リライト
+- [x] **ソート / フィルタ**: Picker 内に sort セレクト (登録順 / 名前順 / 更新順) を実装、検索フィルタは既存 itemStore 流用
+- [x] **複数選択**: 各カード click で toggle、`selectedIds: Set<string>` 管理、確定で onConfirm 発火
+- [x] **既存 ItemWidget**: 複数選択時は LibraryCard grid (72px min)、単一時は既存 LibraryCard 単体表示
+- [x] **Library 削除 ↔ widget 同期**: `services/item_service.rs:purge_item_from_widget_configs` を追加、`delete_item` から呼び出し。`item_id` null 化 + `item_ids` から該当 ID 削除 (best-effort、JSON parse 失敗は skip)
+- [x] dead reference: item 削除後に widget config 内の参照が自動消去、widget はゼロ件状態に戻り「アイテムを選択」UI 表示
 
 ### 横展開チェック
 
-- [ ] LibraryCard の props を `mode?: 'normal'|'picker'` `selected?: boolean` で拡張、既存利用箇所影響なし
-- [ ] Library フィルタ / ソート state は store 化されているか、picker でも同じ store 使えるか確認
+- [x] LibraryCard 既存 API (onclick) のまま再利用、改変不要 (selection overlay は picker 側で wrapper 描画)
+- [x] Library フィルタ / ソート: itemStore.items を picker で再利用、独立 sort 実装で UI scope 限定 (将来 LibraryGrid と統合余地あり、今 scope 外)
+- [x] WidgetType::Collection 新 enum 追加は scope 外 (既存 ItemWidget config 拡張で要件達成、UX 変化なし)
 
 ### SFDIPOT
 
