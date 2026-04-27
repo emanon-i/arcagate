@@ -1,13 +1,13 @@
 ---
 id: PH-20260429-506
 title: Per-widget polish — ClockWidget (batch-109 Phase B)
-status: todo
+status: wip
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/clock/ClockWidget.svelte
-  - src/lib/widgets/clock/ClockSettings.svelte
+  - src/lib/widgets/clock/ClockWidget.svelte (XS size + state polish + a11y)
+  - tests/e2e/clock-widget-polish.spec.ts (new)
 ---
 
 # PH-506: Per-widget polish — ClockWidget
