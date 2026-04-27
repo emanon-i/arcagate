@@ -67,6 +67,17 @@ pub struct Workspace {
     pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
+    // PH-499: Workspace 別背景壁紙 (None = global library default を継承)
+    pub wallpaper_path: Option<String>,
+    pub wallpaper_opacity: f64,
+    pub wallpaper_blur: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WallpaperSettings {
+    pub path: Option<String>,
+    pub opacity: f64,
+    pub blur: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

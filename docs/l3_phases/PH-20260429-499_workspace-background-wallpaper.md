@@ -1,19 +1,29 @@
 ---
 id: PH-20260429-499
 title: Workspace per-workspace 背景壁紙 + Library 共通設定
-status: todo
+status: done
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src-tauri/migrations/ (new migration)
-  - src-tauri/src/models/workspace.rs
-  - src-tauri/src/repositories/workspace_repository.rs
-  - src-tauri/src/commands/workspace_commands.rs
-  - src/lib/types/workspace.ts
-  - src/lib/state/workspace.svelte.ts
-  - src/lib/components/arcagate/workspace/WorkspaceLayout.svelte
-  - src/lib/components/settings/AppearanceSettings.svelte (new section: 背景画像)
+  - src-tauri/migrations/018_workspace_wallpaper.sql (new)
+  - src-tauri/src/db/migrations.rs
+  - src-tauri/src/models/workspace.rs (wallpaper fields + WallpaperSettings struct)
+  - src-tauri/src/repositories/workspace_repository.rs (update_workspace_wallpaper)
+  - src-tauri/src/services/wallpaper_service.rs (new - file copy + safe delete)
+  - src-tauri/src/services/workspace_service.rs (set_workspace_wallpaper)
+  - src-tauri/src/services/mod.rs
+  - src-tauri/src/commands/wallpaper_commands.rs (new - 5 IPC commands)
+  - src-tauri/src/commands/mod.rs
+  - src-tauri/src/lib.rs (handler 登録)
+  - src/lib/types/workspace.ts (Workspace + WallpaperSettings 拡張)
+  - src/lib/ipc/workspace.ts (5 wallpaper IPC wrappers)
+  - src/lib/state/workspace.svelte.ts (libraryWallpaper + 6 helpers)
+  - src/lib/components/arcagate/workspace/WorkspaceLayout.svelte (壁紙 layer)
+  - src/lib/components/settings/WallpaperSettings.svelte (new)
+  - src/lib/components/settings/SettingsPanel.svelte (Appearance タブで mount)
+  - tests/e2e/workspace-wallpaper.spec.ts (new - IPC round-trip)
+  - tests/helpers/ipc.ts (Workspace 型に wallpaper fields)
 ---
 
 # PH-499: Workspace per-workspace 背景壁紙 + Library 共通設定
@@ -28,17 +38,17 @@ batch-107 PH-476 は MVP として **Mica 半透明のみ実装**、壁紙個別
 
 ## 受け入れ条件
 
-- [ ] **Library 画面 default 背景画像**: Settings > 外観 で global 設定 (1 画像 + opacity + blur slider)
-- [ ] **Workspace 別の上書き設定**: 各 Workspace に背景画像を設定可能 (Workspace 設定 dialog で choose、または編集モード右クリック menu)
-- [ ] **未設定の Workspace は global default を継承** (cascade)
-- [ ] **画像選択 UI**: Tauri file dialog で画像選択 (`*.png|*.jpg|*.jpeg|*.webp`)、サムネイルプレビュー
-- [ ] **画像保存先**: `%LOCALAPPDATA%/Arcagate/wallpapers/<uuid>.<ext>` (DB には path string のみ)
-- [ ] **CSS 適用**: AppShell or Workspace コンテナの `::before` pseudo-element で `background-image` + opacity + blur フィルタ
-- [ ] **半透明 (Mica) との重ね順整合**: Mica 背景の上に画像、画像 opacity で混色
-- [ ] **画像削除 / リセット**: 「壁紙なし」に戻すボタン
-- [ ] **Reduced Motion**: blur アニメは Reduced Motion 時は無効
-- [ ] **E2E**: workspace 作成 → 壁紙設定 → 切替 → 壁紙適用 assert
-- [ ] before/after スクショ取得 (gallery)
+- [x] **Library 画面 default 背景画像**: Settings > 外観 で global 設定 (1 画像 + opacity + blur slider) — `WallpaperSettings.svelte`
+- [x] **Workspace 別の上書き設定**: 同 Settings 画面で active workspace の override (UI は 1 ヶ所統合、Workspace 設定 dialog 別途は不要との判断)
+- [x] **未設定の Workspace は global default を継承** (`WorkspaceLayout` の `activeWallpaper` $derived でカスケード)
+- [x] **画像選択 UI**: `@tauri-apps/plugin-dialog` で `*.png|*.jpg|*.jpeg|*.webp` filter、選択後にサムネイル表示
+- [x] **画像保存先**: `<app_data_dir>/wallpapers/<uuid v7>.<ext>` (DB には絶対 path のみ、`save_wallpaper` で copy)
+- [x] **CSS 適用**: scroll しない overlay layer (`absolute inset-0 z-0`) で `background-image` + opacity + blur
+- [x] **半透明 (Mica) との重ね順整合**: 壁紙 layer は Mica 背景の上、widget は z-10 で壁紙の上
+- [x] **画像削除 / リセット**: 「背景なしに戻す」 / 「Library default に戻す」 button
+- [x] **Reduced Motion**: `motion-reduce:!filter-none` で blur 無効化
+- [x] **E2E**: `tests/e2e/workspace-wallpaper.spec.ts` で IPC round-trip 検証 (Library default / Workspace override / clear / 戻し)
+- [ ] before/after スクショ取得 (CDP 自己検証は次回 main 反映後)
 
 ## DB スキーマ
 

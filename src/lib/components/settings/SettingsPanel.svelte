@@ -12,6 +12,7 @@ import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import PrivacySettings from './PrivacySettings.svelte';
 import UpdaterSettings from './UpdaterSettings.svelte';
+import WallpaperSettings from './WallpaperSettings.svelte';
 import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
 // PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
@@ -387,6 +388,11 @@ function handleNavKeydown(e: KeyboardEvent) {
 								</div>
 							{/if}
 						</div>
+					</div>
+
+					<!-- PH-499: 背景画像 (Library default + per-workspace override) -->
+					<div class="border-t border-[var(--ag-border)] pt-5">
+						<WallpaperSettings />
 					</div>
 				</div>
 			{:else if activeCategory === 'data'}

@@ -37,6 +37,10 @@ use commands::theme_commands::{
     cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
     cmd_update_theme,
 };
+use commands::wallpaper_commands::{
+    cmd_clear_workspace_wallpaper, cmd_get_library_wallpaper, cmd_save_wallpaper,
+    cmd_set_library_wallpaper, cmd_set_workspace_wallpaper,
+};
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
@@ -292,6 +296,12 @@ pub fn run() {
             cmd_set_telemetry_opt_in,
             cmd_get_crash_report_opt_in,
             cmd_set_crash_report_opt_in,
+            // PH-499: 背景壁紙
+            cmd_save_wallpaper,
+            cmd_set_workspace_wallpaper,
+            cmd_clear_workspace_wallpaper,
+            cmd_set_library_wallpaper,
+            cmd_get_library_wallpaper,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Crop, LayoutGrid, Pencil } from '@lucide/svelte';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -29,7 +30,27 @@ const zoom = useWidgetZoom(() => workspaceContainer);
 
 $effect(() => {
 	void workspaceStore.loadWorkspaces();
+	// PH-499: Library 共通 default 壁紙を初期 load
+	void workspaceStore.loadLibraryWallpaper();
 });
+
+// PH-499: アクティブ workspace の壁紙設定 → 未設定なら library default を継承
+let activeWallpaper = $derived.by(() => {
+	const ws = workspaceStore.activeWorkspace;
+	if (ws?.wallpaper_path) {
+		return {
+			path: ws.wallpaper_path,
+			opacity: ws.wallpaper_opacity ?? 0.7,
+			blur: ws.wallpaper_blur ?? 0,
+		};
+	}
+	return workspaceStore.libraryWallpaper;
+});
+
+let wallpaperSrc = $derived(activeWallpaper.path ? convertFileSrc(activeWallpaper.path) : null);
+let wallpaperBackgroundCss = $derived(
+	wallpaperSrc ? `url("${wallpaperSrc}") center/cover no-repeat` : 'transparent',
+);
 
 type WidgetSnapshot = { id: string; x: number; y: number; w: number; h: number };
 
@@ -420,19 +441,32 @@ function cropToWidgets() {
 		</button>
 	{/if}
 
+	<!-- PH-499: 壁紙 layer は overflow-auto の OUTSIDE に置いて scroll しないようにする -->
+	<div class="relative min-w-0 flex-1">
+		{#if wallpaperSrc}
+			<div
+				class="pointer-events-none absolute inset-0 z-0 motion-reduce:!filter-none"
+				style="
+					background: {wallpaperBackgroundCss};
+					opacity: {activeWallpaper.opacity};
+					filter: blur({activeWallpaper.blur}px);
+				"
+				aria-hidden="true"
+				data-testid="workspace-wallpaper-layer"
+			></div>
+		{/if}
+
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<!-- PH-494 MVP: Obsidian Canvas 風 (dotted grid 背景 + 表示領域拡大)
-		編集モード時:
-		- padding 縮小 (p-5 → p-2) で表示領域拡大
-		- dotted grid 背景を 16px 間隔 + より目立つ rgba(0,0,0,.18) で Obsidian 風に
-		次 wave (PH-494 polish): Ctrl+wheel zoom / free pan / 右下 toolbar / workspace 単位 persist -->
+	<!-- PH-494 MVP: Obsidian Canvas 風 (dotted grid 背景 + 表示領域拡大) -->
 	<div
-		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] {editMode
+		class="relative z-10 h-full overflow-auto [scrollbar-gutter:stable] {editMode
 			? 'p-2 canvas-edit-mode'
 			: 'p-5'}"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
 			? 'radial-gradient(circle, rgba(120,120,120,0.28) 1.2px, transparent 1.4px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
-			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
+			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-color: {wallpaperSrc
+			? 'transparent'
+			: 'var(--ag-surface-page)'}; background-size: {editMode
 			? '16px 16px, 100% 100%'
 			: '100% 100%'};"
 		data-zoom={configStore.widgetZoom}
@@ -514,6 +548,8 @@ function cropToWidgets() {
 				</div>
 			{/if}
 		</div>
+	</div>
+	<!-- PH-499: 壁紙 wrapper の close -->
 	</div>
 </div>
 

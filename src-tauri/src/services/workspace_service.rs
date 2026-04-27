@@ -6,7 +6,7 @@ use crate::models::item::Item;
 use crate::models::tag::{self, Tag};
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
-    Workspace, WorkspaceWidget,
+    WallpaperSettings, Workspace, WorkspaceWidget,
 };
 use crate::repositories::{tag_repository, workspace_repository};
 use crate::utils::error::AppError;
@@ -29,6 +29,10 @@ pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Wor
         sort_order,
         created_at: String::new(),
         updated_at: String::new(),
+        // PH-499: 新規 workspace は wallpaper 未設定 (global library default を継承)
+        wallpaper_path: None,
+        wallpaper_opacity: 0.7,
+        wallpaper_blur: 0,
     };
 
     workspace_repository::insert_workspace(&conn, &ws)?;
@@ -88,6 +92,24 @@ pub fn update_workspace(
     tag_repository::upsert_system_tag(&conn, &sys_tag)?;
 
     Ok(result)
+}
+
+// PH-499: Workspace 別背景壁紙 update
+pub fn set_workspace_wallpaper(
+    db: &DbState,
+    id: &str,
+    settings: WallpaperSettings,
+) -> Result<Workspace, AppError> {
+    let opacity = settings.opacity.clamp(0.0, 1.0);
+    let blur = settings.blur.clamp(0, 40);
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    workspace_repository::update_workspace_wallpaper(
+        &conn,
+        id,
+        settings.path.as_deref(),
+        opacity,
+        blur,
+    )
 }
 
 pub fn delete_workspace(db: &DbState, id: &str) -> Result<(), AppError> {
