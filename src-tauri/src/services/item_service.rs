@@ -1,3 +1,4 @@
+use serde_json;
 use uuid::Uuid;
 
 use crate::db::DbState;
@@ -86,8 +87,65 @@ pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Ite
 pub fn delete_item(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     item_repository::delete(&conn, id)?;
-    log::info!("item deleted: id={}", id);
+    // PH-474: workspace widget config 内の item 参照を cascade 削除
+    let purged = purge_item_from_widget_configs(&conn, id)?;
+    log::info!("item deleted: id={}, widget_configs_updated={}", id, purged);
     Ok(())
+}
+
+/// PH-474: 全 workspace_widgets を scan して config JSON から該当 item_id / item_ids を削除。
+///
+/// 対応 schema:
+/// - `{ "item_id": "<id>" }` → null 化
+/// - `{ "item_ids": ["<id>", ...] }` → 該当 ID を除外
+/// - 上記 2 つを併記する場合も両方処理
+///
+/// 戻り値: 更新された widget config の数。
+fn purge_item_from_widget_configs(
+    conn: &rusqlite::Connection,
+    item_id: &str,
+) -> Result<usize, AppError> {
+    let mut stmt =
+        conn.prepare("SELECT id, config FROM workspace_widgets WHERE config IS NOT NULL")?;
+    let rows: Vec<(String, String)> = stmt
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    drop(stmt);
+
+    let mut updated = 0usize;
+    for (widget_id, config_json) in rows {
+        let mut value: serde_json::Value = match serde_json::from_str(&config_json) {
+            Ok(v) => v,
+            Err(_) => continue, // 壊れた JSON はスキップ (best-effort)
+        };
+        let mut changed = false;
+        if let Some(obj) = value.as_object_mut() {
+            // item_id (単一)
+            if obj.get("item_id").and_then(|v| v.as_str()) == Some(item_id) {
+                obj.insert("item_id".into(), serde_json::Value::Null);
+                changed = true;
+            }
+            // item_ids (配列)
+            if let Some(arr) = obj.get_mut("item_ids").and_then(|v| v.as_array_mut()) {
+                let before = arr.len();
+                arr.retain(|v| v.as_str() != Some(item_id));
+                if arr.len() != before {
+                    changed = true;
+                }
+            }
+        }
+        if changed {
+            let new_json = value.to_string();
+            conn.execute(
+                "UPDATE workspace_widgets SET config = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?2",
+                rusqlite::params![new_json, widget_id],
+            )?;
+            updated += 1;
+        }
+    }
+    Ok(updated)
 }
 
 pub fn get_tags(db: &DbState) -> Result<Vec<Tag>, AppError> {
