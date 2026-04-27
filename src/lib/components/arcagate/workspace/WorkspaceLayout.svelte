@@ -9,6 +9,7 @@ import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { clampWidget } from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
@@ -138,6 +139,39 @@ $effect(() => {
 		}
 		if (selectedWidgetId) {
 			deleteConfirmId = selectedWidgetId;
+		}
+	}
+	window.addEventListener('keydown', onKeyDown);
+	return () => window.removeEventListener('keydown', onKeyDown);
+});
+
+// PH-477: Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y) で widget 操作 undo/redo
+$effect(() => {
+	async function reload() {
+		if (workspaceStore.activeWorkspaceId) {
+			await workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
+		}
+	}
+	function onKeyDown(e: KeyboardEvent) {
+		if (!editMode) return;
+		const target = e.target as HTMLElement | null;
+		if (
+			target?.tagName === 'INPUT' ||
+			target?.tagName === 'TEXTAREA' ||
+			target?.isContentEditable
+		) {
+			return;
+		}
+		const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
+		const isRedo =
+			(e.ctrlKey || e.metaKey) &&
+			((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y');
+		if (isUndo) {
+			e.preventDefault();
+			void workspaceHistory.undo(reload);
+		} else if (isRedo) {
+			e.preventDefault();
+			void workspaceHistory.redo(reload);
 		}
 	}
 	window.addEventListener('keydown', onKeyDown);
