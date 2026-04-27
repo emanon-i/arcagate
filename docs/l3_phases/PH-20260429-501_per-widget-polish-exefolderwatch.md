@@ -17,7 +17,12 @@ scope_files:
 
 ## 個別注意点
 
-PH-490/492 fix を本格 polish、file row layout = icon (shrink-0 h-4 w-4) + name (flex-1 truncate)、空 state UI
+- PH-490/492 fix を本格 polish、file row layout = icon (shrink-0 h-4 w-4) + name (flex-1 truncate)、空 state UI
+- **アイコン変更必須** (user fb 2026-04-28): widget header / registry / file row の icon を **`Folder` → `AppWindow`** に変更
+  - 「EXE / アプリらしい」icon、`Folder` icon は **NG**
+  - widget meta (`src/lib/widgets/exe-folder/index.ts` の icon export) も `AppWindow`
+  - 個別 EXE item の row icon も同様 (アプリ起動可能感を出す)
+  - 候補: `AppWindow` (最有力) / `MonitorPlay` / `Play`
 
 ## 実装ステップ
 
