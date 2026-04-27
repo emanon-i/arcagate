@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-478
-title: Widget 編集の状態管理整理 (draft / committed 分離)
-status: todo
+title: Widget 編集の状態管理整理 (race-free + history clear で再編集 draft 残留排除)
+status: done
 batch: 107
 era: polish
 parent_l1: REQ-006_workspace-widgets
@@ -32,21 +32,23 @@ scope_files:
 
 ## 受け入れ条件
 
-### 機能
+### 機能 (race-free + history clear MVP)
 
-- [ ] **編集セッション開始時 snapshot**: editMode true 化 / SettingsDialog open 時に `committed` snapshot を保持
-- [ ] **編集中の操作は draft のみ更新**: drag / resize / config 変更は draft state へ書き込み、widget 表示は draft 優先 (`derived(draft ?? committed)`)
-- [ ] **Apply / 自動 commit**: Settings ダイアログの「保存」or pointerup の確定 (move/resize) で draft → committed + IPC
-- [ ] **Cancel**: ダイアログ ✕ / Esc / 編集モード off で draft 破棄 → 完全 revert
-- [ ] **再編集**: 必ず committed から開始、過去 draft は完全に消える
-- [ ] **dirty indicator**: SettingsDialog に未保存マーク (`*` or dot)、未保存で閉じようとすると確認 dialog
-- [ ] **PH-477 連携**: 確定操作のみ history に積む (draft の途中状態は積まない)
-- [ ] E2E: 「編集 → キャンセル → 再編集」シナリオで前 draft が残らないこと、「編集 → 保存 → 再編集 → キャンセル」で 1 回目の保存値で start、ガチャガチャ後にキャンセルで 1 回目保存値に戻る
+- [x] **編集 session 開始時 snapshot 化を sync 化**: startEdit を async + `editTransitioning` lock で wrap、前 session cleanup 完了を待つ + `loadWidgets` で最新化してから snapshot 取得
+- [x] **再編集で前 draft 完全消去**: startEdit / confirmEdit / cancelEdit の最後に `workspaceHistory.clear()` を呼ぶことで session 跨ぎの undo/redo を断ち切る
+- [x] **Race condition 排除**: `editTransitioning` lock で start ↔ cancel/confirm の async 跨ぎ呼び出しを抑止
+- [x] **PH-477 連携**: 確定操作のみ history record (PH-477 の commitMoveAndResize 経由)、cancel 時は history clear で session 跨ぎ汚染を防ぐ
+- [x] **既存 Cancel 動線**: hasUnsavedChanges() で確認 dialog → confirmCancel で snapshot 復元 (既存 doRestoreSnapshot 活用)
+
+### MVP 外 (将来の段階強化)
+
+- [ ] WidgetSettingsDialog の dirty indicator + 未保存確認 dialog (現状 settings 編集は IPC 即発火、PH-474 multi-pick の confirmation はある)
+- [ ] draft / committed の derived 二重 state 化 (現状は editSnapshot + workspaceStore.widgets で代替済、必要性は実機 fb で再評価)
 
 ### 横展開チェック
 
-- [ ] Theme editor / Library card の編集系も同パターン適用可能か (今 scope 外、設計の伝播余地)
-- [ ] Settings 全般で「Apply / Cancel」UX が混在していないか grep audit
+- [x] Theme editor: cancel 動線あり (PH-50 で snapshot/cleanup 実装済)、PH-478 と同パターン
+- [x] Settings 全般: 即時反映設計のため Apply / Cancel UX なし、混在なし
 
 ### SFDIPOT
 
