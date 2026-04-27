@@ -1,8 +1,8 @@
 ---
-id: PH-20260429-499
+id: PH-20260429-524
 title: Industrial Pill Button + L-Bracket + Orange Diamond Marker
 status: todo
-batch: 109
+batch: 111
 era: design-overhaul
 parent_l1: REQ-007_visual-language
 scope_files:

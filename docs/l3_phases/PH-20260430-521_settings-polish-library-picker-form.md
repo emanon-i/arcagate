@@ -1,6 +1,6 @@
 ---
-id: PH-20260430-513
-title: Settings dialog polish — WorkspaceRenameDialog / WorkspaceDeleteConfirmDialog (batch-110 Phase C)
+id: PH-20260430-521
+title: Settings dialog polish — LibraryItemPicker (再利用 form pattern) (batch-110 Phase C)
 status: todo
 batch: 110
 era: settings-form-polish
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/components/settings/
 ---
 
-# PH-513: Settings dialog polish — WorkspaceRenameDialog / WorkspaceDeleteConfirmDialog
+# PH-521: Settings dialog polish — LibraryItemPicker (再利用 form pattern)
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-WorkspaceRenameDialog / WorkspaceDeleteConfirmDialog
+LibraryItemPicker (再利用 form pattern)
 
 ## 実装ステップ
 

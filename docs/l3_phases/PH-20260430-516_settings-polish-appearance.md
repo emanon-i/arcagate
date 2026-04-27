@@ -1,6 +1,6 @@
 ---
-id: PH-20260430-511
-title: Settings dialog polish — Settings > データ管理 (import/export / SBOM / privacy) (batch-110 Phase C)
+id: PH-20260430-516
+title: Settings dialog polish — Settings > 外観 (theme / Library カード style) (batch-110 Phase C)
 status: todo
 batch: 110
 era: settings-form-polish
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/components/settings/
 ---
 
-# PH-511: Settings dialog polish — Settings > データ管理 (import/export / SBOM / privacy)
+# PH-516: Settings dialog polish — Settings > 外観 (theme / Library カード style)
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-Settings > データ管理 (import/export / SBOM / privacy)
+Settings > 外観 (theme / Library カード style)
 
 ## 実装ステップ
 

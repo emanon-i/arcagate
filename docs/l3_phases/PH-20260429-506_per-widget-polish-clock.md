@@ -1,5 +1,5 @@
 ---
-id: PH-20260429-499
+id: PH-20260429-506
 title: Per-widget polish — ClockWidget (batch-109 Phase B)
 status: todo
 batch: 109
@@ -10,7 +10,7 @@ scope_files:
   - src/lib/widgets/clock/ClockSettings.svelte
 ---
 
-# PH-499: Per-widget polish — ClockWidget
+# PH-506: Per-widget polish — ClockWidget
 
 ## 背景
 

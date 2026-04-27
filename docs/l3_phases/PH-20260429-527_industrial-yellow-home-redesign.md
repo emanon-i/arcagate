@@ -1,8 +1,8 @@
 ---
-id: PH-20260429-502
+id: PH-20260429-527
 title: ホーム画面リデザイン (ラジアル + 傾いたカード)
 status: todo
-batch: 109
+batch: 111
 era: design-overhaul
 parent_l1: REQ-007_visual-language
 scope_files:

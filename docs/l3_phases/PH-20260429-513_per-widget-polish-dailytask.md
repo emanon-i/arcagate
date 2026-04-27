@@ -1,15 +1,15 @@
 ---
-id: PH-20260429-504
-title: Per-widget polish — Item (batch-109 Phase B)
+id: PH-20260429-513
+title: Per-widget polish — DailyTask (batch-109 Phase B)
 status: todo
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/item/ItemWidget.svelte
+  - src/lib/widgets/daily-task/DailyTaskWidget.svelte
 ---
 
-# PH-504: Per-widget polish — Item
+# PH-513: Per-widget polish — DailyTask
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-PH-497 picker fix 後の本体 polish、single/multi mode、grid サイズ適応
+PH-488 完了/未完了ツリーを本実装 + polish、各タスク drag 並べ替え (将来)
 
 ## 実装ステップ
 

@@ -1,6 +1,6 @@
 ---
-id: PH-20260430-507
-title: Settings dialog polish — Settings > 一般 (hotkey / autostart / setupComplete) (batch-110 Phase C)
+id: PH-20260430-515
+title: Settings dialog polish — Settings > Library (itemSize / カード設定) (batch-110 Phase C)
 status: todo
 batch: 110
 era: settings-form-polish
@@ -9,7 +9,7 @@ scope_files:
   - src/lib/components/settings/
 ---
 
-# PH-507: Settings dialog polish — Settings > 一般 (hotkey / autostart / setupComplete)
+# PH-515: Settings dialog polish — Settings > Library (itemSize / カード設定)
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-Settings > 一般 (hotkey / autostart / setupComplete)
+Settings > Library (itemSize / カード設定)
 
 ## 実装ステップ
 

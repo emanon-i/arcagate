@@ -3428,3 +3428,67 @@ Widget UX 細部修正 round 2、user dev session 直接フィードバック起
 
 完走宣言 + 項目別表 (transcript fb 全件起こし、14 項目 + 補 2 項目) を user に提示済。
 batch-109 着手は user OK 後。
+
+## 2026-04-28 [batch-109] start
+
+### user 検収完了 → batch-109 Phase B 着手
+
+ユーザー検収結果 (2026-04-28):
+
+- Phase A 38 件 ✅ OK
+- 項目 #34 GitWidget 簡素化 → **不要、廃止** (user「git 機能に不満なし、現状維持」)
+- 残 38 件全部やりきれ、MVP 止まり / 次 batch 移譲を全部解消する方向で完成
+
+ユーザー方針強化 (2026-04-28):
+
+> ウィジットがこのアプリの肝だと思うのでとことん調整および改修して下さい。
+
+ユーザー Workspace 大幅簡素化宣言 (2026-04-28):
+
+> 正直Obsidian Canvasのほぼコピーでいいと思う。そう考えると保存やキャンセルなどの複雑な処理はなくなり、アンドゥリドゥと拡大率のリセットと置いてるウィジットに画面を合わせるとかだけでいいのかもね
+
+### batch-109 構成 (15 plan)
+
+#### 横断 7 plan (PH-499-505)
+
+- **PH-499** Workspace per-workspace 背景壁紙 + Library 共通設定
+- **PH-500** WatchFolder Widget 名前+アイコン被り解消 + はみ出し / layout 整理 (icon AppWindow)
+- **PH-501** はみ出し audit warning → error 化 + 個別 fix
+- **PH-502** Workspace 表示領域 常時 viewport-fill (sidebar トグル化)
+- **PH-503** ⭐ Workspace = Obsidian Canvas (常時編集 / 即時保存 / Undo + 1:1 + Fit + pan / zoom / transform: scale / ミニマップ) **最優先**
+- **PH-504** Per-item settings persistence (widget_item_settings table、案 C)
+- **PH-505** Opener registry (Settings + per-item override + 右クリック + SHOpenWithDialog)
+
+#### per-widget polish 8 plan (PH-506-513)
+
+- PH-506 Clock / PH-507 SystemMonitor / PH-508 ExeFolderWatch / PH-509 WatchFolder Settings
+- PH-510 FileSearch / PH-511 Item / PH-512 ClipboardHistory / PH-513 DailyTask
+
+### plan ID リナンバリング (本セッション)
+
+- 旧 PH-499-506 (per-widget-polish) → **PH-506-513**
+- 旧 PH-507-514 (settings-polish) → **PH-514-521** (batch-110)
+- 旧 PH-497-504 (industrial-yellow) → **PH-522-529** (batch-111)
+- 新規 PH-499-505 = 横断 7 plan 起票
+
+### 廃止
+
+- ❌ **GitWidget 簡素化** (旧検収項目 #34) — user fb「git 機能に不満なし、現状維持」、何も触らない
+
+### PH-503 設計大方針
+
+- 編集モード / 閲覧モード切替 ボタン → 常時編集 (Obsidian Canvas 同様)
+- 保存 / キャンセル ボタン → 全部即時保存
+- draft/committed 分離 (PH-478 既存) は widget 配置レベルで廃止、Settings dialog 内では維持
+- 残す: Undo / Redo (Ctrl+Z/Shift+Z)、拡大率リセット (Ctrl+0)、Fit to content (Shift+1)、削除確認 (Undo で戻せる)
+
+### 着手順 (軽い → 重い)
+
+1. PH-501 はみ出し audit error 化 (軽量、独立)
+2. PH-499 背景壁紙 (中、独立)
+3. PH-500 WatchFolder polish (中、独立 + icon AppWindow)
+4. PH-502 sidebar トグル (中、独立)
+5. PH-504 per-item settings persistence (重、DB migration)
+6. PH-505 opener registry (重、DB + UI + FFI)
+7. **PH-503 Obsidian Canvas (最重、最優先 / 後半で本格集中)**
+8. PH-506-513 per-widget polish 8 plan (中、PH-499-505 完了後 + 統合)

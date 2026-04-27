@@ -1,15 +1,15 @@
 ---
-id: PH-20260429-502
-title: Per-widget polish — WatchFolder 互換 (batch-109 Phase B)
+id: PH-20260429-511
+title: Per-widget polish — Item (batch-109 Phase B)
 status: todo
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/exe-folder/ExeFolderSettings.svelte
+  - src/lib/widgets/item/ItemWidget.svelte
 ---
 
-# PH-502: Per-widget polish — WatchFolder 互換
+# PH-511: Per-widget polish — Item
 
 ## 共通品質 checklist
 
@@ -17,7 +17,7 @@ scope_files:
 
 ## 個別注意点
 
-settings 内 form polish (PH-501 と組)、folder 選択 UI
+PH-497 picker fix 後の本体 polish、single/multi mode、grid サイズ適応
 
 ## 実装ステップ
 

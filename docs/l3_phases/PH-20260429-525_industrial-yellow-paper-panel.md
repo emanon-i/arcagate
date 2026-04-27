@@ -1,8 +1,8 @@
 ---
-id: PH-20260429-500
+id: PH-20260429-525
 title: White Industrial Paper Panel Components (Card 系拡張)
 status: todo
-batch: 109
+batch: 111
 era: design-overhaul
 parent_l1: REQ-007_visual-language
 scope_files:
