@@ -74,9 +74,17 @@ async function deleteItem(id: string): Promise<void> {
 	try {
 		await itemsIpc.deleteItem(id);
 		items = items.filter((item) => item.id !== id);
-		// PH-479: 削除後も sidebar reactive (count / stats) 反映
+		// PH-479: 削除後 reactive 反映 (sidebar count / stats / widget cascade)
+		// PH-474 で Rust 側 cascade 済 (workspace_widgets の config 内 item_id null 化)
+		// → frontend の workspaceStore.widgets を reload して dead reference を排除
 		void loadTagWithCounts();
 		void loadLibraryStats();
+		// dynamic import で循環依存回避
+		import('./workspace.svelte').then(({ workspaceStore }) => {
+			if (workspaceStore.activeWorkspaceId) {
+				void workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
+			}
+		});
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {

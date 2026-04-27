@@ -267,7 +267,8 @@ async function resizeWidget(id: string, width: number, height: number): Promise<
 			width,
 			height,
 		);
-		widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : w));
+		// PH-479: 全要素 spread copy で keyed each + 子 $derived の reactive 確実化
+		widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : { ...w }));
 	} catch (e) {
 		error = getErrorMessage(e);
 	}
