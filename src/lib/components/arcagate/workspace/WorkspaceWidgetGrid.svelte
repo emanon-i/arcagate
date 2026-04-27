@@ -226,11 +226,20 @@ function handleDeleteClick(widgetId: string) {
 			{/if}
 		{/each}
 
-		<!-- Drop zone highlight -->
+		<!-- Drop zone highlight (PH-473: 衝突 cell を赤色 invalid 表示) -->
 		{#if pointerDrag.dropCell}
+			{@const cell = pointerDrag.dropCell}
+			{@const movingId = pointerDrag.active?.kind === 'move' ? pointerDrag.active.widgetId : null}
+			{@const invalid = movingId
+				? workspaceStore.wouldOverlapAt(movingId, cell.x, cell.y)
+				: workspaceStore.isCellOccupied(cell.x, cell.y)}
 			<div
-				class="pointer-events-none rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-accent)]/10 shadow-[0_0_0_2px_var(--ag-accent)]"
-				style="grid-column: {pointerDrag.dropCell.x + 1}; grid-row: {pointerDrag.dropCell.y + 1};"
+				class="pointer-events-none rounded-lg border-2 border-dashed {invalid
+					? 'border-destructive'
+					: 'border-[var(--ag-accent)]'}"
+				style="grid-column: {cell.x + 1}; grid-row: {cell.y + 1}; background-color: {invalid
+					? 'rgb(239 68 68 / 0.18)'
+					: 'color-mix(in oklch, var(--ag-accent) 12%, transparent)'};"
 			></div>
 		{/if}
 	</div>

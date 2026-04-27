@@ -1,7 +1,9 @@
 import { configStore } from '$lib/state/config.svelte';
 
-const BASE_W = 320;
-const BASE_H = 180;
+// PH-473: 旧 320×180 はユーザー fb で「グリッドでかい」指摘 → 約 50% 縮小。
+// 16:10 aspect でハンドル + × button + move bar を載せても余裕がある最小ライン。
+const BASE_W = 160;
+const BASE_H = 100;
 
 export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	const widgetW = $derived(Math.round(BASE_W * (configStore.widgetZoom / 100)));

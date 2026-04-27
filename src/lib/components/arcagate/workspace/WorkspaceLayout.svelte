@@ -1,5 +1,5 @@
 <script lang="ts">
-import { LayoutGrid } from '@lucide/svelte';
+import { Crop, LayoutGrid } from '@lucide/svelte';
 import Tip from '$lib/components/arcagate/common/Tip.svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -265,7 +265,26 @@ function handleItemContext(itemId: string) {
 	contextItemId = itemId;
 }
 
-let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
+// PH-473: 配置余地確保のため最低 maxRow を 8 に拡張、widgets が増えても +4 行の余白を保つ
+let maxRow = $derived(
+	Math.max(8, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
+);
+
+// PH-473: bounding box にスクロール (Crop ボタン用)
+function cropToWidgets() {
+	const el = workspaceContainer;
+	const ws = workspaceStore.widgets;
+	if (!el || ws.length === 0) return;
+	const cellW = zoom.widgetW + 16;
+	const cellH = zoom.widgetH + 16;
+	const minX = Math.min(...ws.map((w) => w.position_x));
+	const minY = Math.min(...ws.map((w) => w.position_y));
+	el.scrollTo({
+		left: Math.max(0, minX * cellW - 24),
+		top: Math.max(0, minY * cellH - 24),
+		behavior: 'smooth',
+	});
+}
 </script>
 
 <svelte:window
@@ -410,6 +429,19 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		</div>
 	</div>
 </div>
+
+<!-- PH-473: Crop to widgets ボタン (workspace 右下 floating, 編集モード時のみ) -->
+{#if workspaceStore.widgets.length > 0}
+	<button
+		type="button"
+		class="absolute bottom-6 right-6 z-30 flex h-10 items-center gap-2 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface)] px-4 text-sm text-[var(--ag-text-secondary)] shadow-md transition-colors hover:bg-[var(--ag-surface-3)]"
+		aria-label="ウィジェットに合わせてスクロール"
+		onclick={cropToWidgets}
+	>
+		<Crop class="h-4 w-4" />
+		<span>表示を合わせる</span>
+	</button>
+{/if}
 
 <WorkspaceDeleteConfirmDialog
 	widgetId={deleteConfirmId}
