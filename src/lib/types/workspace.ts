@@ -27,17 +27,6 @@ export interface Workspace {
 	sort_order: number;
 	created_at: string;
 	updated_at: string;
-	// PH-499: Workspace 別背景壁紙 (null = global library default を継承)
-	wallpaper_path: string | null;
-	wallpaper_opacity: number;
-	wallpaper_blur: number;
-}
-
-// PH-499: Library 共通 default 壁紙 / Workspace 個別壁紙 共通 settings shape
-export interface WallpaperSettings {
-	path: string | null;
-	opacity: number;
-	blur: number;
 }
 
 export interface WorkspaceWidget {

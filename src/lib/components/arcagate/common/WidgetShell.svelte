@@ -28,7 +28,7 @@ let btnClass =
 			<div class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5">
 				<Icon class="h-4 w-4 text-[var(--ag-text-secondary)]" />
 			</div>
-			<div class="truncate text-ag-md font-semibold text-[var(--ag-text-primary)]">{title}</div>
+			<div class="truncate text-sm font-semibold text-[var(--ag-text-primary)]">{title}</div>
 		</div>
 		{#if menuItems.length === 1}
 			{@const sole = menuItems[0]}
@@ -50,9 +50,7 @@ let btnClass =
 		{/if}
 	</div>
 
-	<!-- HOTFIX (PH-487 root cause): widget 内では横スクロール禁止、縦のみ。
-		PH-489: scrollbar-gutter: stable で content と scrollbar の被り回避。 -->
-	<div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+	<div class="min-h-0 flex-1 overflow-y-auto">
 		{@render children()}
 	</div>
 </div>

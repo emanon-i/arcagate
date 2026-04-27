@@ -758,95 +758,93 @@ page: async ({ sharedBrowser }, use) => {
 
 ---
 
-## Svelte 5 store mutation での reactive 確実起動 pattern (batch-107 PH-479)
+## Guideline doc 不活用が劣化の主因 (2026-04-28 user 激怒で確定)
 
-### 問題
+### 観測
 
-`array.map((x) => (x.id === id ? updated : x))` パターンで store の配列を更新すると、
-**id 一致要素のみ新 reference (updated)、他要素は同 reference を維持**。
-keyed `{#each items as item (item.id)}` で子コンポーネントの `widget` / `item` prop が
-同 reference のままになり、`$derived(parseConfig(item.field))` が再計算 trigger されない事例が発生。
+User dev 目視で「全体的に劣化した」「Doc に UX や UI デザインの指針となるドキュメントを作ったのに全く活用してないよね？」と二度連続で指摘。batch-107/108/109 全 29 commits を hard rollback、Goal A (e36836c) まで巻き戻し決定。
 
-具体症状 (user fb 2026-04-27):
+### 失敗パターン
 
-- お気に入り toggle → 左 sidebar Favorites count が画面切替まで stale
-- アイコン更新 → widget render が画面切替まで反映されない
-- bulk tag → sidebar count が反映されない
+#### 1. Doc 作成のみで agent が読まなかった
 
-### 修正 pattern
+`docs/desktop_ui_ux_agent_rules.md` (18.4 KB)、`docs/l1_requirements/ux_standards.md` (30 KB)、`docs/l1_requirements/ux_design_vision.md` (14 KB)、`docs/l1_requirements/design_system_architecture.md` (12.3 KB)、`docs/l0_ideas/arcagate-visual-language.md` (8.9 KB) など、UI/UX の指針 doc が **5 本以上 揃っているのに、batch-107/108/109 の plan ではほぼ参照されていなかった**。
 
-#### 1. 全要素 spread copy で reactive を確実起動
+**結果**:
 
-```ts
-// ❌ 同 reference 維持で reactive 不発の事例
-items = items.map((item) => (item.id === id ? updated : item));
+- `ux_standards.md §6-1 Widget` で「編集モード選択: ring-2 ring-[var(--ag-accent)]」が明記されているのに、選択 ring が実装されないまま放置
+- `arcagate-visual-language.md`「過度に派手 NG」 / 「よく磨かれた工具」 を無視して `rounded-full bg-destructive/80` 派手丸を作成
+- `ux_standards.md §13` の段階実装 (e/s/se → 完成) を無視
+- 一貫性 (P4) より独自表現を優先する判断が積み重なる
 
-// ✅ 全要素 spread copy で keyed each + 子 $derived の reactive 確実起動
-items = items.map((item) => (item.id === id ? { ...updated } : { ...item }));
+#### 2. Plan 文書化時に doc citation 欠落
+
+batch-107/108/109 の plan 文書 (旧 PH-472〜507) を見ても、**「引用元 doc + section」 を明示する section が存在しない**。agent が原則を確認せず判断していた証拠。
+
+#### 3. 横展開チェックが doc 規定の構造に従っていなかった
+
+`desktop_ui_ux_agent_rules P4 補足 3 横展開原則` 「1 つの不整合を発見したら同種 pattern が他にも存在する前提で全画面 audit」を実行していない PR が複数。`CLAUDE.md` 哲学節「1 ファイル直して終わりにしない」も違反。
+
+#### 4. 「verify pass = 治った」と誤認
+
+`pnpm verify` 全通過 / E2E pass / cargo test 全通過 — 数値は嘘ではないが、**doc の規格 / 体感品質との整合は機械検証されていない**。テストは「コードが動く」を保証するが「規格通りか」は保証しない。user の dev 目視のみが最終判定。
+
+### 再発防止策 (§11 + design_guidelines_index.md と同時運用)
+
+#### A. Plan 文書化に doc citation 必須
+
+各 plan に以下 section を必ず含める (`§11` / `dispatch-operation.md` で規定):
+
+```markdown
+## 引用元 guideline doc
+
+| Doc | Section | 採用判断への寄与 |
+| ... | ... | ... |
+
+## guideline と plan の整合 / 不整合 audit
 ```
 
-軽微な追加コストはあるが、配列規模が小〜中 (100 件以下) なら無視できる。
-batch-107 で `items.svelte.ts` / `theme.svelte.ts` / `workspace.svelte.ts` 全 mutation に適用。
+doc citation の無い plan は不完全とみなす。
 
-#### 2. 集約データ (counts / stats) の同時 reload
+#### B. memory に guideline doc index を持つ
 
-mutation の対象 store だけ更新しても、**別 store の集約データ (tag counts / library stats)** は
-reload されないと sidebar 等で stale 表示。mutation 関数内で明示的に reload を呼ぶ:
+`memory/design_guidelines_index.md` で全 design / UX guideline doc を要点抽出 + **「どんな issue で参照すべきか」** index 化。各セッション開始時に必読。
 
-```ts
-async function toggleStar(id: string, starred: boolean): Promise<void> {
-  const updated = await itemsIpc.toggleStar(id, starred);
-  items = items.map((item) => (item.id === id ? { ...updated } : { ...item }));
-  // PH-479: tagWithCounts (sidebar Favorites count) も同時 reload
-  void loadTagWithCounts();
-}
+#### C. 横展開 audit を機械化
+
+CI / lefthook に **特定 pattern の grep check** を追加して再発を機械検出する:
+
+```sh
+# 例: 派手 destructive button が再発しないか
+if grep -rnE 'rounded-full bg-destructive' src/; then
+  echo "ERROR: ghost variant を使う (ux_standards §6-4)"
+  exit 1
+fi
 ```
 
-#### 3. cascade 更新後の関連 store reload
+PH-issue-001 で `WidgetHandles.svelte` 実装と同時に audit script を追加。
 
-Rust 側 cascade (例: PH-474 cmd_delete_item で widget config の item_id null 化) が走っても、
-**frontend 側の関連 store (workspaceStore.widgets) は stale**。mutation 関数内で reload:
+#### D. 「verify pass」を「治った」と書かない
 
-```ts
-async function deleteItem(id: string): Promise<void> {
-  await itemsIpc.deleteItem(id);
-  items = items.filter((item) => item.id !== id);
-  void loadTagWithCounts();
-  void loadLibraryStats();
-  // 循環依存回避のため dynamic import
-  import('./workspace.svelte').then(({ workspaceStore }) => {
-    if (workspaceStore.activeWorkspaceId) {
-      void workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
-    }
-  });
-}
-```
+agent が user に報告する文言で `verify 通過 = 治った` と表現することを禁止。`verify 通過、user dev 検収待ち` が正しい状態表現 (`§11` Rule 2)。
 
-#### 4. UI component 側の bulk action でも明示 reload
+### 並行 push が劣化を加速した経緯
 
-LibraryMainArea.svelte の handleBulkStar / handleBulkDelete 等 UI level の bulk 操作:
+- 1 batch = 5 plan の並行 push 運用 + auto-merge で **検収経路がない**まま speed に振った
+- 複数並行 session が同 plan ID を取り合って duplicate PR 量産 (resume 8 で 3 PR close)
+- `spawn-on-pressure` (scheduled-task fireAt) の信頼性問題 + auto-kick による idle 終了禁止圧力で「進む / 止まる」の判断が崩れた
+- 結果: 速いが品質後退、verify pass の数字と体感品質の乖離
 
-```ts
-await Promise.all([
-  itemStore.loadItems(),
-  itemStore.loadTagWithCounts(),
-  itemStore.loadLibraryStats(),
-  workspaceStore.activeWorkspaceId
-    ? workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId)
-    : Promise.resolve(),
-]);
-```
+### 今後の運用
 
-### 改善 (PH-479 後続実装済 / 段階的)
-
-- ✅ store mutation + reload を 1 ペアにする helper を導入 (`src/lib/state/_helpers/with-reload.ts`)
-  - `withReload(action, ...reloads)` 形式で reload の呼び忘れ防止
-  - 既存 store への適用は段階的 (新規 mutation で必須化、既存は機能維持で順次 refactor)
-- ✅ E2E test で「mutation → 同 page で sidebar/render 即時反映」を 7 シナリオ追加
-  - `tests/e2e/reactive-{favorites-toggle,icon-change,widget-settings,library-delete,bulk-tag,clipboard-search,settings-change}.spec.ts`
+- `§11 user-redo depth-first` (1 issue ずつ、guideline 引用必須、user 確認 gate は 2026-04-28 撤回)
+- `memory/design_guidelines_index.md` 経由で doc 引用を強制
+- 横展開を機械化 (audit script を CI に追加)
+- 「verify pass」と「治った」を区別する報告文言
 
 ### 参照
 
-- PH-479 (batch-107): `feedback_widget_editing_ux.md` 14
-- workspace.svelte.ts:updateWidgetConfig
-- items.svelte.ts:toggleStar / createItem / updateItem / deleteItem
+- `docs/dispatch-operation.md §11`
+- `memory/design_guidelines_index.md`
+- `memory/handoff_user_redo_start.md`
+- 本 retrospective が記録される PR: rollback to Goal A (#216 の squash)

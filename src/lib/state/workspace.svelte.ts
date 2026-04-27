@@ -1,21 +1,12 @@
 import * as workspaceIpc from '$lib/ipc/workspace';
-import type {
-	WallpaperSettings,
-	WidgetType,
-	Workspace,
-	WorkspaceWidget,
-} from '$lib/types/workspace';
+import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
-import { workspaceHistory } from './workspace-history.svelte';
 
 let workspaces = $state<Workspace[]>([]);
 let activeWorkspaceId = $state<string | null>(null);
 let widgets = $state<WorkspaceWidget[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
-
-// PH-499: Library 共通 default 背景壁紙 (config table 駆動)
-let libraryWallpaper = $state<WallpaperSettings>({ path: null, opacity: 0.7, blur: 0 });
 
 const activeWorkspace = $derived(workspaces.find((w) => w.id === activeWorkspaceId) ?? null);
 
@@ -94,8 +85,7 @@ async function updateWorkspace(id: string, name: string): Promise<void> {
 	error = null;
 	try {
 		const ws = await workspaceIpc.updateWorkspace(id, name);
-		// PH-479: spread copy で reactive 確実化
-		workspaces = workspaces.map((w) => (w.id === id ? { ...ws } : { ...w }));
+		workspaces = workspaces.map((w) => (w.id === id ? ws : w));
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -184,15 +174,6 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 		widget.position_x = x;
 		widget.position_y = y;
 		widgets = [...widgets, widget];
-		// PH-477: history 記録
-		workspaceHistory.record({
-			kind: 'add',
-			workspaceId: activeWorkspaceId,
-			widgetId: widget.id,
-			widgetType,
-			rect: { x, y, w: widget.width, h: widget.height },
-			config: widget.config ?? null,
-		});
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -203,27 +184,9 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 async function removeWidget(id: string): Promise<void> {
 	loading = true;
 	error = null;
-	const target = widgets.find((w) => w.id === id);
-	const wsId = activeWorkspaceId;
 	try {
 		await workspaceIpc.removeWidget(id);
 		widgets = widgets.filter((w) => w.id !== id);
-		// PH-477: history 記録 (undo で復元できるよう snapshot を取る)
-		if (target && wsId) {
-			workspaceHistory.record({
-				kind: 'remove',
-				workspaceId: wsId,
-				widgetId: id,
-				widgetType: target.widget_type as WidgetType,
-				rect: {
-					x: target.position_x,
-					y: target.position_y,
-					w: target.width,
-					h: target.height,
-				},
-				config: target.config ?? null,
-			});
-		}
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -245,19 +208,10 @@ async function persistWidgetOrder(orderedWidgets: WorkspaceWidget[]): Promise<vo
 }
 
 async function updateWidgetConfig(id: string, config: string | null): Promise<void> {
-	const target = widgets.find((w) => w.id === id);
-	const before = target?.config ?? null;
 	try {
 		error = null;
 		const updated = await workspaceIpc.updateWidgetConfig(id, config);
-		// PH-479: 旧 .map では keyed each の widget prop が同 reference を保持するケースで
-		// 子 widget の $derived(parseWidgetConfig(widget?.config, ...)) が再計算されない事例があるため、
-		// **新オブジェクトに deep replace** + 全 widgets を新配列で置換 (Svelte 5 reactive を確実起動)
-		widgets = widgets.map((w) => (w.id === id ? { ...updated } : { ...w }));
-		// PH-477: config 変更を history に積む (idempotent な変更はスキップ)
-		if (before !== config) {
-			workspaceHistory.record({ kind: 'config', widgetId: id, before, after: config });
-		}
+		widgets = widgets.map((w) => (w.id === id ? updated : w));
 	} catch (e) {
 		error = getErrorMessage(e);
 	}
@@ -275,8 +229,7 @@ async function resizeWidget(id: string, width: number, height: number): Promise<
 			width,
 			height,
 		);
-		// PH-479: 全要素 spread copy で keyed each + 子 $derived の reactive 確実化
-		widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : { ...w }));
+		widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : w));
 	} catch (e) {
 		error = getErrorMessage(e);
 	}
@@ -287,48 +240,31 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 	if (!target) return;
 	error = null;
 
-	// PH-473: 重なる場合は配置を**拒否**（旧 findFreePosition 自動移動は予測不能 UX）
+	// Check for overlap at target position
 	const othersWithout = widgets.filter((w) => w.id !== id);
-	if (isOverlapping(x, y, target.width, target.height, othersWithout)) {
-		error = '他のウィジェットと重なるため配置できません';
-		return;
-	}
+	const finalPos = isOverlapping(x, y, target.width, target.height, othersWithout)
+		? findFreePosition(othersWithout, target.width, target.height)
+		: { x, y };
 
-	const before = { x: target.position_x, y: target.position_y, w: target.width, h: target.height };
-	widgets = widgets.map((w) => (w.id === id ? { ...w, position_x: x, position_y: y } : w));
+	// Optimistic local update
+	widgets = widgets.map((w) =>
+		w.id === id ? { ...w, position_x: finalPos.x, position_y: finalPos.y } : w,
+	);
 	try {
-		await workspaceIpc.updateWidgetPosition(id, x, y, target.width, target.height);
-		// PH-477: history record (位置変化があった場合のみ)
-		if (before.x !== x || before.y !== y) {
-			workspaceHistory.record({
-				kind: 'move',
-				widgetId: id,
-				before,
-				after: { x, y, w: target.width, h: target.height },
-			});
-		}
+		await workspaceIpc.updateWidgetPosition(
+			id,
+			finalPos.x,
+			finalPos.y,
+			target.width,
+			target.height,
+		);
 	} catch (e) {
 		error = getErrorMessage(e);
+		// Rollback
 		widgets = widgets.map((w) =>
 			w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
 		);
 	}
-}
-
-/**
- * PH-473 helper: 指定座標 (x,y) が他のウィジェットと重なるかをチェック。
- * 移動 / drop preview の衝突判定で使用。
- */
-function wouldOverlapAt(id: string, x: number, y: number): boolean {
-	const target = widgets.find((w) => w.id === id);
-	if (!target) return false;
-	const others = widgets.filter((w) => w.id !== id);
-	return isOverlapping(x, y, target.width, target.height, others);
-}
-
-/** PH-473: cell に既存 widget があるかどうか (drop preview 用) */
-function isCellOccupied(x: number, y: number, w = 1, h = 1): boolean {
-	return isOverlapping(x, y, w, h, widgets);
 }
 
 function optimisticResize(id: string, width: number, height: number): void {
@@ -354,10 +290,6 @@ async function persistMoveAndResize(
 	width: number,
 	height: number,
 ): Promise<void> {
-	const target = widgets.find((w) => w.id === id);
-	// before snapshot は target が optimistic 更新済みのため、
-	// move/resize の history では呼び出し元で beforeSnap を別途 capture すること。
-	// ここでは IPC 永続のみ。
 	try {
 		await workspaceIpc.updateWidgetPosition(id, x, y, width, height);
 	} catch (e) {
@@ -365,112 +297,6 @@ async function persistMoveAndResize(
 		if (activeWorkspaceId) {
 			await loadWidgets(activeWorkspaceId);
 		}
-	}
-	void target; // 未使用警告抑制
-}
-
-/**
- * PH-477: history 記録付きの move/resize commit。
- * before snapshot を呼び出し側で渡し、確定後に history に積む。
- */
-async function commitMoveAndResize(
-	id: string,
-	before: { x: number; y: number; w: number; h: number },
-	after: { x: number; y: number; w: number; h: number },
-	kind: 'move' | 'resize' = 'move',
-): Promise<void> {
-	try {
-		await workspaceIpc.updateWidgetPosition(id, after.x, after.y, after.w, after.h);
-		if (
-			before.x !== after.x ||
-			before.y !== after.y ||
-			before.w !== after.w ||
-			before.h !== after.h
-		) {
-			workspaceHistory.record({ kind, widgetId: id, before, after });
-		}
-	} catch (e) {
-		error = getErrorMessage(e);
-		if (activeWorkspaceId) {
-			await loadWidgets(activeWorkspaceId);
-		}
-	}
-}
-
-// PH-499: 背景壁紙 helpers
-async function loadLibraryWallpaper(): Promise<void> {
-	try {
-		libraryWallpaper = await workspaceIpc.getLibraryWallpaper();
-	} catch (e) {
-		// 取得失敗は致命ではない (default にフォールバック)
-		error = getErrorMessage(e);
-	}
-}
-
-async function setLibraryWallpaper(
-	path: string | null,
-	opacity: number,
-	blur: number,
-): Promise<void> {
-	try {
-		await workspaceIpc.setLibraryWallpaper(path, opacity, blur);
-		libraryWallpaper = { path, opacity, blur };
-	} catch (e) {
-		error = getErrorMessage(e);
-	}
-}
-
-async function setActiveWorkspaceWallpaper(
-	path: string | null,
-	opacity: number,
-	blur: number,
-): Promise<void> {
-	if (!activeWorkspaceId) return;
-	try {
-		const updated = await workspaceIpc.setWorkspaceWallpaper(
-			activeWorkspaceId,
-			path,
-			opacity,
-			blur,
-		);
-		// PH-479: spread copy で keyed each + $derived の reactive 確実起動
-		workspaces = workspaces.map((w) => (w.id === updated.id ? { ...updated } : { ...w }));
-	} catch (e) {
-		error = getErrorMessage(e);
-	}
-}
-
-async function clearActiveWorkspaceWallpaper(): Promise<void> {
-	if (!activeWorkspaceId) return;
-	try {
-		const updated = await workspaceIpc.clearWorkspaceWallpaper(activeWorkspaceId);
-		workspaces = workspaces.map((w) => (w.id === updated.id ? { ...updated } : { ...w }));
-	} catch (e) {
-		error = getErrorMessage(e);
-	}
-}
-
-async function saveAndApplyLibraryWallpaper(srcPath: string): Promise<void> {
-	try {
-		const stored = await workspaceIpc.saveWallpaper(srcPath);
-		await setLibraryWallpaper(stored, libraryWallpaper.opacity, libraryWallpaper.blur);
-	} catch (e) {
-		error = getErrorMessage(e);
-	}
-}
-
-async function saveAndApplyWorkspaceWallpaper(srcPath: string): Promise<void> {
-	if (!activeWorkspaceId) return;
-	try {
-		const stored = await workspaceIpc.saveWallpaper(srcPath);
-		const ws = activeWorkspace;
-		await setActiveWorkspaceWallpaper(
-			stored,
-			ws?.wallpaper_opacity ?? 0.7,
-			ws?.wallpaper_blur ?? 0,
-		);
-	} catch (e) {
-		error = getErrorMessage(e);
 	}
 }
 
@@ -493,9 +319,6 @@ export const workspaceStore = {
 	get error() {
 		return error;
 	},
-	get libraryWallpaper() {
-		return libraryWallpaper;
-	},
 	loadWorkspaces,
 	createWorkspace,
 	updateWorkspace,
@@ -512,15 +335,5 @@ export const workspaceStore = {
 	optimisticResize,
 	optimisticMoveAndResize,
 	persistMoveAndResize,
-	commitMoveAndResize,
 	findFreePosition,
-	wouldOverlapAt,
-	isCellOccupied,
-	// PH-499: 背景壁紙
-	loadLibraryWallpaper,
-	setLibraryWallpaper,
-	setActiveWorkspaceWallpaper,
-	clearActiveWorkspaceWallpaper,
-	saveAndApplyLibraryWallpaper,
-	saveAndApplyWorkspaceWallpaper,
 };

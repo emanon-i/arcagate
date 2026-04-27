@@ -66,10 +66,6 @@ jobs:
         shell: bash
         run: bash scripts/audit-design-tokens.sh
 
-      - name: Font token audit (PH-475)
-        shell: bash
-        run: bash scripts/audit-font-tokens.sh
-
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings

@@ -1,4 +1,3 @@
-<!-- NO_OVERFLOW_AUDIT_OK: flex-1 children are size buttons (S/M/L 1-char) and range inputs, no text overflow risk -->
 <script lang="ts">
 import { configStore } from '$lib/state/config.svelte';
 

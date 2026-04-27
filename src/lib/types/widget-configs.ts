@@ -11,15 +11,11 @@ export const LIST_WIDGET_DEFAULTS: ListWidgetConfig = {
 };
 
 export interface ItemWidgetConfig {
-	/** 単一アイテムモード (PH-003-J 旧仕様、後方互換) */
 	item_id: string | null;
-	/** PH-474: 複数アイテムモード (新仕様、 picker で複数選択) */
-	item_ids?: string[];
 }
 
 export const ITEM_WIDGET_DEFAULTS: ItemWidgetConfig = {
 	item_id: null,
-	item_ids: [],
 };
 
 export interface ClockWidgetConfig {

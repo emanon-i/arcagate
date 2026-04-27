@@ -24,7 +24,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 </script>
 
 <aside
-	class="flex h-full flex-col gap-3 overflow-y-auto [scrollbar-gutter:stable] border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] py-3 {expanded ? 'px-3' : 'items-center px-1'}"
+	class="flex h-full flex-col gap-3 overflow-y-auto border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] py-3 {expanded ? 'px-3' : 'items-center px-1'}"
 	data-testid="library-sidebar"
 >
 	<!-- セクション 1: 全体 -->

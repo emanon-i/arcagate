@@ -37,17 +37,8 @@ use commands::theme_commands::{
     cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
     cmd_update_theme,
 };
-use commands::wallpaper_commands::{
-    cmd_clear_workspace_wallpaper, cmd_get_library_wallpaper, cmd_save_wallpaper,
-    cmd_set_library_wallpaper, cmd_set_workspace_wallpaper,
-};
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
-};
-use commands::widget_item_settings_commands::{
-    cmd_clear_widget_item_settings, cmd_delete_widget_item_settings, cmd_get_widget_item_settings,
-    cmd_list_widget_item_settings, cmd_prune_widget_item_settings, cmd_touch_widget_item_settings,
-    cmd_upsert_widget_item_settings,
 };
 use commands::workspace_commands::{
     cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
@@ -196,18 +187,6 @@ pub fn run() {
                 }
             });
 
-            // PH-476: Windows 11 Mica / 10 Acrylic backdrop を main window に適用 (透明 + ぼかし)
-            #[cfg(target_os = "windows")]
-            {
-                if let Some(window) = app.get_webview_window("main") {
-                    use window_vibrancy::{apply_acrylic, apply_mica};
-                    if apply_mica(&window, Some(true)).is_err() {
-                        // Win10 fallback: Mica 非対応なら Acrylic
-                        let _ = apply_acrylic(&window, Some((18, 18, 18, 125)));
-                    }
-                }
-            }
-
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -301,20 +280,6 @@ pub fn run() {
             cmd_set_telemetry_opt_in,
             cmd_get_crash_report_opt_in,
             cmd_set_crash_report_opt_in,
-            // PH-499: 背景壁紙
-            cmd_save_wallpaper,
-            cmd_set_workspace_wallpaper,
-            cmd_clear_workspace_wallpaper,
-            cmd_set_library_wallpaper,
-            cmd_get_library_wallpaper,
-            // PH-504: Per-item settings persistence
-            cmd_get_widget_item_settings,
-            cmd_list_widget_item_settings,
-            cmd_upsert_widget_item_settings,
-            cmd_delete_widget_item_settings,
-            cmd_clear_widget_item_settings,
-            cmd_prune_widget_item_settings,
-            cmd_touch_widget_item_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

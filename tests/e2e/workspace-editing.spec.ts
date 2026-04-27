@@ -3,7 +3,7 @@ import { waitForAppReady } from '../helpers/app-ready.js';
 import { createWorkspace, deleteWorkspace, invoke, type Widget } from '../helpers/ipc.js';
 import { resizeWindow } from '../helpers/resize.js';
 
-test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレッション防衛）', () => {
+test.describe('Workspace 編集操作（PH-20260422-014〜016 リグレッション防衛）', () => {
 	test.afterEach(async ({ page }) => {
 		await page.mouse.up().catch(() => {});
 	});
@@ -20,15 +20,19 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 				await page.waitForLoadState('domcontentloaded');
 				await waitForAppReady(page);
 				await page.getByRole('button', { name: 'Workspace' }).click();
+				// 新規 WS タブを明示的に選択（loadWorkspaces は workspaces[0] をアクティブにするため）
 				await page.getByTestId(`workspace-tab-${workspace.id}`).click();
 				await expect(page.getByText('D&D追加テストWS')).toBeVisible();
 
 				await page.getByLabel('編集モード').click();
 				await expect(page.getByLabel('編集を確定')).toBeVisible();
+				// サイドバーアニメーション（--ag-duration-fast=120ms）完了を待つ
 				await page.waitForTimeout(200);
 
-				const beforeCount = await page.locator('[role="group"]').count();
+				const beforeCount = await page.getByLabel('ウィジェットを移動').count();
 
+				// PointerEvent ベース D&D（evaluate 内で getBoundingClientRect で座標取得）
+				// サイドバーアニメーション完了後に坐標を計算することで isOverDropZone と一致させる
 				await page.evaluate(async () => {
 					const src = document.querySelector('[data-widget-type="recent"]') as HTMLElement | null;
 					const dropZone = document.querySelector(
@@ -53,59 +57,15 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 							clientY: y,
 						});
 					src.dispatchEvent(mkPtr('pointerdown', sx, sy));
+					// $effect がドキュメントリスナーを登録するまでマイクロタスクを yield
 					await new Promise((r) => setTimeout(r, 100));
 					document.dispatchEvent(mkPtr('pointermove', tx, ty));
 					document.dispatchEvent(mkPtr('pointerup', tx, ty));
 				});
 
-				await expect(page.locator('[role="group"]')).toHaveCount(beforeCount + 1, {
+				await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount + 1, {
 					timeout: 5000,
 				});
-			} finally {
-				await deleteWorkspace(page, workspace.id);
-			}
-		},
-	);
-
-	test(
-		'PH-472: ハンドルは widget 選択時のみ表示されること',
-		{ tag: '@smoke' },
-		async ({ page }) => {
-			const workspace = await createWorkspace(page, 'PH-472 ハンドル表示WS');
-			try {
-				const widget = await invoke<Widget>(page, 'cmd_add_widget', {
-					workspaceId: workspace.id,
-					widgetType: 'recent',
-				});
-				await invoke<Widget>(page, 'cmd_update_widget_position', {
-					id: widget.id,
-					positionX: 0,
-					positionY: 0,
-					width: 1,
-					height: 1,
-				});
-
-				await page.reload();
-				await page.waitForLoadState('domcontentloaded');
-				await waitForAppReady(page);
-				await page.getByRole('button', { name: 'Workspace' }).click();
-
-				// 編集モードに入っただけでは ハンドル非表示
-				await page.getByLabel('編集モード').click();
-				await expect(page.getByLabel('編集を確定')).toBeVisible();
-				await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(0);
-				await expect(page.getByLabel('ウィジェットを削除')).toHaveCount(0);
-
-				// widget をクリック選択 → ハンドル + 削除ボタンが表示される
-				await page.getByRole('group').first().click();
-				await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(1);
-				await expect(page.getByLabel('ウィジェットを削除')).toHaveCount(1);
-
-				// 別の場所をクリック → 非表示に戻る
-				await page
-					.locator('[data-testid="workspace-drop-zone"]')
-					.click({ position: { x: 5, y: 5 } });
-				await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(0);
 			} finally {
 				await deleteWorkspace(page, workspace.id);
 			}
@@ -116,6 +76,7 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 		const workspace = await createWorkspace(page, '移動テストWS');
 
 		try {
+			// IPC でウィジェットを追加して (0,0) に配置
 			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
 				workspaceId: workspace.id,
 				widgetType: 'recent',
@@ -134,13 +95,14 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.getByRole('button', { name: 'Workspace' }).click();
 			await expect(page.getByText('移動テストWS')).toBeVisible();
 
+			// 編集モードに入る
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
 
-			// widget 選択 → ハンドル表示
-			await page.getByRole('group').first().click();
+			// ドラッグハンドルがあることを確認
 			await expect(page.getByLabel('ウィジェットを移動').first()).toBeVisible();
 
+			// ドラッグハンドルをドロップゾーンの別セル（右端）へ移動（PointerEvent ベース）
 			const handleBox = await page
 				.locator('[aria-label="ウィジェットを移動"]')
 				.first()
@@ -156,13 +118,16 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.mouse.move(tx, ty, { steps: 10 });
 			await page.mouse.up();
 
+			// 確定して編集モード終了
 			await page.getByLabel('編集を確定').click();
 
+			// リロードしてもウィジェットが表示されること（永続化確認）
 			await page.reload();
 			await page.waitForLoadState('domcontentloaded');
 			await waitForAppReady(page);
 			await page.getByRole('button', { name: 'Workspace' }).click();
 			await expect(page.getByText('移動テストWS')).toBeVisible();
+			// 編集モードで role=group を確認（通常モードには role=group がない）
 			await page.getByLabel('編集モード').click();
 			await expect(page.locator('[role="group"]').first()).toBeVisible();
 		} finally {
@@ -176,6 +141,7 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 		const workspace = await createWorkspace(page, 'リサイズテストWS');
 
 		try {
+			// IPC でウィジェットを (0,0) size (1,1) に追加
 			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
 				workspaceId: workspace.id,
 				widgetType: 'recent',
@@ -194,14 +160,12 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.getByRole('button', { name: 'Workspace' }).click();
 			await expect(page.getByText('リサイズテストWS')).toBeVisible();
 
+			// 編集モードに入る
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
 
-			// widget 選択でハンドル表示
-			await page.getByRole('group').first().click();
-
-			// 右下 corner ハンドルを取得 (RESIZE_LABELS.se = 'ウィジェットの幅と高さを変更')
-			const resizeHandle = page.getByLabel('ウィジェットの幅と高さを変更').first();
+			// リサイズハンドルの位置を取得
+			const resizeHandle = page.getByLabel('リサイズ').first();
 			await expect(resizeHandle).toBeVisible();
 			const box = await resizeHandle.boundingBox();
 			if (!box) throw new Error('resize handle bounding box not found');
@@ -209,11 +173,10 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			const cx = box.x + box.width / 2;
 			const cy = box.y + box.height / 2;
 
+			// page.evaluate で pointer events を直接ディスパッチ（setPointerCapture 依存を回避）
 			await page.evaluate(
 				({ x, y, dx }: { x: number; y: number; dx: number }) => {
-					const handle = document.querySelector(
-						'[aria-label="ウィジェットの幅と高さを変更"]',
-					) as HTMLElement | null;
+					const handle = document.querySelector('[aria-label="リサイズ"]') as HTMLElement | null;
 					if (!handle) throw new Error('resize handle not found');
 					const mkPtr = (type: string, clientX: number) =>
 						new PointerEvent(type, {
@@ -231,16 +194,20 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 				{ x: cx, y: cy, dx: 400 },
 			);
 
+			// ウィジェットコンテナの style に span 2 が含まれること（pointer events 処理完了を待つ）
 			const widgetContainer = page.locator('[role="group"]').first();
 			await expect(widgetContainer).toHaveAttribute('style', /span 2/);
 
+			// WidgetShell 内の overflow コンテナが表示されていること（PH-20260422-016 修正確認）
 			await expect(widgetContainer.locator('.min-h-0.flex-1').first()).toBeVisible();
 		} finally {
 			await deleteWorkspace(page, workspace.id);
 		}
 	});
 
-	test('編集モードで × ボタンをクリックすると確認ダイアログが表示されること', async ({ page }) => {
+	test('編集モードでゴミ箱ボタンをクリックすると確認ダイアログが表示されること', async ({
+		page,
+	}) => {
 		const workspace = await createWorkspace(page, '削除確認ダイアログテストWS');
 
 		try {
@@ -265,21 +232,20 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
 
-			const beforeCount = await page.locator('[role="group"]').count();
+			const beforeCount = await page.getByLabel('ウィジェットを移動').count();
 			expect(beforeCount).toBeGreaterThan(0);
 
-			// 選択 → × ボタン
-			await page.getByRole('group').first().click();
-			await page.getByRole('button', { name: 'ウィジェットを削除' }).click();
+			// ゴミ箱ボタンクリック → 確認ダイアログが表示される（即削除しない）
+			await page.getByRole('button', { name: 'ウィジェットを削除' }).first().click();
 			await expect(page.getByRole('dialog')).toBeVisible();
 			await expect(page.getByText('ウィジェットを削除しますか？')).toBeVisible();
 
-			// まだ削除されていない
-			await expect(page.locator('[role="group"]')).toHaveCount(beforeCount);
+			// まだ削除されていないことを確認
+			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount);
 
-			// 削除確定
+			// 「削除」ボタンで確定 → ウィジェットが消える
 			await page.getByRole('dialog').getByRole('button', { name: '削除' }).click();
-			await expect(page.locator('[role="group"]')).toHaveCount(beforeCount - 1, {
+			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount - 1, {
 				timeout: 3000,
 			});
 		} finally {
@@ -309,10 +275,12 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.getByRole('button', { name: 'Workspace' }).click();
 			await expect(page.getByText('Esc キャンセルテストWS')).toBeVisible();
 
+			// 編集モードに入る
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
 			await expect(page.locator('[role="group"]').first()).toBeVisible();
 
+			// Esc を押す → 編集モードが終了する
 			await page.keyboard.press('Escape');
 			await expect(page.getByLabel('編集を確定')).not.toBeVisible();
 			await expect(page.locator('[role="group"]')).not.toBeVisible();
@@ -343,10 +311,12 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.getByRole('button', { name: 'Workspace' }).click();
 			await expect(page.getByText('Enter 確定テストWS')).toBeVisible();
 
+			// 編集モードに入る
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
 			await expect(page.locator('[role="group"]').first()).toBeVisible();
 
+			// Enter を押す → 編集モードが終了する
 			await page.keyboard.press('Enter');
 			await expect(page.getByLabel('編集を確定')).not.toBeVisible();
 			await expect(page.locator('[role="group"]')).not.toBeVisible();
@@ -380,17 +350,17 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
 
-			const beforeCount = await page.locator('[role="group"]').count();
+			const beforeCount = await page.getByLabel('ウィジェットを移動').count();
 			expect(beforeCount).toBeGreaterThan(0);
 
-			// 選択 → × ボタン → キャンセル
-			await page.getByRole('group').first().click();
-			await page.getByRole('button', { name: 'ウィジェットを削除' }).click();
+			// ゴミ箱ボタンクリック → 確認ダイアログ表示
+			await page.getByRole('button', { name: 'ウィジェットを削除' }).first().click();
 			await expect(page.getByRole('dialog')).toBeVisible();
 
+			// 「キャンセル」クリック → ダイアログが閉じ、ウィジェットは残る
 			await page.getByRole('dialog').getByRole('button', { name: 'キャンセル' }).click();
 			await expect(page.getByRole('dialog')).not.toBeVisible();
-			await expect(page.locator('[role="group"]')).toHaveCount(beforeCount);
+			await expect(page.getByLabel('ウィジェットを移動')).toHaveCount(beforeCount);
 		} finally {
 			await deleteWorkspace(page, workspace.id);
 		}
@@ -418,15 +388,19 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await page.getByRole('button', { name: 'Workspace' }).click();
 			await expect(page.getByText('Deleteキーテス テストWS')).toBeVisible();
 
+			// 編集モードに入る
 			await page.getByLabel('編集モード').click();
 			await expect(page.getByLabel('編集を確定')).toBeVisible();
 
+			// ウィジェットをクリックして選択
 			await page.getByRole('group', { name: 'recent' }).click();
 
+			// Delete キーを押すと削除確認ダイアログが開く
 			await page.keyboard.press('Delete');
 			await expect(page.getByRole('dialog')).toBeVisible();
 			await expect(page.getByText('ウィジェットを削除しますか？')).toBeVisible();
 
+			// Escape でキャンセルできる
 			await page.keyboard.press('Escape');
 			await expect(page.getByRole('dialog')).not.toBeVisible();
 		} finally {
@@ -461,11 +435,11 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 				await page.getByLabel('編集モード').click();
 				await expect(page.getByLabel('編集を確定')).toBeVisible();
 
-				// 選択 → × → キャンセル
-				await page.getByRole('group').first().click();
-				await page.getByRole('button', { name: 'ウィジェットを削除' }).click();
+				// 削除ボタン → ダイアログ表示
+				await page.getByRole('button', { name: 'ウィジェットを削除' }).first().click();
 				await expect(page.getByRole('dialog')).toBeVisible();
 
+				// キャンセルボタンクリックでダイアログが閉じる
 				await page.getByRole('dialog').getByRole('button', { name: 'キャンセル' }).click();
 				await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3000 });
 			} finally {
@@ -505,6 +479,7 @@ test.describe('Workspace 編集操作（PH-20260422-014〜016 + PH-472 リグレ
 			await resizeWindow(page, 1280, 800);
 			await page.getByRole('button', { name: 'Workspace' }).click();
 
+			// ズームをデフォルト値（100）から変更して CSS var が変わることを確認
 			const result = await page.evaluate(async () => {
 				const el = document.querySelector('[data-zoom]') as HTMLElement | null;
 				if (!el) return null;

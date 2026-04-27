@@ -19,7 +19,7 @@ let smTitle = $derived(config.title ?? '');
 </script>
 
 <div class="space-y-1">
-	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-refresh">更新間隔（ミリ秒、500〜10000）</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-refresh">更新間隔（ミリ秒、500〜10000）</label>
 	<input
 		id="ws-sm-refresh"
 		type="number"
@@ -27,7 +27,7 @@ let smTitle = $derived(config.title ?? '');
 		max="10000"
 		step="100"
 		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={smRefreshMs}
 		onchange={(e) => {
 			config = {
@@ -40,7 +40,7 @@ let smTitle = $derived(config.title ?? '');
 		}}
 	/>
 </div>
-<label class="flex items-center justify-between gap-3 text-ag-sm">
+<label class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">CPU を表示</span>
 	<input
 		type="checkbox"
@@ -51,7 +51,7 @@ let smTitle = $derived(config.title ?? '');
 		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
 	/>
 </label>
-<label class="flex items-center justify-between gap-3 text-ag-sm">
+<label class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">メモリを表示</span>
 	<input
 		type="checkbox"
@@ -62,7 +62,7 @@ let smTitle = $derived(config.title ?? '');
 		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
 	/>
 </label>
-<label class="flex items-center justify-between gap-3 text-ag-sm">
+<label class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">ディスクを表示</span>
 	<input
 		type="checkbox"
@@ -74,13 +74,13 @@ let smTitle = $derived(config.title ?? '');
 	/>
 </label>
 <div class="space-y-1">
-	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-title">タイトル</label>
 	<input
 		id="ws-sm-title"
 		type="text"
 		autocomplete="off"
 		placeholder="システムモニタ"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={smTitle}
 		oninput={(e) => {
 			config = { ...config, title: (e.currentTarget as HTMLInputElement).value };

@@ -12,7 +12,6 @@ import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import PrivacySettings from './PrivacySettings.svelte';
 import UpdaterSettings from './UpdaterSettings.svelte';
-import WallpaperSettings from './WallpaperSettings.svelte';
 import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
 // PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
@@ -156,8 +155,8 @@ function handleNavKeydown(e: KeyboardEvent) {
 		{/each}
 	</div>
 
-	<!-- 右: コンテンツ (PH-489: scrollbar gutter stable) -->
-	<div class="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+	<!-- 右: コンテンツ -->
+	<div class="min-w-0 flex-1 overflow-y-auto">
 		{#if configStore.loading}
 			<LoadingState description="設定を読み込み中..." testId="settings-loading" />
 		{:else}
@@ -209,13 +208,24 @@ function handleNavKeydown(e: KeyboardEvent) {
 					<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 						ワークスペース
 					</h3>
-					<!-- PH-495: ウィジェット拡大率 slider 削除 (編集モード内 zoom に統合予定 PH-494)
-						既存 configStore.widgetZoom は legacy として残置 (DB schema 互換維持)、
-						旧設定値は無視 (default 100)。
-						user fb 2026-04-28: 「ズームも設定画面にいる必要ないな」 -->
-					<p class="text-sm text-[var(--ag-text-secondary)]">
-						ウィジェットの拡大縮小は<strong>編集モード内</strong>で行います (Ctrl+ホイール、または右下のズームコントロール)。
-					</p>
+					<div>
+						<div class="mb-2 flex items-center justify-between">
+							<p class="text-sm font-medium text-[var(--ag-text-primary)]">ウィジェット拡大率</p>
+							<span class="text-sm tabular-nums text-[var(--ag-text-secondary)]"
+								>{configStore.widgetZoom}%</span
+							>
+						</div>
+						<input
+							type="range"
+							min="50"
+							max="200"
+							step="10"
+							value={configStore.widgetZoom}
+							oninput={(e) => configStore.setWidgetZoom(Number(e.currentTarget.value))}
+							class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent-text)]"
+						/>
+						<p class="mt-1.5 text-xs text-[var(--ag-text-muted)]">Ctrl+ホイールでも変更できます</p>
+					</div>
 					<p class="text-xs text-[var(--ag-text-muted)]">
 						ライブラリカードの設定は <strong class="text-[var(--ag-text-secondary)]">ライブラリ</strong> タブに移動しました。
 					</p>
@@ -388,11 +398,6 @@ function handleNavKeydown(e: KeyboardEvent) {
 								</div>
 							{/if}
 						</div>
-					</div>
-
-					<!-- PH-499: 背景画像 (Library default + per-workspace override) -->
-					<div class="border-t border-[var(--ag-border)] pt-5">
-						<WallpaperSettings />
 					</div>
 				</div>
 			{:else if activeCategory === 'data'}

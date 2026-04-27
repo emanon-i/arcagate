@@ -9,10 +9,10 @@ let fontSize = $derived<'sm' | 'md' | 'lg'>(config.font_size ?? 'md');
 </script>
 
 <div class="space-y-1">
-	<label class="text-ag-sm font-medium text-[var(--ag-text-primary)]" for="ws-font-size">フォントサイズ</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-font-size">フォントサイズ</label>
 	<select
 		id="ws-font-size"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-ag-sm text-[var(--ag-text-primary)]"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={fontSize}
 		onchange={(e) => {
 			config = {

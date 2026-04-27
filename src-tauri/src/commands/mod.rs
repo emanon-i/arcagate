@@ -9,7 +9,5 @@ pub mod launch_commands;
 pub mod metadata_commands;
 pub mod system_monitor_commands;
 pub mod theme_commands;
-pub mod wallpaper_commands;
 pub mod watched_path_commands;
-pub mod widget_item_settings_commands;
 pub mod workspace_commands;

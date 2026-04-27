@@ -1,11 +1,17 @@
 <script lang="ts">
+import { GripVertical, Trash2 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { WIDGET_LABELS } from '$lib/types/workspace';
-import { clampResizeForOverlap, computeResize, type ResizeDir } from '$lib/utils/resize-delta';
+import {
+	clampResizeForOverlap,
+	computeResize,
+	RESIZE_CURSORS,
+	RESIZE_LABELS,
+	type ResizeDir,
+} from '$lib/utils/resize-delta';
 import { clampWidget } from '$lib/utils/widget-grid';
-import WidgetHandles from './WidgetHandles.svelte';
 
 interface Props {
 	dynamicCols: number;
@@ -30,7 +36,7 @@ let {
 	widgetH,
 	widgetComponents,
 	selectedWidgetId,
-	deleteConfirmId: _deleteConfirmId,
+	deleteConfirmId,
 	editMode = true,
 	onItemContext,
 	onSelectedWidgetIdChange,
@@ -129,6 +135,7 @@ function handleResizeStart(e: PointerEvent, widgetId: string, dir: ResizeDir = '
 			maxSpan: MAX_SPAN,
 			maxCols: dynamicCols,
 		});
+		// 他ウィジェットと重なる場合は重ならない最大に丸める（rubber-band）
 		const others = workspaceStore.widgets
 			.filter((ww) => ww.id !== widgetId)
 			.map((ww) => ({ x: ww.position_x, y: ww.position_y, w: ww.width, h: ww.height }));
@@ -140,12 +147,12 @@ function handleResizeStart(e: PointerEvent, widgetId: string, dir: ResizeDir = '
 		handle.releasePointerCapture(ev.pointerId);
 		const w = workspaceStore.widgets.find((ww) => ww.id === widgetId);
 		if (w) {
-			// PH-477: commit (history record 付き)
-			void workspaceStore.commitMoveAndResize(
+			void workspaceStore.persistMoveAndResize(
 				widgetId,
-				start,
-				{ x: w.position_x, y: w.position_y, w: w.width, h: w.height },
-				'resize',
+				w.position_x,
+				w.position_y,
+				w.width,
+				w.height,
 			);
 		}
 		handle.removeEventListener('pointermove', onMove);
@@ -161,10 +168,6 @@ function handleMoveStart(e: PointerEvent, widgetId: string) {
 	e.stopPropagation();
 	(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 	pointerDrag.start({ kind: 'move', widgetId }, e.clientX, e.clientY);
-}
-
-function handleDeleteClick(widgetId: string) {
-	onDeleteConfirmIdChange(widgetId);
 }
 </script>
 
@@ -198,7 +201,6 @@ function handleDeleteClick(widgetId: string) {
 			{@const WidgetComp = widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
 			{@const clamped = clampWidget(widget, dynamicCols)}
 			{@const isMoving = pointerDrag.active?.kind === 'move' && pointerDrag.active.widgetId === widget.id}
-			{@const isSelected = selectedWidgetId === widget.id}
 			{#if WidgetComp}
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -209,37 +211,107 @@ function handleDeleteClick(widgetId: string) {
 					role="group"
 					aria-label={WIDGET_LABELS[widget.widget_type] ?? widget.widget_type}
 					tabindex={editMode ? 0 : -1}
-					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
+					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};{selectedWidgetId === widget.id ? ' box-shadow: 0 0 0 2px var(--ag-surface), 0 0 0 4px var(--ag-accent); border-radius: var(--ag-radius-widget);' : ''}"
 					onclick={(e) => { e.stopPropagation(); onSelectedWidgetIdChange(widget.id); }}
 					onfocus={() => onSelectedWidgetIdChange(widget.id)}
 				>
 					<WidgetComp {widget} {onItemContext} />
-					{#if editMode && isSelected}
-						<WidgetHandles
-							widgetId={widget.id}
-							onMoveStart={handleMoveStart}
-							onResizeStart={handleResizeStart}
-							onDeleteClick={handleDeleteClick}
-						/>
-					{/if}
+					<!-- ドラッグハンドル (PointerEvent ベース) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--ag-surface-4)]/80 transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
+						class:cursor-grab={!isMoving}
+						class:cursor-grabbing={isMoving}
+						aria-label="ウィジェットを移動"
+						onpointerdown={(e) => handleMoveStart(e, widget.id)}
+					>
+						<GripVertical class="h-3 w-3 text-[var(--ag-text-muted)]" />
+					</div>
+					<!-- 削除ボタン -->
+					<button
+						type="button"
+						class="absolute right-1 top-1 rounded-full bg-destructive/80 p-1 text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-destructive active:scale-[0.95]"
+						aria-label="ウィジェットを削除"
+						onclick={() => onDeleteConfirmIdChange(widget.id)}
+					>
+						<Trash2 class="h-3 w-3" />
+					</button>
+					<!-- PH-331: 8 方向 Resize handles (n/s/e/w + 4 corners) -->
+					<!-- 上辺 (n) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute left-1/2 top-0 z-10 h-2 w-12 -translate-x-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.n}"
+						aria-label={RESIZE_LABELS.n}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'n')}
+					></div>
+					<!-- 下辺 (s) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute bottom-0 left-1/2 z-10 h-2 w-12 -translate-x-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.s}"
+						aria-label={RESIZE_LABELS.s}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 's')}
+					></div>
+					<!-- 右辺 (e) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute right-0 top-1/2 z-10 h-12 w-2 -translate-y-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.e}"
+						aria-label={RESIZE_LABELS.e}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'e')}
+					></div>
+					<!-- 左辺 (w) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute left-0 top-1/2 z-10 h-12 w-2 -translate-y-1/2 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.w}"
+						aria-label={RESIZE_LABELS.w}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'w')}
+					></div>
+					<!-- 左上 (nw) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute left-0 top-0 z-15 h-3 w-3 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.nw}"
+						aria-label={RESIZE_LABELS.nw}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'nw')}
+					></div>
+					<!-- 右上 (ne) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute right-0 top-0 z-15 h-3 w-3 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.ne}"
+						aria-label={RESIZE_LABELS.ne}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'ne')}
+					></div>
+					<!-- 左下 (sw) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute bottom-0 left-0 z-15 h-3 w-3 bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
+						style="cursor: {RESIZE_CURSORS.sw}"
+						aria-label={RESIZE_LABELS.sw}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'sw')}
+					></div>
+					<!-- 右下 (se) -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute bottom-1 right-1 z-20 flex h-6 w-6 items-center justify-center rounded bg-[var(--ag-accent)]/50 shadow transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-accent)]"
+						style="cursor: {RESIZE_CURSORS.se}"
+						aria-label={RESIZE_LABELS.se}
+						onpointerdown={(e) => handleResizeStart(e, widget.id, 'se')}
+					>
+						<GripVertical class="h-4 w-4 text-white" />
+					</div>
 				</div>
 			{/if}
 		{/each}
 
-		<!-- Drop zone highlight (PH-473: 衝突 cell を赤色 invalid 表示) -->
+		<!-- Drop zone highlight -->
 		{#if pointerDrag.dropCell}
-			{@const cell = pointerDrag.dropCell}
-			{@const movingId = pointerDrag.active?.kind === 'move' ? pointerDrag.active.widgetId : null}
-			{@const invalid = movingId
-				? workspaceStore.wouldOverlapAt(movingId, cell.x, cell.y)
-				: workspaceStore.isCellOccupied(cell.x, cell.y)}
 			<div
-				class="pointer-events-none rounded-lg border-2 border-dashed {invalid
-					? 'border-destructive'
-					: 'border-[var(--ag-accent)]'}"
-				style="grid-column: {cell.x + 1}; grid-row: {cell.y + 1}; background-color: {invalid
-					? 'rgb(239 68 68 / 0.18)'
-					: 'color-mix(in oklch, var(--ag-accent) 12%, transparent)'};"
+				class="pointer-events-none rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-accent)]/10 shadow-[0_0_0_2px_var(--ag-accent)]"
+				style="grid-column: {pointerDrag.dropCell.x + 1}; grid-row: {pointerDrag.dropCell.y + 1};"
 			></div>
 		{/if}
 	</div>

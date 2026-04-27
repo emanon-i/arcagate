@@ -1,12 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
-import type {
-	WallpaperSettings,
-	WidgetType,
-	Workspace,
-	WorkspaceWidget,
-} from '$lib/types/workspace';
+import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 
 export async function createWorkspace(name: string): Promise<Workspace> {
 	return invoke<Workspace>('cmd_create_workspace', { name });
@@ -76,39 +71,4 @@ export async function getFolderItems(): Promise<Item[]> {
 
 export async function getGitStatus(path: string): Promise<GitStatus> {
 	return invoke<GitStatus>('cmd_git_status', { path });
-}
-
-// PH-499: 背景壁紙
-export async function saveWallpaper(srcPath: string): Promise<string> {
-	return invoke<string>('cmd_save_wallpaper', { srcPath });
-}
-
-export async function setWorkspaceWallpaper(
-	workspaceId: string,
-	path: string | null,
-	opacity: number,
-	blur: number,
-): Promise<Workspace> {
-	return invoke<Workspace>('cmd_set_workspace_wallpaper', {
-		workspaceId,
-		path,
-		opacity,
-		blur,
-	});
-}
-
-export async function clearWorkspaceWallpaper(workspaceId: string): Promise<Workspace> {
-	return invoke<Workspace>('cmd_clear_workspace_wallpaper', { workspaceId });
-}
-
-export async function setLibraryWallpaper(
-	path: string | null,
-	opacity: number,
-	blur: number,
-): Promise<void> {
-	return invoke<void>('cmd_set_library_wallpaper', { path, opacity, blur });
-}
-
-export async function getLibraryWallpaper(): Promise<WallpaperSettings> {
-	return invoke<WallpaperSettings>('cmd_get_library_wallpaper');
 }

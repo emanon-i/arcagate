@@ -108,7 +108,7 @@ function previewText(text: string): string {
 
 <WidgetShell title={config.title || 'クリップボード履歴'} icon={ClipboardList} {menuItems}>
 	{#if history.length === 0}
-		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-ag-xs text-[var(--ag-text-muted)]">
+		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-xs text-[var(--ag-text-muted)]">
 			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">履歴は空です</p>
 			<p>テキストをコピーすると ここに溜まり、クリックで再コピーできます。</p>
 		</div>
@@ -117,7 +117,7 @@ function previewText(text: string): string {
 			<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
 			<input
 				type="text"
-				class="min-w-0 flex-1 bg-transparent py-1 text-ag-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
+				class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
 				placeholder="履歴を検索..."
 				autocomplete="off"
 				bind:value={query}
@@ -140,14 +140,14 @@ function previewText(text: string): string {
 			</p>
 		{/if}
 		{#if filteredHistory.length === 0}
-			<p class="text-ag-xs text-[var(--ag-text-muted)]">「{query}」に一致する履歴はありません</p>
+			<p class="text-xs text-[var(--ag-text-muted)]">「{query}」に一致する履歴はありません</p>
 		{:else}
 		<ul class="space-y-1">
 			{#each filteredHistory as entry (entry.id)}
 				<li class="group flex items-center gap-1">
 					<button
 						type="button"
-						class="min-w-0 flex-1 rounded-md px-2 py-1 text-left text-ag-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+						class="min-w-0 flex-1 rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 						aria-label="クリップボードに再コピー"
 						onclick={() => void copyEntry(entry)}
 					>
