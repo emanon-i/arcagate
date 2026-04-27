@@ -45,6 +45,22 @@
 }
 
 @theme inline {
+  /* PH-475: ag-* font tokens を Tailwind 経由で text-ag-* class として使えるように export
+   * 旧 text-xs/sm/base/lg/xl/2xl は Tailwind default を維持 (互換)、新規 widget は text-ag-* を使う
+   */
+  --text-ag-xs: var(--ag-font-xs);
+  --text-ag-xs--line-height: var(--ag-line-xs);
+  --text-ag-sm: var(--ag-font-sm);
+  --text-ag-sm--line-height: var(--ag-line-sm);
+  --text-ag-md: var(--ag-font-md);
+  --text-ag-md--line-height: var(--ag-line-md);
+  --text-ag-lg: var(--ag-font-lg);
+  --text-ag-lg--line-height: var(--ag-line-lg);
+  --text-ag-xl: var(--ag-font-xl);
+  --text-ag-xl--line-height: var(--ag-line-xl);
+  --text-ag-2xl: var(--ag-font-2xl);
+  --text-ag-2xl--line-height: var(--ag-line-2xl);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

@@ -87,7 +87,7 @@ let menuItems = $derived(
 	>
 		<input
 			type="text"
-			class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
+			class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-ag-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
 			placeholder="タスクを追加..."
 			autocomplete="off"
 			bind:value={newTaskInput}
@@ -102,7 +102,7 @@ let menuItems = $derived(
 		</button>
 	</form>
 	{#if visibleTasks.length === 0}
-		<p class="text-xs text-[var(--ag-text-muted)]">
+		<p class="text-ag-xs text-[var(--ag-text-muted)]">
 			{config.hideCompleted && (config.tasks?.length ?? 0) > 0
 				? '未完了のタスクなし'
 				: 'タスクなし'}
@@ -110,7 +110,7 @@ let menuItems = $derived(
 	{:else}
 		<ul class="space-y-1">
 			{#each visibleTasks as task (task.id)}
-				<li class="group flex items-center gap-2 text-xs">
+				<li class="group flex items-center gap-2 text-ag-xs">
 					<input
 						type="checkbox"
 						class="h-3 w-3 cursor-pointer accent-[var(--ag-accent-text)]"
