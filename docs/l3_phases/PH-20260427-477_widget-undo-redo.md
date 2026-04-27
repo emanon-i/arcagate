@@ -17,9 +17,11 @@ scope_files:
 ## 背景
 
 ユーザー dev fb (2026-04-27):
+
 > あと削除が取り返せないのも謎だしアンドゥリドゥ無いの今時じゃないね。
 
 現状:
+
 - widget 配置 / 移動 / リサイズ / 追加 / 削除 / config 変更すべて IPC 即書き込み
 - undo / redo 機構なし
 - 確認ダイアログで削除 (PH-003-F5 で導入済) のみ
@@ -27,6 +29,7 @@ scope_files:
 ## 受け入れ条件
 
 ### 機能
+
 - [ ] **Ctrl+Z**: 直前の widget 操作を 1 つ undo (配置 / 移動 / リサイズ / 追加 / 削除 / config 変更すべて)
 - [ ] **Ctrl+Shift+Z または Ctrl+Y**: redo
 - [ ] **履歴上限**: 50 件 (Ring buffer、超過時は古いものから drop)
@@ -38,10 +41,12 @@ scope_files:
 - [ ] **エラー時 rollback**: undo 中の IPC 失敗で history pointer が壊れない (try-catch + state ロールバック)
 
 ### 横展開チェック
+
 - [ ] Library 側にも将来 undo を持たせるか (今回 scope 外、設計は extension 可能に)
 - [ ] Theme editor 等の他編集系で undo 一貫性確認 (今回 scope 外、しかし design pattern 整合)
 
 ### SFDIPOT
+
 - **F**unction: undo で完全に前状態に戻る (見た目 + DB)
 - **D**ata: history entry = `{ kind: 'add'|'remove'|'move'|'resize'|'config', before: snapshot, after: snapshot }`
 - **I**nterface: workspace.svelte.ts の操作系を全て `recordHistory()` 経由に
@@ -49,6 +54,7 @@ scope_files:
 - **T**ime: undo / redo は instant (IPC 1 回程度、ユーザーが連打しても OK)
 
 ### HICCUPPS
+
 - [Image, User] OS / Office / Adobe / Figma の Ctrl+Z 標準
 - [Comparable] Notion / VSCode の undo 体感
 - [Consistency] Library / Theme editor も将来同じパターン

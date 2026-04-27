@@ -20,12 +20,14 @@ scope_files:
 ## 背景
 
 ユーザー dev fb (2026-04-27):
+
 > ウィジットのアイテムが置けるやつ、これ普通にライブラリ画面のカードを出すの無理？それで良くないか？
 > あと複数追加できるようにしてね。つまるところ自由に選択して配置できるライブラリ画面の小さい版ウィジット。
 > あとアイテム選択の設定画面、ソートとかフィルタつけないと厳しいよ。
 > あと当然だけどウィジットのアイテム消えたらライブラリ側も消えるよね？
 
 現状:
+
 - WidgetSettingsDialog.svelte は `widgetRegistry` から動的に SettingsContent を取得
 - ItemWidget (1 item only) で item 選択 UI がある (おそらく id 入力 or simple select)
 - LibraryCard は `viewMode 'grid'/'list'`, `itemSize 'S'/'M'/'L'` の variant 完備、再利用可能
@@ -34,6 +36,7 @@ scope_files:
 ## 受け入れ条件
 
 ### 機能
+
 - [ ] **CollectionWidget**: 新 widget type、複数 item id を config に保持、LibraryCard を `itemSize='S'` で grid 表示
 - [ ] **ItemPicker** モーダル: LibraryGrid を `mode='picker'` で埋め込み、各カード click でトグル選択、選択数バッジ + 「N 件追加」ボタン
 - [ ] **ソート / フィルタ**: Picker 内で既存 LibraryGrid の sort (name / created / used) + filter (tag / type) を使える
@@ -43,10 +46,12 @@ scope_files:
 - [ ] dead reference テスト: item 削除 → widget が画面に残ったまま空表示にならず、参照が消えるだけ
 
 ### 横展開チェック
+
 - [ ] LibraryCard の props を `mode?: 'normal'|'picker'` `selected?: boolean` で拡張、既存利用箇所影響なし
 - [ ] Library フィルタ / ソート state は store 化されているか、picker でも同じ store 使えるか確認
 
 ### SFDIPOT
+
 - **F**unction: item 選択 → widget 反映 / item 削除 → widget 反映
 - **D**ata: widget config = `{ item_ids: string[], sort?: ..., filter?: ... }`
 - **I**nterface: LibraryCard `mode='picker'` 拡張、cmd_delete_item に cascade 追加
@@ -54,6 +59,7 @@ scope_files:
 - **O**perations: 単一クリック / Cmd+click / Shift+click / 全選択 / 全解除
 
 ### HICCUPPS
+
 - [Image] Photos / Spotlight / Raycast の multi-select 慣習
 - [User] 「ライブラリ画面の小さい版」の期待を直訳
 - [Consistency] LibraryGrid の見た目をそのまま継承 (再学習不要)

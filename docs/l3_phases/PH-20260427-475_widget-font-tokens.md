@@ -18,10 +18,12 @@ scope_files:
 ## 背景
 
 ユーザー dev fb (2026-04-27):
+
 > ウィジット全体的にフォントが小さい。フォントは大中小極小とかで統一感を持たせてください。
 > てか普通そうだよね？smとかだよね？ハードコードしてないよね？
 
 調査結果:
+
 - Tailwind の `text-xs/sm/md/lg` は使われているが、Arcagate 独自 token (`--ag-font-*`) はない
 - 一部 `text-[14px]` 等の hardcode が散在 (Explore 報告で 304 件相当)
 - widget 内部のフォントサイズが視認性低い (xs 多用)
@@ -29,6 +31,7 @@ scope_files:
 ## 受け入れ条件
 
 ### 機能
+
 - [ ] **Token 定義**: `arcagate-theme.css` に `--ag-font-xs (11px) / sm (13px) / md (15px) / lg (18px) / xl (22px) / 2xl (28px)` の 6 段階を追加 (line-height も同時定義)
 - [ ] **Tailwind 拡張**: `tailwind.config` で `fontSize: { 'ag-xs': 'var(--ag-font-xs)', ... }` を export、`text-ag-sm` 等で使用可能
 - [ ] **Widget 全体置換**: `src/lib/components/arcagate/workspace/widgets/` 配下の `text-xs|text-sm|text-[Npx]` を `text-ag-{xs,sm,md,lg}` に置換
@@ -37,11 +40,13 @@ scope_files:
 - [ ] CI / lefthook に audit step 追加 (`pnpm verify:font-tokens`)
 
 ### 横展開チェック
+
 - [ ] `src/lib/components/arcagate/library/` 内も同 token を使うように一括置換 (一貫性)
 - [ ] WidgetShell / HintBar / Toast 等の共通コンポーネントも適用
 - [ ] Settings 画面・Theme editor は別 token 体系の可能性、scope 外でも grep して dispatch-log に記録
 
 ### SFDIPOT
+
 - **F**unction: テーマ切替 (light/dark) で font も読みやすさ維持
 - **D**ata: CSS 変数で集約、JS / Svelte 内で px 直書き禁止
 - **I**nterface: Tailwind class で参照、`text-ag-*` の API
@@ -49,6 +54,7 @@ scope_files:
 - **O**perations: 開発者が新 widget 作成時に `text-xs` 等を書いたら audit script で fail
 
 ### HICCUPPS
+
 - [Image] Material Design type scale / iOS Dynamic Type の階層感
 - [Consistency] 全 widget で同じ階層 (タイトル / 本文 / 補足) を使う
 

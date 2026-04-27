@@ -18,9 +18,11 @@ scope_files:
 ## 背景
 
 ユーザー dev fb (2026-04-27):
+
 > 編集で編集したガチャガチャしてキャンセルしてまた編集すると前のが戻ったりする。状態管理大丈夫？
 
 現状調査 (workspace.svelte.ts:270-301):
+
 - `optimisticMoveAndResize()` / `optimisticResize()` が直接 `widgets` $state を書き換え
 - `persistMoveAndResize()` で IPC 永続化
 - **draft state なし**: optimistic 書き換えがそのまま widgets の真の値になる
@@ -31,6 +33,7 @@ scope_files:
 ## 受け入れ条件
 
 ### 機能
+
 - [ ] **編集セッション開始時 snapshot**: editMode true 化 / SettingsDialog open 時に `committed` snapshot を保持
 - [ ] **編集中の操作は draft のみ更新**: drag / resize / config 変更は draft state へ書き込み、widget 表示は draft 優先 (`derived(draft ?? committed)`)
 - [ ] **Apply / 自動 commit**: Settings ダイアログの「保存」or pointerup の確定 (move/resize) で draft → committed + IPC
@@ -41,10 +44,12 @@ scope_files:
 - [ ] E2E: 「編集 → キャンセル → 再編集」シナリオで前 draft が残らないこと、「編集 → 保存 → 再編集 → キャンセル」で 1 回目の保存値で start、ガチャガチャ後にキャンセルで 1 回目保存値に戻る
 
 ### 横展開チェック
+
 - [ ] Theme editor / Library card の編集系も同パターン適用可能か (今 scope 外、設計の伝播余地)
 - [ ] Settings 全般で「Apply / Cancel」UX が混在していないか grep audit
 
 ### SFDIPOT
+
 - **F**unction: draft / committed の状態遷移が明確、再編集で混ざらない
 - **D**ata: `WidgetEditSession = { committed: Snapshot, draft: Snapshot | null, dirty: boolean }`
 - **I**nterface: `workspace-edit.svelte.ts` の `start(widgetId)` `update(patch)` `commit()` `cancel()` API
@@ -52,6 +57,7 @@ scope_files:
 - **T**ime: commit は IPC 1 回でブロッキング、cancel は IPC 不要で instant
 
 ### HICCUPPS
+
 - [Image] Figma / Photoshop 等の「編集 → 保存 / キャンセル」フロー
 - [User] 「キャンセルして再編集で前のが戻る」現象が消える
 - [Consistency] PH-477 undo/redo と整合 (cancel = 全 draft 操作の集合 undo に相当)

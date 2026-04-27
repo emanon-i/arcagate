@@ -17,9 +17,11 @@ scope_files:
 ## 背景
 
 ユーザー dev fb (2026-04-27):
+
 > リサイズハンドルと移動のハンドル、普通のアプリで見たことない実装するのやめてね。削除ボタンもださい。普通そう実装しないでしょう。
 
 現状 (`WorkspaceWidgetGrid.svelte:219-305`):
+
 - 常時表示 8 方向 resize handle (`bg-[var(--ag-accent)]/40` 等の独自スタイル)
 - `GripVertical` の左上 move handle、右上 `Trash2`
 - editMode 関係なくハンドル全表示 → 通常モードでも見えてる
@@ -28,6 +30,7 @@ scope_files:
 ## 受け入れ条件
 
 ### 機能
+
 - [ ] **editMode=true かつ widget 選択中のみ**ハンドルが表示される (Figma / Notion 慣習)
 - [ ] move handle: widget ヘッダー全体を drag area にする (普通の DTP / window 慣習)
 - [ ] resize handle: 8 方向、選択時のみ表示、small square chip (4×4 px)、theme 連動色
@@ -37,10 +40,12 @@ scope_files:
 - [ ] focus visible: keyboard tab で widget 選択 → ハンドル表示
 
 ### 横展開チェック
+
 - [ ] grep: 他にも独自ハンドル実装が無いか (`absolute.*top-0.*z-1[05]` パターン audit) - 結果を Plan に記載
 - [ ] LibraryGrid 等で同様の resize / drag UI があるか確認
 
 ### SFDIPOT
+
 - **F**unction: 編集モードでのみ操作可能、通常モードはハンドル表示なし
 - **D**ata: 既存 `widget.position_x/y/width/height` schema 流用
 - **I**nterface: editMode prop / selectedWidgetId state は既存活用
@@ -48,6 +53,7 @@ scope_files:
 - **O**perations: hover 表示 → click 選択 → drag 移動 → drag resize → click × で削除確認
 
 ### HICCUPPS
+
 - [Image, User] Figma / Notion / Miro 等の選択 → ハンドル表示パターンに合わせる
 - [Comparable] Excel / PowerPoint の選択枠表示
 - [Consistency] Library カードの選択視覚と整合

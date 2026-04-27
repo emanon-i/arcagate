@@ -18,11 +18,13 @@ scope_files:
 ## 背景
 
 ユーザー dev fb (2026-04-27):
+
 > グリッドサイズでかいな。画面のスクロール無限とまでは行かなくてもある程度広くしないとウィジット配置しづらいね。
 > ウィジットがある部分だけに画面を合わせるクロップ機能もいるよね。
 > ウィジットだけど単純に重なるのやめてほしいかな。
 
 現状:
+
 - `WorkspaceWidgetGrid.svelte:54` gap=16, widgetW/H は親算出 (推定 200px 近辺、画面比較で過大)
 - canvas 高さは `dynamicCols × maxRow` の自動算出、横は viewport 幅依存
 - 重なり: `workspace.svelte.ts:244-247` で move 時自動回避 (findFreePosition fallback)、resize は `resize-delta.ts` の `clampResizeForOverlap` で「rubber-band 縮小」
@@ -31,6 +33,7 @@ scope_files:
 ## 受け入れ条件
 
 ### 機能
+
 - [ ] **Grid cell サイズ**: 現状の約 50% (例 widgetW: 200→112px, gap 16→12px)、最小 widget = 1 cell でも操作しやすいサイズ感
 - [ ] **Canvas 拡大**: 横 = `dynamicCols × 1.5`, 縦 = `existing_max_y + 8` を最低保証 (常に空の cell が見える、配置余地)
 - [ ] **Canvas 横スクロール**: workspace 領域に `overflow-auto` (これまで縦のみ)、horizontal scrollbar 表示
@@ -39,16 +42,19 @@ scope_files:
 - [ ] **Crop ボタン**: workspace toolbar に「Crop to widgets」ボタン (Lucide `Crop`)、押すと bounding box にスクロール + zoom (現状は scroll のみ実装、zoom は別 plan)
 
 ### 横展開チェック
+
 - [ ] LibraryGrid に同様の cell 算出ロジックがあるか? あれば一貫性保つ
 - [ ] `gap-4` (16px) が widget grid 以外で hardcode されているか grep
 
 ### SFDIPOT
+
 - **F**unction: 配置 / 移動 / リサイズで意図しない自動移動が起きない
 - **D**ata: cell サイズは CSS 変数 `--widget-w` `--widget-h` で集約済 (流用)
 - **I**nterface: WorkspaceLayout で `cropToWidgets()` action 追加
 - **P**latform: scroll は CSS 標準、Tauri WebView2 horizontal scrollbar 描画確認
 
 ### HICCUPPS
+
 - [Image] Notion / Miro / Tldraw の無限 canvas 慣習
 - [User] 「重なるのをやめて」を「衝突 = 操作拒否」に翻訳 (auto-rearrange は予測不能で UX 低下)
 - [Consistency] Library カードの S/M/L サイズ感と相対バランス
