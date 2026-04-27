@@ -62,6 +62,7 @@
 		"vitest": "^4.0.18"
 	},
 	"dependencies": {
-		"@tauri-apps/plugin-fs": "^2.4.5"
+		"@tauri-apps/plugin-fs": "^2.4.5",
+		"@tauri-apps/plugin-updater": "^2.10.1"
 	}
 }

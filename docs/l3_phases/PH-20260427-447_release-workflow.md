@@ -1,7 +1,7 @@
 ---
 id: PH-20260427-447
-status: todo
-batch: 98
+status: done
+batch: 100
 type: 改善
 era: Distribution Era
 ---

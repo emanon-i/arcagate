@@ -10,6 +10,7 @@ import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
+import UpdaterSettings from './UpdaterSettings.svelte';
 import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
 // PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
@@ -191,6 +192,9 @@ function handleNavKeydown(e: KeyboardEvent) {
 								onChange={(enabled) => configStore.saveAutostart(enabled)}
 							/>
 						</div>
+					</div>
+					<div class="border-t border-[var(--ag-border)] pt-4">
+						<UpdaterSettings />
 					</div>
 				</div>
 			{:else if activeCategory === 'workspace'}
