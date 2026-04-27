@@ -1,7 +1,7 @@
 ---
 id: PH-20260429-501
 title: はみ出し audit を warning → error 化 + 違反個別 fix
-status: todo
+status: done
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets

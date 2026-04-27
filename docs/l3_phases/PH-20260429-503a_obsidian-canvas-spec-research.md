@@ -1,7 +1,7 @@
 ---
 id: PH-20260429-503a
 title: Obsidian Canvas 仕様調査 + 取捨選択ドキュメント (PH-503 前提)
-status: todo
+status: done
 batch: 109
 era: research
 priority: critical
