@@ -86,7 +86,8 @@ async function updateWorkspace(id: string, name: string): Promise<void> {
 	error = null;
 	try {
 		const ws = await workspaceIpc.updateWorkspace(id, name);
-		workspaces = workspaces.map((w) => (w.id === id ? ws : w));
+		// PH-479: spread copy で reactive 確実化
+		workspaces = workspaces.map((w) => (w.id === id ? { ...ws } : { ...w }));
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -241,7 +242,10 @@ async function updateWidgetConfig(id: string, config: string | null): Promise<vo
 	try {
 		error = null;
 		const updated = await workspaceIpc.updateWidgetConfig(id, config);
-		widgets = widgets.map((w) => (w.id === id ? updated : w));
+		// PH-479: 旧 .map では keyed each の widget prop が同 reference を保持するケースで
+		// 子 widget の $derived(parseWidgetConfig(widget?.config, ...)) が再計算されない事例があるため、
+		// **新オブジェクトに deep replace** + 全 widgets を新配列で置換 (Svelte 5 reactive を確実起動)
+		widgets = widgets.map((w) => (w.id === id ? { ...updated } : { ...w }));
 		// PH-477: config 変更を history に積む (idempotent な変更はスキップ)
 		if (before !== config) {
 			workspaceHistory.record({ kind: 'config', widgetId: id, before, after: config });
@@ -263,7 +267,8 @@ async function resizeWidget(id: string, width: number, height: number): Promise<
 			width,
 			height,
 		);
-		widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : w));
+		// PH-479: 全要素 spread copy で keyed each + 子 $derived の reactive 確実化
+		widgets = widgets.map((w) => (w.id === id ? { ...w, width, height } : { ...w }));
 	} catch (e) {
 		error = getErrorMessage(e);
 	}
