@@ -50,26 +50,35 @@ let entries = $state<ExeFolderEntry[]>([]);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
 
-// Lazy fetch: watch_path / scan_depth が設定されたとき + 変化時に scan
+// PH-490 + PH-492: watch_path / scan_depth 変更時の race condition / 旧 cache 残存問題 fix
+// - effect 開始時に entries を即時 clear (path 変更で旧 entries が残るのを防ぐ)
+// - request id で stale response を破棄 (path 高速切替時)
+let scanRequestId = 0;
 $effect(() => {
 	const path = config.watch_path;
 	const depth = config.scan_depth ?? 2;
+	// PH-490: path 切替時に旧 entries を即時 clear (混在表示防止)
+	// PH-492: 新規配置 widget でも config 未設定なら空 state 確保
+	entries = [];
+	scanError = null;
 	if (!path) {
-		entries = [];
+		scanning = false;
 		return;
 	}
 	scanning = true;
-	scanError = null;
+	const myId = ++scanRequestId;
 	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { root: path, depth })
 		.then((result) => {
+			if (myId !== scanRequestId) return; // PH-490: stale response 破棄
 			entries = result;
 		})
 		.catch((e: unknown) => {
+			if (myId !== scanRequestId) return;
 			scanError = getErrorMessage(e);
 			entries = [];
 		})
 		.finally(() => {
-			scanning = false;
+			if (myId === scanRequestId) scanning = false;
 		});
 });
 
