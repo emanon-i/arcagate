@@ -1,12 +1,13 @@
 ---
 id: PH-20260429-507
 title: Per-widget polish — SystemMonitor (batch-109 Phase B)
-status: todo
+status: wip
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
-  - src/lib/widgets/system-monitor/SystemMonitorWidget.svelte
+  - src/lib/widgets/system-monitor/SystemMonitorWidget.svelte (error state + skeleton + S size)
+  - tests/e2e/system-monitor-polish.spec.ts (new)
 ---
 
 # PH-507: Per-widget polish — SystemMonitor
