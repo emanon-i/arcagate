@@ -32,16 +32,41 @@ test.describe('launch エラー診断 (Nielsen H9 / PH-417 + PH-422)', () => {
 		}
 	});
 
-	test('拡張子なし path → 「実行可能ファイルではありません」エラー', async ({ page: _page }) => {
-		// CARGO_MANIFEST_DIR は存在するが拡張子なし → LaunchNotExecutable
-		// ただし e2e からは Rust 側 manifest_dir を取れないので、テスト用に固定パスを使う
-		// 代わりに Library 経由で「拡張子なし path」を作って起動を試みる
-		// Note: 実機 path に依存しないようテストを simpler に → Library アクセスで toast 文言確認
-		// この case は preflight_check 単体テストで担保済 (Rust 側 6 テスト)
-		// e2e は LaunchFileNotFound 1 ケースのみで H9 文言検証を担保する。
-		test.skip(
-			true,
-			'preflight_check のテストは Rust 単体テスト (services::launch_service::tests) で担保済み',
-		);
+	// PH-443 (batch-97 / Codex Q5 #8 残): 拡張子なし path → LaunchNotExecutable
+	// CDP 経由で C:/Windows のような既存だが拡張子なしフォルダを exe item として登録 → launch
+	// Tauri webview から process.env / std env は取れないが、Windows 実機なら C: ドライブが必ずある
+	test('拡張子なし path → 「実行可能ファイルではありません」エラー', async ({ page }) => {
+		// 既存だが拡張子のない path → LaunchNotExecutable を発生させる
+		// C:/Windows は確実に存在 + 拡張子なしの folder
+		const item = await createItem(page, {
+			item_type: 'exe',
+			label: 'Not Executable Test',
+			target: 'C:/Windows',
+		});
+
+		try {
+			let errorCaught = false;
+			let errorCode: string | null = null;
+			let errorMsg = '';
+			try {
+				await invoke<void>(page, 'cmd_launch_item', {
+					itemId: item.id,
+					source: 'palette',
+				});
+			} catch (e: unknown) {
+				errorCaught = true;
+				if (typeof e === 'object' && e !== null && 'code' in e) {
+					errorCode = (e as { code: string }).code;
+				}
+				errorMsg = String(e);
+			}
+			expect(errorCaught).toBe(true);
+			// AppError::LaunchNotExecutable を期待
+			// errorCode 経由 (PH-429 構造化) or message contains
+			const matched = errorCode === 'launch.not_executable' || errorMsg.includes('Not executable');
+			expect(matched).toBe(true);
+		} finally {
+			await deleteItem(page, item.id);
+		}
 	});
 });

@@ -1,6 +1,6 @@
 ---
 id: PH-20260427-443
-status: todo
+status: done
 batch: 97
 type: 防衛
 era: Distribution Era + Codex Q5 残

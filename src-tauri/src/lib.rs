@@ -80,6 +80,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let mut log_targets = vec![tauri_plugin_log::Target::new(
                 tauri_plugin_log::TargetKind::LogDir {
