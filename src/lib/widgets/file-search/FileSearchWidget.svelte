@@ -6,7 +6,7 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
-import { getErrorMessage } from '$lib/utils/format-error';
+import { getErrorCode, getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
 
 interface Props {
@@ -72,7 +72,8 @@ async function refresh() {
 		});
 	} catch (e: unknown) {
 		// Cancelled は silent (UI 側で「中止しました」toast を別途出す)
-		if (String(e).includes('Cancelled')) {
+		// PH-445: errorCode 経由判定 (string contains から構造化判定へ)
+		if (getErrorCode(e) === 'cancelled') {
 			entries = [];
 		} else {
 			lastError = getErrorMessage(e);

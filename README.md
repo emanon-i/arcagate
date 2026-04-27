@@ -61,6 +61,28 @@ pnpm test:e2e
 
 レイヤー依存は一方向: `commands → services → repositories → DB`。詳細は [`docs/l2_architecture/folder-map.md`](docs/l2_architecture/folder-map.md)。
 
+## 配布 (署名)
+
+Windows 配布時の Authenticode 署名 (PH-441 batch-97):
+
+```powershell
+# 環境変数で証明書 Thumbprint を指定 (CurrentUser\My にインストール済)
+$env:ARCAGATE_CERT_THUMBPRINT = "<sha1>"
+pnpm tauri build
+pwsh scripts/sign-windows.ps1
+```
+
+または PFX ファイル指定:
+
+```powershell
+$env:ARCAGATE_CERT_FILE = "C:/path/to/cert.pfx"
+$env:ARCAGATE_CERT_PASSWORD = "<password>"
+pwsh scripts/sign-windows.ps1
+```
+
+証明書は OV / EV コード署名証明書 (Sectigo / DigiCert / Azure Trusted Signing 等) を別途取得。
+証明書なしビルドでも `sign-windows.ps1` は warning + skip するため CI 通過。
+
 ## ライセンス
 
 [MIT](LICENSE)

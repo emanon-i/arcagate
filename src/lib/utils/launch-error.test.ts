@@ -63,4 +63,18 @@ describe('formatLaunchError', () => {
 		expect(msg).toContain('「X」の起動に失敗しました');
 		expect(msg).toContain('unknown thing');
 	});
+
+	// PH-443 (batch-97): 文言 invariant 検証 (regression 防止)
+	it('文言 invariant: 全 4 パターンに「<label>」記号が含まれる', () => {
+		const errors = [
+			{ code: 'launch.file_not_found', message: 'm' },
+			{ code: 'launch.permission_denied', message: 'm' },
+			{ code: 'launch.not_executable', message: 'm' },
+			{ code: 'unknown', message: 'm' },
+		];
+		for (const err of errors) {
+			const msg = formatLaunchError('TestLabel', err);
+			expect(msg).toContain('「TestLabel」');
+		}
+	});
 });
