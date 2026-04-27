@@ -755,3 +755,96 @@ page: async ({ sharedBrowser }, use) => {
   - 長時間 monitor は cron task (recurring) で代用 (auto-kick が実証済)
 - **未解明**: fireAt 不発の原因 (Claude Desktop active session の必要性 / fireAt format / time zone / dispatch backend) は PH-471 (batch-106) で実機テスト
 - **参照**: PH-471 + dispatch-operation §10 更新予定
+
+---
+
+## Guideline doc 不活用が劣化の主因 (2026-04-28 user 激怒で確定)
+
+### 観測
+
+User dev 目視で「全体的に劣化した」「Doc に UX や UI デザインの指針となるドキュメントを作ったのに全く活用してないよね？」と二度連続で指摘。batch-107/108/109 全 29 commits を hard rollback、Goal A (e36836c) まで巻き戻し決定。
+
+### 失敗パターン
+
+#### 1. Doc 作成のみで agent が読まなかった
+
+`docs/desktop_ui_ux_agent_rules.md` (18.4 KB)、`docs/l1_requirements/ux_standards.md` (30 KB)、`docs/l1_requirements/ux_design_vision.md` (14 KB)、`docs/l1_requirements/design_system_architecture.md` (12.3 KB)、`docs/l0_ideas/arcagate-visual-language.md` (8.9 KB) など、UI/UX の指針 doc が **5 本以上 揃っているのに、batch-107/108/109 の plan ではほぼ参照されていなかった**。
+
+**結果**:
+
+- `ux_standards.md §6-1 Widget` で「編集モード選択: ring-2 ring-[var(--ag-accent)]」が明記されているのに、選択 ring が実装されないまま放置
+- `arcagate-visual-language.md`「過度に派手 NG」 / 「よく磨かれた工具」 を無視して `rounded-full bg-destructive/80` 派手丸を作成
+- `ux_standards.md §13` の段階実装 (e/s/se → 完成) を無視
+- 一貫性 (P4) より独自表現を優先する判断が積み重なる
+
+#### 2. Plan 文書化時に doc citation 欠落
+
+batch-107/108/109 の plan 文書 (旧 PH-472〜507) を見ても、**「引用元 doc + section」 を明示する section が存在しない**。agent が原則を確認せず判断していた証拠。
+
+#### 3. 横展開チェックが doc 規定の構造に従っていなかった
+
+`desktop_ui_ux_agent_rules P4 補足 3 横展開原則` 「1 つの不整合を発見したら同種 pattern が他にも存在する前提で全画面 audit」を実行していない PR が複数。`CLAUDE.md` 哲学節「1 ファイル直して終わりにしない」も違反。
+
+#### 4. 「verify pass = 治った」と誤認
+
+`pnpm verify` 全通過 / E2E pass / cargo test 全通過 — 数値は嘘ではないが、**doc の規格 / 体感品質との整合は機械検証されていない**。テストは「コードが動く」を保証するが「規格通りか」は保証しない。user の dev 目視のみが最終判定。
+
+### 再発防止策 (§11 + design_guidelines_index.md と同時運用)
+
+#### A. Plan 文書化に doc citation 必須
+
+各 plan に以下 section を必ず含める (`§11` / `dispatch-operation.md` で規定):
+
+```markdown
+## 引用元 guideline doc
+
+| Doc | Section | 採用判断への寄与 |
+| ... | ... | ... |
+
+## guideline と plan の整合 / 不整合 audit
+```
+
+doc citation の無い plan は不完全とみなす。
+
+#### B. memory に guideline doc index を持つ
+
+`memory/design_guidelines_index.md` で全 design / UX guideline doc を要点抽出 + **「どんな issue で参照すべきか」** index 化。各セッション開始時に必読。
+
+#### C. 横展開 audit を機械化
+
+CI / lefthook に **特定 pattern の grep check** を追加して再発を機械検出する:
+
+```sh
+# 例: 派手 destructive button が再発しないか
+if grep -rnE 'rounded-full bg-destructive' src/; then
+  echo "ERROR: ghost variant を使う (ux_standards §6-4)"
+  exit 1
+fi
+```
+
+PH-issue-001 で `WidgetHandles.svelte` 実装と同時に audit script を追加。
+
+#### D. 「verify pass」を「治った」と書かない
+
+agent が user に報告する文言で `verify 通過 = 治った` と表現することを禁止。`verify 通過、user dev 検収待ち` が正しい状態表現 (`§11` Rule 2)。
+
+### 並行 push が劣化を加速した経緯
+
+- 1 batch = 5 plan の並行 push 運用 + auto-merge で **検収経路がない**まま speed に振った
+- 複数並行 session が同 plan ID を取り合って duplicate PR 量産 (resume 8 で 3 PR close)
+- `spawn-on-pressure` (scheduled-task fireAt) の信頼性問題 + auto-kick による idle 終了禁止圧力で「進む / 止まる」の判断が崩れた
+- 結果: 速いが品質後退、verify pass の数字と体感品質の乖離
+
+### 今後の運用
+
+- `§11 user-redo depth-first` (1 issue ずつ、guideline 引用必須、user 確認 gate は 2026-04-28 撤回)
+- `memory/design_guidelines_index.md` 経由で doc 引用を強制
+- 横展開を機械化 (audit script を CI に追加)
+- 「verify pass」と「治った」を区別する報告文言
+
+### 参照
+
+- `docs/dispatch-operation.md §11`
+- `memory/design_guidelines_index.md`
+- `memory/handoff_user_redo_start.md`
+- 本 retrospective が記録される PR: rollback to Goal A (#216 の squash)

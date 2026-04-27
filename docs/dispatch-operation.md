@@ -530,11 +530,53 @@ agent 側 CDP screenshot は補助、user 検収を待つのが最終条件。
 ### 次世代セッションの起動ルール
 
 1. `memory/handoff_user_redo_start.md` を最初に読む (snapshot + 残作業 + 撤回方針)
-2. user 指摘リスト (memory `feedback_widget_editing_ux.md` 項目 1〜29) を **項目 1 から順次** depth-first で再開
-3. 1 項目ずつ:
+2. **`memory/design_guidelines_index.md` を読む** (新規、各 plan で必ず参照する design / UX guideline doc 地図)
+3. user 指摘リスト (memory `feedback_widget_editing_ux.md` 項目 1〜29) を **項目 1 から順次** depth-first で再開
+4. 1 項目ずつ:
    - fact 確認 (コード read + dev session screenshot)
-   - plan ドラフト (A/B 案比較、横展開 grep)
-   - **user に plan 提示 → user OK 取得 → fix 着手** (この OK ステップが新規)
-   - PR 1 本で plan + fix + 横展開 fix
-   - user dev 検収 OK → 次項目へ
-4. 1 項目で 30 分〜数時間、急がない
+   - **guideline doc grep + 該当 section read** ← 必ず先に
+   - 横展開チェック (同 pattern が他に無いか grep / audit)
+   - UX 本質 (なぜ user がそう言ったか深掘り)
+   - plan ドラフト (A/B 案比較 + **引用元 doc + section** 明示)
+   - **即実装 + 1 PR で fix + 横展開 fix + E2E** (user 確認待ちなし、2026-04-28 user 追加指示で gate 撤回)
+   - push → main 反映 → 次項目 (user dev session の体感反応で取る)
+5. 1 項目で 30 分〜数時間、急がない
+
+### Plan 文書化フォーマット (2026-04-28 user 指摘で必須化)
+
+過去 user 指摘: **「Doc に UX や UI デザインの指針となるドキュメントを作ったのに全く活用してないよね？」**
+
+各 plan に以下の section を必ず含める:
+
+```markdown
+## 引用元 guideline doc
+
+| Doc                                    | Section          | 採用判断への寄与       |
+| -------------------------------------- | ---------------- | ---------------------- |
+| `docs/desktop_ui_ux_agent_rules.md`    | P1 / P3 / P11 等 | 何の判断に効いたか     |
+| `docs/l1_requirements/ux_standards.md` | §X-Y             | コンポーネント仕様引用 |
+| ...                                    | ...              | ...                    |
+
+## guideline と plan の整合 / 不整合 audit
+
+- ✅ 整合: 〜
+- ⚠️ 整合 (ただし注意): 〜
+- ❌ 不整合 (規格更新が必要): 〜
+  → 規格更新を本 plan の commit 内で同時に行う、または別 plan で先行 update
+```
+
+**運用ルール**:
+
+1. plan 書く前に必ず `memory/design_guidelines_index.md` から該当 doc を引いて該当 section を read
+2. plan 文書化時に「引用元 doc + section」テーブルを必ず書く
+3. guideline に書かれていない agent 独自判断は **明示マーク** + 理由
+4. guideline と plan の不整合は **plan の前に guideline を更新する** (新運用 user 確認 gate 撤回後は agent 即決可、ただし update commit を plan に embed)
+5. 横展開 audit script は CI に追加可能なら追加 (再発防止の機械化、§11 Rule 1 の (c) phase)
+
+### Guideline doc 不活用の禁止 (lessons.md にも記録)
+
+- ❌ doc 作成のみで参照しない (劣化の主因、過去 user fb で繰り返し指摘)
+- ❌ plan 文書化時に doc citation がない → 規格逸脱に気付けない
+- ❌ 横展開チェックを doc 規定の構造で行わない → 1 ファイル fix で済ませる癖
+
+→ **plan 文書化時に doc 引用を必須化することで再発防止** (§11 / lessons.md / design_guidelines_index.md の 3 点同時運用)。
