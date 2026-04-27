@@ -1,13 +1,15 @@
 ---
 id: PH-20260429-500
 title: WatchFolder Widget — 名前+アイコン被り解消 + はみ出し / layout 整理
-status: todo
+status: wip
 batch: 109
 era: per-widget-polish
 parent_l1: REQ-006_workspace-widgets
 scope_files:
   - src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte
-  - src/lib/components/arcagate/common/WidgetShell.svelte (header alignment confirm)
+  - src/lib/widgets/exe-folder/index.ts
+  - tests/e2e/exefolder-polish.spec.ts (new)
+  - tests/e2e/exefolder-watchpath-reset.spec.ts (typo fix)
 ---
 
 # PH-500: WatchFolder Widget — 名前+アイコン被り解消 + はみ出し / layout 整理

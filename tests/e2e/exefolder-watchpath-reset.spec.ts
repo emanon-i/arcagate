@@ -18,7 +18,7 @@ test.describe('PH-490 回帰防止: ExeFolderWatch path 変更で entries リセ
 			// ExeFolderWatch widget を workspace に追加
 			const widget = await invoke<Widget>(page, 'cmd_add_widget', {
 				workspaceId: workspace.id,
-				widgetType: 'exe_folder_watch',
+				widgetType: 'exe_folder',
 			});
 
 			await page.reload();
