@@ -667,3 +667,44 @@ page: async ({ sharedBrowser }, use) => {
 - **エラー処理**: `formatIpcError({ operation: '<操作名>' }, e)` で「原因 + 次の操作」フォーマット
 - **CI 影響**: 新 dialog / overlay は e2e で「想定外要素 = strict mode 違反」を起こすことがある → 専用 testid を付与して getByRole/getByText 衝突回避
 - **参照**: PH-428 / `src/lib/components/settings/WatchedFoldersSettings.svelte`
+
+---
+
+## auto-kick scheduled task (batch-95 PH-435)
+
+- **目的**: Arcagate dispatch session が idle / failed CI で止まったとき、外部から kick して active poll を強制する
+- **実装**: `mcp__scheduled-tasks__create_scheduled_task` で 20 分間隔の cron task 作成
+- **判定ロジック**:
+  - failed CI → 「即 fix push しろ」
+  - 最終 turn > 5min + Bash 実行中なし → 「止まるな進め」
+  - 末尾 turn に「checkpoint / memory 保存 / 次セッション復帰」発言 → 「memory 保存じゃなく即実装に戻れ」
+  - open PR > 30min + pending → 何もしない (auto-merge が引き取る)
+  - open PR 0 + idle → 「次バッチ pop しろ」
+- **管理**: taskId `arcagate-auto-kick`、`memory/auto_kick_config.md` に設定記録
+- **更新**: `mcp__scheduled-tasks__update_scheduled_task` でロジック変更可
+- **参照**: PH-435 / `dispatch-operation.md` §8
+
+---
+
+## spawn-on-context-pressure (batch-95 PH-435)
+
+- **問題**: agent の context window 上限 (compaction 直前) で、何もせず終わると連続性が切れる
+- **発動条件**: assistant turn 数 ≥ 1800、または system 警告、またはユーザ明示指示
+- **手順**:
+  1. `memory/spawn_handoff.md` に snapshot (active batch / branch / PR / 進行中 plan / next action / queue)
+  2. `mcp__dispatch__start_task` で「Arcagate dispatch resume N+1」起動 (handoff を読ませる prompt)
+  3. 自セッションは「次世代起動済み、退場」で終了
+- **auto-kick との関係**: auto-kick = idle 検知 (定期)、spawn-on-pressure = context 限界対策 (1 回限り)。両者併用で 24/7 自律運用
+- **参照**: PH-435 / `dispatch-operation.md` §10 / `memory/spawn_handoff.md`
+
+---
+
+## PR auto-merge 必須運用 (batch-95 PH-435)
+
+- **設定**: `gh repo edit --enable-auto-merge` + main の branch protection (required status checks: check/build/e2e/changes、strict mode)
+- **流れ**: push → `gh pr create` → `gh pr merge <#> --auto --squash` で予約 → `gh pr checks <#>` で 1 回確認 → 次バッチ着手
+- **失敗時**: failed なら自分で即 fix (auto-kick 待たない)、pending/success は次バッチへ進む
+- **「auto-merge してくれるから放置」は禁止**: 最低 1 回の checks 確認が必須
+- **CI rate limit 注意**: `gh pr checks` は GraphQL rate limit を消費する。連続多用するなら `gh run list --json` (REST) に切替
+- **squash merge 解禁**: dispatch-operation §7 の「squash merge 禁止」は auto-merge 経路では例外 (PH-435)
+- **参照**: PH-435 / `dispatch-operation.md` §8

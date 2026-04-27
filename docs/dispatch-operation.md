@@ -323,8 +323,101 @@ Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTit
 - ユーザの明示指示なしの config / settings.json / CLAUDE.md の改変
 - 実機確認なしで受け入れ条件を `[x]` にマーク
 - **`ExitPlanMode` の使用**（Edit / Write / Bash で直接実装を進める）
-- **squash merge**（rebase-and-merge のみ）
+- **squash merge**（rebase-and-merge のみ、auto-merge 経路は squash 解禁・PH-435 例外）
 
 以上に抵触する判断は**即停止**してログに残す。
 
 > Plan 自律作成は §4d で条件付き許可。禁止事項から除外済み。
+
+---
+
+## 8. PR auto-merge 必須運用（PH-435 batch-95）
+
+### 原則: push 後は必ず auto-merge 予約 + 1 回 CI 確認
+
+```bash
+git push -u origin <branch>
+gh pr create ...
+gh pr merge <#> --auto --squash    # 緑になったら自動 merge
+gh pr checks <#>                   # 1 回確認 (failed なら即 fix)
+```
+
+### 判定ロジック (auto-kick agent と同期)
+
+- **failed**: 即 fix (auto-kick 待たない、自分で push 直す)
+- **pending**: 次バッチに進んで OK (auto-merge が引き取る)
+- **success**: 既に auto-merge が予約済 → 次バッチに進む
+
+### 「auto-merge してくれるから放置」は禁止
+
+- 最低 1 回の `gh pr checks` 確認後に次バッチ着手
+- failed のまま放置は最厳令違反 (idle 同等)
+
+### branch protection (main)
+
+- required status checks: `check / build / e2e / changes` (strict mode)
+- 全 pass 必須 → auto-merge は緑になるまで待つ
+- force push / deletion 禁止
+
+---
+
+## 9. dispatch-queue.md 更新ルール（PH-435 batch-95）
+
+`docs/dispatch-queue.md` を Active / Next Up / Completed の 3 区分で常時最新化:
+
+- **着手時**: Active Batch 行を更新、Next Up から消す
+- **完了時 (PR merge 後)**: Completed の最上段に追加、Active Batch をクリア、Next Up から次を移す
+- **Next Up は常に 3 個以上維持** (在庫切れ防止)
+- **Completed は最新 5 件のみ保持** (古い batch は dispatch-log)
+
+在庫切れ時は §4d 自律作成で 5 plan 上限内で補充。
+
+---
+
+## 10. spawn-on-context-pressure（PH-435 batch-95）
+
+### 発動条件
+
+- assistant turn 数 ≥ 1800 (compaction 直前)
+- または `<system-reminder>` で context budget 警告
+
+### 発動時の手順
+
+1. `memory/spawn_handoff.md` に snapshot:
+   - 現在の active batch / branch / PR 番号
+   - dispatch-queue.md の Active + Next Up 抜粋
+   - 進行中の plan の status (wip / 残作業)
+   - 最後に走らせた CI の状態
+2. `mcp__dispatch__start_task` で「Arcagate dispatch resume N+1」を起こす
+   - prompt: handoff 読んで queue 続行
+3. 自セッションは「次世代起動済み、退場」で終了
+
+### handoff フォーマット
+
+```markdown
+# spawn handoff (YYYY-MM-DD HH:MM)
+
+## Active
+
+- batch-XX (branch: feature/batch-XXXX, PR: #XXX, status: in-progress)
+- last commit: <SHA> "<msg>"
+- CI status: <success/pending/failed>
+
+## In-progress plans
+
+- PH-XXX: <wip steps>
+
+## Next action
+
+- <command or step>
+
+## Queue
+
+- 次バッチ候補: <list>
+```
+
+### auto-kick scheduled task との関係
+
+- auto-kick は idle 検知 + kick (5 分以上活動なし / failed PR / checkpoint 発言で 「進め」 prompt 投下)
+- spawn-on-pressure は context 限界対策 (1800 turn → 次世代に hand off)
+- 両者併用で 24/7 自律運用
