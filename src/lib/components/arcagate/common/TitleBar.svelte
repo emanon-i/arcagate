@@ -41,6 +41,7 @@ function handleClose() {
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- NO_OVERFLOW_AUDIT_OK: flex-1 spacers (L57, L63) are empty drag regions with no text, no overflow risk -->
 <header
 	class="flex h-10 shrink-0 items-center justify-between border-b border-[var(--ag-border)] bg-[var(--ag-surface-4)] px-2"
 	data-tauri-drag-region

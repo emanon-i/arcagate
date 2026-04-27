@@ -25,7 +25,7 @@ function handleInput(e: Event) {
 		<Search class="h-5 w-5 text-[var(--ag-accent-text)]" />
 		<input
 			type="text"
-			class="flex-1 bg-transparent text-base text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
+			class="min-w-0 flex-1 bg-transparent text-base text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
 			placeholder="検索..."
 			autocomplete="off"
 			autofocus
