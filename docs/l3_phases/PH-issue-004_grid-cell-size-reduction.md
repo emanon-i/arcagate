@@ -1,7 +1,7 @@
 ---
 id: PH-issue-004
 title: グリッドセルサイズ縮小 — 表示密度 ↑、Workspace 上に widget が多く置けるよう
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 ---
 
