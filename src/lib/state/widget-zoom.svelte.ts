@@ -1,8 +1,11 @@
 import { configStore } from '$lib/state/config.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 
-const BASE_W = 320;
-const BASE_H = 180;
+// PH-issue-004: グリッドセル base size を 320×180 → 240×135 に縮小 (16:9 維持)。
+// 1280×800 viewport で旧 4×4=16 セル → 新 5×5=25 セル の表示密度向上。
+// zoom 50% で 120×67 (極小、長文 widget は実用外)、zoom 200% で 480×270 (大画面用)。
+const BASE_W = 240;
+const BASE_H = 135;
 
 const MIN_ZOOM = 50;
 const MAX_ZOOM = 200;

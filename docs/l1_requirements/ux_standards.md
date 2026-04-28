@@ -350,6 +350,14 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - 削除確認 dialog は `cmd_count_item_references(id)` で参照 widget 数を取得して表示 (P2 失敗前提、影響範囲を user に明示)
 - orphan ID は DB に残さない (engineering-principles §3 データ整合性)
 
+**グリッドセル base size 仕様** (PH-issue-004):
+
+- BASE_W = 240px / BASE_H = 135px (16:9、zoom 100%)
+- zoom 範囲 50〜200%: 50% で 120×67 / 200% で 480×270
+- 1280×800 viewport で 5×5=25 セル表示可能 (旧 320×180 base では 4×4=16 セル)
+- 実装: `src/lib/state/widget-zoom.svelte.ts` BASE_W / BASE_H 定数
+- ClockWidget 等の fluid sizing は container query で base 縮小に追従 (PH-issue-021)
+
 ### 6-2. Palette
 
 **必須要素**:
