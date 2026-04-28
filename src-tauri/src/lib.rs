@@ -20,8 +20,8 @@ use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::file_search_commands::{cmd_cancel_file_search, cmd_list_files, cmd_open_path};
 use commands::item_commands::{
     cmd_auto_register_folder_items, cmd_bulk_add_tag, cmd_bulk_delete_items, cmd_bulk_remove_tag,
-    cmd_check_is_directory, cmd_count_hidden_items, cmd_create_item, cmd_create_tag,
-    cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon, cmd_get_item_tags,
+    cmd_check_is_directory, cmd_count_hidden_items, cmd_count_item_references, cmd_create_item,
+    cmd_create_tag, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon, cmd_get_item_tags,
     cmd_get_library_stats, cmd_get_tag_counts, cmd_get_tags, cmd_list_items, cmd_search_items,
     cmd_search_items_in_tag, cmd_toggle_star, cmd_update_item, cmd_update_tag,
     cmd_update_tag_prefix,
@@ -211,6 +211,7 @@ pub fn run() {
             cmd_search_items_in_tag,
             cmd_update_item,
             cmd_delete_item,
+            cmd_count_item_references,
             cmd_bulk_add_tag,
             cmd_bulk_remove_tag,
             cmd_bulk_delete_items,

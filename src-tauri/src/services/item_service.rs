@@ -3,7 +3,7 @@ use uuid::Uuid;
 use crate::db::DbState;
 use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
 use crate::models::tag::{self, CreateTagInput, Tag, TagWithCount};
-use crate::repositories::{item_repository, tag_repository};
+use crate::repositories::{item_repository, tag_repository, workspace_repository};
 use crate::utils::error::AppError;
 use crate::utils::icon;
 
@@ -85,9 +85,18 @@ pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Ite
 
 pub fn delete_item(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // PH-issue-006: item 削除前に widget config からも cascade 除去 (orphan 防止)。
+    let cascaded = workspace_repository::cascade_remove_item_from_widgets(&conn, id)?;
     item_repository::delete(&conn, id)?;
-    log::info!("item deleted: id={}", id);
+    log::info!("item deleted: id={} cascaded_widgets={}", id, cascaded,);
     Ok(())
+}
+
+/// PH-issue-006: 削除確認 dialog 用 — 該当 item を参照する widget 数を返す。
+pub fn count_item_references(db: &DbState, id: &str) -> Result<usize, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let refs = workspace_repository::find_widgets_referencing_item(&conn, id)?;
+    Ok(refs.len())
 }
 
 pub fn get_tags(db: &DbState) -> Result<Vec<Tag>, AppError> {

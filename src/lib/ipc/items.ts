@@ -19,6 +19,11 @@ export async function deleteItem(id: string): Promise<void> {
 	return invoke<void>('cmd_delete_item', { id });
 }
 
+// PH-issue-006: 削除確認 dialog 用 — 該当 item を参照する widget 数。
+export async function countItemReferences(id: string): Promise<number> {
+	return invoke<number>('cmd_count_item_references', { id });
+}
+
 export async function getTags(): Promise<Tag[]> {
 	return invoke<Tag[]>('cmd_get_tags');
 }

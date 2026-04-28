@@ -8,7 +8,7 @@ import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
-import { getItemTags } from '$lib/ipc/items';
+import { countItemReferences, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -90,7 +90,18 @@ function handleLaunch() {
 
 async function handleDelete() {
 	if (!selectedItem) return;
-	const confirmed = await ask(`「${selectedItem.label}」を削除しますか？`, {
+	// PH-issue-006: widget 参照数を確認 dialog に表示 (P2 失敗前提)。
+	let refCount = 0;
+	try {
+		refCount = await countItemReferences(selectedItem.id);
+	} catch {
+		// 参照数取得失敗時は確認 dialog のみ表示 (削除自体は cascade で安全)
+	}
+	const message =
+		refCount > 0
+			? `「${selectedItem.label}」を削除しますか？\n\nこのアイテムは ${refCount} 個のウィジェットで参照されています。削除するとウィジェットからも自動的に取り除かれます。`
+			: `「${selectedItem.label}」を削除しますか？`;
+	const confirmed = await ask(message, {
 		title: '削除の確認',
 		kind: 'warning',
 	});

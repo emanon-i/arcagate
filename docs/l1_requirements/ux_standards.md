@@ -341,6 +341,15 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - 同時に `requestId` (単純なカウンタ or UUID) を発行し、async 結果を反映する前に「自分が最新 requestId か」を check (stale response 破棄)
 - 検索 / scan widget は全てこのパターンに従う (ExeFolderWatch / FileSearch / 他)
 
+**Item 参照 widget の cascade 仕様** (PH-issue-006):
+
+- Item を参照する widget (Item / Favorites / Recent / Projects 等) は `widget.config` JSON に `item_id: string` または `item_ids: string[]` を保存
+- Library で item 削除時、Rust 側 (`workspace_repository::cascade_remove_item_from_widgets`) が**全 widget config を scan して該当 ID を除去**
+  - `item_id == X` なら field 削除
+  - `item_ids` 配列なら filter で該当 ID 除去 (空配列も維持、UI 側で「item 無し」表示)
+- 削除確認 dialog は `cmd_count_item_references(id)` で参照 widget 数を取得して表示 (P2 失敗前提、影響範囲を user に明示)
+- orphan ID は DB に残さない (engineering-principles §3 データ整合性)
+
 ### 6-2. Palette
 
 **必須要素**:
