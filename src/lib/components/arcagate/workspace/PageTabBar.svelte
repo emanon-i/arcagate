@@ -1,13 +1,15 @@
 <script lang="ts">
+import { Image as ImageIcon } from '@lucide/svelte';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 
 interface Props {
 	onSelectWorkspace?: (id: string) => void;
 	onRenameActive?: () => void;
+	onEditWallpaper?: () => void;
 }
 
-let { onSelectWorkspace, onRenameActive }: Props = $props();
+let { onSelectWorkspace, onRenameActive, onEditWallpaper }: Props = $props();
 
 let isAdding = $state(false);
 let newName = $state('');
@@ -74,6 +76,19 @@ function handleKeydown(e: KeyboardEvent) {
 			onclick={startAdd}
 		>
 			+ ページを追加
+		</button>
+	{/if}
+	<!-- PH-issue-009 Phase B: 壁紙設定 (active workspace 用)。
+	     ghost-icon、active workspace がある時のみ可視 -->
+	{#if onEditWallpaper && workspaceStore.activeWorkspaceId}
+		<button
+			type="button"
+			class="ml-auto flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			aria-label="このワークスペースの壁紙を設定"
+			onclick={() => onEditWallpaper()}
+		>
+			<ImageIcon class="h-3.5 w-3.5" />
+			壁紙
 		</button>
 	{/if}
 </div>

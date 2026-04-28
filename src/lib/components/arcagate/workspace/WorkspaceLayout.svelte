@@ -13,6 +13,7 @@ import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte'
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
 import WorkspaceSidebar from './WorkspaceSidebar.svelte';
+import WorkspaceWallpaperDialog from './WorkspaceWallpaperDialog.svelte';
 import WorkspaceWidgetGrid from './WorkspaceWidgetGrid.svelte';
 
 /**
@@ -52,6 +53,7 @@ $effect(() => {
 
 let selectedWidgetId = $state<string | null>(null);
 let renameOpen = $state(false);
+let wallpaperOpen = $state(false);
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
@@ -275,7 +277,11 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			></div>
 		{/if}
 		<div class="mb-5">
-			<PageTabBar onSelectWorkspace={handleSelectWorkspace} onRenameActive={() => (renameOpen = true)} />
+			<PageTabBar
+				onSelectWorkspace={handleSelectWorkspace}
+				onRenameActive={() => (renameOpen = true)}
+				onEditWallpaper={() => (wallpaperOpen = true)}
+			/>
 		</div>
 
 		<div class="flex gap-4">
@@ -385,4 +391,10 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	currentName={currentWorkspaceName}
 	onConfirm={confirmRename}
 	onCancel={() => (renameOpen = false)}
+/>
+
+<WorkspaceWallpaperDialog
+	open={wallpaperOpen}
+	workspace={workspaceStore.activeWorkspace}
+	onClose={() => (wallpaperOpen = false)}
 />

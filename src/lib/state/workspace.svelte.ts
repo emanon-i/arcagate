@@ -92,6 +92,14 @@ async function selectWorkspace(id: string): Promise<void> {
 	await loadWidgets(id);
 }
 
+/**
+ * PH-issue-009 Phase B: store の workspaces 配列内で 1 件だけ in-place replace。
+ * IPC で更新後の Workspace を反映するために使用 (壁紙変更時に即時 canvas 反映)。
+ */
+function replaceWorkspace(updated: Workspace): void {
+	workspaces = workspaces.map((w) => (w.id === updated.id ? updated : w));
+}
+
 async function loadWidgets(workspaceId: string): Promise<void> {
 	loading = true;
 	error = null;
@@ -521,6 +529,7 @@ export const workspaceStore = {
 	loadWorkspaces,
 	createWorkspace,
 	updateWorkspace,
+	replaceWorkspace,
 	deleteWorkspace,
 	selectWorkspace,
 	loadWidgets,
