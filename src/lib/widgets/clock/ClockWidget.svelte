@@ -65,12 +65,19 @@ let menuItems = $derived(
 </script>
 
 <WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>
-	<div class="flex h-full flex-col items-center justify-center gap-1">
-		<span class="font-mono text-3xl font-semibold tabular-nums text-[var(--ag-text-primary)]">
+	<!-- PH-issue-021: container query で fluid sizing。
+	     1×1 (~320px wide) は text-xl、2×1+ は text-3xl、大きいほど text-5xl。
+	     overflow-hidden で scrollbar 出ないことを保証 (検収項目 #25)。 -->
+	<div class="@container flex h-full flex-col items-center justify-center gap-1 overflow-hidden">
+		<span
+			class="font-mono text-xl font-semibold tabular-nums text-[var(--ag-text-primary)] @xs:text-2xl @sm:text-3xl @md:text-4xl @lg:text-5xl"
+		>
 			{timeStr}
 		</span>
 		{#if dateStr}
-			<span class="text-sm text-[var(--ag-text-muted)]">{dateStr}</span>
+			<span class="hidden text-xs text-[var(--ag-text-muted)] @xs:inline @sm:text-sm">
+				{dateStr}
+			</span>
 		{/if}
 	</div>
 </WidgetShell>

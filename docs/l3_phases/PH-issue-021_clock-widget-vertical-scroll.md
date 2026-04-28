@@ -1,7 +1,7 @@
 ---
 id: PH-issue-021
 title: ClockWidget — 小サイズで縦/横スクロール出ない (container query で fluid sizing)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 hotfix #187 + 旧 PH-506 (rollback で revert)
 ---
