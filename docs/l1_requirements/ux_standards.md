@@ -358,13 +358,21 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - 実装: `src/lib/state/widget-zoom.svelte.ts` BASE_W / BASE_H 定数
 - ClockWidget 等の fluid sizing は container query で base 縮小に追従 (PH-issue-021)
 
-**Watched folder unset 時の cascade 仕様** (PH-issue-023 Phase A):
+**Watched folder unset 時の cascade 仕様** (PH-issue-023 Phase A + B):
 
 - 監視フォルダ (`watched_paths`) を unset すると、その path 配下に登録された **tracked items** (auto_register 由来) を Library から自動削除
 - 削除対象判定: `is_tracked = 1 AND (target = path OR target LIKE 'path/%' OR target LIKE 'path\\%')`
-- 各 item 削除時に PH-issue-006 cascade が走り、widget config からも自動除去
+- 各 item 削除時に PH-issue-006 cascade が走り、widget config からも自動除去 (二段 cascade)
 - 実装: `item_repository::find_tracked_ids_under_path` + `watched_path_service::remove_watched_path`
-- per-item settings (favorites / opener) の永続化 + 再 set で resurrect は別 plan (Phase B)
+
+**per-item settings 永続化 + resurrect** (PH-issue-023 Phase B):
+
+- 削除前に user 個別設定を `widget_item_settings` テーブルに snapshot 保存
+- key = `item.target` (path) で stable、value = `settings_json` (default_app / is_enabled / label の JSON)
+- 再 watch で同 path の item が auto_register された時、snapshot から自動復元 (resurrect)
+- `last_seen_at` で古い設定の prune (将来別 plan で auto-prune cron)
+- 実装: `widget_item_settings_repository` (get / upsert / touch_seen / prune_older_than) + 関連 service hook
+- migration 019: `widget_item_settings (item_key TEXT PK, settings_json TEXT, last_seen_at TEXT)` + `idx_widget_item_settings_seen` index
 
 ### 6-2. Palette
 
