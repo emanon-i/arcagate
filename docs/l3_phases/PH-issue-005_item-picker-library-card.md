@@ -1,7 +1,7 @@
 ---
 id: PH-issue-005
 title: アイテム Picker = LibraryCard 再利用 + 複数選択 + ソート / フィルタ
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-474 (Picker = LibraryCard 再利用、rollback で revert)
 ---
