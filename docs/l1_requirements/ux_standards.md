@@ -441,7 +441,15 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 | ------------------------ | ----------------------------------------------- |
 | `LibraryLayout.svelte`   | sidebar-wrapper / main-wrapper / detail-wrapper |
 | `WorkspaceLayout.svelte` | ワークスペースコンテナ                          |
+| `WidgetShell.svelte`     | content scroll-area (PH-issue-014)              |
+| `SettingsPanel.svelte`   | 右ペイン content area (PH-issue-014)            |
 | ウィジェット内リスト     | `overflow-y-auto` を持つコンテナすべて          |
+
+### scrollbar-gutter 適用 scope (PH-issue-014)
+
+**inner scroll container のみ**。root / header / 静的 panel には適用しない (旧 PH-489 の root 全 stable は密度低下を招いた、scope 限定)。
+
+判定基準: `overflow-y-(auto|scroll)` を持つ要素にのみ `[scrollbar-gutter:stable]` を付与。それ以外には付けない。
 
 ---
 

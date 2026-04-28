@@ -50,7 +50,10 @@ let btnClass =
 		{/if}
 	</div>
 
-	<div class="min-h-0 flex-1 overflow-y-auto">
+	<!-- PH-issue-014: scroll-area inner のみ scrollbar-gutter: stable
+	     (旧 PH-489 の root 全 stable 過剰反応を回避、scope を限定)。
+	     縦 scroll が出ても右端 content (badge / chip) と被らない。 -->
+	<div class="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
 		{@render children()}
 	</div>
 </div>
