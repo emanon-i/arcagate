@@ -10,7 +10,8 @@ interface Props {
 	iconClass?: string;
 	showTarget?: boolean;
 	onLaunch: (id: string) => void;
-	onContext?: (id: string) => void;
+	/** PH-issue-024: ev を受け取って context menu の position を取れるよう拡張。 */
+	onContext?: (id: string, ev?: MouseEvent) => void;
 	emptyMessage?: string;
 }
 
@@ -93,7 +94,7 @@ function toggleSearch() {
 				oncontextmenu={(e) => {
 					if (onContext) {
 						e.preventDefault();
-						onContext(item.id);
+						onContext(item.id, e);
 					}
 				}}
 			>

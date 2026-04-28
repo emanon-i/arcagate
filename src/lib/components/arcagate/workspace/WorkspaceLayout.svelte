@@ -3,11 +3,13 @@ import { LayoutGrid, Maximize2, Redo2, RotateCcw as ResetIcon, Undo2 } from '@lu
 import { convertFileSrc } from '@tauri-apps/api/core';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import { configStore } from '$lib/state/config.svelte';
+import { itemStore } from '$lib/state/items.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { widgetRegistry } from '$lib/widgets';
+import ItemContextMenu from './ItemContextMenu.svelte';
 import PageTabBar from './PageTabBar.svelte';
 import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
@@ -56,6 +58,11 @@ let renameOpen = $state(false);
 let wallpaperOpen = $state(false);
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
+// PH-issue-024: 右クリック「Open with…」 popup の表示状態 + 位置
+let contextMenuOpen = $state(false);
+let contextMenuX = $state(0);
+let contextMenuY = $state(0);
+let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
 
@@ -225,8 +232,22 @@ const widgetComponents = Object.fromEntries(
 	Object.entries(widgetRegistry).map(([type, meta]) => [type, meta.Component]),
 );
 
-function handleItemContext(itemId: string) {
+// PH-issue-024: 右クリック → ItemContextMenu popup を表示。
+// 旧サイドパネル (LibraryDetailPanel) は popup 内 「詳細を見る」 から開けるように切替。
+function handleItemContext(itemId: string, ev?: MouseEvent) {
+	contextMenuItemId = itemId;
+	contextMenuX = ev?.clientX ?? 0;
+	contextMenuY = ev?.clientY ?? 0;
+	contextMenuOpen = true;
+}
+
+let contextMenuItem = $derived.by(() =>
+	contextMenuItemId ? (itemStore.items.find((i) => i.id === contextMenuItemId) ?? null) : null,
+);
+
+function openItemDetail(itemId: string) {
 	contextItemId = itemId;
+	contextMenuOpen = false;
 }
 
 let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
@@ -325,6 +346,18 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			{/if}
 		</div>
 	</div>
+
+	<!-- PH-issue-024: 右クリック context menu (Open with…) -->
+	<ItemContextMenu
+		open={contextMenuOpen}
+		x={contextMenuX}
+		y={contextMenuY}
+		item={contextMenuItem}
+		onClose={() => (contextMenuOpen = false)}
+		onItemUpdated={() => {
+			void itemStore.loadItems();
+		}}
+	/>
 
 	<!-- 右下 floating toolbar (Undo / Redo / zoom% / Reset / Fit)。
 	     PH-widget-polish: title 属性で keyboard shortcut tooltip、cursor-pointer / cursor-not-allowed、
