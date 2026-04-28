@@ -291,6 +291,21 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - 設定ボタン（⚙）: 各 widget 内 menu (kebab / WidgetShell `menuItems`) からアクセス
 - コンテンツ: スクロール可能（overflow-auto）、高さ fill-available
 
+**ヘッダ layout 仕様** (PH-issue-015、widget が狭くなっても title が icon に被らない):
+
+- 親 `flex` container に `min-w-0 flex-1`
+- icon wrapper に `shrink-0` (アイコン領域は固定幅)
+- title `<div>` に `min-w-0 flex-1 truncate` (狭くなったら truncate)
+- 右側 menu / settings button は `shrink-0`
+
+**list-row layout 仕様** (Widget 内のリスト行 — ExeFolderWatch / FileSearch / Snippet 等):
+
+- `<li>` / row container に `min-w-0`
+- icon: `shrink-0` (固定 16px)
+- name: `min-w-0 flex-1 truncate` (狭くなったら truncate、icon に被らない)
+- suffix (count chip 等): `shrink-0`
+- ネストする `<button>` (flex-1 の row 内クリック可能エリア) にも `min-w-0` を継承
+
 **編集モード時の grid-level 操作 UI** (PH-issue-001 で確定、§13 に詳細):
 
 - 編集モード ON で **selection** state を導入
