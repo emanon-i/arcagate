@@ -1,7 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
-import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
+import type {
+	UpdateWorkspaceWallpaperInput,
+	WidgetType,
+	Workspace,
+	WorkspaceWidget,
+} from '$lib/types/workspace';
 
 export async function createWorkspace(name: string): Promise<Workspace> {
 	return invoke<Workspace>('cmd_create_workspace', { name });
@@ -55,6 +60,18 @@ export async function updateWidgetConfig(
 
 export async function removeWidget(id: string): Promise<void> {
 	return invoke<void>('cmd_remove_widget', { id });
+}
+
+// PH-issue-009: 壁紙画像を <app_data_dir>/wallpapers/<uuid>.<ext> にコピー、保存先パスを返す。
+export async function saveWallpaperFile(sourcePath: string): Promise<string> {
+	return invoke<string>('cmd_save_wallpaper_file', { sourcePath });
+}
+
+// PH-issue-009: Workspace 壁紙設定を更新 (path / opacity / blur)、null path でクリア。
+export async function setWorkspaceWallpaper(
+	input: UpdateWorkspaceWallpaperInput,
+): Promise<Workspace> {
+	return invoke<Workspace>('cmd_set_workspace_wallpaper', { input });
 }
 
 export async function getFrequentItems(limit: number): Promise<Item[]> {

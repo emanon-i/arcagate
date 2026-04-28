@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::db::DbState;
 use crate::models::watched_path::{CreateWatchedPathInput, WatchedPath};
-use crate::repositories::watched_path_repository;
+use crate::repositories::{item_repository, watched_path_repository, workspace_repository};
 use crate::utils::error::AppError;
 use crate::watcher::WatcherState;
 
@@ -51,12 +51,25 @@ pub fn get_watched_paths(db: &DbState) -> Result<Vec<WatchedPath>, AppError> {
 }
 
 pub fn remove_watched_path(db: &DbState, watcher: &WatcherState, id: &str) -> Result<(), AppError> {
-    let path = {
+    let (path, cascade_count) = {
         let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
         let wp = watched_path_repository::find_by_id(&conn, id)?;
+        // PH-issue-023: watched_path 削除前に、当該 path 配下の tracked items を Library から削除。
+        // 各 item は workspace_widgets cascade (PH-issue-006) で widget config からも自動除去される。
+        let tracked_ids = item_repository::find_tracked_ids_under_path(&conn, &wp.path)?;
+        let cascade_count = tracked_ids.len();
+        for item_id in &tracked_ids {
+            workspace_repository::cascade_remove_item_from_widgets(&conn, item_id)?;
+            item_repository::delete(&conn, item_id)?;
+        }
         watched_path_repository::delete(&conn, id)?;
-        wp.path
+        (wp.path, cascade_count)
     };
+    log::info!(
+        "watched_path removed: path='{}' cascade_items={}",
+        path,
+        cascade_count
+    );
     if let Ok(mut w) = watcher.0.lock() {
         if let Err(e) = w.unwatch(std::path::Path::new(&path)) {
             log::warn!("watcher: failed to unwatch '{}': {}", path, e);

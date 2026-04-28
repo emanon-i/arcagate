@@ -1,7 +1,7 @@
 ---
 id: PH-issue-009
 title: Workspace per-workspace 背景壁紙 + Library 共通 default
-status: planning
+status: done-phase-a
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-499 (壁紙、rollback で revert)、本 plan で再構築
 ---

@@ -358,6 +358,14 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - 実装: `src/lib/state/widget-zoom.svelte.ts` BASE_W / BASE_H 定数
 - ClockWidget 等の fluid sizing は container query で base 縮小に追従 (PH-issue-021)
 
+**Watched folder unset 時の cascade 仕様** (PH-issue-023 Phase A):
+
+- 監視フォルダ (`watched_paths`) を unset すると、その path 配下に登録された **tracked items** (auto_register 由来) を Library から自動削除
+- 削除対象判定: `is_tracked = 1 AND (target = path OR target LIKE 'path/%' OR target LIKE 'path\\%')`
+- 各 item 削除時に PH-issue-006 cascade が走り、widget config からも自動除去
+- 実装: `item_repository::find_tracked_ids_under_path` + `watched_path_service::remove_watched_path`
+- per-item settings (favorites / opener) の永続化 + 再 set で resurrect は別 plan (Phase B)
+
 ### 6-2. Palette
 
 **必須要素**:
@@ -710,6 +718,25 @@ edge は細いストリップ (1.5px、hover で半透明 accent)、corner は 1
 | 選択状態を **box-shadow inline style で margin 表現**、ring なし        | 選択状態が認識困難、§6-1 規格違反          | `ux_standards §6-1`             |
 
 これらは PH-issue-001 で全廃。`scripts/audit-handle-style.sh` で再発を機械検出。
+
+---
+
+## 14. Window Translucency 規格 (PH-issue-008)
+
+- main window: `tauri.conf.json` の `windowEffects.effects: ["mica"]` で Windows 11 Mica を default 適用
+- Windows 11 → Mica effective、Win10 / 他 OS → no-op (Tauri が backend で safe skip)
+- `html / body` は `background: transparent`、app root container (surface-0 系) で塗る → Mica は外周 / round corner / 影部分にのみ漏れる
+- runtime IPC 切替 (Mica / Acrylic / 不透明) は別 plan、現状は Mica default 1 値のみ
+
+## 15. Wallpaper 規格 (PH-issue-009)
+
+- per-workspace 壁紙: `workspaces.wallpaper_path TEXT` (DB 保存、`<app_data_dir>/wallpapers/<uuid>.<ext>`)
+- 画像形式: png / jpg / jpeg / webp (ext で validation、それ以外は `cmd_save_wallpaper_file` で reject)
+- opacity 0.0..1.0 (default 0.6)、blur 0..40px (default 0)、両方 service 側で clamp
+- WorkspaceLayout の `absolute inset-0` 層に `background-image: url(convertFileSrc(path))` を適用、widget content より下 (z-0)
+- `motion-reduce:!filter-none` で Reduced Motion 時 blur 無効化 (P11 / Reduced Motion 標準)
+- asset protocol scope: `tauri.conf.json` `assetProtocol.scope` に `$APPDATA/wallpapers/**` 追加
+- Library 共通 default は別 plan (本 PR は per-workspace のみ実装)
 
 ---
 

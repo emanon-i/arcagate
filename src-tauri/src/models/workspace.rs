@@ -65,8 +65,24 @@ pub struct Workspace {
     pub id: String,
     pub name: String,
     pub sort_order: i64,
+    /// PH-issue-009: per-workspace 背景画像のローカルパス。
+    /// 値は `%APPDATA%/com.arcagate.desktop/wallpapers/<uuid>.<ext>` 想定。
+    /// `None` は壁紙未設定 (default 表示)。
+    pub wallpaper_path: Option<String>,
+    /// PH-issue-009: 壁紙の opacity (0.0..1.0)。default 0.6。
+    pub wallpaper_opacity: f64,
+    /// PH-issue-009: 壁紙の blur 量 (px、0..40)。default 0。
+    pub wallpaper_blur: i64,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateWorkspaceWallpaperInput {
+    pub workspace_id: String,
+    pub path: Option<String>,
+    pub opacity: f64,
+    pub blur: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

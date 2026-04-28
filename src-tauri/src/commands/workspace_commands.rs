@@ -1,13 +1,13 @@
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 use crate::db::DbState;
 use crate::models::git::GitStatus;
 use crate::models::item::Item;
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
-    Workspace, WorkspaceWidget,
+    UpdateWorkspaceWallpaperInput, Workspace, WorkspaceWidget,
 };
-use crate::services::workspace_service;
+use crate::services::{wallpaper_service, workspace_service};
 use crate::utils::error::AppError;
 
 #[tauri::command]
@@ -113,4 +113,26 @@ pub fn cmd_get_folder_items(db: State<DbState>) -> Result<Vec<Item>, AppError> {
 #[tauri::command]
 pub fn cmd_git_status(path: String) -> Result<GitStatus, AppError> {
     workspace_service::git_status(&path)
+}
+
+/// PH-issue-009: 画像を `<app_data_dir>/wallpapers/<uuid>.<ext>` にコピーして保存先パスを返す。
+/// UI 側で file picker → このコマンドを呼んで保存後 path を取得し、
+/// `cmd_set_workspace_wallpaper` で workspace に紐付ける。
+#[tauri::command]
+pub fn cmd_save_wallpaper_file(app: AppHandle, source_path: String) -> Result<String, AppError> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
+    wallpaper_service::save_wallpaper_file(&app_data_dir, &source_path)
+}
+
+/// PH-issue-009: Workspace の壁紙設定を更新 (path / opacity / blur)。
+/// `path = None` で壁紙クリア。opacity / blur は service 側で clamp。
+#[tauri::command]
+pub fn cmd_set_workspace_wallpaper(
+    db: State<DbState>,
+    input: UpdateWorkspaceWallpaperInput,
+) -> Result<Workspace, AppError> {
+    wallpaper_service::set_workspace_wallpaper(&db, input)
 }

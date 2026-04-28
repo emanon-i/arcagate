@@ -1,5 +1,6 @@
 <script lang="ts">
 import { LayoutGrid, Maximize2, Redo2, RotateCcw as ResetIcon, Undo2 } from '@lucide/svelte';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
@@ -251,6 +252,9 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	<WorkspaceSidebar />
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- PH-issue-009: per-workspace 背景壁紙レイヤー (active workspace に wallpaper_path がある場合のみ可視)。
+	     dotted grid + gradient は CSS 通常背景、wallpaper はその上に absolute layer で重ねる。
+	     opacity / blur は CSS 変数経由、Reduced Motion 時は blur=0 へ。 -->
 	<div
 		class="canvas-edit-mode relative min-w-0 flex-1 overflow-auto p-5 [scrollbar-gutter:stable]"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%); background-size: 24px 24px, 100% 100%;"
@@ -260,6 +264,16 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		onpointermove={onCanvasPointerMove}
 		onpointerup={onCanvasPointerUp}
 	>
+		{#if workspaceStore.activeWorkspace?.wallpaper_path}
+			{@const ws = workspaceStore.activeWorkspace}
+			{@const wpUrl = convertFileSrc(ws.wallpaper_path ?? '')}
+			<div
+				class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat motion-reduce:!filter-none"
+				style="background-image: url('{wpUrl}'); opacity: {ws.wallpaper_opacity}; filter: blur({ws.wallpaper_blur}px);"
+				aria-hidden="true"
+				data-testid="workspace-wallpaper"
+			></div>
+		{/if}
 		<div class="mb-5">
 			<PageTabBar onSelectWorkspace={handleSelectWorkspace} onRenameActive={() => (renameOpen = true)} />
 		</div>
