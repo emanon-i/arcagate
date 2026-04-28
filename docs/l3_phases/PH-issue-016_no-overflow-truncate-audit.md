@@ -1,7 +1,7 @@
 ---
 id: PH-issue-016
 title: アイコン+文字列はみ出し禁止 (audit script error 化)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-491 (audit script、rollback で revert)
 ---

@@ -455,6 +455,14 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - `line-clamp-*` と `truncate` の混在禁止（親コンテナ単位で統一）
 - 必要な場合は `break-all` を追加するが、原則は `break-words`
 
+### 9-1. flex item の truncate 必須セット (PH-issue-016)
+
+flex 配下で truncate を実効化するには **`flex-1` + `truncate` + `min-w-0`** の 3 点セットが必須。
+default の `min-width: auto` が overflow を阻害するため、`min-w-0` 不在の truncate は機能しない。
+
+機械検証: `scripts/audit-text-overflow.sh` (lefthook pre-commit + CI 統合)。
+同一 class 文字列内で `flex-1` + `truncate` を持つ要素に `min-w-0` が無ければ violation。
+
 ## 10. スクロール・レイアウトルール
 
 スクロール可能なコンテナには `[scrollbar-gutter:stable]` を付与し、スクロールバーとコンテンツの重なりを防ぐ。
