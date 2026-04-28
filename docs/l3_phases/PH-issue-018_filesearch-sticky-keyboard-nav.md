@@ -1,7 +1,7 @@
 ---
 id: PH-issue-018
 title: FileSearch — 検索バー sticky + ArrowUp/Down/Enter ナビ + IME 対応
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-493 (rollback で revert)
 ---

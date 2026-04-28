@@ -48,6 +48,8 @@ let query = $state('');
 let loading = $state(false);
 let lastError = $state<string | null>(null);
 let currentSearchId = $state<string | null>(null);
+// PH-issue-018: keyboard nav state. ArrowUp/Down で動かし、Enter で起動。
+let selectedIndex = $state(0);
 
 function newSearchId(): string {
 	// crypto.randomUUID は Tauri webview で利用可能 (Chromium 92+)
@@ -117,6 +119,30 @@ async function openEntry(entry: FileEntry) {
 	}
 }
 
+// PH-issue-018: query が変わったら selection を先頭に戻す。
+$effect(() => {
+	const _q = query;
+	selectedIndex = 0;
+});
+
+// PH-issue-018: ArrowUp / ArrowDown / Enter で keyboard nav。
+// IME 確定中 (e.isComposing) は無視 (lessons.md IME 対応)。
+function handleSearchKeydown(e: KeyboardEvent) {
+	if (e.isComposing) return;
+	if (filtered.length === 0) return;
+	if (e.key === 'ArrowDown') {
+		e.preventDefault();
+		selectedIndex = Math.min(selectedIndex + 1, filtered.length - 1);
+	} else if (e.key === 'ArrowUp') {
+		e.preventDefault();
+		selectedIndex = Math.max(selectedIndex - 1, 0);
+	} else if (e.key === 'Enter') {
+		e.preventDefault();
+		const target = filtered[selectedIndex];
+		if (target) void openEntry(target);
+	}
+}
+
 async function pickRoot() {
 	const selected = await openDialog({
 		directory: true,
@@ -161,15 +187,17 @@ let menuItems = $derived(
 			</button>
 		</div>
 	{:else}
-		<div class="mb-2 flex items-center gap-1">
+		<!-- PH-issue-018: 検索バー sticky で scroll 中も検索可能。z-1 で結果リストより上。 -->
+		<div class="sticky top-0 z-[1] mb-2 flex items-center gap-1 bg-[var(--ag-surface-opaque)] pb-1">
 			<div class="flex flex-1 items-center gap-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2">
 				<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
 				<input
 					type="text"
 					class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
-					placeholder="ファイル名でフィルタ..."
+					placeholder="ファイル名でフィルタ (↑↓ Enter)"
 					autocomplete="off"
 					bind:value={query}
+					onkeydown={handleSearchKeydown}
 				/>
 			</div>
 		</div>
@@ -195,13 +223,20 @@ let menuItems = $derived(
 			</p>
 		{:else}
 			<ul class="space-y-1">
-				{#each filtered as entry (entry.path)}
+				{#each filtered as entry, idx (entry.path)}
+					{@const isSelected = idx === selectedIndex}
 					<li>
 						<button
 							type="button"
-							class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+							class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {isSelected
+								? 'bg-[var(--ag-surface-3)] ring-1 ring-[var(--ag-accent)]'
+								: ''}"
 							aria-label="{entry.name} を開く"
-							onclick={() => void openEntry(entry)}
+							aria-selected={isSelected}
+							onclick={() => {
+								selectedIndex = idx;
+								void openEntry(entry);
+							}}
 						>
 							{#if entry.isDir}
 								<Folder class="h-3 w-3 shrink-0 text-[var(--ag-text-muted)]" />
