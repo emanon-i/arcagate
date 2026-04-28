@@ -1,7 +1,7 @@
 ---
 id: PH-issue-013
 title: タスク Widget — 文字サイズ昇格 + 完了/未完了ツリー分割
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-488 (rollback で revert)
 ---
