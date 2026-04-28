@@ -326,15 +326,18 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		</div>
 	</div>
 
-	<!-- 右下 floating toolbar (Undo / Redo / zoom% / Reset / Fit) -->
+	<!-- 右下 floating toolbar (Undo / Redo / zoom% / Reset / Fit)。
+	     PH-widget-polish: title 属性で keyboard shortcut tooltip、cursor-pointer / cursor-not-allowed、
+	     active:scale-[0.97] で触覚フィードバック (P1 操作可視化、P2 反応即時)。 -->
 	<div
 		class="absolute bottom-4 right-4 z-30 flex items-center gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 shadow-[var(--ag-shadow-md,0_4px_12px_rgba(0,0,0,0.15))]"
 		data-testid="canvas-toolbar"
 	>
 		<button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label="元に戻す"
+			title="元に戻す (Ctrl+Z)"
 			disabled={!workspaceHistory.canUndo}
 			onclick={() => void workspaceStore.undo()}
 		>
@@ -342,34 +345,38 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		</button>
 		<button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label="やり直し"
+			title="やり直し (Ctrl+Y / Ctrl+Shift+Z)"
 			disabled={!workspaceHistory.canRedo}
 			onclick={() => void workspaceStore.redo()}
 		>
 			<Redo2 class="h-4 w-4" />
 		</button>
 
-		<div class="mx-1 h-5 w-px bg-[var(--ag-border)]"></div>
+		<div class="mx-1 h-5 w-px bg-[var(--ag-border)]" aria-hidden="true"></div>
 
 		<button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label="拡大率を 100% にリセット"
+			title="100% にリセット (Ctrl+0)"
 			onclick={() => zoom.resetZoom()}
 		>
 			<ResetIcon class="h-4 w-4" />
 		</button>
 		<span
-			class="px-1 text-xs tabular-nums text-[var(--ag-text-muted)]"
+			class="select-none px-1 text-xs tabular-nums text-[var(--ag-text-muted)]"
 			data-testid="zoom-percent"
+			title="現在の拡大率 (Ctrl+wheel で変更)"
 		>
 			{configStore.widgetZoom}%
 		</span>
 		<button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label="全体を表示"
+			title="全体を表示 (Ctrl+Shift+1)"
 			onclick={() => zoom.fitToContent(workspaceStore.widgets)}
 		>
 			<Maximize2 class="h-4 w-4" />

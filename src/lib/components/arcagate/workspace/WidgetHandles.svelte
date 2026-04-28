@@ -132,25 +132,32 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 		aria-hidden="true"
 	></div>
 
-	<!-- 上端 drag bar (Notion 風 floating chip、ghost) -->
+	<!-- 上端 drag bar (Notion 風 floating chip、ghost)。
+	     PH-widget-polish: hover で chip border 強調 + grip icon 色明確化 (P1 操作可視化)、
+	     title で「ドラッグで移動」を tooltip 表示。 -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="absolute -top-3 left-1/2 z-20 flex h-6 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] shadow-[var(--ag-shadow-sm,0_2px_4px_rgba(0,0,0,0.1))] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)]"
+		class="group/drag absolute -top-3 left-1/2 z-20 flex h-6 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] shadow-[var(--ag-shadow-sm,0_2px_4px_rgba(0,0,0,0.1))] transition-[background-color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-2)]"
 		class:cursor-grab={!isMoving}
 		class:cursor-grabbing={isMoving}
 		role="button"
 		tabindex="-1"
 		aria-label="ウィジェットを移動"
+		title="ドラッグで移動"
 		onpointerdown={handleMoveStart}
 	>
-		<GripHorizontal class="h-3 w-3 text-[var(--ag-text-muted)]" />
+		<GripHorizontal
+			class="h-3 w-3 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover/drag:text-[var(--ag-text-secondary)]"
+		/>
 	</div>
 
-	<!-- 右上 × button (shadcn ghost-icon、destructive hover) -->
+	<!-- 右上 × button (shadcn ghost-icon、destructive hover)。
+	     PH-widget-polish: title で「削除 (Delete)」を keyboard shortcut hint、cursor-pointer 明示。 -->
 	<button
 		type="button"
-		class="absolute -right-3 -top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] text-[var(--ag-text-secondary)] shadow-[var(--ag-shadow-sm,0_2px_4px_rgba(0,0,0,0.1))] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-destructive hover:text-white active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+		class="absolute -right-3 -top-3 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] text-[var(--ag-text-secondary)] shadow-[var(--ag-shadow-sm,0_2px_4px_rgba(0,0,0,0.1))] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-destructive hover:text-white active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
 		aria-label="ウィジェットを削除"
+		title="削除 (Delete)"
 		onclick={handleDelete}
 	>
 		<X class="h-4 w-4" />
