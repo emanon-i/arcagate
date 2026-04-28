@@ -1,5 +1,5 @@
 <script lang="ts">
-import { CheckSquare, Plus, X } from '@lucide/svelte';
+import { CheckSquare, ChevronDown, ChevronRight, Plus, X } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -12,6 +12,9 @@ interface Props {
 let { widget }: Props = $props();
 let settingsOpen = $state(false);
 let newTaskInput = $state('');
+// PH-issue-013: 完了タスクは折りたたみ default。component-level state で永続化なし
+// (再起動で閉じた状態に戻るが「日次タスク」用途では問題なし、永続化したいなら config に昇格)。
+let completedExpanded = $state(false);
 
 interface Task {
 	id: string;
@@ -34,10 +37,11 @@ let config = $derived.by<DailyTaskConfig>(() => {
 	}
 });
 
-let visibleTasks = $derived.by(() => {
-	const tasks = config.tasks ?? [];
-	return config.hideCompleted ? tasks.filter((t) => !t.done) : tasks;
-});
+// PH-issue-013: 未完了 / 完了で 2 セクションに分割。
+// hideCompleted=true の旧 config は後方互換: 完了 section ごと非表示。
+let pendingTasks = $derived((config.tasks ?? []).filter((t) => !t.done));
+let completedTasks = $derived((config.tasks ?? []).filter((t) => t.done));
+let showCompletedSection = $derived(!config.hideCompleted && completedTasks.length > 0);
 
 async function persist(next: DailyTaskConfig) {
 	if (!widget) return;
@@ -101,40 +105,82 @@ let menuItems = $derived(
 			<Plus class="h-3 w-3" />
 		</button>
 	</form>
-	{#if visibleTasks.length === 0}
-		<p class="text-xs text-[var(--ag-text-muted)]">
-			{config.hideCompleted && (config.tasks?.length ?? 0) > 0
-				? '未完了のタスクなし'
-				: 'タスクなし'}
-		</p>
+	<!-- PH-issue-013: 未完了 (上、text-base font-medium) -->
+	{#if pendingTasks.length === 0 && completedTasks.length === 0}
+		<p class="text-xs text-[var(--ag-text-muted)]">タスクなし</p>
+	{:else if pendingTasks.length === 0}
+		<p class="text-xs text-[var(--ag-text-muted)]">未完了のタスクなし</p>
 	{:else}
 		<ul class="space-y-1">
-			{#each visibleTasks as task (task.id)}
-				<li class="group flex items-center gap-2 text-xs">
+			{#each pendingTasks as task (task.id)}
+				<li class="group flex items-center gap-2 text-base">
 					<input
 						type="checkbox"
-						class="h-3 w-3 cursor-pointer accent-[var(--ag-accent-text)]"
+						class="h-4 w-4 shrink-0 cursor-pointer accent-[var(--ag-accent-text)]"
 						checked={task.done}
 						onchange={() => toggleTask(task.id)}
 					/>
-					<span
-						class="min-w-0 flex-1 truncate {task.done
-							? 'text-[var(--ag-text-muted)] line-through'
-							: 'text-[var(--ag-text-primary)]'}"
-					>
+					<span class="min-w-0 flex-1 truncate font-medium text-[var(--ag-text-primary)]">
 						{task.text}
 					</span>
 					<button
 						type="button"
-						class="rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
+						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
 						aria-label="タスクを削除"
 						onclick={() => deleteTask(task.id)}
 					>
-						<X class="h-3 w-3" />
+						<X class="h-4 w-4" />
 					</button>
 				</li>
 			{/each}
 		</ul>
+	{/if}
+
+	<!-- PH-issue-013: 完了 section (下、折りたたみ default、text-sm + line-through) -->
+	{#if showCompletedSection}
+		<div class="mt-3 border-t border-[var(--ag-border)] pt-2">
+			<button
+				type="button"
+				class="flex w-full items-center gap-1 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] motion-reduce:transition-none"
+				aria-expanded={completedExpanded}
+				aria-controls="completed-tasks-list"
+				onclick={() => (completedExpanded = !completedExpanded)}
+			>
+				{#if completedExpanded}
+					<ChevronDown class="h-3 w-3 shrink-0" />
+				{:else}
+					<ChevronRight class="h-3 w-3 shrink-0" />
+				{/if}
+				<span>完了済 ({completedTasks.length})</span>
+			</button>
+			{#if completedExpanded}
+				<ul id="completed-tasks-list" class="mt-1 space-y-1">
+					{#each completedTasks as task (task.id)}
+						<li class="group flex items-center gap-2 text-sm">
+							<input
+								type="checkbox"
+								class="h-3 w-3 shrink-0 cursor-pointer accent-[var(--ag-accent-text)]"
+								checked={task.done}
+								onchange={() => toggleTask(task.id)}
+							/>
+							<span
+								class="min-w-0 flex-1 truncate text-[var(--ag-text-muted)] line-through"
+							>
+								{task.text}
+							</span>
+							<button
+								type="button"
+								class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
+								aria-label="タスクを削除"
+								onclick={() => deleteTask(task.id)}
+							>
+								<X class="h-3 w-3" />
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
 	{/if}
 </WidgetShell>
 
