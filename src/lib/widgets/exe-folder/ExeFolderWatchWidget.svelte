@@ -85,6 +85,33 @@ $effect(() => {
 
 let candidatePopoverFor = $state<string | null>(null);
 
+// PH-widget-polish: popover を開いた時、Escape / 外側 click で close。
+// click outside は document level の pointerdown を監視、popover element 内を除外。
+$effect(() => {
+	if (candidatePopoverFor === null) return;
+	function onKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			candidatePopoverFor = null;
+		}
+	}
+	function onPointerDown(e: PointerEvent) {
+		const target = e.target as HTMLElement | null;
+		if (!target) return;
+		// popover 内 (role="menu") か popover を開いた button (aria-haspopup) は無視
+		if (target.closest('[role="menu"]') || target.closest('[data-popover-trigger="exe-cands"]')) {
+			return;
+		}
+		candidatePopoverFor = null;
+	}
+	document.addEventListener('keydown', onKeyDown);
+	document.addEventListener('pointerdown', onPointerDown);
+	return () => {
+		document.removeEventListener('keydown', onKeyDown);
+		document.removeEventListener('pointerdown', onPointerDown);
+	};
+});
+
 function resolveExe(entry: ExeFolderEntry): string | undefined {
 	const override = config.item_overrides?.[entry.folderPath];
 	if (override && entry.exeCandidates.some((c) => c.path === override)) {
@@ -196,10 +223,16 @@ let menuItems = $derived(
 						</span>
 					</button>
 					{#if entry.exeCandidates.length > 1}
+						<!-- PH-widget-polish: aria-haspopup / aria-expanded で a11y、data-popover-trigger で
+						     click-outside 監視から除外、title で「起動 exe を切替」hint -->
 						<button
 							type="button"
-							class="rounded p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+							class="shrink-0 rounded p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 							aria-label="{entry.folderName} の起動 exe を選ぶ"
+							aria-haspopup="menu"
+							aria-expanded={candidatePopoverFor === entry.folderPath}
+							title="起動 exe を切替"
+							data-popover-trigger="exe-cands"
 							onclick={() => {
 								candidatePopoverFor = candidatePopoverFor === entry.folderPath ? null : entry.folderPath;
 							}}
