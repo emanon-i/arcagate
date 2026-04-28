@@ -22,7 +22,7 @@ const toneClasses: Record<Tone, string> = {
 };
 
 const sizeClasses: Record<Size, string> = {
-	sm: 'px-2.5 py-1 text-[11px]',
+	sm: 'px-2.5 py-1 text-xs',
 	md: 'px-3.5 py-1.5 text-xs',
 };
 

@@ -135,7 +135,7 @@ function previewText(text: string): string {
 			{/if}
 		</div>
 		{#if query}
-			<p class="mb-1 text-[10px] text-[var(--ag-text-muted)]">
+			<p class="mb-1 text-xs text-[var(--ag-text-muted)]">
 				{history.length} 件中 {filteredHistory.length} 件表示
 			</p>
 		{/if}

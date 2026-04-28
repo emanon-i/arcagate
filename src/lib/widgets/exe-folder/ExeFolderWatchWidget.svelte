@@ -173,7 +173,7 @@ let menuItems = $derived(
 					>
 						<FolderOpen class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
 						<span class="min-w-0 flex-1 truncate">{entry.folderName}</span>
-						<span class="shrink-0 text-[10px] {hasOverride ? 'text-[var(--ag-accent-text)]' : 'text-[var(--ag-text-faint)]'}">
+						<span class="shrink-0 text-xs {hasOverride ? 'text-[var(--ag-accent-text)]' : 'text-[var(--ag-text-faint)]'}">
 							{entry.exeCandidates.length} exe{hasOverride ? ' ◉' : ''}
 						</span>
 					</button>
@@ -204,7 +204,7 @@ let menuItems = $derived(
 									<span class="min-w-0 flex-1 truncate">
 										{cand.name}
 									</span>
-									<span class="shrink-0 text-[10px] text-[var(--ag-text-muted)]">
+									<span class="shrink-0 text-xs text-[var(--ag-text-muted)]">
 										{formatBytes(cand.sizeBytes)}{currentExe === cand.path ? ' ✓' : ''}
 									</span>
 								</button>
@@ -213,7 +213,7 @@ let menuItems = $derived(
 								<button
 									type="button"
 									role="menuitem"
-									class="mt-1 w-full rounded px-2 py-1.5 text-left text-[10px] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
+									class="mt-1 w-full rounded px-2 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
 									onclick={() => void clearOverride(entry)}
 								>
 									自動選択（最大サイズ）に戻す

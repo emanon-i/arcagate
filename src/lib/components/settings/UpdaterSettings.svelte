@@ -93,7 +93,7 @@ async function handleInstall() {
 	</div>
 
 	{#if lastChecked}
-		<p class="text-[10px] text-[var(--ag-text-muted)]">
+		<p class="text-xs text-[var(--ag-text-muted)]">
 			最終確認: {lastChecked.toLocaleString('ja-JP')}
 		</p>
 	{/if}

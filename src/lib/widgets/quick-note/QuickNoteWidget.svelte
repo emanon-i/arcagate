@@ -79,7 +79,7 @@ let menuItems = $derived(
 			maxlength={MAX_CHARS}
 		></textarea>
 		{#if noteText.length > MAX_CHARS - 50}
-			<span class="shrink-0 text-right text-[10px] text-[var(--ag-text-muted)]">
+			<span class="shrink-0 text-right text-xs text-[var(--ag-text-muted)]">
 				{noteText.length}/{MAX_CHARS}
 			</span>
 		{/if}

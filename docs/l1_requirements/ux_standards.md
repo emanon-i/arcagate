@@ -203,6 +203,11 @@ Arcagate で頻出するスペーシング:
 - フォントサイズ 10px 以下の使用禁止（読みにくい）
 - `text-[var(--ag-text-faint)]` を 12px 以下で使用禁止（コントラスト不足）
 - 色の違いだけで情報を伝えるラベル禁止（アイコン or テキストと組み合わせる）
+- **font-size のハードコード禁止 (PH-issue-007)**:
+  - `text-[NNpx]` / `text-[NNrem]` 等の Tailwind 任意値クラス禁止
+  - `style="font-size: ..."` の inline 直書き禁止
+  - 必ず Tailwind default class (`text-xs` 〜 `text-2xl`) または `var(--ag-*)` token を経由
+  - 機械検証: `scripts/audit-font-hardcode.sh` (lefthook pre-commit + CI 統合)
 
 ---
 

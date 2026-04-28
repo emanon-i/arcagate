@@ -164,7 +164,7 @@ let moreMenuItems = $derived.by(() => {
 			</div>
 			<div class="flex shrink-0 items-center gap-2">
 				<span
-					class="rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-2.5 py-1 text-[11px] text-[var(--ag-accent-text)]"
+					class="rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-2.5 py-1 text-xs text-[var(--ag-accent-text)]"
 				>
 					{typeLabel[selectedItem.item_type]}
 				</span>
@@ -277,7 +277,7 @@ let moreMenuItems = $derived.by(() => {
 						<p class="text-sm font-medium text-[var(--ag-text-primary)]">カード表示</p>
 						{#if selectedItem.card_override_json}
 							<span
-								class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--ag-accent-text)]"
+								class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-xs font-medium text-[var(--ag-accent-text)]"
 								data-testid="card-override-badge"
 							>
 								個別調整中
@@ -323,7 +323,7 @@ let moreMenuItems = $derived.by(() => {
 				{/if}
 			</div>
 			{#if selectedItem.card_override_json}
-				<p class="text-[11px] text-[var(--ag-text-muted)]">
+				<p class="text-xs text-[var(--ag-text-muted)]">
 					詳細編集 UI は Settings > Library に統合予定。当面はリセット → 再有効化で global の最新値を取り込めます。
 				</p>
 			{/if}

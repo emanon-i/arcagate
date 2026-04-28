@@ -86,13 +86,9 @@ let resolvedMode = $derived.by(() => {
 // pre-compute size-dependent classes (avoid repeated ternary in template)
 let labelPadClass = $derived(configStore.itemSize === 'S' ? 'px-2 pb-1.5 pt-3' : 'px-3 pb-2 pt-6');
 let labelFontClass = $derived(
-	configStore.itemSize === 'S'
-		? 'text-[11px]'
-		: configStore.itemSize === 'L'
-			? 'text-base'
-			: 'text-sm',
+	configStore.itemSize === 'S' ? 'text-xs' : configStore.itemSize === 'L' ? 'text-base' : 'text-sm',
 );
-let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-[11px]');
+let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-xs');
 </script>
 
 {#if viewMode === 'list'}
@@ -117,7 +113,7 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 			<div class="truncate text-sm font-medium text-[var(--ag-text-primary)]">{item.label}</div>
 			<div class="truncate text-xs text-[var(--ag-text-muted)]">{item.target}</div>
 		</div>
-		<span class="shrink-0 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-4)] px-2 py-0.5 text-[10px] text-[var(--ag-text-secondary)]">
+		<span class="shrink-0 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-4)] px-2 py-0.5 text-xs text-[var(--ag-text-secondary)]">
 			{typeLabel[item.item_type]}
 		</span>
 	</button>
@@ -161,7 +157,7 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 		{/if}
 
 		<span
-			class="absolute left-2 top-2 rounded-full border border-white/30 bg-black/35 px-1.5 py-0.5 text-[10px] text-white/95 backdrop-blur-sm"
+			class="absolute left-2 top-2 rounded-full border border-white/30 bg-black/35 px-1.5 py-0.5 text-xs text-white/95 backdrop-blur-sm"
 		>
 			{typeLabel[item.item_type]}
 		</span>
@@ -178,7 +174,7 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 				</div>
 			{/if}
 			{#if configStore.itemSize === 'L' && metaLines?.line2}
-				<div class="truncate text-[10px] opacity-70" style={labelStyle}>
+				<div class="truncate text-xs opacity-70" style={labelStyle}>
 					{metaLines.line2}
 				</div>
 			{/if}

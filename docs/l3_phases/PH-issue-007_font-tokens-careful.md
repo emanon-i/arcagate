@@ -1,7 +1,7 @@
 ---
 id: PH-issue-007
 title: フォントトークン化 — ハードコード禁止 + 既存スタイル尊重 (旧 PH-475 の過剰反応教訓)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-475 (font tokens、batch-107 で実装も「全体的に劣化」原因の 1 つと user 指摘)、慎重に再構築
 ---
