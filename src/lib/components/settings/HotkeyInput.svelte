@@ -39,13 +39,15 @@ function handleBlur() {
 }
 </script>
 
+<!-- PH-widget-polish: input は recording 中 placeholder 表示 + cursor 明示、
+     button hover transition + title hint で「変更 / キャンセル (Esc)」 -->
 <div class="flex items-center gap-2">
   <input
     type="text"
     autocomplete="off"
     tabindex="0"
-    class="w-48 rounded-md border bg-background px-3 py-2 text-sm font-mono {recording
-      ? 'border-[var(--ag-accent)] ring-1 ring-[var(--ag-accent)]'
+    class="w-48 cursor-default rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm font-mono text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none {recording
+      ? 'border-[var(--ag-accent)] ring-2 ring-[var(--ag-accent)]/40 text-[var(--ag-text-faint)]'
       : ''}"
     readonly
     value={recording ? "キーを押してください..." : value}
@@ -55,9 +57,10 @@ function handleBlur() {
   />
   <button
     type="button"
-    class="rounded-md border px-3 py-2 text-sm transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {recording
-      ? 'border-destructive bg-destructive/10 text-destructive'
-      : 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-4)]'}"
+    class="rounded-md border px-3 py-2 text-sm transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {recording
+      ? 'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20'
+      : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-4)]'}"
+    title={recording ? 'キャンセル' : 'ホットキーを変更'}
     onclick={recording ? cancelRecording : startRecording}
   >
     {recording ? "キャンセル" : "変更"}
