@@ -1,7 +1,7 @@
 ---
 id: PH-issue-022
 title: ターゲット未設定 state 共通化 + reset ボタン
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-490b (Clear button、rollback で revert)
 ---
