@@ -132,9 +132,12 @@ let menuItems = $derived(
 	<div class="grid gap-3 md:grid-cols-3">
 		{#each folderItems as item (item.id)}
 			{@const gs = gitStatuses[item.id]}
+			<!-- PH-widget-polish: aria-label / title 追加で a11y、内部要素 min-w-0 で truncate 確実化。 -->
 			<button
 				type="button"
 				class="rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-4 text-left transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
+				aria-label="{item.label} を起動 (右クリックで詳細)"
+				title={item.target}
 				onclick={() => {
 					void launchItem(item.id)
 						.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
@@ -149,18 +152,18 @@ let menuItems = $derived(
 					}
 				}}
 			>
-				<div class="mb-2 flex items-center justify-between">
-					<div class="text-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
+				<div class="mb-2 flex items-center justify-between gap-2">
+					<div class="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ag-text-primary)]">{item.label}</div>
 					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class="h-6 w-6 shrink-0 object-cover" />
 				</div>
 				<div class="truncate text-xs text-[var(--ag-text-muted)]">{item.target}</div>
 				{#if gs}
-					<div class="mt-2 flex items-center gap-2 text-xs text-[var(--ag-text-secondary)]">
-						<GitBranch class="h-3.5 w-3.5" />
-						<span class="truncate">{gs.branch}</span>
+					<div class="mt-2 flex min-w-0 items-center gap-2 text-xs text-[var(--ag-text-secondary)]">
+						<GitBranch class="h-3.5 w-3.5 shrink-0" />
+						<span class="min-w-0 flex-1 truncate" title="branch: {gs.branch}">{gs.branch}</span>
 						{#if gs.has_changes}
 							<span
-								class="flex items-center gap-0.5 text-[var(--ag-warm-text)]"
+								class="flex shrink-0 items-center gap-0.5 text-[var(--ag-warm-text)]"
 								title="{gs.changed_count} 件の変更"
 							>
 								<CircleDot class="h-3 w-3" />
