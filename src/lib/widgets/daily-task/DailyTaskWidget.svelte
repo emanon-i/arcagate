@@ -82,6 +82,9 @@ let menuItems = $derived(
 </script>
 
 <WidgetShell title={config.title || 'タスク'} icon={CheckSquare} {menuItems}>
+	<!-- PH-widget-polish: input は text-sm に拡大 (text-xs は §4-4「12px 以下注意」)、
+	     submit button は disabled 時 cursor-not-allowed + opacity 明示、
+	     button に title「Enter で追加」hint、active:scale-[0.95] 触覚 feedback。 -->
 	<form
 		class="mb-2 flex items-center gap-1"
 		onsubmit={(e) => {
@@ -91,18 +94,19 @@ let menuItems = $derived(
 	>
 		<input
 			type="text"
-			class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
-			placeholder="タスクを追加..."
+			class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:border-[var(--ag-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+			placeholder="タスクを追加 (Enter)"
 			autocomplete="off"
 			bind:value={newTaskInput}
 		/>
 		<button
 			type="submit"
-			class="rounded bg-[var(--ag-accent-bg)] p-1 text-[var(--ag-accent-text)] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="rounded bg-[var(--ag-accent-bg)] p-1.5 text-[var(--ag-accent-text)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[var(--ag-accent-bg)]"
 			aria-label="タスクを追加"
+			title="追加 (Enter)"
 			disabled={!newTaskInput.trim()}
 		>
-			<Plus class="h-3 w-3" />
+			<Plus class="h-3.5 w-3.5" />
 		</button>
 	</form>
 	<!-- PH-issue-013: 未完了 (上、text-base font-medium) -->
