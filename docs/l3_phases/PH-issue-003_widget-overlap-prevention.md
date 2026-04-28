@@ -41,38 +41,86 @@ User 指示「単純に重ならない」=
 
 → 既存実装で半分完了、`addWidget` 経路の auto-rearrange を完全撤廃すれば完成。
 
-## 横展開 phase
+## 横展開 phase (2026-04-28 user 指摘で update)
 
-| 経路                               | 現状                                                   | 必要な fix                                |
-| ---------------------------------- | ------------------------------------------------------ | ----------------------------------------- |
-| `addWidgetAt(type, x, y)`          | findFreePosition で空き探す → 重なるなら別の場所に配置 | **指定セル に空きが無ければ拒否 + toast** |
-| `addWidget(type)` (default 配置)   | 空き探す                                               | OK (default 配置は意図不明、空き探し許可) |
-| `moveWidget(id, x, y)`             | `isOverlapping` で拒否 + error 設定                    | OK (既存)                                 |
-| `optimisticMoveAndResize` リサイズ | `clampResizeForOverlap` で rubber-band                 | OK (既存)                                 |
-| Sidebar からの D&D 配置            | `addWidgetAt` 経由                                     | 上記の fix で連動                         |
+⚠️ 旧実装で **「初回追加 = panel から click → `addWidget(type)` → findFreePosition fallback で (0,0) に配置 → 既存 widget と重なる」** バグあり。本 plan で **追加経路全部** で overlap check を強制する。
 
-## Plan: 採用案 A: 「`addWidgetAt` で auto-rearrange 撤廃」
+| 経路                                            | 現状                                                                             | 必要な fix                                                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `addWidget(type)` (panel click 追加、座標なし)  | findFreePosition で空き探す → 見つからなければ **(0,0) fallback (overlap バグ)** | findFreePosition で空き発見可なら配置、**全マス埋まっていれば拒否 + toast「空きスペースがありません」** |
+| `addWidgetAt(type, x, y)` (drag 追加、座標指定) | findFreePosition で別セル探す可能性 (auto-rearrange)                             | **指定セルが overlap なら拒否 + toast、別セルへ自動移動しない**                                         |
+| `moveWidget(id, x, y)`                          | `isOverlapping` で拒否 + error 設定                                              | OK (既存維持)                                                                                           |
+| `optimisticMoveAndResize` リサイズ              | `clampResizeForOverlap` で rubber-band                                           | OK (既存維持)                                                                                           |
+| Sidebar D&D 配置                                | `addWidgetAt` 経由                                                               | 上記 fix で連動                                                                                         |
 
-- `addWidgetAt(type, x, y)`: 指定セルの 1×1 領域に他 widget が重なれば **拒否** + toast「他のウィジェットと重なるため配置できません」(P1 状態 + P2 失敗前提)
-- `addWidget(type)` (default 配置、引数なし): 既存の findFreePosition で空き探す維持 (user 意図不明な配置は妥当)
-- E2E: `addWidgetAt` を重なる位置に呼んで toast が出る + widget が追加されないこと確認
+## Plan: 採用案 A: 「全追加経路で overlap reject + 共通 helper `wouldOverlapAt` 抽出」
 
-## 棄却案 B: 「重なる位置だと auto-rearrange」
+**共通 helper 抽出**:
 
-→ 予測不能 UX、user fb 直接違反。棄却。
+```ts
+// src/lib/utils/widget-grid.ts
+export function wouldOverlapAt(x: number, y: number, w: number, h: number, others: Rect[]): boolean {
+  return others.some((o) => x < o.x + o.w && x + w > o.x && y < o.y + o.h && y + h > o.y);
+}
 
-## E2E 1 シナリオ
+export function findFreePosition(w: number, h: number, others: Rect[], maxCols: number, maxRow: number): { x: number; y: number } | null {
+  for (let y = 0; y <= maxRow; y++) {
+    for (let x = 0; x <= maxCols - w; x++) {
+      if (!wouldOverlapAt(x, y, w, h, others)) return { x, y };
+    }
+  }
+  return null;  // 全マス埋まり
+}
+```
 
-- `tests/e2e/workspace-widget-overlap.spec.ts`:
-  - widget A (0,0) 1×1 既存 → addWidgetAt(0,0) → toast 表示 + widget 数変わらず
+**`addWidget(type)` 改修**:
 
-## 規格 update なし
+- findFreePosition が **null を返したら** error 設定 + toast「空きスペースがありません」+ widget 追加せず早期 return
+- (0,0) fallback の旧バグを排除
 
-`ux_standards §13` には記載なし、本 plan で初規格化 (「重なり拒否、auto-rearrange 廃止」を §13 に追記)。
+**`addWidgetAt(type, x, y)` 改修**:
+
+- 指定セルで `wouldOverlapAt(x, y, w, h, others)` チェック
+- overlap なら拒否 + toast「他のウィジェットと重なるため配置できません」
+- 別セルへの auto-rearrange は **完全廃止**
+
+**move/resize は既存維持** (`isOverlapping` / `clampResizeForOverlap`)
+
+## 棄却案 B: 「重なる位置で auto-rearrange」
+
+→ user fb 直接違反、予測不能 UX、棄却。
+
+## 棄却案 C: 「(0,0) fallback を残す」
+
+→ 旧バグそのもの、user 指摘の根本原因、棄却。
+
+## E2E 複数シナリオ
+
+`tests/e2e/widget-overlap-prevention.spec.ts`:
+
+1. **「panel click 追加で空セルに自動配置」**:
+   - widget A を (0,0) に既存 → panel click で widget 追加 → (1,0) など空セルに配置 (重ならない)
+2. **「全マス埋まり時に追加拒否」**:
+   - canvas 容量分の widget で埋める → 追加 click → toast「空きスペースがありません」+ widget 数変わらず
+3. **「drag 追加で重なるセルを拒否」**:
+   - widget A を (0,0) → sidebar から widget B を (0,0) へ drag drop → toast 表示 + B 配置されず
+4. **「drag 追加で空セルへの drop は成功」**:
+   - widget A を (0,0) → widget B を (2,0) へ drag drop → 配置成功
+
+## 規格 update
+
+`ux_standards §13` に下記を追加:
+
+- **Widget 同士は重ならない** (常時不変条件)
+- 追加経路 (panel click / drag drop) で overlap → 拒否 + toast、auto-rearrange / fallback 禁止
+- move 経路で overlap → 拒否 + toast
+- resize 経路で overlap → rubber-band (重ならない最大に丸める)
 
 ## 実装ステップ
 
-1. `addWidgetAt` で findFreePosition 呼び出しを削除、重なれば早期 return + error 設定
-2. WorkspaceLayout の error 監視で toast 出す (既存 toastStore)
-3. E2E spec 1 本
-4. ux_standards §13 に「Widget 同士は重ならない、配置試行が重なれば拒否」追記
+1. `src/lib/utils/widget-grid.ts` に `wouldOverlapAt` + `findFreePosition` (null 返却版) 抽出 (既存ヘルパを統合)
+2. `workspace.svelte.ts` `addWidget` 改修: findFreePosition null → toast + return
+3. `workspace.svelte.ts` `addWidgetAt` 改修: wouldOverlapAt 検証 → overlap なら toast + return、別セル探さない
+4. WorkspaceLayout の error 監視で toast 出す (既存 toastStore)
+5. E2E spec 4 シナリオ
+6. ux_standards §13 update
