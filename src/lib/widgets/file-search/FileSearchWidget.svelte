@@ -1,9 +1,10 @@
 <script lang="ts">
-import { File, FileSearch, Folder, Search, X as XIcon } from '@lucide/svelte';
+import { File, FileSearch, Folder, FolderOpen, Search, X as XIcon } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorCode, getErrorMessage } from '$lib/utils/format-error';
@@ -179,19 +180,18 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title || 'ファイル検索'} icon={FileSearch} {menuItems}>
 	{#if !root}
-		<div class="space-y-2 rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2">
-			<div class="text-xs text-[var(--ag-text-muted)]">
-				<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">検索ルートを選んでください</p>
-				<p>選んだフォルダ以下のファイルを部分一致でフィルタして開けます。</p>
-			</div>
-			<button
-				type="button"
-				class="rounded bg-[var(--ag-accent-bg)] px-2 py-1 text-xs text-[var(--ag-accent-text)] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-				onclick={() => void pickRoot()}
-			>
-				ルートを選択
-			</button>
-		</div>
+		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
+		<EmptyState
+			icon={FolderOpen}
+			title="検索ルートを選んでください"
+			description="選んだフォルダ以下のファイルを部分一致でフィルタして開けます。"
+			action={{
+				label: 'ルートを選択',
+				icon: FolderOpen,
+				onClick: () => void pickRoot(),
+			}}
+			testId="file-search-empty-state"
+		/>
 	{:else}
 		<!-- PH-issue-018: 検索バー sticky で scroll 中も検索可能。z-1 で結果リストより上。 -->
 		<div class="sticky top-0 z-[1] mb-2 flex items-center gap-1 bg-[var(--ag-surface-opaque)] pb-1">

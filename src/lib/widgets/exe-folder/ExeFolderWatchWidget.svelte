@@ -1,8 +1,9 @@
 <script lang="ts">
-import { FolderOpen, MoreHorizontal } from '@lucide/svelte';
+import { FolderOpen, MoreHorizontal, Settings } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -156,10 +157,18 @@ let menuItems = $derived(
 
 <WidgetShell title={config.title || 'Exe Folders'} icon={FolderOpen} {menuItems}>
 	{#if !config.watch_path}
-		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-sm text-[var(--ag-text-muted)]">
-			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">監視フォルダを設定してください</p>
-			<p class="text-xs">設定モーダルで監視ルートを選ぶと、サブフォルダの exe が自動で表示されます。</p>
-		</div>
+		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
+		<EmptyState
+			icon={FolderOpen}
+			title="監視フォルダを設定してください"
+			description="設定モーダルで監視ルートを選ぶと、サブフォルダの exe が自動で表示されます。"
+			action={{
+				label: '設定を開く',
+				icon: Settings,
+				onClick: () => (settingsOpen = true),
+			}}
+			testId="exe-folder-empty-state"
+		/>
 	{:else if scanning}
 		<p class="text-sm text-[var(--ag-text-muted)]">スキャン中...</p>
 	{:else if scanError}
