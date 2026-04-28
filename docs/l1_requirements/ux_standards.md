@@ -313,6 +313,13 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - コンテンツ無しの白紙 Widget は空状態テキストを表示すること
 - ヘッダなし（何の Widget か分からない状態）
 
+**fluid sizing 仕様** (PH-issue-021、ClockWidget 等の単一表示 widget):
+
+- 親 div に `@container` + `overflow-hidden` (scrollbar 抑止)
+- font-size を container query で段階的に拡大: `text-xl @xs:text-2xl @sm:text-3xl @md:text-4xl @lg:text-5xl`
+- 副次情報 (日付 / 曜日 等) は `hidden @xs:inline` で 1×1 では非表示にし、widget が広くなったら表示
+- 1×1 (320×180px 想定) で scrollbar が出ないことが受け入れ条件
+
 ### 6-2. Palette
 
 **必須要素**:
