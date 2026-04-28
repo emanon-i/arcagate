@@ -70,6 +70,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-font-hardcode.sh
 
+      - name: Text overflow audit (PH-issue-016)
+        shell: bash
+        run: bash scripts/audit-text-overflow.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings
