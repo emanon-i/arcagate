@@ -95,6 +95,14 @@ let memPercent = $derived(
 
 let sparklinePath = $derived(bufferToSparklinePath(cpuHistory, 100, 20, 100));
 
+// PH-widget-polish: 使用率の色閾値 (P1 操作可視化、危険な状態を視覚的に伝える)。
+// < 60%: accent (通常)、60..85%: warm (注意)、>= 85%: error (危険)
+function pctColorVar(pct: number): string {
+	if (pct >= 85) return 'var(--ag-error-text)';
+	if (pct >= 60) return 'var(--ag-warm-text)';
+	return 'var(--ag-accent)';
+}
+
 let menuItems = $derived(
 	widget
 		? [
@@ -115,26 +123,29 @@ let menuItems = $derived(
 	{:else}
 		<div class="space-y-2 text-xs">
 			{#if showCpu}
+				<!-- PH-widget-polish: pct 値で sparkline / progress の色を warm/error に切替 (P1 操作可視化) -->
+				{@const cpuColor = pctColorVar(stats.cpuPercent)}
 				<div class="space-y-0.5">
 					<div class="flex items-baseline justify-between text-[var(--ag-text-primary)]">
 						<span class="text-[var(--ag-text-muted)]">CPU</span>
-						<span class="tabular-nums">{stats.cpuPercent.toFixed(1)}%</span>
+						<span class="tabular-nums" style="color: {cpuColor}">{stats.cpuPercent.toFixed(1)}%</span>
 					</div>
 					<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
-						<path d={sparklinePath} fill="none" stroke="var(--ag-accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+						<path d={sparklinePath} fill="none" stroke={cpuColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
 					</svg>
 				</div>
 			{/if}
 			{#if showMemory}
+				{@const memColor = pctColorVar(memPercent)}
 				<div class="space-y-0.5">
 					<div class="flex items-baseline justify-between text-[var(--ag-text-primary)]">
 						<span class="text-[var(--ag-text-muted)]">メモリ</span>
-						<span class="tabular-nums">
+						<span class="tabular-nums" style="color: {memColor}">
 							{formatBytes(stats.memUsedBytes)} / {formatBytes(stats.memTotalBytes)}
 						</span>
 					</div>
 					<div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]" role="progressbar" aria-valuenow={memPercent} aria-valuemin="0" aria-valuemax="100">
-						<div class="h-full rounded-full bg-[var(--ag-accent)]" style="width: {memPercent.toFixed(1)}%"></div>
+						<div class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none" style="width: {memPercent.toFixed(1)}%; background-color: {memColor};"></div>
 					</div>
 				</div>
 			{/if}
@@ -143,13 +154,14 @@ let menuItems = $derived(
 					<span class="text-[var(--ag-text-muted)]">ディスク</span>
 					{#each disks as d (d.mount)}
 						{@const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0}
+						{@const diskColor = pctColorVar(pct)}
 						<div class="space-y-0.5">
-							<div class="flex items-baseline justify-between">
-								<span class="truncate text-[var(--ag-text-primary)]">{d.mount}</span>
-								<span class="shrink-0 tabular-nums text-xs text-[var(--ag-text-muted)]">{pct.toFixed(0)}%</span>
+							<div class="flex items-baseline justify-between gap-2">
+								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</span>
+								<span class="shrink-0 tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</span>
 							</div>
 							<div class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100">
-								<div class="h-full rounded-full bg-[var(--ag-accent)]" style="width: {pct.toFixed(1)}%"></div>
+								<div class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none" style="width: {pct.toFixed(1)}%; background-color: {diskColor};"></div>
 							</div>
 						</div>
 					{/each}

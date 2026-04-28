@@ -142,20 +142,23 @@ function previewText(text: string): string {
 		{#if filteredHistory.length === 0}
 			<p class="text-xs text-[var(--ag-text-muted)]">「{query}」に一致する履歴はありません</p>
 		{:else}
+		<!-- PH-widget-polish: list-row に min-w-0、active:scale-[0.97] で再コピー触覚フィードバック、
+		     title 属性で全文 tooltip (長文クリップボードは preview しか出ないため重要) -->
 		<ul class="space-y-1">
 			{#each filteredHistory as entry (entry.id)}
-				<li class="group flex items-center gap-1">
+				<li class="group flex min-w-0 items-center gap-1">
 					<button
 						type="button"
-						class="min-w-0 flex-1 rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+						class="min-w-0 flex-1 rounded-md px-2 py-1 text-left text-xs transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 						aria-label="クリップボードに再コピー"
+						title={entry.text}
 						onclick={() => void copyEntry(entry)}
 					>
 						<span class="block truncate text-[var(--ag-text-primary)]">{previewText(entry.text)}</span>
 					</button>
 					<button
 						type="button"
-						class="rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
+						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
 						aria-label="履歴から削除"
 						onclick={() => deleteEntry(entry.id)}
 					>

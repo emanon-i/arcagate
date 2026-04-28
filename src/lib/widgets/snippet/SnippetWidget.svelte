@@ -75,21 +75,25 @@ let menuItems = $derived(
 			設定からスニペットを追加してください。
 		</p>
 	{:else}
+		<!-- PH-widget-polish: list-row に min-w-0 (PH-issue-016 規格)、
+		     button に title 属性で長 label / body の tooltip。
+		     active:scale-[0.97] で「コピーした」フィードバックを触覚的に。 -->
 		<ul class="space-y-1">
 			{#each snippets as snip (snip.id)}
-				<li class="group flex items-center gap-1">
+				<li class="group flex min-w-0 items-center gap-1">
 					<button
 						type="button"
-						class="flex flex-1 flex-col items-start gap-0.5 rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+						class="flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded-md px-2 py-1 text-left text-xs transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 						aria-label="{snip.label} をクリップボードにコピー"
+						title={snip.body}
 						onclick={() => void copySnippet(snip)}
 					>
-						<span class="truncate font-medium text-[var(--ag-text-primary)]">{snip.label}</span>
-						<span class="truncate text-xs text-[var(--ag-text-muted)]">{snip.body}</span>
+						<span class="block w-full truncate font-medium text-[var(--ag-text-primary)]">{snip.label}</span>
+						<span class="block w-full truncate text-xs text-[var(--ag-text-muted)]">{snip.body}</span>
 					</button>
 					<button
 						type="button"
-						class="rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] group-hover:opacity-100"
+						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
 						aria-label="スニペットを削除"
 						onclick={() => deleteSnippet(snip.id)}
 					>
