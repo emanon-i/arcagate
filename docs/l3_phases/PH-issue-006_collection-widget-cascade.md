@@ -1,7 +1,7 @@
 ---
 id: PH-issue-006
 title: Widget collection 型 default + 削除 cascade
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-474 (item picker collection)、rollback で revert
 ---

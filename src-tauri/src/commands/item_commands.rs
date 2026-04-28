@@ -35,6 +35,12 @@ pub fn cmd_delete_item(db: State<DbState>, id: String) -> Result<(), AppError> {
     item_service::delete_item(&db, &id)
 }
 
+/// PH-issue-006: 削除確認 dialog 用 — 該当 item を参照する widget 数。
+#[tauri::command]
+pub fn cmd_count_item_references(db: State<DbState>, id: String) -> Result<usize, AppError> {
+    item_service::count_item_references(&db, &id)
+}
+
 // PH-436 / Nielsen H7: 一括操作 (transaction、最大 1000 件)
 #[tauri::command]
 pub fn cmd_bulk_add_tag(

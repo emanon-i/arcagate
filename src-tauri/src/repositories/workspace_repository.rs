@@ -173,6 +173,156 @@ pub fn delete_widget(conn: &Connection, id: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// PH-issue-006: 全 widget の config (JSON TEXT) を scan、`item_id == X` または
+/// `item_ids` 配列に X を含む widget の (id, config_text) を返す。
+///
+/// config が NULL / 空 / 不正 JSON の widget は skip。
+pub fn find_widgets_referencing_item(
+    conn: &Connection,
+    item_id: &str,
+) -> Result<Vec<(String, String)>, AppError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, config FROM workspace_widgets WHERE config IS NOT NULL AND config != ''",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        let id: String = row.get(0)?;
+        let config: String = row.get(1)?;
+        Ok((id, config))
+    })?;
+    let mut matches = Vec::new();
+    for row in rows {
+        let (widget_id, config_text) = row?;
+        if widget_config_references_item(&config_text, item_id) {
+            matches.push((widget_id, config_text));
+        }
+    }
+    Ok(matches)
+}
+
+/// config JSON が `item_id == X` または `item_ids` 配列に X を含むか。
+/// 不正 JSON は false (skip)。
+fn widget_config_references_item(config_text: &str, item_id: &str) -> bool {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(config_text) else {
+        return false;
+    };
+    let Some(obj) = value.as_object() else {
+        return false;
+    };
+    if let Some(serde_json::Value::String(s)) = obj.get("item_id") {
+        if s == item_id {
+            return true;
+        }
+    }
+    if let Some(serde_json::Value::Array(arr)) = obj.get("item_ids") {
+        if arr.iter().any(|v| v.as_str() == Some(item_id)) {
+            return true;
+        }
+    }
+    false
+}
+
+/// PH-issue-006: widget の config から item_id 参照を取り除いた新 config を返す。
+///   - `item_id == X` ならフィールド削除
+///   - `item_ids` 配列から X を filter で除去 (空配列も維持、UI 側で「item 無し」表示)
+///
+/// config_text 不正 / object でない場合は元のまま返す (副作用なし)。
+fn strip_item_id_from_config(config_text: &str, item_id: &str) -> String {
+    let Ok(mut value) = serde_json::from_str::<serde_json::Value>(config_text) else {
+        return config_text.to_string();
+    };
+    let Some(obj) = value.as_object_mut() else {
+        return config_text.to_string();
+    };
+    if let Some(serde_json::Value::String(s)) = obj.get("item_id") {
+        if s == item_id {
+            obj.remove("item_id");
+        }
+    }
+    if let Some(serde_json::Value::Array(arr)) = obj.get_mut("item_ids") {
+        arr.retain(|v| v.as_str() != Some(item_id));
+    }
+    serde_json::to_string(&value).unwrap_or_else(|_| config_text.to_string())
+}
+
+/// PH-issue-006: item 削除 cascade — 該当 item を参照する全 widget の config を更新。
+/// 戻り値は影響を受けた widget 数。
+pub fn cascade_remove_item_from_widgets(
+    conn: &Connection,
+    item_id: &str,
+) -> Result<usize, AppError> {
+    let referencing = find_widgets_referencing_item(conn, item_id)?;
+    let count = referencing.len();
+    for (widget_id, old_config) in referencing {
+        let new_config = strip_item_id_from_config(&old_config, item_id);
+        conn.execute(
+            "UPDATE workspace_widgets
+             SET config = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+             WHERE id = ?2",
+            params![new_config, widget_id],
+        )?;
+    }
+    Ok(count)
+}
+
+#[cfg(test)]
+mod cascade_tests {
+    use super::*;
+
+    #[test]
+    fn test_widget_config_references_item_id_match() {
+        let config = r#"{"item_id":"abc"}"#;
+        assert!(widget_config_references_item(config, "abc"));
+        assert!(!widget_config_references_item(config, "xyz"));
+    }
+
+    #[test]
+    fn test_widget_config_references_item_ids_array() {
+        let config = r#"{"item_ids":["a","b","c"]}"#;
+        assert!(widget_config_references_item(config, "b"));
+        assert!(!widget_config_references_item(config, "z"));
+    }
+
+    #[test]
+    fn test_widget_config_references_invalid_json_returns_false() {
+        assert!(!widget_config_references_item("not json", "abc"));
+        assert!(!widget_config_references_item("[]", "abc"));
+    }
+
+    #[test]
+    fn test_strip_item_id_removes_field() {
+        let result = strip_item_id_from_config(r#"{"item_id":"abc","other":1}"#, "abc");
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(parsed.get("item_id").is_none());
+        assert_eq!(parsed.get("other"), Some(&serde_json::json!(1)));
+    }
+
+    #[test]
+    fn test_strip_item_id_keeps_unrelated() {
+        let result = strip_item_id_from_config(r#"{"item_id":"xyz"}"#, "abc");
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed.get("item_id"), Some(&serde_json::json!("xyz")));
+    }
+
+    #[test]
+    fn test_strip_item_id_filters_array() {
+        let result = strip_item_id_from_config(r#"{"item_ids":["a","b","c"]}"#, "b");
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed.get("item_ids"), Some(&serde_json::json!(["a", "c"])));
+    }
+
+    #[test]
+    fn test_strip_item_id_preserves_other_fields() {
+        let result = strip_item_id_from_config(
+            r#"{"item_id":"abc","title":"foo","item_ids":["abc","x"]}"#,
+            "abc",
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(parsed.get("item_id").is_none());
+        assert_eq!(parsed.get("title"), Some(&serde_json::json!("foo")));
+        assert_eq!(parsed.get("item_ids"), Some(&serde_json::json!(["x"])));
+    }
+}
+
 // --- JOIN queries (Item) ---
 
 pub fn list_frequent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, AppError> {
