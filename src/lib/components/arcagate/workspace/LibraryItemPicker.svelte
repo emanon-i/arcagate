@@ -2,16 +2,29 @@
 import { Search } from '@lucide/svelte';
 import { cubicOut } from 'svelte/easing';
 import { fade, scale } from 'svelte/transition';
-import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
+import LibraryCard from '$lib/components/arcagate/library/LibraryCard.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
 
+/**
+ * PH-issue-005: アイテム Picker = LibraryCard 再利用版。
+ *
+ * 引用元 guideline:
+ * - docs/desktop_ui_ux_agent_rules.md P4 (同じ意味のものは同じように扱う) / P12 整合性
+ * - docs/l1_requirements/ux_standards.md §6-3 Dialog / §11 アイテムカードサイズ
+ * - CLAUDE.md「同じ機能 = 同じ icon + 同じラベル」
+ *
+ * 複数選択 / sort / filter は別 plan (PH-issue-005 の続編 or PH-issue-011)。
+ * 本 PR は「LibraryCard 再利用 + 単一選択」までの最小スコープ。
+ */
 interface Props {
 	onSelect: (item: Item) => void;
 	onClose: () => void;
 }
 
 let { onSelect, onClose }: Props = $props();
+
+const SYS_STARRED_ID = 'sys-starred';
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
@@ -30,10 +43,24 @@ $effect(() => {
 });
 
 let filteredItems = $derived.by(() => {
-	if (!debouncedQuery.trim()) return itemStore.items.slice(0, 50);
+	const visible = itemStore.items.filter((i) => i.is_enabled);
+	if (!debouncedQuery.trim()) return visible.slice(0, 50);
 	const q = debouncedQuery.toLowerCase();
-	return itemStore.items.filter((i) => i.label.toLowerCase().includes(q)).slice(0, 50);
+	return visible.filter((i) => i.label.toLowerCase().includes(q)).slice(0, 50);
 });
+
+// PH-issue-005: お気に入り状態を Library と同じ source (sys-starred タグ) で判定。
+let starredIds = $derived(
+	new Set(
+		itemStore.items
+			.filter(
+				(_i) => false, // 暫定: itemStore に星情報なし、別途取得が必要
+			)
+			.map((i) => i.id),
+	),
+);
+// items の既存メタには star 情報がないため、Library と同じく getItemTags 経由が必要。
+// 本 PR では絞らず、LibraryCard の isStarred を全 false で渡す (見た目の整合は維持、お気に入り表示は Library 専用)。
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -45,12 +72,16 @@ let filteredItems = $derived.by(() => {
 	aria-label="アイテム選択"
 	tabindex="-1"
 	transition:fade={{ duration: dFast }}
-	onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-	onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
+	onclick={(e) => {
+		if (e.target === e.currentTarget) onClose();
+	}}
+	onkeydown={(e) => {
+		if (e.key === 'Escape') onClose();
+	}}
 >
 	<div
-		class="flex w-full max-w-sm flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]"
-		style="max-height: 70vh;"
+		class="flex w-full max-w-3xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]"
+		style="max-height: 80vh;"
 		transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
 	>
 		<!-- Search bar -->
@@ -66,24 +97,26 @@ let filteredItems = $derived.by(() => {
 				bind:value={searchQuery}
 			/>
 		</div>
-		<!-- Item list -->
-		<div class="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-			{#each filteredItems as item (item.id)}
-				<button
-					type="button"
-					class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:bg-[var(--ag-surface-3)]"
-					onclick={() => { onSelect(item); }}
-				>
-					<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class="h-6 w-6 shrink-0 object-contain" />
-					<div class="min-w-0 flex-1">
-						<div class="truncate font-medium text-[var(--ag-text-primary)]">{item.label}</div>
-						<div class="truncate text-xs text-[var(--ag-text-muted)]">{item.target}</div>
-					</div>
-				</button>
-			{/each}
+		<!-- Library と同じ grid layout で LibraryCard を再利用 -->
+		<div class="min-h-0 flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable]">
 			{#if filteredItems.length === 0}
 				<div class="py-8 text-center text-sm text-[var(--ag-text-muted)]">
 					{debouncedQuery ? '一致するアイテムがありません' : 'アイテムがまだありません'}
+				</div>
+			{:else}
+				<div
+					class="grid"
+					style="grid-template-columns: repeat(auto-fill, var(--ag-card-w, 192px)); gap: 1rem; justify-content: center;"
+				>
+					{#each filteredItems as item (item.id)}
+						<LibraryCard
+							{item}
+							isStarred={starredIds.has(item.id)}
+							viewMode="grid"
+							onclick={() => onSelect(item)}
+							ondblclick={() => onSelect(item)}
+						/>
+					{/each}
 				</div>
 			{/if}
 		</div>
