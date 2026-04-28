@@ -1,7 +1,7 @@
 ---
 id: PH-issue-017
 title: WatchFolder unset / path 変更で旧 entries 即時 clear (race condition fix)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-490 + PH-492 (rollback で revert)
 ---

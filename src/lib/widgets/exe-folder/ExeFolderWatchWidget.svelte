@@ -49,26 +49,35 @@ let config = $derived.by<WidgetConfig>(() => {
 let entries = $state<ExeFolderEntry[]>([]);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
+// PH-issue-017: race condition fix — 古い path の async 結果が新 path に
+// 書き戻されないよう request id で stale response を破棄する。
+let scanRequestId = 0;
 
 // Lazy fetch: watch_path / scan_depth が設定されたとき + 変化時に scan
 $effect(() => {
 	const path = config.watch_path;
 	const depth = config.scan_depth ?? 2;
+	// 派生 state を即時 clear (path 変更 / unset 直後に旧 entries が残らない)。
+	entries = [];
+	scanError = null;
 	if (!path) {
-		entries = [];
+		scanning = false;
 		return;
 	}
+	const myId = ++scanRequestId;
 	scanning = true;
-	scanError = null;
 	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { root: path, depth })
 		.then((result) => {
+			if (myId !== scanRequestId) return;
 			entries = result;
 		})
 		.catch((e: unknown) => {
+			if (myId !== scanRequestId) return;
 			scanError = getErrorMessage(e);
 			entries = [];
 		})
 		.finally(() => {
+			if (myId !== scanRequestId) return;
 			scanning = false;
 		});
 });
