@@ -1,5 +1,9 @@
 <script lang="ts">
+/**
+ * PH-issue-026 (Issue 23): FileSearchSettings polish — folder picker を shadcn Button に統一。
+ */
 import { open } from '@tauri-apps/plugin-dialog';
+import { Button } from '$lib/components/ui/button';
 
 interface Props {
 	config: {
@@ -16,6 +20,17 @@ let fsRoot = $derived(config.root ?? '');
 let fsDepth = $derived(config.depth ?? 2);
 let fsLimit = $derived(config.limit ?? 200);
 let fsTitle = $derived(config.title ?? '');
+
+async function handlePickFolder() {
+	const selected = await open({
+		directory: true,
+		multiple: false,
+		title: '検索ルートを選択',
+	});
+	if (selected && !Array.isArray(selected)) {
+		config = { ...config, root: selected };
+	}
+}
 </script>
 
 <div class="space-y-1">
@@ -26,28 +41,13 @@ let fsTitle = $derived(config.title ?? '');
 			type="text"
 			autocomplete="off"
 			placeholder="例: E:\Cella\Projects"
-			class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+			class="min-w-0 flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 			value={fsRoot}
 			oninput={(e) => {
 				config = { ...config, root: (e.currentTarget as HTMLInputElement).value };
 			}}
 		/>
-		<button
-			type="button"
-			class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
-			onclick={async () => {
-				const selected = await open({
-					directory: true,
-					multiple: false,
-					title: '検索ルートを選択',
-				});
-				if (selected && !Array.isArray(selected)) {
-					config = { ...config, root: selected };
-				}
-			}}
-		>
-			参照
-		</button>
+		<Button type="button" variant="outline" size="sm" onclick={handlePickFolder}>選択</Button>
 	</div>
 </div>
 <div class="space-y-1">

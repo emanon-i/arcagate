@@ -1,5 +1,9 @@
 <script lang="ts">
+/**
+ * PH-issue-026 (Issue 23): ExeFolderSettings polish — folder picker を shadcn Button に統一。
+ */
 import { open } from '@tauri-apps/plugin-dialog';
+import { Button } from '$lib/components/ui/button';
 
 interface Props {
 	config: {
@@ -15,6 +19,17 @@ let { config = $bindable() }: Props = $props();
 let watchPath = $derived(config.watch_path ?? '');
 let scanDepth = $derived(config.scan_depth ?? 2);
 let exeFolderTitle = $derived(config.title ?? '');
+
+async function handlePickFolder() {
+	const selected = await open({
+		directory: true,
+		multiple: false,
+		title: '監視するフォルダを選択',
+	});
+	if (selected && !Array.isArray(selected)) {
+		config = { ...config, watch_path: selected };
+	}
+}
 </script>
 
 <div class="space-y-1">
@@ -25,28 +40,13 @@ let exeFolderTitle = $derived(config.title ?? '');
 			type="text"
 			autocomplete="off"
 			placeholder="例: D:\Tools"
-			class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+			class="min-w-0 flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 			value={watchPath}
 			oninput={(e) => {
 				config = { ...config, watch_path: (e.currentTarget as HTMLInputElement).value };
 			}}
 		/>
-		<button
-			type="button"
-			class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]"
-			onclick={async () => {
-				const selected = await open({
-					directory: true,
-					multiple: false,
-					title: '監視するフォルダを選択',
-				});
-				if (selected && !Array.isArray(selected)) {
-					config = { ...config, watch_path: selected };
-				}
-			}}
-		>
-			参照
-		</button>
+		<Button type="button" variant="outline" size="sm" onclick={handlePickFolder}>選択</Button>
 	</div>
 </div>
 <div class="space-y-1">

@@ -1,4 +1,9 @@
 <script lang="ts">
+/**
+ * PH-issue-026 (Issue 23): SystemMonitorSettings polish — 共通 Switch 採用 + clamp 統一。
+ */
+import Switch from '$lib/components/common/Switch.svelte';
+
 interface Props {
 	config: {
 		refresh_interval_ms?: number;
@@ -19,7 +24,9 @@ let smTitle = $derived(config.title ?? '');
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-refresh">更新間隔（ミリ秒、500〜10000）</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-refresh">
+		更新間隔（ミリ秒、500〜10000）
+	</label>
 	<input
 		id="ws-sm-refresh"
 		type="number"
@@ -40,39 +47,36 @@ let smTitle = $derived(config.title ?? '');
 		}}
 	/>
 </div>
-<label class="flex items-center justify-between gap-3 text-sm">
+<div class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">CPU を表示</span>
-	<input
-		type="checkbox"
+	<Switch
 		checked={smShowCpu}
-		onchange={(e) => {
-			config = { ...config, show_cpu: (e.currentTarget as HTMLInputElement).checked };
+		onChange={(v) => {
+			config = { ...config, show_cpu: v };
 		}}
-		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		aria-label="CPU を表示する"
 	/>
-</label>
-<label class="flex items-center justify-between gap-3 text-sm">
+</div>
+<div class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">メモリを表示</span>
-	<input
-		type="checkbox"
+	<Switch
 		checked={smShowMemory}
-		onchange={(e) => {
-			config = { ...config, show_memory: (e.currentTarget as HTMLInputElement).checked };
+		onChange={(v) => {
+			config = { ...config, show_memory: v };
 		}}
-		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		aria-label="メモリを表示する"
 	/>
-</label>
-<label class="flex items-center justify-between gap-3 text-sm">
+</div>
+<div class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">ディスクを表示</span>
-	<input
-		type="checkbox"
+	<Switch
 		checked={smShowDisk}
-		onchange={(e) => {
-			config = { ...config, show_disk: (e.currentTarget as HTMLInputElement).checked };
+		onChange={(v) => {
+			config = { ...config, show_disk: v };
 		}}
-		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		aria-label="ディスクを表示する"
 	/>
-</label>
+</div>
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-title">タイトル</label>
 	<input
