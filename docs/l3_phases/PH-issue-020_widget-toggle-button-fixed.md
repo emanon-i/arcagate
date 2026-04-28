@@ -1,10 +1,14 @@
 ---
 id: PH-issue-020
-title: ウィジット切替ボタン (編集モード) を左上固定 ⚠️ PH-issue-002 で消える可能性
-status: archived-pending-002
+title: ウィジット切替ボタン (編集モード) を左上固定 — PH-issue-002 で superseded
+status: superseded-by-002
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-496 (rollback で revert)
 ---
+
+> **superseded-by-002** (2026-04-28): PH-issue-002 PR #219 で Obsidian Canvas 完全実装に伴い **編集モード自体を撤廃** (常時編集可能・即時保存)。「編集モード切替ボタン」自体が消滅したため、本 plan の固定 UI は不要。
+>
+> 旧来の編集モード操作の一部 (Undo / Redo / Reset / Fit) は §13 規格通り **右下 floating toolbar** に集約済。
 
 # Issue 20: ウィジット切替ボタン位置
 
