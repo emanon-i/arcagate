@@ -164,10 +164,10 @@ let menuItems = $derived(
 			{#each entries as entry (entry.folderPath)}
 				{@const currentExe = resolveExe(entry)}
 				{@const hasOverride = !!config.item_overrides?.[entry.folderPath]}
-				<li class="relative flex items-center gap-1">
+				<li class="relative flex min-w-0 items-center gap-1">
 					<button
 						type="button"
-						class="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
+						class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
 						aria-label="{entry.folderName} を起動"
 						onclick={() => launchEntry(entry)}
 					>

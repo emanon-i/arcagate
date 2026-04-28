@@ -1,7 +1,7 @@
 ---
 id: PH-issue-015
 title: WatchFolder Widget — 名前 + アイコン被り解消 (list-row layout 共通化)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-500 (rollback で revert)
 ---
