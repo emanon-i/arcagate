@@ -20,7 +20,11 @@
         "minWidth": 640,
         "minHeight": 480,
         "decorations": false,
-        "shadow": true
+        "shadow": true,
+        "transparent": true,
+        "windowEffects": {
+          "effects": ["mica"]
+        }
       },
       {
         "label": "palette",

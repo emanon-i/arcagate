@@ -73,8 +73,13 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* PH-issue-008: html / body は transparent にして Tauri windowEffects (Mica) が背景を描画。
+     アプリ root container が surface-0 系で塗るため、Mica は外周 / round corner / 影部分にのみ漏れる。
+     Windows 11 native Mica が effective、他 OS は no-op (背景は通常 surface)。 */
+  html,
   body {
-    @apply bg-background text-foreground;
+    background: transparent;
+    color: var(--ag-text-primary);
     user-select: none;
     -webkit-user-select: none;
   }

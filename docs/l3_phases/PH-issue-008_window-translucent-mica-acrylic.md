@@ -1,7 +1,7 @@
 ---
 id: PH-issue-008
 title: ウィンドウ半透明 — Mica / Acrylic effect (Windows 11)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-476 (window translucent + workspace bg、rollback で revert)
 ---
