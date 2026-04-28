@@ -85,7 +85,7 @@ let menuItems = $derived(
 						onclick={() => void copySnippet(snip)}
 					>
 						<span class="truncate font-medium text-[var(--ag-text-primary)]">{snip.label}</span>
-						<span class="truncate text-[10px] text-[var(--ag-text-muted)]">{snip.body}</span>
+						<span class="truncate text-xs text-[var(--ag-text-muted)]">{snip.body}</span>
 					</button>
 					<button
 						type="button"

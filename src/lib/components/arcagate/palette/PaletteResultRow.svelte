@@ -82,7 +82,7 @@ let display = $derived(getDisplay(entry));
 	<div class="text-right">
 		<div class="text-xs text-[var(--ag-text-muted)]">{display.meta}</div>
 		{#if active}
-			<div class="mt-1 text-[11px] text-[var(--ag-accent-text)]">Enter で起動</div>
+			<div class="mt-1 text-xs text-[var(--ag-accent-text)]">Enter で起動</div>
 		{/if}
 	</div>
 </div>

@@ -97,7 +97,7 @@ const MODES = [
 					onclick={() => configStore.setLibraryCardBackground({ mode: mode.id })}
 				>
 					<span class="text-sm font-medium">{mode.label}</span>
-					<span class="text-[11px] opacity-70">{mode.desc}</span>
+					<span class="text-xs opacity-70">{mode.desc}</span>
 				</button>
 			{/each}
 		</div>
@@ -124,7 +124,7 @@ const MODES = [
 	{#if bg.mode === 'image'}
 		<section class="space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">画像の表示位置 (focal point)</h4>
-			<p class="text-[11px] text-[var(--ag-text-muted)]">画像が切り抜かれるとき、どの位置を中心に残すかを指定します。</p>
+			<p class="text-xs text-[var(--ag-text-muted)]">画像が切り抜かれるとき、どの位置を中心に残すかを指定します。</p>
 			{@render RangeRow(
 				'X (横)',
 				bg.focalX,

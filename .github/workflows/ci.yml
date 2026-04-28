@@ -66,6 +66,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-design-tokens.sh
 
+      - name: Font hardcode audit (PH-issue-007)
+        shell: bash
+        run: bash scripts/audit-font-hardcode.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings

@@ -302,7 +302,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 										{#if !theme.is_builtin}
 											<button
 												type="button"
-												class="rounded px-2 py-0.5 text-[11px] text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+												class="rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 												onclick={() => {
 													if (editingThemeId === theme.id) {
 														editingThemeId = null;
@@ -317,7 +317,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 										{:else}
 											<button
 												type="button"
-												class="flex items-center gap-0.5 rounded px-2 py-0.5 text-[11px] text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+												class="flex items-center gap-0.5 rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 												onclick={() => void cloneTheme(theme.id)}
 											>
 												コピーして編集
@@ -325,7 +325,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 										{/if}
 										<button
 											type="button"
-											class="flex items-center gap-0.5 rounded px-2 py-0.5 text-[11px] text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+											class="flex items-center gap-0.5 rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 											onclick={() => void handleExport(theme.id)}
 										>
 											<Copy class="h-3 w-3" />
@@ -333,7 +333,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 										</button>
 										<button
 											type="button"
-											class="rounded px-2 py-0.5 text-[11px] text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+											class="rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 											onclick={() => handleExportDownload(theme.id)}
 										>
 											DL
@@ -384,7 +384,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 										bind:value={importJson}
 										placeholder={importPlaceholder}
 										rows={4}
-										class="w-full resize-none rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-2 font-mono text-[11px] text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
+										class="w-full resize-none rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-2 font-mono text-xs text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
 									></textarea>
 									{#if importError}
 										<p class="text-xs text-[var(--ag-error-text)]">{importError}</p>

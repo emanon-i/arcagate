@@ -30,7 +30,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 	<!-- セクション 1: 全体 -->
 	<section class="space-y-1.5" data-testid="sidebar-section-all">
 		{#if expanded}
-			<h3 class="px-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+			<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 				ライブラリ全体
 			</h3>
 		{/if}
@@ -61,7 +61,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 			data-testid="sidebar-section-type"
 		>
 			{#if expanded}
-				<h3 class="px-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 					タイプ
 				</h3>
 			{/if}
@@ -85,7 +85,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 			data-testid="sidebar-section-workspace"
 		>
 			{#if expanded}
-				<h3 class="px-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 					ワークスペース
 				</h3>
 			{/if}
@@ -109,7 +109,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 			data-testid="sidebar-section-user"
 		>
 			{#if expanded}
-				<h3 class="px-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 					タグ
 				</h3>
 			{/if}

@@ -251,7 +251,7 @@ const grouped = $derived.by(() => {
 				</button>
 			{/if}
 			{#if isDirty}
-				<span class="rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--ag-warm-text)]">
+				<span class="rounded px-1.5 py-0.5 text-xs font-medium text-[var(--ag-warm-text)]">
 					● 未保存
 				</span>
 			{/if}
@@ -289,7 +289,7 @@ const grouped = $derived.by(() => {
 	<div class="max-h-80 space-y-4 overflow-y-auto pr-1">
 		{#each grouped as [groupKey, vars]}
 			<div>
-				<p class="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+				<p class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 					{groupKey.replace('--ag-', '')}
 				</p>
 				<div class="space-y-1.5">
@@ -297,7 +297,7 @@ const grouped = $derived.by(() => {
 						{@const entryIdx = entries.indexOf(entry)}
 						<div class="flex items-center gap-2">
 							<span
-								class="w-48 shrink-0 truncate text-[11px] text-[var(--ag-text-muted)]"
+								class="w-48 shrink-0 truncate text-xs text-[var(--ag-text-muted)]"
 								title={entry.key}
 							>
 								{entry.key.replace('--ag-', '')}
@@ -321,7 +321,7 @@ const grouped = $derived.by(() => {
 								type="text"
 								value={entry.value}
 								oninput={(e) => handleValueChange(entryIdx, e.currentTarget.value)}
-								class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-0.5 font-mono text-[11px] text-[var(--ag-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
+								class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-0.5 font-mono text-xs text-[var(--ag-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
 							/>
 						</div>
 					{/each}

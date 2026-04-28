@@ -146,7 +146,7 @@ let menuItems = $derived(
 						<div class="space-y-0.5">
 							<div class="flex items-baseline justify-between">
 								<span class="truncate text-[var(--ag-text-primary)]">{d.mount}</span>
-								<span class="shrink-0 tabular-nums text-[10px] text-[var(--ag-text-muted)]">{pct.toFixed(0)}%</span>
+								<span class="shrink-0 tabular-nums text-xs text-[var(--ag-text-muted)]">{pct.toFixed(0)}%</span>
 							</div>
 							<div class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100">
 								<div class="h-full rounded-full bg-[var(--ag-accent)]" style="width: {pct.toFixed(1)}%"></div>
