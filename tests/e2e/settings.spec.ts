@@ -396,4 +396,23 @@ test.describe('設定パネル', () => {
 		// Workspace タブには表示されていないことを確認
 		await expect(workspacePanel.getByText('背景モード', { exact: false })).not.toBeVisible();
 	});
+
+	// PH-issue-019: ウィジェット拡大率 slider 削除 (Ctrl+wheel + Ctrl+0 + Ctrl+Shift+1 統一)
+	test('Workspace タブから拡大率 slider が削除されてキーボード hint が表示される', async ({
+		page,
+	}) => {
+		await openSettingsTab(page, 'ワークスペース');
+		const workspacePanel = page.locator('#settings-panel-workspace');
+
+		// type="range" の slider が存在しないこと
+		await expect(workspacePanel.locator('input[type="range"]')).toHaveCount(0);
+
+		// キーボードショートカット hint が表示されている
+		await expect(workspacePanel.getByText('Ctrl + ホイール', { exact: false })).toBeVisible();
+		await expect(workspacePanel.getByText('Ctrl + 0', { exact: false })).toBeVisible();
+		await expect(workspacePanel.getByText('Ctrl + Shift + 1', { exact: false })).toBeVisible();
+
+		// 現在の拡大率の表示が残っている
+		await expect(workspacePanel.getByText(/現在の拡大率:/)).toBeVisible();
+	});
 });

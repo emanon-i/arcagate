@@ -1,7 +1,7 @@
 ---
 id: PH-issue-019
 title: Settings からウィジェット拡大率 slider 削除 (Ctrl+wheel 統一)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-495 (rollback で revert)
 ---
