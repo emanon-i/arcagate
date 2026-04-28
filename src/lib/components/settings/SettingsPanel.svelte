@@ -208,23 +208,25 @@ function handleNavKeydown(e: KeyboardEvent) {
 					<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
 						ワークスペース
 					</h3>
+					<!-- PH-issue-019: ウィジェット拡大率 slider 削除。Ctrl+wheel + Ctrl+0 + Ctrl+Shift+1 に統一
+					     (Obsidian / Figma 慣習、§13 規約)。configStore.widgetZoom store は維持。 -->
 					<div>
-						<div class="mb-2 flex items-center justify-between">
-							<p class="text-sm font-medium text-[var(--ag-text-primary)]">ウィジェット拡大率</p>
-							<span class="text-sm tabular-nums text-[var(--ag-text-secondary)]"
-								>{configStore.widgetZoom}%</span
-							>
-						</div>
-						<input
-							type="range"
-							min="50"
-							max="200"
-							step="10"
-							value={configStore.widgetZoom}
-							oninput={(e) => configStore.setWidgetZoom(Number(e.currentTarget.value))}
-							class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent-text)]"
-						/>
-						<p class="mt-1.5 text-xs text-[var(--ag-text-muted)]">Ctrl+ホイールでも変更できます</p>
+						<p class="text-sm font-medium text-[var(--ag-text-primary)]">ウィジェットの拡大・縮小</p>
+						<ul class="mt-2 space-y-1 text-xs text-[var(--ag-text-muted)]">
+							<li>
+								<span class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-[var(--ag-text-secondary)]">Ctrl + ホイール</span>
+								— 拡大 / 縮小 (50〜200%)
+							</li>
+							<li>
+								<span class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-[var(--ag-text-secondary)]">Ctrl + 0</span>
+								— 100% にリセット
+							</li>
+							<li>
+								<span class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-[var(--ag-text-secondary)]">Ctrl + Shift + 1</span>
+								— 全体を表示
+							</li>
+						</ul>
+						<p class="mt-2 text-xs tabular-nums text-[var(--ag-text-faint)]">現在の拡大率: {configStore.widgetZoom}%</p>
 					</div>
 					<p class="text-xs text-[var(--ag-text-muted)]">
 						ライブラリカードの設定は <strong class="text-[var(--ag-text-secondary)]">ライブラリ</strong> タブに移動しました。
