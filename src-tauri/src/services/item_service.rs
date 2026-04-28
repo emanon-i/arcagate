@@ -3,7 +3,9 @@ use uuid::Uuid;
 use crate::db::DbState;
 use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
 use crate::models::tag::{self, CreateTagInput, Tag, TagWithCount};
-use crate::repositories::{item_repository, tag_repository, workspace_repository};
+use crate::repositories::{
+    item_repository, tag_repository, widget_item_settings_repository, workspace_repository,
+};
 use crate::utils::error::AppError;
 use crate::utils::icon;
 
@@ -267,25 +269,49 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
         if item_repository::find_by_target(&conn, &target)?.is_some() {
             continue;
         }
-        let label = path
+        let default_label = path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| target.clone());
+        // PH-issue-023 Phase B: 同 path で過去に snapshot された settings があれば resurrect。
+        // (default_app / is_enabled / label override を復元、未設定 default fallback)
+        let prev = widget_item_settings_repository::get(&conn, &target)?;
+        let (label, is_enabled, default_app) = match &prev {
+            Some(row) => {
+                let parsed: serde_json::Value =
+                    serde_json::from_str(&row.settings_json).unwrap_or(serde_json::json!({}));
+                let restored_label = parsed
+                    .get("label")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| default_label.clone());
+                let restored_enabled = parsed
+                    .get("is_enabled")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(true);
+                let restored_default_app = parsed
+                    .get("default_app")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                (restored_label, restored_enabled, restored_default_app)
+            }
+            None => (default_label, true, None),
+        };
         let id = Uuid::now_v7().to_string();
         let item = Item {
             id: id.clone(),
             item_type: crate::models::item::ItemType::Folder,
             label,
-            target,
+            target: target.clone(),
             args: None,
             working_dir: None,
             icon_path: None,
             icon_type: None,
             aliases: vec![],
             sort_order: 0,
-            is_enabled: true,
+            is_enabled,
             is_tracked: true,
-            default_app: None,
+            default_app,
             card_override_json: None,
             created_at: String::new(),
             updated_at: String::new(),
@@ -294,6 +320,10 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
         let sys_tag_id =
             crate::models::tag::sys_type_tag_id(&crate::models::item::ItemType::Folder);
         item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+        // PH-issue-023 Phase B: settings が存在した場合は last_seen_at を update (auto-prune 防止)。
+        if prev.is_some() {
+            widget_item_settings_repository::touch_seen(&conn, &target)?;
+        }
         registered.push(item_repository::find_by_id(&conn, &id)?);
     }
     Ok(registered)

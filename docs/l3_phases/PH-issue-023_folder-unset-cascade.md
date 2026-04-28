@@ -1,7 +1,7 @@
 ---
 id: PH-issue-023
 title: フォルダ監視 unset で Library item 削除 + per-item settings 永続 (案 C)
-status: done-phase-a
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-504 (per-item settings、rollback で revert、migration 019 orphan column 残存)
 ---
