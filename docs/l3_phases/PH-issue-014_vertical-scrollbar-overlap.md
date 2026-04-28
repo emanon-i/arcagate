@@ -1,7 +1,7 @@
 ---
 id: PH-issue-014
 title: 縦スクロールバーが widget content と被らない (scrollbar-gutter 慎重)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-489 (rollback で revert) — batch-108 劣化要因 #5 候補
 ---
