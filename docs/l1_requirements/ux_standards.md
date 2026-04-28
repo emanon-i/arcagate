@@ -519,6 +519,20 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 **Workspace は常時編集可能**。旧「編集モード」toggle は廃止。すべての pointer-up / config 変更で即 IPC + DB 反映。
 誤操作回復は **Undo / Redo** で行う (P2 失敗は前提で立て直し)。
 
+### Widget 同士は重ならない (PH-issue-003)
+
+**全経路で overlap reject、auto-rearrange / (0,0) fallback 禁止**。
+
+| 経路                       | 動作                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| panel click 追加           | `findFreePosition` で空き探索、null なら toast「空きスペースがありません」+ 追加せず              |
+| drag 追加 (sidebar → 座標) | `wouldOverlapAt(x, y)` で overlap → toast「他のウィジェットと重なるため配置できません」+ 追加せず |
+| 移動 (drag bar)            | overlap → toast「他のウィジェットと重なるため移動できません」+ 元位置維持                         |
+| リサイズ (handle)          | `clampResizeForOverlap` で rubber-band (重ならない最大に丸める)                                   |
+
+実装: `src/lib/utils/widget-grid.ts` の `wouldOverlapAt` / `findFreePosition` (null 返却版) を全経路が呼ぶ。
+`src/lib/state/workspace.svelte.ts` の `addWidget` / `addWidgetAt` / `moveWidget` がそれぞれ overlap check して toast 経由で fail。
+
 ### Obsidian 入力マッピング (全装備)
 
 | 入力                            | 動作                                                         | 実装                                                                  |
