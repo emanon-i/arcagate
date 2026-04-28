@@ -31,6 +31,9 @@ use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
 };
 use commands::metadata_commands::cmd_get_item_metadata;
+use commands::opener_commands::{
+    cmd_delete_opener, cmd_launch_with_opener, cmd_list_openers, cmd_save_opener,
+};
 use commands::system_monitor_commands::{cmd_get_disk_stats, cmd_get_system_stats};
 use commands::theme_commands::{
     cmd_create_theme, cmd_delete_theme, cmd_export_theme_json, cmd_get_active_theme_mode,
@@ -283,6 +286,10 @@ pub fn run() {
             cmd_set_telemetry_opt_in,
             cmd_get_crash_report_opt_in,
             cmd_set_crash_report_opt_in,
+            cmd_list_openers,
+            cmd_save_opener,
+            cmd_delete_opener,
+            cmd_launch_with_opener,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -16,7 +16,7 @@ import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
 	widget?: WorkspaceWidget;
-	onItemContext?: (itemId: string) => void;
+	onItemContext?: (itemId: string, ev?: MouseEvent) => void;
 }
 
 let { widget, onItemContext }: Props = $props();
@@ -71,7 +71,7 @@ let menuItems = $derived(
 			oncontextmenu={(e) => {
 				if (onItemContext && pinnedItem) {
 					e.preventDefault();
-					onItemContext(pinnedItem.id);
+					onItemContext(pinnedItem.id, e);
 				}
 			}}
 		>

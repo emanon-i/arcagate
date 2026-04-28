@@ -15,7 +15,11 @@ interface Props {
 	selectedWidgetId: string | null;
 	deleteConfirmId: string | null;
 	editMode?: boolean;
-	onItemContext: (itemId: string) => void;
+	/**
+	 * PH-issue-024: 第 2 引数 ev で context menu の表示位置を取る (clientX/Y)。
+	 * 旧 callback 互換のため引数 1 個でも呼べるが、新規実装は ev を受け取って x/y で popup 位置を決める。
+	 */
+	onItemContext: (itemId: string, ev?: MouseEvent) => void;
 	onSelectedWidgetIdChange: (id: string | null) => void;
 	onDeleteConfirmIdChange: (id: string | null) => void;
 }

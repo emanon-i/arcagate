@@ -10,6 +10,7 @@ import AutostartToggle from './AutostartToggle.svelte';
 import ExportImport from './ExportImport.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
+import OpenerSettings from './OpenerSettings.svelte';
 import PrivacySettings from './PrivacySettings.svelte';
 import UpdaterSettings from './UpdaterSettings.svelte';
 import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
@@ -245,6 +246,9 @@ function handleNavKeydown(e: KeyboardEvent) {
 					<LibraryCardSettings />
 					<div class="border-t border-[var(--ag-border)] pt-5">
 						<WatchedFoldersSettings />
+					</div>
+					<div class="border-t border-[var(--ag-border)] pt-5">
+						<OpenerSettings />
 					</div>
 				</div>
 			{:else if activeCategory === 'appearance'}

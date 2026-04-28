@@ -5,6 +5,7 @@ use crate::launcher;
 use crate::models::item::ItemType;
 use crate::models::launch::{ItemStats, LaunchLog};
 use crate::repositories::{item_repository, launch_repository};
+use crate::services::opener_service;
 use crate::utils::error::AppError;
 
 /// path / 拡張子の事前検証 (Nielsen H9: launch 失敗の原因分類)
@@ -60,7 +61,19 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
             item.working_dir.as_deref(),
         ),
         ItemType::Url => launcher::launch_url(&item.target),
-        ItemType::Folder => launch_folder_with_app(&item.target, item.default_app.as_deref()),
+        // PH-issue-024: opener registry 経由で resolve。default_app に opener_id が入る、
+        // null の場合は Explorer fallback。legacy 値 ("vscode" / "terminal") は normalize で吸収。
+        ItemType::Folder => {
+            let opener_id = normalize_legacy_default_app(item.default_app.as_deref());
+            // legacy custom path (e.g. "C:/path/to/editor.exe") は opener_id でも builtin/user prefix
+            // でもない → そのまま EXE として起動 (後方互換)
+            if !opener_id.starts_with("builtin:") && !opener_id.starts_with("user:") {
+                launcher::launch_exe_args(&opener_id, &[&item.target], None)
+            } else {
+                let opener = opener_service::resolve_with_conn(&conn, &opener_id)?;
+                opener_service::launch_with(&opener, &item.target)
+            }
+        }
         ItemType::Script => launcher::launch_script(
             &item.target,
             item.args.as_deref(),
@@ -82,12 +95,22 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
     result
 }
 
-fn launch_folder_with_app(path: &str, default_app: Option<&str>) -> Result<(), AppError> {
+/// PH-issue-024: legacy default_app 値 ("vscode" / "terminal") を opener_id に正規化。
+/// 既存 DB に保存された値の後方互換 (旧 PH-003-M で導入された WatchFolder の default_app)。
+/// 新規保存は opener_id ("builtin:vscode" 等) を直接書く。
+fn normalize_legacy_default_app(default_app: Option<&str>) -> String {
     match default_app {
-        Some("vscode") => launcher::launch_exe_args("code", &[path], None),
-        Some("terminal") => launcher::launch_exe_args("wt", &["-d", path], None),
-        Some(custom) => launcher::launch_exe_args(custom, &[path], None),
-        None => launcher::launch_folder(path),
+        None | Some("") | Some("explorer") => "builtin:explorer".to_string(),
+        Some("vscode") => "builtin:vscode".to_string(),
+        Some("terminal") | Some("wt") => "builtin:wt".to_string(),
+        Some("powershell") => "builtin:powershell".to_string(),
+        Some("cmd") => "builtin:cmd".to_string(),
+        Some(other) if other.starts_with("builtin:") || other.starts_with("user:") => {
+            other.to_string()
+        }
+        // legacy custom path e.g. "C:/path/to/editor.exe" → 一時 opener として実行
+        // (未登録 opener_id は resolve で explorer fallback されるため、別経路で処理)
+        Some(other) => other.to_string(),
     }
 }
 

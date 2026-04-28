@@ -16,7 +16,7 @@ import { parseWidgetConfig } from '$lib/utils/widget-config';
 
 interface Props {
 	widget?: WorkspaceWidget;
-	onItemContext?: (itemId: string) => void;
+	onItemContext?: (itemId: string, ev?: MouseEvent) => void;
 }
 
 let { widget, onItemContext }: Props = $props();
