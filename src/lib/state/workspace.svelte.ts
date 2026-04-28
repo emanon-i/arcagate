@@ -1,7 +1,9 @@
 import * as workspaceIpc from '$lib/ipc/workspace';
+import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { findFreePosition, type Rect, wouldOverlapAt } from '$lib/utils/widget-grid';
 
 let workspaces = $state<Workspace[]>([]);
 let activeWorkspaceId = $state<string | null>(null);
@@ -11,43 +13,17 @@ let error = $state<string | null>(null);
 
 const activeWorkspace = $derived(workspaces.find((w) => w.id === activeWorkspaceId) ?? null);
 
-/** AABB overlap check: does rect (x, y, w, h) overlap any widget in the list? */
-function isOverlapping(
-	x: number,
-	y: number,
-	w: number,
-	h: number,
-	others: WorkspaceWidget[],
-): boolean {
-	return others.some(
-		(ww) =>
-			x < ww.position_x + ww.width &&
-			x + w > ww.position_x &&
-			y < ww.position_y + ww.height &&
-			y + h > ww.position_y,
-	);
-}
-
 /**
- * Find the first free grid position for a widget of size w x h.
- * Scans top-to-bottom, left-to-right in a virtual grid.
- * gridCols is the number of columns in the auto-fill grid (default 4).
+ * PH-issue-003: 配置 / 移動の overlap 判定は `$lib/utils/widget-grid` の純粋関数に統一。
+ * 旧 (0,0) fallback バグ排除のため `findFreePosition` は null 返却版を使う。
  */
-function findFreePosition(
-	existingWidgets: WorkspaceWidget[],
-	w: number,
-	h: number,
-	gridCols = 4,
-): { x: number; y: number } {
-	const maxY = Math.max(10, ...existingWidgets.map((ww) => ww.position_y + ww.height)) + h;
+const DEFAULT_GRID_COLS = 4;
+const DEFAULT_MAX_ROW = 32;
 
-	for (let y = 0; y < maxY; y++) {
-		for (let x = 0; x <= gridCols - w; x++) {
-			if (!isOverlapping(x, y, w, h, existingWidgets)) return { x, y };
-		}
-	}
-	// Fallback: place below everything
-	return { x: 0, y: maxY };
+function widgetsToRects(list: WorkspaceWidget[], excludeId?: string): Rect[] {
+	return list
+		.filter((w) => (excludeId ? w.id !== excludeId : true))
+		.map((w) => ({ x: w.position_x, y: w.position_y, w: w.width, h: w.height }));
 }
 
 async function loadWorkspaces(): Promise<void> {
@@ -149,14 +125,20 @@ async function addWidget(widgetType: WidgetType): Promise<void> {
 	loading = true;
 	error = null;
 	try {
-		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
-		// Auto-place at first free position
-		const pos = findFreePosition(widgets, widget.width, widget.height);
-		if (pos.x !== widget.position_x || pos.y !== widget.position_y) {
-			await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
-			widget.position_x = pos.x;
-			widget.position_y = pos.y;
+		// PH-issue-003: IPC 発行**前に** 空き position を求める。空きなしなら toast + 早期 return
+		// (旧 (0,0) fallback で既存 widget と重なるバグの根本対策)。
+		// 新規 widget のデフォルトサイズは Rust 側 (`workspace_service::add_widget`) と一致させる (2x2)
+		const w = 2;
+		const h = 2;
+		const pos = findFreePosition(w, h, widgetsToRects(widgets), DEFAULT_GRID_COLS, DEFAULT_MAX_ROW);
+		if (pos === null) {
+			toastStore.add('空きスペースがありません。既存ウィジェットを縮小・削除してください', 'error');
+			return;
 		}
+		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
+		await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
+		widget.position_x = pos.x;
+		widget.position_y = pos.y;
 		widgets = [...widgets, widget];
 		// PH-issue-002: history record (add)
 		workspaceHistory.record({
@@ -179,6 +161,15 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 	loading = true;
 	error = null;
 	try {
+		// PH-issue-003: 指定セルが overlap なら拒否 + toast。別セルへの auto-rearrange は廃止
+		// (user fb 「単純に重ならない」)。
+		// 新規 widget のデフォルトサイズは Rust 側 (`workspace_service::add_widget`) と一致させる (2x2)
+		const w = 2;
+		const h = 2;
+		if (wouldOverlapAt(x, y, w, h, widgetsToRects(widgets))) {
+			toastStore.add('他のウィジェットと重なるため配置できません', 'error');
+			return;
+		}
 		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
 		await workspaceIpc.updateWidgetPosition(widget.id, x, y, widget.width, widget.height);
 		widget.position_x = x;
@@ -289,26 +280,20 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 		h: target.height,
 	};
 
-	// Check for overlap at target position
-	const othersWithout = widgets.filter((w) => w.id !== id);
-	const finalPos = isOverlapping(x, y, target.width, target.height, othersWithout)
-		? findFreePosition(othersWithout, target.width, target.height)
-		: { x, y };
+	// PH-issue-003: 移動先 overlap なら拒否 + toast、auto-rearrange 廃止
+	// (user fb 「単純に重ならない」)。
+	const others = widgetsToRects(widgets, id);
+	if (wouldOverlapAt(x, y, target.width, target.height, others)) {
+		toastStore.add('他のウィジェットと重なるため移動できません', 'error');
+		return;
+	}
 
 	// Optimistic local update
-	widgets = widgets.map((w) =>
-		w.id === id ? { ...w, position_x: finalPos.x, position_y: finalPos.y } : w,
-	);
+	widgets = widgets.map((w) => (w.id === id ? { ...w, position_x: x, position_y: y } : w));
 	try {
-		await workspaceIpc.updateWidgetPosition(
-			id,
-			finalPos.x,
-			finalPos.y,
-			target.width,
-			target.height,
-		);
+		await workspaceIpc.updateWidgetPosition(id, x, y, target.width, target.height);
 		// PH-issue-002: history record (move) — 位置変化があれば積む
-		const after = { x: finalPos.x, y: finalPos.y, w: target.width, h: target.height };
+		const after = { x, y, w: target.width, h: target.height };
 		if (before.x !== after.x || before.y !== after.y) {
 			workspaceHistory.record({ kind: 'move', widgetId: id, before, after });
 		}

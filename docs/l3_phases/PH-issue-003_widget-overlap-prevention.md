@@ -1,7 +1,7 @@
 ---
 id: PH-issue-003
 title: Widget 同士の重なり回避 — 配置 / リサイズ / 移動全経路で重なり拒否
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 既存 `clampResizeForOverlap` (リサイズ時のみ有効)、移動 / 追加経路は overlap 検出が部分的
 ---
