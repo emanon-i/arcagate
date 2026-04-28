@@ -1,15 +1,11 @@
 <script lang="ts">
-import { LayoutGrid } from '@lucide/svelte';
-import Tip from '$lib/components/arcagate/common/Tip.svelte';
+import { LayoutGrid, Maximize2, Redo2, RotateCcw as ResetIcon, Undo2 } from '@lucide/svelte';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
-import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
-import EmptyState from '$lib/components/common/EmptyState.svelte';
-import * as workspaceIpc from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
-import { clampWidget } from '$lib/utils/widget-grid';
+import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
 import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
@@ -17,6 +13,29 @@ import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
 import WorkspaceSidebar from './WorkspaceSidebar.svelte';
 import WorkspaceWidgetGrid from './WorkspaceWidgetGrid.svelte';
+
+/**
+ * PH-issue-002: Obsidian Canvas 完全実装。
+ *
+ * 引用元 guideline:
+ * - docs/l1_requirements/ux_standards.md §13 Workspace Canvas 編集 UX
+ * - docs/l1_requirements/ux_design_vision.md §2-3 モーション 3 原則
+ * - docs/desktop_ui_ux_agent_rules.md P5 (OS / Obsidian 慣習) / P2 (Undo) / P10 (熟練者効率)
+ * - CLAUDE.md「設定変えたら即見た目が変わる、遅延反映は欠陥」
+ *
+ * 編集モード撤廃 + 即時保存 + Undo/Redo + Obsidian 入力マッピング全装備:
+ * - 通常 wheel: 縦 scroll (ブラウザ標準)
+ * - Shift + wheel: 横 scroll (useWidgetZoom 内 handler)
+ * - 中ボタン drag: 自由 pan
+ * - Space + 左 drag: 自由 pan
+ * - Ctrl + wheel: zoom (useWidgetZoom)
+ * - Ctrl + 0: zoom 100% リセット
+ * - Ctrl + Shift + 1: Fit to content
+ * - Ctrl + Z: Undo
+ * - Ctrl + Shift + Z / Ctrl + Y: Redo
+ * - Delete / Backspace: 選択 widget 削除確認
+ * - Esc: 選択解除
+ */
 
 interface Props {
 	onEditItem?: (id: string) => void;
@@ -30,11 +49,7 @@ $effect(() => {
 	void workspaceStore.loadWorkspaces();
 });
 
-type WidgetSnapshot = { id: string; x: number; y: number; w: number; h: number };
-
-let editMode = $state(false);
 let selectedWidgetId = $state<string | null>(null);
-let editSnapshot = $state<WidgetSnapshot[]>([]);
 let renameOpen = $state(false);
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
@@ -54,23 +69,20 @@ $effect(() => {
 	return () => ro.disconnect();
 });
 
-// PH-305 Canvas パン: 中ボタン drag / Space + 左 drag
+// 中ボタン drag / Space + 左 drag (PH-issue-002)
 let panActive = $state(false);
 let panSpacePressed = $state(false);
 let panStart = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 };
 
+function isEditableTarget(target: EventTarget | null): boolean {
+	const el = target as HTMLElement | null;
+	return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+}
+
 $effect(() => {
 	function onKeyDown(e: KeyboardEvent) {
 		if (e.code !== 'Space') return;
-		const target = e.target as HTMLElement | null;
-		if (
-			target?.tagName === 'INPUT' ||
-			target?.tagName === 'TEXTAREA' ||
-			target?.isContentEditable
-		) {
-			return;
-		}
-		if (!editMode) return;
+		if (isEditableTarget(e.target)) return;
 		e.preventDefault();
 		panSpacePressed = true;
 		if (workspaceContainer && !panActive) {
@@ -94,7 +106,7 @@ $effect(() => {
 });
 
 function onCanvasPointerDown(e: PointerEvent) {
-	if (!editMode || !workspaceContainer) return;
+	if (!workspaceContainer) return;
 	const isMiddle = e.button === 1;
 	const isSpaceLeft = e.button === 0 && panSpacePressed;
 	if (!isMiddle && !isSpaceLeft) return;
@@ -123,28 +135,61 @@ function onCanvasPointerUp(e: PointerEvent) {
 	workspaceContainer.style.cursor = panSpacePressed ? 'grab' : '';
 }
 
-// PH-307 Del キーで選択中ウィジェット削除（編集モード時のみ）
+// keyboard: Delete/Backspace (削除) / Esc (選択解除) / Ctrl+Z/Y/0/Shift+1
 $effect(() => {
 	function onKeyDown(e: KeyboardEvent) {
-		if (!editMode) return;
-		if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-		const target = e.target as HTMLElement | null;
-		if (
-			target?.tagName === 'INPUT' ||
-			target?.tagName === 'TEXTAREA' ||
-			target?.isContentEditable
-		) {
+		if (isEditableTarget(e.target)) return;
+		// Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y
+		if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+			e.preventDefault();
+			void workspaceStore.undo();
 			return;
 		}
-		if (selectedWidgetId) {
-			deleteConfirmId = selectedWidgetId;
+		if (
+			(e.ctrlKey || e.metaKey) &&
+			((e.shiftKey && e.key.toLowerCase() === 'z') || (!e.shiftKey && e.key.toLowerCase() === 'y'))
+		) {
+			e.preventDefault();
+			void workspaceStore.redo();
+			return;
+		}
+		// Ctrl+0: zoom 100% reset
+		if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === '0') {
+			e.preventDefault();
+			zoom.resetZoom();
+			return;
+		}
+		// Ctrl+Shift+1: Fit to content
+		if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '!') {
+			// Shift+1 で '!' になる ASCII 環境向け
+			e.preventDefault();
+			zoom.fitToContent(workspaceStore.widgets);
+			return;
+		}
+		if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '1') {
+			e.preventDefault();
+			zoom.fitToContent(workspaceStore.widgets);
+			return;
+		}
+		// Esc: 選択解除
+		if (e.key === 'Escape' && selectedWidgetId && !deleteConfirmId && !renameOpen) {
+			e.preventDefault();
+			selectedWidgetId = null;
+			return;
+		}
+		// Delete/Backspace: 選択 widget 削除確認
+		if (e.key === 'Delete' || e.key === 'Backspace') {
+			if (selectedWidgetId && !deleteConfirmId && !renameOpen) {
+				e.preventDefault();
+				deleteConfirmId = selectedWidgetId;
+			}
 		}
 	}
 	window.addEventListener('keydown', onKeyDown);
 	return () => window.removeEventListener('keydown', onKeyDown);
 });
 
-// ウィジェットが占める最大列数（ウィンドウが狭くなっても下回らせない）
+// ウィジェットが占める最大列数
 let minGridCols = $derived(
 	workspaceStore.widgets.length > 0
 		? Math.max(1, ...workspaceStore.widgets.map((w) => w.position_x + w.width))
@@ -173,90 +218,6 @@ function confirmRename(name: string) {
 	renameOpen = false;
 }
 
-function startEdit() {
-	editMode = true;
-	selectedWidgetId = null;
-	editSnapshot = workspaceStore.widgets.map((w) => ({
-		id: w.id,
-		x: w.position_x,
-		y: w.position_y,
-		w: w.width,
-		h: w.height,
-	}));
-}
-
-function confirmEdit() {
-	editMode = false;
-	selectedWidgetId = null;
-	editSnapshot = [];
-}
-
-function hasUnsavedChanges(): boolean {
-	if (editSnapshot.length === 0) return false;
-	const snapshotIds = new Set(editSnapshot.map((s) => s.id));
-	const liveIds = new Set(workspaceStore.widgets.map((w) => w.id));
-	if (snapshotIds.size !== liveIds.size) return true;
-	for (const id of snapshotIds) {
-		if (!liveIds.has(id)) return true;
-	}
-	for (const snap of editSnapshot) {
-		const live = workspaceStore.widgets.find((w) => w.id === snap.id);
-		if (!live) return true;
-		if (
-			live.position_x !== snap.x ||
-			live.position_y !== snap.y ||
-			live.width !== snap.w ||
-			live.height !== snap.h
-		) {
-			return true;
-		}
-	}
-	return false;
-}
-
-let cancelConfirmOpen = $state(false);
-
-function cancelEdit() {
-	if (hasUnsavedChanges()) {
-		cancelConfirmOpen = true;
-		return;
-	}
-	editMode = false;
-	selectedWidgetId = null;
-	void doRestoreSnapshot();
-}
-
-function confirmCancel() {
-	cancelConfirmOpen = false;
-	editMode = false;
-	selectedWidgetId = null;
-	void doRestoreSnapshot();
-}
-
-function dismissCancel() {
-	cancelConfirmOpen = false;
-}
-
-async function doRestoreSnapshot() {
-	const snapshot = editSnapshot;
-	editSnapshot = [];
-	const snapshotIds = new Set(snapshot.map((s) => s.id));
-	// 編集中に追加されたウィジェットを削除
-	for (const w of workspaceStore.widgets) {
-		if (!snapshotIds.has(w.id)) {
-			await workspaceIpc.removeWidget(w.id);
-		}
-	}
-	// 元の位置・サイズに戻す
-	for (const snap of snapshot) {
-		await workspaceIpc.updateWidgetPosition(snap.id, snap.x, snap.y, snap.w, snap.h);
-	}
-	if (workspaceStore.activeWorkspaceId) {
-		void workspaceStore.loadWidgets(workspaceStore.activeWorkspaceId);
-	}
-}
-
-// widget components は widgetRegistry から派生（batch-83 PH-370）
 const widgetComponents = Object.fromEntries(
 	Object.entries(widgetRegistry).map(([type, meta]) => [type, meta.Component]),
 );
@@ -268,34 +229,7 @@ function handleItemContext(itemId: string) {
 let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
 </script>
 
-<svelte:window
-	onkeydown={(e) => {
-		if (!editMode) return;
-		if (e.key === 'Escape') {
-			if (deleteConfirmId) {
-				// 削除確認ダイアログが開いている場合はダイアログを閉じる（cancelEdit はしない）
-				deleteConfirmId = null;
-			} else if (!renameOpen) {
-				cancelEdit();
-			}
-			// renameOpen の場合はダイアログ内 autofocus input が ESC を処理
-		} else if (e.key === 'Enter' && !deleteConfirmId && !renameOpen) {
-			e.preventDefault();
-			confirmEdit();
-		}
-		if (
-			(e.key === 'Delete' || e.key === 'Backspace') &&
-			selectedWidgetId &&
-			!deleteConfirmId &&
-			!renameOpen
-		) {
-			e.preventDefault();
-			deleteConfirmId = selectedWidgetId;
-		}
-	}}
-/>
-
-<!-- Pointer drag ghost (follows cursor while dragging sidebar widget or moving widget) -->
+<!-- Pointer drag ghost -->
 {#if pointerDrag.active}
 	<div
 		class="pointer-events-none fixed z-[999] flex items-center justify-center rounded-lg opacity-80 shadow-lg"
@@ -312,50 +246,38 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 {/if}
 
 <div class="relative flex h-full">
-	<WorkspaceHintBar {editMode} {selectedWidgetId} />
+	<WorkspaceHintBar editMode={true} {selectedWidgetId} />
 
-	<WorkspaceSidebar
-		{editMode}
-		onToggleEdit={startEdit}
-		onConfirmEdit={confirmEdit}
-		onCancelEdit={cancelEdit}
-	/>
+	<WorkspaceSidebar />
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable] p-5 {editMode ? 'canvas-edit-mode' : ''}"
-		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: {editMode
-			? 'radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'
-			: 'linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%)'}; background-size: {editMode
-			? '24px 24px, 100% 100%'
-			: '100% 100%'};"
+		class="canvas-edit-mode relative min-w-0 flex-1 overflow-auto p-5 [scrollbar-gutter:stable]"
+		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%); background-size: 24px 24px, 100% 100%;"
 		data-zoom={configStore.widgetZoom}
 		bind:this={workspaceContainer}
 		onpointerdown={onCanvasPointerDown}
 		onpointermove={onCanvasPointerMove}
 		onpointerup={onCanvasPointerUp}
 	>
-		<div class="mb-5" class:pointer-events-none={editMode} class:opacity-50={editMode}>
+		<div class="mb-5">
 			<PageTabBar onSelectWorkspace={handleSelectWorkspace} onRenameActive={() => (renameOpen = true)} />
 		</div>
 
-		{#if !editMode}
-			<div class="mb-4">
-				<Tip tone="accent" tipId="workspace-home-tip">
-					このページはホームです。よく使うものをまとめて配置できます。
-				</Tip>
-			</div>
-		{/if}
-
 		<div class="flex gap-4">
 			<div class="min-w-0 flex-1">
-				{#if editMode}
-					<div class="mb-4">
-						<Tip tone="accent" tipId="workspace-edit-guide">
-							クリックで選択、ドラッグで移動、右下のハンドルでリサイズ、ゴミ箱で削除できます。
-						</Tip>
+				{#if workspaceStore.widgets.length === 0}
+					<!-- 空状態: widget 追加促し (sidebar が常時開いてるので追加可能) -->
+					<div class="mt-12 flex flex-col items-center justify-center gap-2 text-center">
+						<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
+						<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
+							ウィジェットを追加しましょう
+						</p>
+						<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
+							左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
+						</p>
 					</div>
-
+				{:else}
 					<WorkspaceWidgetGrid
 						{dynamicCols}
 						{maxRow}
@@ -364,36 +286,10 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						{widgetComponents}
 						{selectedWidgetId}
 						{deleteConfirmId}
-						{editMode}
+						editMode={true}
 						onItemContext={handleItemContext}
 						onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
 						onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
-					/>
-				{:else if workspaceStore.widgets.length > 0}
-					<div
-						style="display: grid; grid-template-columns: repeat({dynamicCols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
-					>
-						{#each workspaceStore.widgets as widget (widget.id)}
-							{@const WidgetComp =
-								widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
-							{@const clamped = clampWidget(widget, dynamicCols)}
-							{#if WidgetComp}
-								<div
-									style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y +
-										1} / span {widget.height};"
-								>
-									<WidgetComp {widget} onItemContext={handleItemContext} />
-								</div>
-							{/if}
-						{/each}
-					</div>
-				{:else}
-					<EmptyState
-						icon={LayoutGrid}
-						title="ウィジェットを追加しましょう"
-						description="編集モードに入って『+』からよく使うものを並べてください"
-						action={{ label: "編集モード開始", onClick: startEdit }}
-						testId="workspace-empty-state"
 					/>
 				{/if}
 			</div>
@@ -408,6 +304,56 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 				</div>
 			{/if}
 		</div>
+	</div>
+
+	<!-- 右下 floating toolbar (Undo / Redo / zoom% / Reset / Fit) -->
+	<div
+		class="absolute bottom-4 right-4 z-30 flex items-center gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 shadow-[var(--ag-shadow-md,0_4px_12px_rgba(0,0,0,0.15))]"
+		data-testid="canvas-toolbar"
+	>
+		<button
+			type="button"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			aria-label="元に戻す"
+			disabled={!workspaceHistory.canUndo}
+			onclick={() => void workspaceStore.undo()}
+		>
+			<Undo2 class="h-4 w-4" />
+		</button>
+		<button
+			type="button"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			aria-label="やり直し"
+			disabled={!workspaceHistory.canRedo}
+			onclick={() => void workspaceStore.redo()}
+		>
+			<Redo2 class="h-4 w-4" />
+		</button>
+
+		<div class="mx-1 h-5 w-px bg-[var(--ag-border)]"></div>
+
+		<button
+			type="button"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			aria-label="拡大率を 100% にリセット"
+			onclick={() => zoom.resetZoom()}
+		>
+			<ResetIcon class="h-4 w-4" />
+		</button>
+		<span
+			class="px-1 text-xs tabular-nums text-[var(--ag-text-muted)]"
+			data-testid="zoom-percent"
+		>
+			{configStore.widgetZoom}%
+		</span>
+		<button
+			type="button"
+			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			aria-label="全体を表示"
+			onclick={() => zoom.fitToContent(workspaceStore.widgets)}
+		>
+			<Maximize2 class="h-4 w-4" />
+		</button>
 	</div>
 </div>
 
@@ -425,15 +371,4 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	currentName={currentWorkspaceName}
 	onConfirm={confirmRename}
 	onCancel={() => (renameOpen = false)}
-/>
-
-<ConfirmDialog
-	open={cancelConfirmOpen}
-	title="編集を破棄しますか？"
-	description="未確定の変更があります。破棄するとレイアウト変更は失われます。"
-	confirmLabel="破棄する"
-	cancelLabel="編集に戻る"
-	confirmVariant="destructive"
-	onConfirm={confirmCancel}
-	onCancel={dismissCancel}
 />

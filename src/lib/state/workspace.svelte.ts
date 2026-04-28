@@ -1,4 +1,5 @@
 import * as workspaceIpc from '$lib/ipc/workspace';
+import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 
@@ -157,6 +158,15 @@ async function addWidget(widgetType: WidgetType): Promise<void> {
 			widget.position_y = pos.y;
 		}
 		widgets = [...widgets, widget];
+		// PH-issue-002: history record (add)
+		workspaceHistory.record({
+			kind: 'add',
+			workspaceId: activeWorkspaceId,
+			widgetId: widget.id,
+			widgetType,
+			rect: { x: widget.position_x, y: widget.position_y, w: widget.width, h: widget.height },
+			config: widget.config,
+		});
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -174,6 +184,15 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 		widget.position_x = x;
 		widget.position_y = y;
 		widgets = [...widgets, widget];
+		// PH-issue-002: history record (add)
+		workspaceHistory.record({
+			kind: 'add',
+			workspaceId: activeWorkspaceId,
+			widgetId: widget.id,
+			widgetType,
+			rect: { x, y, w: widget.width, h: widget.height },
+			config: widget.config,
+		});
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -184,9 +203,27 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 async function removeWidget(id: string): Promise<void> {
 	loading = true;
 	error = null;
+	const target = widgets.find((w) => w.id === id);
+	const wsId = activeWorkspaceId;
 	try {
 		await workspaceIpc.removeWidget(id);
 		widgets = widgets.filter((w) => w.id !== id);
+		// PH-issue-002: history record (remove)
+		if (target && wsId) {
+			workspaceHistory.record({
+				kind: 'remove',
+				workspaceId: wsId,
+				widgetId: id,
+				widgetType: target.widget_type,
+				rect: {
+					x: target.position_x,
+					y: target.position_y,
+					w: target.width,
+					h: target.height,
+				},
+				config: target.config,
+			});
+		}
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -208,10 +245,15 @@ async function persistWidgetOrder(orderedWidgets: WorkspaceWidget[]): Promise<vo
 }
 
 async function updateWidgetConfig(id: string, config: string | null): Promise<void> {
+	const before = widgets.find((w) => w.id === id)?.config ?? null;
 	try {
 		error = null;
 		const updated = await workspaceIpc.updateWidgetConfig(id, config);
 		widgets = widgets.map((w) => (w.id === id ? updated : w));
+		// PH-issue-002: history record (config 変更)
+		if (before !== config) {
+			workspaceHistory.record({ kind: 'config', widgetId: id, before, after: config });
+		}
 	} catch (e) {
 		error = getErrorMessage(e);
 	}
@@ -240,6 +282,13 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 	if (!target) return;
 	error = null;
 
+	const before = {
+		x: target.position_x,
+		y: target.position_y,
+		w: target.width,
+		h: target.height,
+	};
+
 	// Check for overlap at target position
 	const othersWithout = widgets.filter((w) => w.id !== id);
 	const finalPos = isOverlapping(x, y, target.width, target.height, othersWithout)
@@ -258,6 +307,11 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 			target.width,
 			target.height,
 		);
+		// PH-issue-002: history record (move) — 位置変化があれば積む
+		const after = { x: finalPos.x, y: finalPos.y, w: target.width, h: target.height };
+		if (before.x !== after.x || before.y !== after.y) {
+			workspaceHistory.record({ kind: 'move', widgetId: id, before, after });
+		}
 	} catch (e) {
 		error = getErrorMessage(e);
 		// Rollback
@@ -300,6 +354,166 @@ async function persistMoveAndResize(
 	}
 }
 
+/**
+ * PH-issue-002: history 記録付きの move/resize commit (pointerup タイミングで呼ぶ)。
+ * before snapshot を呼出側で渡し、確定後に history に積む。
+ */
+async function commitMoveAndResize(
+	id: string,
+	before: { x: number; y: number; w: number; h: number },
+	after: { x: number; y: number; w: number; h: number },
+	kind: 'move' | 'resize' = 'move',
+): Promise<void> {
+	try {
+		await workspaceIpc.updateWidgetPosition(id, after.x, after.y, after.w, after.h);
+		// 変化があれば record
+		if (
+			before.x !== after.x ||
+			before.y !== after.y ||
+			before.w !== after.w ||
+			before.h !== after.h
+		) {
+			workspaceHistory.record({ kind, widgetId: id, before, after });
+		}
+	} catch (e) {
+		error = getErrorMessage(e);
+		if (activeWorkspaceId) {
+			await loadWidgets(activeWorkspaceId);
+		}
+	}
+}
+
+/** PH-issue-002: Undo — 履歴 1 件を逆方向に IPC で適用、ローカル state も更新 */
+async function undo(): Promise<void> {
+	const entry = workspaceHistory.popUndo();
+	if (!entry || !activeWorkspaceId) return;
+	error = null;
+	try {
+		switch (entry.kind) {
+			case 'add': {
+				// add の undo = remove
+				await workspaceIpc.removeWidget(entry.widgetId);
+				widgets = widgets.filter((w) => w.id !== entry.widgetId);
+				break;
+			}
+			case 'remove': {
+				// remove の undo = add (新 widgetId が振られる)
+				const widget = await workspaceIpc.addWidget(entry.workspaceId, entry.widgetType);
+				await workspaceIpc.updateWidgetPosition(
+					widget.id,
+					entry.rect.x,
+					entry.rect.y,
+					entry.rect.w,
+					entry.rect.h,
+				);
+				if (entry.config !== null) {
+					await workspaceIpc.updateWidgetConfig(widget.id, entry.config);
+				}
+				// entry は popUndo で redoStack に push 済。同一参照を mutate して
+				// 後続の redo(remove) が新 widget id を参照できるようにする。
+				entry.widgetId = widget.id;
+				if (activeWorkspaceId) await loadWidgets(activeWorkspaceId);
+				break;
+			}
+			case 'move':
+			case 'resize': {
+				await workspaceIpc.updateWidgetPosition(
+					entry.widgetId,
+					entry.before.x,
+					entry.before.y,
+					entry.before.w,
+					entry.before.h,
+				);
+				widgets = widgets.map((w) =>
+					w.id === entry.widgetId
+						? {
+								...w,
+								position_x: entry.before.x,
+								position_y: entry.before.y,
+								width: entry.before.w,
+								height: entry.before.h,
+							}
+						: w,
+				);
+				break;
+			}
+			case 'config': {
+				await workspaceIpc.updateWidgetConfig(entry.widgetId, entry.before);
+				widgets = widgets.map((w) =>
+					w.id === entry.widgetId ? { ...w, config: entry.before } : w,
+				);
+				break;
+			}
+		}
+	} catch (e) {
+		error = getErrorMessage(e);
+		if (activeWorkspaceId) await loadWidgets(activeWorkspaceId);
+	}
+}
+
+/** PH-issue-002: Redo — 履歴 1 件を順方向に再適用 */
+async function redo(): Promise<void> {
+	const entry = workspaceHistory.popRedo();
+	if (!entry || !activeWorkspaceId) return;
+	error = null;
+	try {
+		switch (entry.kind) {
+			case 'add': {
+				const widget = await workspaceIpc.addWidget(entry.workspaceId, entry.widgetType);
+				await workspaceIpc.updateWidgetPosition(
+					widget.id,
+					entry.rect.x,
+					entry.rect.y,
+					entry.rect.w,
+					entry.rect.h,
+				);
+				if (entry.config !== null) {
+					await workspaceIpc.updateWidgetConfig(widget.id, entry.config);
+				}
+				// 後続の undo(add) が新 widget id を参照できるよう同一 entry を mutate。
+				entry.widgetId = widget.id;
+				if (activeWorkspaceId) await loadWidgets(activeWorkspaceId);
+				break;
+			}
+			case 'remove': {
+				await workspaceIpc.removeWidget(entry.widgetId);
+				widgets = widgets.filter((w) => w.id !== entry.widgetId);
+				break;
+			}
+			case 'move':
+			case 'resize': {
+				await workspaceIpc.updateWidgetPosition(
+					entry.widgetId,
+					entry.after.x,
+					entry.after.y,
+					entry.after.w,
+					entry.after.h,
+				);
+				widgets = widgets.map((w) =>
+					w.id === entry.widgetId
+						? {
+								...w,
+								position_x: entry.after.x,
+								position_y: entry.after.y,
+								width: entry.after.w,
+								height: entry.after.h,
+							}
+						: w,
+				);
+				break;
+			}
+			case 'config': {
+				await workspaceIpc.updateWidgetConfig(entry.widgetId, entry.after);
+				widgets = widgets.map((w) => (w.id === entry.widgetId ? { ...w, config: entry.after } : w));
+				break;
+			}
+		}
+	} catch (e) {
+		error = getErrorMessage(e);
+		if (activeWorkspaceId) await loadWidgets(activeWorkspaceId);
+	}
+}
+
 export const workspaceStore = {
 	get workspaces() {
 		return workspaces;
@@ -335,5 +549,8 @@ export const workspaceStore = {
 	optimisticResize,
 	optimisticMoveAndResize,
 	persistMoveAndResize,
+	commitMoveAndResize,
+	undo,
+	redo,
 	findFreePosition,
 };
