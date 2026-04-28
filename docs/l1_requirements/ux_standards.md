@@ -512,18 +512,69 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 
 ---
 
-## 13. Workspace Canvas 編集 UX 規約 (batch-70)
+## 13. Workspace Canvas 編集 UX 規約 (PH-issue-002 で Obsidian Canvas 完全実装)
 
-### Canvas パン操作
+### 編集モード撤廃 (即時保存)
 
-| 操作                 | 入力                  | 挙動                                                         |
-| -------------------- | --------------------- | ------------------------------------------------------------ |
-| パン                 | 中ボタン drag         | scroll 即応、慣性なし、cursor: grab → grabbing               |
-| パン                 | Space + 左ボタン drag | 同上、入力欄 focus 中は無効                                  |
-| 編集モード scrollbar | -                     | 非表示（`scrollbar-width: none`、`.canvas-edit-mode` class） |
-| 通常モード scrollbar | -                     | 標準ブラウザスクロールバー                                   |
+**Workspace は常時編集可能**。旧「編集モード」toggle は廃止。すべての pointer-up / config 変更で即 IPC + DB 反映。
+誤操作回復は **Undo / Redo** で行う (P2 失敗は前提で立て直し)。
 
-実装: `WorkspaceLayout.svelte` の workspaceContainer に `pointerdown/move/up` ハンドラ + `setPointerCapture`。`page.mouse` 直接呼びは禁止（lessons.md batch-16）。
+### Obsidian 入力マッピング (全装備)
+
+| 入力                            | 動作                                                         | 実装                                                                  |
+| ------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
+| マウス wheel (上下)             | 縦 scroll (pan Y)                                            | ブラウザ標準                                                          |
+| **Shift + wheel**               | 横 scroll (pan X)                                            | `useWidgetZoom` の wheel handler                                      |
+| 中ボタン drag                   | 自由 pan (XY 同時)                                           | `WorkspaceLayout` の pointer handler                                  |
+| Space + 左 drag                 | 自由 pan (XY 同時)                                           | `WorkspaceLayout` の keydown + pointer handler、入力欄 focus 中は無効 |
+| **Ctrl + wheel**                | zoom (50〜200%、±10)                                         | `useWidgetZoom`                                                       |
+| **Ctrl + 0**                    | zoom 100% リセット                                           | `WorkspaceLayout` keydown + toolbar button                            |
+| **Ctrl + Shift + 1**            | Fit to content (全 widget が画面に収まる zoom 自動計算)      | `WorkspaceLayout` keydown + toolbar button                            |
+| **Ctrl + Z**                    | Undo                                                         | `WorkspaceLayout` keydown + toolbar button                            |
+| **Ctrl + Shift + Z / Ctrl + Y** | Redo                                                         | 同上                                                                  |
+| Delete / Backspace              | 選択 widget 削除確認 (入力欄 focus 中は無効)                 | 既存                                                                  |
+| Esc                             | 選択解除                                                     | 新規                                                                  |
+| 通常モード scrollbar            | 表示 (`canvas-edit-mode` class は常時 active、scroll は標準) | —                                                                     |
+
+`page.mouse` 直接呼びは禁止 (lessons.md batch-16、PointerEvent 直接 dispatch を使う)。
+
+### Undo / Redo system (5 種 history、50 件 ring buffer)
+
+**HistoryEntry** 種別:
+
+| 種別     | before                | after         | undo 動作         | redo 動作      |
+| -------- | --------------------- | ------------- | ----------------- | -------------- |
+| `add`    | —                     | rect + config | remove            | add            |
+| `remove` | rect + config         | —             | add (新 widgetId) | remove         |
+| `move`   | rect                  | rect          | rect 戻す         | rect 進める    |
+| `resize` | rect                  | rect          | rect 戻す         | rect 進める    |
+| `config` | config (string\|null) | config        | before に戻す     | after に進める |
+
+50 件超で古いものから drop。undo 後の新 mutation で redo stack を破棄 (linear history)。
+
+実装: `src/lib/state/workspace-history.svelte.ts` (PH-issue-002 で新設)。
+
+### dotted grid 背景 (常時表示)
+
+```css
+background-image:
+  radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px),
+  linear-gradient(180deg, var(--ag-surface-0) 0%, var(--ag-surface-page) 100%);
+background-size: 24px 24px, 100% 100%;
+```
+
+`canvas-edit-mode` class は常時付与、編集モード撤廃で「編集モード時のみ表示」概念は廃止。
+
+### 右下 floating toolbar
+
+Workspace 右下に固定:
+
+- Undo / Redo button (history 空時 disabled)
+- Reset (Ctrl+0)
+- Zoom % 表示 (`{configStore.widgetZoom}%`、tabular-nums)
+- Fit (Ctrl+Shift+1)
+
+各 button: ghost-icon、hover で `bg-surface-2`、focus ring 必須、aria-label 機能名。
 
 ### ウィジェットリサイズハンドル（PH-issue-001 で完成）
 

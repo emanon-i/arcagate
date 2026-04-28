@@ -94,12 +94,13 @@ function handleResizeStart(e: PointerEvent, dir: ResizeDir) {
 		handle.releasePointerCapture(ev.pointerId);
 		const w = workspaceStore.widgets.find((ww) => ww.id === widgetId);
 		if (w) {
-			void workspaceStore.persistMoveAndResize(
+			// PH-issue-002: resize 開始時の start snapshot を before、現在を after として
+			// history 経由で永続化する。
+			void workspaceStore.commitMoveAndResize(
 				widgetId,
-				w.position_x,
-				w.position_y,
-				w.width,
-				w.height,
+				start,
+				{ x: w.position_x, y: w.position_y, w: w.width, h: w.height },
+				'resize',
 			);
 		}
 		handle.removeEventListener('pointermove', onMove);
