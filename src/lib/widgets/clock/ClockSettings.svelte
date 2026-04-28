@@ -1,4 +1,9 @@
 <script lang="ts">
+/**
+ * PH-issue-026 (Issue 23): ClockSettings polish — 共通 Switch 採用で 4 toggle を統一。
+ */
+import Switch from '$lib/components/common/Switch.svelte';
+
 interface Props {
 	config: {
 		show_seconds?: boolean;
@@ -16,51 +21,43 @@ let showWeekday = $derived(config.show_weekday ?? true);
 let use24h = $derived(config.use_24h ?? true);
 </script>
 
-<label class="flex items-center justify-between gap-3 text-sm">
+<div class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">秒を表示</span>
-	<input
-		type="checkbox"
-		data-testid="clock-show-seconds"
+	<Switch
 		checked={showSeconds}
-		onchange={(e) => {
-			config = { ...config, show_seconds: (e.currentTarget as HTMLInputElement).checked };
+		onChange={(v) => {
+			config = { ...config, show_seconds: v };
 		}}
-		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		aria-label="秒を表示する"
 	/>
-</label>
-<label class="flex items-center justify-between gap-3 text-sm">
+</div>
+<div class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">日付を表示</span>
-	<input
-		type="checkbox"
-		data-testid="clock-show-date"
+	<Switch
 		checked={showDate}
-		onchange={(e) => {
-			config = { ...config, show_date: (e.currentTarget as HTMLInputElement).checked };
+		onChange={(v) => {
+			config = { ...config, show_date: v };
 		}}
-		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		aria-label="日付を表示する"
 	/>
-</label>
-<label class="flex items-center justify-between gap-3 text-sm">
+</div>
+<div class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">曜日を表示</span>
-	<input
-		type="checkbox"
-		data-testid="clock-show-weekday"
+	<Switch
 		checked={showWeekday}
-		onchange={(e) => {
-			config = { ...config, show_weekday: (e.currentTarget as HTMLInputElement).checked };
+		onChange={(v) => {
+			config = { ...config, show_weekday: v };
 		}}
-		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		aria-label="曜日を表示する"
 	/>
-</label>
-<label class="flex items-center justify-between gap-3 text-sm">
+</div>
+<div class="flex items-center justify-between gap-3 text-sm">
 	<span class="text-[var(--ag-text-primary)]">24 時間表示</span>
-	<input
-		type="checkbox"
-		data-testid="clock-use-24h"
+	<Switch
 		checked={use24h}
-		onchange={(e) => {
-			config = { ...config, use_24h: (e.currentTarget as HTMLInputElement).checked };
+		onChange={(v) => {
+			config = { ...config, use_24h: v };
 		}}
-		class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		aria-label="24 時間表示にする"
 	/>
-</label>
+</div>

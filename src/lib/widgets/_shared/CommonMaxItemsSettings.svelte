@@ -1,4 +1,7 @@
 <script lang="ts">
+/**
+ * PH-issue-026 (Issue 23): CommonMaxItemsSettings polish — clamp 統一 (1〜100)。
+ */
 interface Props {
 	config: { max_items?: number; sort_field?: 'default' | 'name' };
 }
@@ -10,7 +13,7 @@ let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数 (1〜100)</label>
 	<input
 		id="ws-max-items"
 		type="number"
@@ -22,7 +25,10 @@ let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
 		onchange={(e) => {
 			config = {
 				...config,
-				max_items: Number.parseInt((e.target as HTMLInputElement).value) || 10,
+				max_items: Math.max(
+					1,
+					Math.min(100, Number((e.currentTarget as HTMLInputElement).value) || 10),
+				),
 			};
 		}}
 	/>
@@ -37,7 +43,7 @@ let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
 		onchange={(e) => {
 			config = {
 				...config,
-				sort_field: (e.target as HTMLSelectElement).value as 'default' | 'name',
+				sort_field: (e.currentTarget as HTMLSelectElement).value as 'default' | 'name',
 			};
 		}}
 	>

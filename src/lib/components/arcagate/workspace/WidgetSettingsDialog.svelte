@@ -4,7 +4,7 @@ import { fade, scale } from 'svelte/transition';
 import { Button } from '$lib/components/ui/button';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
-import type { WorkspaceWidget } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { widgetRegistry } from '$lib/widgets';
 
 let {
@@ -67,9 +67,14 @@ async function handleSave() {
 	>
 		<div
 			class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
+			role="document"
+			aria-labelledby="widget-settings-title"
 			transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
 		>
-			<h3 class="mb-4 text-base font-semibold text-[var(--ag-text-primary)]">ウィジェット設定</h3>
+			<!-- PH-issue-026 (Issue 23): widget label を含めた title。aria-labelledby でアクセシブル。 -->
+			<h3 id="widget-settings-title" class="mb-4 text-base font-semibold text-[var(--ag-text-primary)]">
+				{WIDGET_LABELS[widget.widget_type] ?? 'ウィジェット'} の設定
+			</h3>
 			<form
 				onsubmit={(e) => {
 					e.preventDefault();
