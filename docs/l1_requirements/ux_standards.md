@@ -467,6 +467,16 @@ default の `min-width: auto` が overflow を阻害するため、`min-w-0` 不
 
 スクロール可能なコンテナには `[scrollbar-gutter:stable]` を付与し、スクロールバーとコンテンツの重なりを防ぐ。
 
+### Workspace widget の横スクロール禁止 (PH-issue-012)
+
+**`src/lib/widgets/` 配下の widget では `overflow-x-auto` / `overflow-x-scroll` 禁止**。
+text は `truncate` / `line-clamp` で吸収する (横 scrollbar は noise、§9 truncate ルール参照)。
+WidgetShell content area は `overflow-x-hidden overflow-y-auto` で確定。
+
+機械検証: `scripts/audit-no-horizontal-scrollbar.sh` (lefthook pre-commit + CI 統合)。
+
+例外: Workspace Canvas / Library グリッド等の大枠コンテナは scope 外 (横 pan/scroll は意図的)。
+
 | コンポーネント           | 適用箇所                                        |
 | ------------------------ | ----------------------------------------------- |
 | `LibraryLayout.svelte`   | sidebar-wrapper / main-wrapper / detail-wrapper |

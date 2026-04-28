@@ -1,7 +1,7 @@
 ---
 id: PH-issue-012
 title: 全 widget 横スクロールバー禁止 (audit script + 修正)
-status: planning
+status: done
 parent_l1: REQ-006_workspace-widgets
 related: 旧 PH-487 (rollback で revert)、過去 hotfix で WidgetShell に overflow-x 封じ
 ---
