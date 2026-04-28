@@ -74,6 +74,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-text-overflow.sh
 
+      - name: No horizontal scrollbar audit (PH-issue-012)
+        shell: bash
+        run: bash scripts/audit-no-horizontal-scrollbar.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings

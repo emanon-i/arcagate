@@ -55,8 +55,10 @@ let btnClass =
 
 	<!-- PH-issue-014: scroll-area inner のみ scrollbar-gutter: stable
 	     (旧 PH-489 の root 全 stable 過剰反応を回避、scope を限定)。
-	     縦 scroll が出ても右端 content (badge / chip) と被らない。 -->
-	<div class="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+	     縦 scroll が出ても右端 content (badge / chip) と被らない。
+	     PH-issue-012: overflow-x-hidden で横スクロール禁止
+	     (text は truncate / line-clamp で吸収、横 scrollbar は noise)。 -->
+	<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]">
 		{@render children()}
 	</div>
 </div>
