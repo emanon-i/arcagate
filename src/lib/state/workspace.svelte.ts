@@ -199,6 +199,59 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 	}
 }
 
+/**
+ * PH-issue-025 / Issue 8: 複数 itemId を一括で ItemWidget として配置。
+ * 1 つずつ findFreePosition で配置、overlap が解消できなくなったら toast でその時点までで停止。
+ * 戻り値: 実際に配置成功した個数。
+ */
+async function bulkAddItemWidgets(itemIds: string[]): Promise<number> {
+	if (!activeWorkspaceId || itemIds.length === 0) return 0;
+	loading = true;
+	error = null;
+	let placed = 0;
+	try {
+		for (const itemId of itemIds) {
+			const w = 2;
+			const h = 2;
+			const pos = findFreePosition(
+				w,
+				h,
+				widgetsToRects(widgets),
+				DEFAULT_GRID_COLS,
+				DEFAULT_MAX_ROW,
+			);
+			if (pos === null) {
+				toastStore.add(
+					`空きスペースがないため ${itemIds.length - placed} 個の追加を停止しました`,
+					'error',
+				);
+				break;
+			}
+			const widget = await workspaceIpc.addWidget(activeWorkspaceId, 'item');
+			await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
+			const config = JSON.stringify({ item_id: itemId });
+			const updated = await workspaceIpc.updateWidgetConfig(widget.id, config);
+			updated.position_x = pos.x;
+			updated.position_y = pos.y;
+			widgets = [...widgets, updated];
+			workspaceHistory.record({
+				kind: 'add',
+				workspaceId: activeWorkspaceId,
+				widgetId: updated.id,
+				widgetType: 'item',
+				rect: { x: pos.x, y: pos.y, w: updated.width, h: updated.height },
+				config: updated.config,
+			});
+			placed++;
+		}
+	} catch (e) {
+		error = getErrorMessage(e);
+	} finally {
+		loading = false;
+	}
+	return placed;
+}
+
 async function removeWidget(id: string): Promise<void> {
 	loading = true;
 	error = null;
@@ -535,6 +588,7 @@ export const workspaceStore = {
 	loadWidgets,
 	addWidget,
 	addWidgetAt,
+	bulkAddItemWidgets,
 	removeWidget,
 	updateWidgetConfig,
 	persistWidgetOrder,

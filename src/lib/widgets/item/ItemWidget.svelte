@@ -7,6 +7,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { updateWidgetConfig } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { Item } from '$lib/types/item';
 import { ITEM_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
@@ -22,6 +23,8 @@ interface Props {
 let { widget, onItemContext }: Props = $props();
 
 let pickerOpen = $state(false);
+// PH-issue-025: 空状態時は multi=true で起動 (複数選択 → 1 個目を本 widget、残りは新 widget で配置)
+let pickerMulti = $state(false);
 
 let itemId = $derived(parseWidgetConfig(widget?.config, ITEM_WIDGET_DEFAULTS).item_id);
 
@@ -38,12 +41,32 @@ async function selectItem(item: Item) {
 	}
 }
 
+async function selectMany(items: Item[]) {
+	pickerOpen = false;
+	if (!widget || items.length === 0) return;
+	const [first, ...rest] = items;
+	try {
+		await updateWidgetConfig(widget.id, JSON.stringify({ item_id: first.id }));
+		if (rest.length > 0) {
+			const placed = await workspaceStore.bulkAddItemWidgets(rest.map((i) => i.id));
+			toastStore.add(`${1 + placed} 個のアイテムを配置しました`, 'success');
+		} else {
+			toastStore.add(`${first.label} を配置しました`, 'success');
+		}
+		await itemStore.loadItems();
+	} catch (e: unknown) {
+		toastStore.add(formatIpcError({ operation: '一括配置' }, e), 'error');
+	}
+}
+
 let menuItems = $derived(
 	widget
 		? [
 				{
 					label: 'アイテムを変更',
 					onclick: () => {
+						// PH-issue-025: 「変更」 menu は single 維持 (1 個変更を multi にすると意図不明)
+						pickerMulti = false;
 						pickerOpen = true;
 					},
 				},
@@ -89,6 +112,8 @@ let menuItems = $derived(
 			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-8 text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label="このウィジェットにアイテムを紐付け"
 			onclick={() => {
+				// PH-issue-025: 空状態 → multi=true で起動、複数選択時は連続配置
+				pickerMulti = true;
 				pickerOpen = true;
 			}}
 		>
@@ -99,5 +124,10 @@ let menuItems = $derived(
 </WidgetShell>
 
 {#if pickerOpen}
-	<LibraryItemPicker onSelect={selectItem} onClose={() => { pickerOpen = false; }} />
+	<LibraryItemPicker
+		onSelect={selectItem}
+		onClose={() => { pickerOpen = false; }}
+		multi={pickerMulti}
+		onSelectMany={selectMany}
+	/>
 {/if}
