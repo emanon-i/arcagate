@@ -25,8 +25,19 @@ export interface Workspace {
 	id: string;
 	name: string;
 	sort_order: number;
+	// PH-issue-009: per-workspace 背景画像。null は壁紙未設定。
+	wallpaper_path: string | null;
+	wallpaper_opacity: number; // 0.0..1.0, default 0.6
+	wallpaper_blur: number; // 0..40 (px), default 0
 	created_at: string;
 	updated_at: string;
+}
+
+export interface UpdateWorkspaceWallpaperInput {
+	workspace_id: string;
+	path: string | null;
+	opacity: number;
+	blur: number;
 }
 
 export interface WorkspaceWidget {

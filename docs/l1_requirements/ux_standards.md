@@ -713,6 +713,25 @@ edge は細いストリップ (1.5px、hover で半透明 accent)、corner は 1
 
 ---
 
+## 14. Window Translucency 規格 (PH-issue-008)
+
+- main window: `tauri.conf.json` の `windowEffects.effects: ["mica"]` で Windows 11 Mica を default 適用
+- Windows 11 → Mica effective、Win10 / 他 OS → no-op (Tauri が backend で safe skip)
+- `html / body` は `background: transparent`、app root container (surface-0 系) で塗る → Mica は外周 / round corner / 影部分にのみ漏れる
+- runtime IPC 切替 (Mica / Acrylic / 不透明) は別 plan、現状は Mica default 1 値のみ
+
+## 15. Wallpaper 規格 (PH-issue-009)
+
+- per-workspace 壁紙: `workspaces.wallpaper_path TEXT` (DB 保存、`<app_data_dir>/wallpapers/<uuid>.<ext>`)
+- 画像形式: png / jpg / jpeg / webp (ext で validation、それ以外は `cmd_save_wallpaper_file` で reject)
+- opacity 0.0..1.0 (default 0.6)、blur 0..40px (default 0)、両方 service 側で clamp
+- WorkspaceLayout の `absolute inset-0` 層に `background-image: url(convertFileSrc(path))` を適用、widget content より下 (z-0)
+- `motion-reduce:!filter-none` で Reduced Motion 時 blur 無効化 (P11 / Reduced Motion 標準)
+- asset protocol scope: `tauri.conf.json` `assetProtocol.scope` に `$APPDATA/wallpapers/**` 追加
+- Library 共通 default は別 plan (本 PR は per-workspace のみ実装)
+
+---
+
 ## 参照
 
 - `docs/l1_requirements/ux_design_vision.md` — UX ビジョン・ゲーム UI 原則

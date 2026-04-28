@@ -27,6 +27,10 @@ pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Wor
         id: id.clone(),
         name: ws_name.clone(),
         sort_order,
+        // PH-issue-009: 壁紙未設定 default
+        wallpaper_path: None,
+        wallpaper_opacity: 0.6,
+        wallpaper_blur: 0,
         created_at: String::new(),
         updated_at: String::new(),
     };
