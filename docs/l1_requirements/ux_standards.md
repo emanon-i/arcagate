@@ -358,6 +358,14 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - 実装: `src/lib/state/widget-zoom.svelte.ts` BASE_W / BASE_H 定数
 - ClockWidget 等の fluid sizing は container query で base 縮小に追従 (PH-issue-021)
 
+**Watched folder unset 時の cascade 仕様** (PH-issue-023 Phase A):
+
+- 監視フォルダ (`watched_paths`) を unset すると、その path 配下に登録された **tracked items** (auto_register 由来) を Library から自動削除
+- 削除対象判定: `is_tracked = 1 AND (target = path OR target LIKE 'path/%' OR target LIKE 'path\\%')`
+- 各 item 削除時に PH-issue-006 cascade が走り、widget config からも自動除去
+- 実装: `item_repository::find_tracked_ids_under_path` + `watched_path_service::remove_watched_path`
+- per-item settings (favorites / opener) の永続化 + 再 set で resurrect は別 plan (Phase B)
+
 ### 6-2. Palette
 
 **必須要素**:

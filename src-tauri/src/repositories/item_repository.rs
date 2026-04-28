@@ -229,6 +229,25 @@ pub fn find_by_target(conn: &Connection, target: &str) -> Result<Option<Item>, A
     }
 }
 
+/// PH-issue-023: 指定 path 配下にある **tracked** items の id 一覧を返す。
+/// `target = path` または `target` が `path/` で始まる items が対象。
+pub fn find_tracked_ids_under_path(conn: &Connection, path: &str) -> Result<Vec<String>, AppError> {
+    let trim = path.trim_end_matches(['/', '\\']);
+    let prefix_fwd = format!("{}/%", trim);
+    let prefix_bwd = format!("{}\\%", trim);
+    let mut stmt = conn.prepare(
+        "SELECT id FROM items
+         WHERE is_tracked = 1
+           AND (target = ?1 OR target LIKE ?2 OR target LIKE ?3)",
+    )?;
+    let rows = stmt
+        .query_map(params![trim, prefix_fwd, prefix_bwd], |row| {
+            row.get::<_, String>(0)
+        })?
+        .collect::<rusqlite::Result<Vec<String>>>()?;
+    Ok(rows)
+}
+
 pub fn count_hidden_items(conn: &Connection) -> Result<i64, AppError> {
     let count: i64 = conn.query_row(
         "SELECT COUNT(DISTINCT it.item_id)
