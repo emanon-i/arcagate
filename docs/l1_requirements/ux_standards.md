@@ -335,6 +335,12 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 - 副次情報 (日付 / 曜日 等) は `hidden @xs:inline` で 1×1 では非表示にし、widget が広くなったら表示
 - 1×1 (320×180px 想定) で scrollbar が出ないことが受け入れ条件
 
+**config 変更時の派生 state 取り扱い** (PH-issue-017):
+
+- `$effect` で config 派生の async 取得を行う場合、`effect` 開始時に派生 state (entries / results 等) を**即時 clear** する → 旧 path の結果が残らない
+- 同時に `requestId` (単純なカウンタ or UUID) を発行し、async 結果を反映する前に「自分が最新 requestId か」を check (stale response 破棄)
+- 検索 / scan widget は全てこのパターンに従う (ExeFolderWatch / FileSearch / 他)
+
 ### 6-2. Palette
 
 **必須要素**:

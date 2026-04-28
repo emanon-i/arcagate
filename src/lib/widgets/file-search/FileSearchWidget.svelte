@@ -57,22 +57,28 @@ function newSearchId(): string {
 }
 
 async function refresh() {
+	// PH-issue-017: 派生 state を即時 clear (root 変更時の旧 entries 残留防止)。
+	entries = [];
+	lastError = null;
 	if (!root) {
-		entries = [];
+		loading = false;
 		return;
 	}
 	const searchId = newSearchId();
 	currentSearchId = searchId;
 	loading = true;
-	lastError = null;
 	try {
-		entries = await invoke<FileEntry[]>('cmd_list_files', {
+		const result = await invoke<FileEntry[]>('cmd_list_files', {
 			searchId,
 			root,
 			depth,
 			limit,
 		});
+		// stale response 破棄: 自分が最新の searchId でなければ書き戻さない。
+		if (currentSearchId !== searchId) return;
+		entries = result;
 	} catch (e: unknown) {
+		if (currentSearchId !== searchId) return;
 		// Cancelled は silent (UI 側で「中止しました」toast を別途出す)
 		// PH-445: errorCode 経由判定 (string contains から構造化判定へ)
 		if (getErrorCode(e) === 'cancelled') {
@@ -82,8 +88,8 @@ async function refresh() {
 			entries = [];
 		}
 	} finally {
-		loading = false;
 		if (currentSearchId === searchId) {
+			loading = false;
 			currentSearchId = null;
 		}
 	}
