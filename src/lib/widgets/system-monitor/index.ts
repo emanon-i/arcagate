@@ -15,6 +15,7 @@ export const meta: WidgetMeta = {
 		show_memory: true,
 		show_disk: false,
 	},
+	defaultSize: { w: 2, h: 3 },
 	addable: true,
 	SettingsContent: SystemMonitorSettings,
 };

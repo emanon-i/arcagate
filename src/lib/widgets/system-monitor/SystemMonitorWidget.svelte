@@ -81,18 +81,31 @@ let networks = $state<NetworkStats[]>([]);
 let prevNetworks = $state<Record<string, { rx: number; tx: number; t: number }>>({});
 let netRates = $state<Record<string, { rxBps: number; txBps: number }>>({});
 let cpuHistory = $state<number[]>([]);
+// 検収 #17: chart_type は CPU だけでなくメモリ / ディスクの履歴も切替対象にする。
+let memHistory = $state<number[]>([]);
+let diskHistory = $state<Record<string, number[]>>({});
 
 async function refresh() {
 	try {
 		const s = await invoke<SystemStats>('cmd_get_system_stats');
 		stats = s;
 		cpuHistory = pushBuffer(cpuHistory, s.cpuPercent, 60);
+		// 検収 #17: メモリ % も履歴に積む (chart_type=sparkline で表示)。
+		const memPct = s.memTotalBytes > 0 ? (s.memUsedBytes / s.memTotalBytes) * 100 : 0;
+		memHistory = pushBuffer(memHistory, memPct, 60);
 	} catch {
 		// 一時失敗は静かに無視
 	}
 	if (showDisk) {
 		try {
 			disks = await invoke<DiskStats[]>('cmd_get_disk_stats');
+			// 検収 #17: ディスク mount ごとに履歴 (sparkline 用)。
+			const newDH: Record<string, number[]> = { ...diskHistory };
+			for (const d of disks) {
+				const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0;
+				newDH[d.mount] = pushBuffer(newDH[d.mount] ?? [], pct, 60);
+			}
+			diskHistory = newDH;
 		} catch {
 			// disk 取得失敗は無視
 		}
@@ -156,6 +169,10 @@ let memPercent = $derived(
 );
 
 let sparklinePath = $derived(bufferToSparklinePath(cpuHistory, 100, 20, 100));
+let memSparklinePath = $derived(bufferToSparklinePath(memHistory, 100, 20, 100));
+function diskSparklinePath(mount: string): string {
+	return bufferToSparklinePath(diskHistory[mount] ?? [], 100, 20, 100);
+}
 
 function pctColorVar(pct: number): string {
 	if (pct >= 85) return 'var(--ag-error-text)';
@@ -228,18 +245,32 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							{formatBytes(stats.memUsedBytes)} / {formatBytes(stats.memTotalBytes)}
 						</span>
 					</div>
-					<div
-						class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
-						role="progressbar"
-						aria-valuenow={memPercent}
-						aria-valuemin="0"
-						aria-valuemax="100"
-					>
+					<!-- 検収 #17: chart_type を memory にも適用 (CPU だけでなく)。 -->
+					{#if chartType === 'sparkline'}
+						<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
+							<path d={memSparklinePath} fill="none" stroke={memColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+						</svg>
+					{:else if chartType === 'gauge'}
+						<div class="flex items-center justify-center">
+							<svg viewBox="0 0 48 48" class="h-12 w-12" aria-hidden="true">
+								<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="4" stroke-linecap="round" />
+								<path d={gaugePath(memPercent)} fill="none" stroke={memColor} stroke-width="4" stroke-linecap="round" />
+							</svg>
+						</div>
+					{:else}
 						<div
-							class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
-							style="width: {memPercent.toFixed(1)}%; background-color: {memColor};"
-						></div>
-					</div>
+							class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
+							role="progressbar"
+							aria-valuenow={memPercent}
+							aria-valuemin="0"
+							aria-valuemax="100"
+						>
+							<div
+								class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
+								style="width: {memPercent.toFixed(1)}%; background-color: {memColor};"
+							></div>
+						</div>
+					{/if}
 				</div>
 			{/if}
 			{#if showDisk && disks.length > 0}
@@ -253,18 +284,32 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</span>
 								<span class="shrink-0 tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</span>
 							</div>
-							<div
-								class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
-								role="progressbar"
-								aria-valuenow={pct}
-								aria-valuemin="0"
-								aria-valuemax="100"
-							>
+							<!-- 検収 #17: chart_type を disk にも適用。 -->
+							{#if chartType === 'sparkline'}
+								<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
+									<path d={diskSparklinePath(d.mount)} fill="none" stroke={diskColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+								</svg>
+							{:else if chartType === 'gauge'}
+								<div class="flex items-center justify-center">
+									<svg viewBox="0 0 48 48" class="h-10 w-10" aria-hidden="true">
+										<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="3" stroke-linecap="round" />
+										<path d={gaugePath(pct)} fill="none" stroke={diskColor} stroke-width="3" stroke-linecap="round" />
+									</svg>
+								</div>
+							{:else}
 								<div
-									class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
-									style="width: {pct.toFixed(1)}%; background-color: {diskColor};"
-								></div>
-							</div>
+									class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
+									role="progressbar"
+									aria-valuenow={pct}
+									aria-valuemin="0"
+									aria-valuemax="100"
+								>
+									<div
+										class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
+										style="width: {pct.toFixed(1)}%; background-color: {diskColor};"
+									></div>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>

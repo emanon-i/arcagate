@@ -30,14 +30,15 @@ const availableWidgets: { type: WidgetType; label: string; icon: Component }[] =
 		icon: meta?.icon,
 	}));
 
+/**
+ * 検収 #6: pointerdown + onclick の二重発火で widget が 2 個追加されるバグ修正。
+ * pointerdown だけで drag を開始し、ドロップ位置の有無で「クリック (= 空き位置に追加)」と
+ * 「ドラッグ (= 指定セルに追加)」を判別する。click handler は撤廃。
+ */
 function startDrag(e: PointerEvent, widgetType: WidgetType) {
 	e.preventDefault();
 	(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 	pointerDrag.start({ kind: 'add', widgetType }, e.clientX, e.clientY);
-}
-
-function clickAdd(widgetType: WidgetType) {
-	void workspaceStore.addWidget(widgetType);
 }
 </script>
 
@@ -79,7 +80,6 @@ function clickAdd(widgetType: WidgetType) {
 				aria-label="{aw.label} を追加"
 				title="クリックで追加 / ドラッグで配置"
 				onpointerdown={(e) => startDrag(e, aw.type)}
-				onclick={() => clickAdd(aw.type)}
 			>
 				<Grip
 					class="h-3.5 w-3.5 shrink-0 text-[var(--ag-text-faint)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover/add:text-[var(--ag-text-muted)]"

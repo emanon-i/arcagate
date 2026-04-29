@@ -49,10 +49,11 @@ async function handleSave() {
 	}
 }
 
-// PH-issue-033 / 検収項目 #4: Settings dialog から widget 削除 (Undo で戻せる、即削除)
+// 検収 #4: Settings dialog から widget 削除 (即削除)。
+// 検収 #2: toast 文言から「Ctrl+Z で戻せます」を削除。
 function handleDelete() {
 	void workspaceStore.removeWidget(widget.id);
-	toastStore.add('ウィジェットを削除しました（Ctrl+Z で戻せます）', 'info');
+	toastStore.add('ウィジェットを削除しました', 'info');
 	onClose();
 }
 </script>

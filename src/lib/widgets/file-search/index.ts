@@ -10,6 +10,7 @@ export const meta: WidgetMeta = {
 	icon: FileSearch,
 	label: 'ファイル検索',
 	defaultConfig: { depth: 2, limit: 200 },
+	defaultSize: { w: 2, h: 4 },
 	addable: true,
 	SettingsContent: FileSearchSettings,
 };

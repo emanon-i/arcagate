@@ -44,6 +44,23 @@
   color-scheme: dark;
 }
 
+/* 検収 #12 (3rd re-mention): native <select> dropdown popup が読めない問題の根本対策。
+ * Chromium の native popup は OS の color-scheme + select 要素自身の color-scheme を見る。
+ * .dark コンテキストで select / option に明示 dark を強制し、option に theme token で
+ * 背景・前景を当てる (一部 OS では popup option も CSS が効く)。
+ */
+.dark select,
+select.themed,
+select[data-themed] {
+  color-scheme: dark;
+}
+.dark select option,
+select.themed option,
+select[data-themed] option {
+  background-color: var(--ag-surface-1);
+  color: var(--ag-text-primary);
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -10,6 +10,7 @@ export const meta: WidgetMeta = {
 	icon: Star,
 	label: 'お気に入り',
 	defaultConfig: { max_items: 10 },
+	defaultSize: { w: 2, h: 3 },
 	addable: true,
 	SettingsContent: CommonMaxItemsSettings,
 };

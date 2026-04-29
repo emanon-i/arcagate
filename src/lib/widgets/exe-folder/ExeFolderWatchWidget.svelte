@@ -48,6 +48,8 @@ interface WidgetConfig {
 	watch_path?: string;
 	scan_depth?: number;
 	title?: string;
+	/** 検収 #14: Settings dialog で入力する説明欄を widget 内に表示する。 */
+	description?: string;
 	item_overrides?: Record<string, string>;
 	/** PH-issue-038 / 検収項目 #20: 並び替え設定。 */
 	sort_field?: SortField;
@@ -208,6 +210,10 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems}>
+	<!-- 検収 #14: Settings の description を widget 上部に表示。空 string なら非表示。 -->
+	{#if config.description}
+		<p class="mb-2 truncate text-xs text-[var(--ag-text-muted)]" title={config.description}>{config.description}</p>
+	{/if}
 	{#if !config.watch_path}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
 		<EmptyState
