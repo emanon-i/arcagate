@@ -82,7 +82,19 @@ let contextMenuX = $state(0);
 let contextMenuY = $state(0);
 let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
+let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
+// PH-issue-034 / 検収項目 #9: 初回 mount 時に infinite canvas の中央付近に scroll する。
+// padding-top/right=2000px のため、widget area は (2000, 2000) からスタート。
+// scroll を (1900, 1900) 付近に置けば widgets 上に少し空きを残しつつ画面内に収まる。
+$effect(() => {
+	if (workspaceContainer && infiniteCanvas) {
+		// 1 回だけ初期 scroll
+		queueMicrotask(() => {
+			workspaceContainer?.scrollTo({ left: 1900, top: 1900, behavior: 'instant' });
+		});
+	}
+});
 
 $effect(() => {
 	const el = workspaceContainer;
@@ -333,30 +345,41 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			/>
 		</div>
 
-		<!-- Canvas: widget grid のみが scroll/pan 可能 -->
+		<!-- Canvas: widget grid のみが scroll/pan 可能。
+		     PH-issue-034 / 検収項目 #9: Obsidian Canvas のように上下左右無限パン。
+		     overflow-auto + 内側に大きな infinite-canvas div (5000x5000 + 周囲 padding) を置き、
+		     初期 scroll を中央付近に置く → user は 4 方向 pan 可能。widget なしでも pan 可能。
+		     dotted grid 背景は infinite-canvas に置くので scroll に追従 (Obsidian と一致)。 -->
 		<div
-			class="canvas-edit-mode relative z-10 min-h-0 flex-1 overflow-auto p-5 [scrollbar-gutter:stable]"
-			style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%); background-size: 24px 24px, 100% 100%;"
+			class="canvas-edit-mode relative z-10 min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]"
+			style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background: linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%);"
 			data-zoom={configStore.widgetZoom}
 			bind:this={workspaceContainer}
 			onpointerdown={onCanvasPointerDown}
 			onpointermove={onCanvasPointerMove}
 			onpointerup={onCanvasPointerUp}
 		>
-			<div class="flex gap-4">
-				<div class="min-w-0 flex-1">
-					{#if workspaceStore.widgets.length === 0}
-						<!-- 空状態: widget 追加促し (sidebar が常時開いてるので追加可能) -->
-						<div class="mt-12 flex flex-col items-center justify-center gap-2 text-center">
-							<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
-							<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
-								ウィジェットを追加しましょう
-							</p>
-							<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
-								左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
-							</p>
-						</div>
-					{:else}
+			<!-- PH-issue-034: 5000x5000 の infinite canvas、widgets は中央寄せ。
+			     pan で 4 方向に移動可能 (scroll 範囲が大きいため負方向にも見える)。 -->
+			<div
+				class="relative"
+				style="width: 5000px; height: 5000px; padding: 2000px 2000px 0 0; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
+				bind:this={infiniteCanvas}
+			>
+				<div class="flex gap-4 p-5">
+					<div class="min-w-0 flex-1">
+						{#if workspaceStore.widgets.length === 0}
+							<!-- 空状態: widget 追加促し (sidebar が常時開いてるので追加可能) -->
+							<div class="mt-12 flex flex-col items-center justify-center gap-2 text-center">
+								<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
+								<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
+									ウィジェットを追加しましょう
+								</p>
+								<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
+									左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
+								</p>
+							</div>
+						{:else}
 						<WorkspaceWidgetGrid
 							{dynamicCols}
 							{maxRow}
@@ -382,6 +405,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 						/>
 					</div>
 				{/if}
+				</div>
 			</div>
 		</div>
 	</div>
