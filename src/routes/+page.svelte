@@ -25,22 +25,17 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { startUpdaterAutoCheck } from '$lib/state/updater.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
+import { loadString, saveString } from '$lib/utils/local-storage';
 
 type ActiveView = 'library' | 'workspace';
 
-// 検収 #8/#9: activeView は localStorage で永続化。Library / Workspace 切替後の再起動でも
-// 最後に開いていた画面を復元する (Obsidian / VSCode の挙動と一致)。
+// 検収 #8/#9 + Codex Low #8: activeView を localStorage で永続化（safe helper 経由で
+// quota / SecurityError を握り潰し）。
 const VIEW_KEY = 'arcagate.app.activeView';
-function getInitialView(): ActiveView {
-	if (typeof window === 'undefined') return 'library';
-	const v = localStorage.getItem(VIEW_KEY);
-	return v === 'workspace' ? 'workspace' : 'library';
-}
-let activeView = $state<ActiveView>(getInitialView());
+const initialView = loadString(VIEW_KEY, 'library');
+let activeView = $state<ActiveView>(initialView === 'workspace' ? 'workspace' : 'library');
 $effect(() => {
-	if (typeof window !== 'undefined') {
-		localStorage.setItem(VIEW_KEY, activeView);
-	}
+	saveString(VIEW_KEY, activeView);
 });
 let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);

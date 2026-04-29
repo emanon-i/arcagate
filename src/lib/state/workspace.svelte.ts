@@ -3,7 +3,12 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
-import { findFreePosition, type Rect, wouldOverlapAt } from '$lib/utils/widget-grid';
+import {
+	findFreePosition,
+	findFreePositionNear,
+	type Rect,
+	wouldOverlapAt,
+} from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
 
 /**
@@ -139,18 +144,24 @@ async function addWidget(
 	loading = true;
 	error = null;
 	try {
-		// 検収 #7: widget タイプ別 defaultSize を使う (Clock 1x1 等の極小化を防止)。
+		// 検収 #7: widget タイプ別 defaultSize (Clock 1x1 等の極小化を防止)。
 		// Rust 側はサイズ 2x2 で row 末尾に作成するため、追加直後に widget タイプ別サイズに更新する。
 		const { w, h } = defaultSizeFor(widgetType);
-		// 検収 #5: nearCell (viewport center 由来) から空き位置探索。指定セルが空なら即採用、
-		// 重なるなら nearCell 起点で findFreePosition がスパイラル探索する。これで「クリック追加 →
-		// 画面外に配置」を防ぎ、必ず viewport 内に出る。
-		let pos: { x: number; y: number } | null;
-		if (nearCell && !wouldOverlapAt(nearCell.x, nearCell.y, w, h, widgetsToRects(widgets))) {
-			pos = nearCell;
-		} else {
-			pos = findFreePosition(w, h, widgetsToRects(widgets), DEFAULT_GRID_COLS, DEFAULT_MAX_ROW);
-		}
+		// 検収 #5 + Codex Critical #1: nearCell 起点の **spiral 探索**。
+		// 指定 cell が埋まっていたら top-left に飛ばず、最寄りの空きセルを spiral で探す
+		// (top-left fallback は near が見つからない時のみ)。
+		const rects = widgetsToRects(widgets);
+		const pos = nearCell
+			? findFreePositionNear(
+					nearCell.x,
+					nearCell.y,
+					w,
+					h,
+					rects,
+					DEFAULT_GRID_COLS,
+					DEFAULT_MAX_ROW,
+				)
+			: findFreePosition(w, h, rects, DEFAULT_GRID_COLS, DEFAULT_MAX_ROW);
 		if (pos === null) {
 			toastStore.add('空きスペースがありません。既存ウィジェットを縮小・削除してください', 'error');
 			return;

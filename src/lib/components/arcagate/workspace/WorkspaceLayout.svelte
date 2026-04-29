@@ -16,6 +16,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
+import { loadBool, loadJSON, saveBool, saveJSON } from '$lib/utils/local-storage';
 import { widgetRegistry } from '$lib/widgets';
 import ItemContextMenu from './ItemContextMenu.svelte';
 import PageTabBar from './PageTabBar.svelte';
@@ -63,16 +64,11 @@ $effect(() => {
 let selectedWidgetId = $state<string | null>(null);
 let renameOpen = $state(false);
 let wallpaperOpen = $state(false);
-// PH-issue-028 / 検収項目 #1: ウィジェット追加パネル open/close 状態
-// localStorage で永続化、初期値は open。
+// PH-issue-028 / 検収項目 #1 + Codex Low #8: sidebar 開閉状態を safe helper 経由で永続化。
 const SIDEBAR_KEY = 'arcagate.workspace.sidebar.open';
-let sidebarOpen = $state<boolean>(
-	typeof window !== 'undefined' ? (localStorage.getItem(SIDEBAR_KEY) ?? 'true') === 'true' : true,
-);
+let sidebarOpen = $state<boolean>(loadBool(SIDEBAR_KEY, true));
 $effect(() => {
-	if (typeof window !== 'undefined') {
-		localStorage.setItem(SIDEBAR_KEY, String(sidebarOpen));
-	}
+	saveBool(SIDEBAR_KEY, sidebarOpen);
 });
 
 // PH-issue-031 / 検収項目 #5: 削除確認 modal 撤廃、即削除 + Undo toast。
@@ -94,40 +90,35 @@ let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
-// 検収 #4: infinite canvas を 10000×10000 + padding 4000px に拡大、中央付近 (3900,3900) を
-// 初期 scroll に置く。widget なし時は空白の中央が見える。
-// 検収 #8: 切替後の戻りで pan 位置を復元するため localStorage に保存 / 読み込み。
-const PAN_KEY = 'arcagate.workspace.pan';
+// 検収 #4: infinite canvas を 10000×10000 + padding 4000px に拡大、中央付近 (3900,3900) を初期 scroll。
+// 検収 #8 + Codex Medium #7: pan 位置は **workspace ごと** に永続化（旧 global key は cross-workspace
+// contamination を起こしていた）。safe helper 経由で quota / SecurityError を握り潰す。
+function panKey(wsId: string | null): string {
+	return wsId ? `arcagate.workspace.pan.${wsId}` : 'arcagate.workspace.pan.__default__';
+}
 let panSaveTimer: ReturnType<typeof setTimeout> | null = null;
+// active workspace 切替で pan を別 workspace の最後位置に復元
 $effect(() => {
-	if (workspaceContainer && infiniteCanvas) {
-		queueMicrotask(() => {
-			if (!workspaceContainer) return;
-			let left = 3900;
-			let top = 3900;
-			try {
-				const raw = typeof window !== 'undefined' ? localStorage.getItem(PAN_KEY) : null;
-				if (raw) {
-					const v = JSON.parse(raw);
-					if (typeof v?.left === 'number') left = v.left;
-					if (typeof v?.top === 'number') top = v.top;
-				}
-			} catch {
-				/* ignore corrupt JSON */
-			}
-			workspaceContainer.scrollTo({ left, top, behavior: 'instant' });
-		});
-	}
+	const wsId = workspaceStore.activeWorkspaceId;
+	if (!workspaceContainer || !infiniteCanvas) return;
+	queueMicrotask(() => {
+		if (!workspaceContainer) return;
+		const saved = loadJSON<{ left?: number; top?: number }>(panKey(wsId), {});
+		const left = typeof saved.left === 'number' ? saved.left : 3900;
+		const top = typeof saved.top === 'number' ? saved.top : 3900;
+		workspaceContainer.scrollTo({ left, top, behavior: 'instant' });
+	});
 });
 function onWorkspaceScroll() {
-	if (typeof window === 'undefined' || !workspaceContainer) return;
+	if (!workspaceContainer) return;
 	if (panSaveTimer) clearTimeout(panSaveTimer);
+	const wsId = workspaceStore.activeWorkspaceId;
 	panSaveTimer = setTimeout(() => {
 		if (!workspaceContainer) return;
-		localStorage.setItem(
-			PAN_KEY,
-			JSON.stringify({ left: workspaceContainer.scrollLeft, top: workspaceContainer.scrollTop }),
-		);
+		saveJSON(panKey(wsId), {
+			left: workspaceContainer.scrollLeft,
+			top: workspaceContainer.scrollTop,
+		});
 	}, 200);
 }
 
