@@ -8,7 +8,8 @@ export type { WidgetType };
 export const WIDGET_LABELS: Record<WidgetType, string> = {
 	favorites: 'お気に入り',
 	recent: '最近起動',
-	projects: 'プロジェクト',
+	// PH-issue-039 / 検収項目 #12: 「ウォッチフォルダー」→「フォルダ監視」 (内容と名称の整合)。
+	projects: 'フォルダ監視',
 	item: 'アイテム',
 	clock: '時計',
 	stats: 'よく使うもの',
