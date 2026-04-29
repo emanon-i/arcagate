@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use serde::Serialize;
-use sysinfo::{Disks, System};
+use sysinfo::{Disks, Networks, System};
 
 use crate::utils::error::AppError;
 
@@ -11,6 +11,16 @@ pub struct SystemStats {
     pub cpu_percent: f32,
     pub mem_used_bytes: u64,
     pub mem_total_bytes: u64,
+}
+
+/// PH-issue-042 / 検収項目 #27: ネットワーク累積バイト (受信 / 送信、interface ごと)。
+/// frontend は前回値との差分を delta として表示する。
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkStats {
+    pub interface: String,
+    pub rx_total_bytes: u64,
+    pub tx_total_bytes: u64,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -55,6 +65,21 @@ pub fn get_disk_stats() -> Result<Vec<DiskStats>, AppError> {
             mount,
             used_bytes: used,
             total_bytes: total,
+        });
+    }
+    Ok(out)
+}
+
+/// PH-issue-042 / 検収項目 #27: ネットワーク stats (累積受信 / 送信バイト、interface 別)。
+/// frontend で前回値との差分から throughput を計算する。
+pub fn get_network_stats() -> Result<Vec<NetworkStats>, AppError> {
+    let networks = Networks::new_with_refreshed_list();
+    let mut out: Vec<NetworkStats> = Vec::new();
+    for (name, data) in networks.iter() {
+        out.push(NetworkStats {
+            interface: name.clone(),
+            rx_total_bytes: data.total_received(),
+            tx_total_bytes: data.total_transmitted(),
         });
     }
     Ok(out)

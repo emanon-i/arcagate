@@ -1,8 +1,11 @@
 <script lang="ts">
 /**
  * PH-issue-026 (Issue 23): SystemMonitorSettings polish — 共通 Switch 採用 + clamp 統一。
+ * PH-issue-042 (Issue 27/29): ネットワーク表示 toggle + chart_type select 追加。
  */
 import Switch from '$lib/components/common/Switch.svelte';
+
+type ChartType = 'sparkline' | 'bar' | 'gauge';
 
 interface Props {
 	config: {
@@ -10,6 +13,8 @@ interface Props {
 		show_cpu?: boolean;
 		show_memory?: boolean;
 		show_disk?: boolean;
+		show_network?: boolean;
+		chart_type?: ChartType;
 		title?: string;
 	};
 }
@@ -20,6 +25,8 @@ let smRefreshMs = $derived(config.refresh_interval_ms ?? 2000);
 let smShowCpu = $derived(config.show_cpu ?? true);
 let smShowMemory = $derived(config.show_memory ?? true);
 let smShowDisk = $derived(config.show_disk ?? false);
+let smShowNetwork = $derived(config.show_network ?? false);
+let smChartType = $derived<ChartType>(config.chart_type ?? 'sparkline');
 let smTitle = $derived(config.title ?? '');
 </script>
 
@@ -76,6 +83,38 @@ let smTitle = $derived(config.title ?? '');
 		}}
 		aria-label="ディスクを表示する"
 	/>
+</div>
+<!-- PH-issue-042 / 検収項目 #27: ネットワーク表示 toggle -->
+<div class="flex items-center justify-between gap-3 text-sm">
+	<span class="text-[var(--ag-text-primary)]">ネットワークを表示</span>
+	<Switch
+		checked={smShowNetwork}
+		onChange={(v) => {
+			config = { ...config, show_network: v };
+		}}
+		aria-label="ネットワークを表示する"
+	/>
+</div>
+<!-- PH-issue-042 / 検収項目 #29: chart 切替 -->
+<div class="space-y-1">
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-chart">
+		CPU グラフ表示
+	</label>
+	<select
+		id="ws-sm-chart"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		value={smChartType}
+		onchange={(e) => {
+			config = {
+				...config,
+				chart_type: (e.currentTarget as HTMLSelectElement).value as ChartType,
+			};
+		}}
+	>
+		<option value="sparkline">スパークライン (折れ線)</option>
+		<option value="bar">バー (横棒)</option>
+		<option value="gauge">ゲージ (円弧)</option>
+	</select>
 </div>
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-title">タイトル</label>

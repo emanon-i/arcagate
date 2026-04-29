@@ -39,7 +39,7 @@ thiserror = "2"
 clap = { version = "4", features = ["derive"] }
 tauri-plugin-clipboard-manager = "2"
 notify = "7"
-sysinfo = { version = "0.32", default-features = false, features = ["system", "disk"] }
+sysinfo = { version = "0.32", default-features = false, features = ["system", "disk", "network"] }
 ts-rs = { version = "10", features = ["serde-compat"] }
 shell-words = "1"
 tauri-plugin-updater = "2"

@@ -34,7 +34,9 @@ use commands::metadata_commands::cmd_get_item_metadata;
 use commands::opener_commands::{
     cmd_delete_opener, cmd_launch_with_opener, cmd_list_openers, cmd_save_opener,
 };
-use commands::system_monitor_commands::{cmd_get_disk_stats, cmd_get_system_stats};
+use commands::system_monitor_commands::{
+    cmd_get_disk_stats, cmd_get_network_stats, cmd_get_system_stats,
+};
 use commands::theme_commands::{
     cmd_create_theme, cmd_delete_theme, cmd_export_theme_json, cmd_get_active_theme_mode,
     cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
@@ -272,6 +274,7 @@ pub fn run() {
             cmd_open_path,
             cmd_get_system_stats,
             cmd_get_disk_stats,
+            cmd_get_network_stats,
             cmd_list_themes,
             cmd_get_theme,
             cmd_create_theme,
