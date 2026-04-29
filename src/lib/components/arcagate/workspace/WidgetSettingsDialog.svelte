@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Trash2 } from '@lucide/svelte';
 import { cubicOut } from 'svelte/easing';
 import { fade, scale } from 'svelte/transition';
 import { Button } from '$lib/components/ui/button';
@@ -47,6 +48,13 @@ async function handleSave() {
 		toastStore.add('保存に失敗しました', 'error');
 	}
 }
+
+// PH-issue-033 / 検収項目 #4: Settings dialog から widget 削除 (Undo で戻せる、即削除)
+function handleDelete() {
+	void workspaceStore.removeWidget(widget.id);
+	toastStore.add('ウィジェットを削除しました（Ctrl+Z で戻せます）', 'info');
+	onClose();
+}
 </script>
 
 {#if dialogOpen}
@@ -89,9 +97,23 @@ async function handleSave() {
 					{/if}
 				</div>
 
-				<div class="mt-6 flex justify-end gap-2">
-					<Button type="button" variant="outline" onclick={onClose}>キャンセル</Button>
-					<Button type="submit">保存</Button>
+				<!-- PH-issue-033 / 検収項目 #4: 左に削除 button、右に キャンセル / 保存。
+				     destructive operation を主操作 (保存) と離して配置 (誤クリック防止)。 -->
+				<div class="mt-6 flex items-center justify-between gap-2">
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+						onclick={handleDelete}
+					>
+						<Trash2 class="h-3.5 w-3.5" />
+						このウィジェットを削除
+					</Button>
+					<div class="flex items-center gap-2">
+						<Button type="button" variant="outline" onclick={onClose}>キャンセル</Button>
+						<Button type="submit">保存</Button>
+					</div>
 				</div>
 			</form>
 		</div>
