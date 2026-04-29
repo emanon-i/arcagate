@@ -4,6 +4,15 @@ import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { findFreePosition, type Rect, wouldOverlapAt } from '$lib/utils/widget-grid';
+import { widgetRegistry } from '$lib/widgets';
+
+/**
+ * 検収 #7: widget タイプごとの推奨デフォルトサイズを registry から取得する helper。
+ * registry の `defaultSize` が無い場合は (2, 2) にフォールバック。
+ */
+function defaultSizeFor(type: WidgetType): { w: number; h: number } {
+	return widgetRegistry[type]?.defaultSize ?? { w: 2, h: 2 };
+}
 
 let workspaces = $state<Workspace[]>([]);
 let activeWorkspaceId = $state<string | null>(null);
@@ -31,13 +40,13 @@ async function loadWorkspaces(): Promise<void> {
 	error = null;
 	try {
 		workspaces = await workspaceIpc.listWorkspaces();
-		// PH-issue-029 / 検収項目 #6: 初回起動時 (workspaces 0 件) は default workspace を auto-create。
-		// 旧実装は 0 件で何も起きず、user が「Home が無い」状態を見てしまっていた (vision M1 違反)。
+		// 初回起動時 (workspaces 0 件) は空 Home workspace を auto-create。default widget seed は無し
+		// (検収 #3: user が並べる)。
 		if (workspaces.length === 0) {
 			const ws = await workspaceIpc.createWorkspace('Home');
 			workspaces = [ws];
 			activeWorkspaceId = ws.id;
-			await seedDefaultWidgets(ws.id);
+			widgets = [];
 			return;
 		}
 		if (activeWorkspaceId === null) {
@@ -58,7 +67,7 @@ async function createWorkspace(name: string): Promise<void> {
 		const ws = await workspaceIpc.createWorkspace(name);
 		workspaces = [...workspaces, ws];
 		activeWorkspaceId = ws.id;
-		await seedDefaultWidgets(ws.id);
+		widgets = [];
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -114,9 +123,7 @@ async function loadWidgets(workspaceId: string): Promise<void> {
 	error = null;
 	try {
 		widgets = await workspaceIpc.listWidgets(workspaceId);
-		if (widgets.length === 0) {
-			await seedDefaultWidgets(workspaceId);
-		}
+		// 検収 #3: 新規 / 空 workspace は空のまま。default widget seed は撤廃 (user 自身が並べる)。
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -124,38 +131,36 @@ async function loadWidgets(workspaceId: string): Promise<void> {
 	}
 }
 
-async function seedDefaultWidgets(workspaceId: string): Promise<void> {
-	const defaults: { type: WidgetType; x: number; y: number; w: number; h: number }[] = [
-		{ type: 'favorites', x: 0, y: 0, w: 1, h: 2 },
-		{ type: 'recent', x: 1, y: 0, w: 2, h: 1 },
-		{ type: 'projects', x: 1, y: 1, w: 2, h: 1 },
-	];
-	for (const d of defaults) {
-		const widget = await workspaceIpc.addWidget(workspaceId, d.type);
-		await workspaceIpc.updateWidgetPosition(widget.id, d.x, d.y, d.w, d.h);
-	}
-	widgets = await workspaceIpc.listWidgets(workspaceId);
-}
-
-async function addWidget(widgetType: WidgetType): Promise<void> {
+async function addWidget(
+	widgetType: WidgetType,
+	nearCell?: { x: number; y: number },
+): Promise<void> {
 	if (!activeWorkspaceId) return;
 	loading = true;
 	error = null;
 	try {
-		// PH-issue-003: IPC 発行**前に** 空き position を求める。空きなしなら toast + 早期 return
-		// (旧 (0,0) fallback で既存 widget と重なるバグの根本対策)。
-		// 新規 widget のデフォルトサイズは Rust 側 (`workspace_service::add_widget`) と一致させる (2x2)
-		const w = 2;
-		const h = 2;
-		const pos = findFreePosition(w, h, widgetsToRects(widgets), DEFAULT_GRID_COLS, DEFAULT_MAX_ROW);
+		// 検収 #7: widget タイプ別 defaultSize を使う (Clock 1x1 等の極小化を防止)。
+		// Rust 側はサイズ 2x2 で row 末尾に作成するため、追加直後に widget タイプ別サイズに更新する。
+		const { w, h } = defaultSizeFor(widgetType);
+		// 検収 #5: nearCell (viewport center 由来) から空き位置探索。指定セルが空なら即採用、
+		// 重なるなら nearCell 起点で findFreePosition がスパイラル探索する。これで「クリック追加 →
+		// 画面外に配置」を防ぎ、必ず viewport 内に出る。
+		let pos: { x: number; y: number } | null;
+		if (nearCell && !wouldOverlapAt(nearCell.x, nearCell.y, w, h, widgetsToRects(widgets))) {
+			pos = nearCell;
+		} else {
+			pos = findFreePosition(w, h, widgetsToRects(widgets), DEFAULT_GRID_COLS, DEFAULT_MAX_ROW);
+		}
 		if (pos === null) {
 			toastStore.add('空きスペースがありません。既存ウィジェットを縮小・削除してください', 'error');
 			return;
 		}
 		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
-		await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
+		await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, w, h);
 		widget.position_x = pos.x;
 		widget.position_y = pos.y;
+		widget.width = w;
+		widget.height = h;
 		widgets = [...widgets, widget];
 		// PH-issue-002: history record (add)
 		workspaceHistory.record({
@@ -178,19 +183,18 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 	loading = true;
 	error = null;
 	try {
-		// PH-issue-003: 指定セルが overlap なら拒否 + toast。別セルへの auto-rearrange は廃止
-		// (user fb 「単純に重ならない」)。
-		// 新規 widget のデフォルトサイズは Rust 側 (`workspace_service::add_widget`) と一致させる (2x2)
-		const w = 2;
-		const h = 2;
+		// 検収 #7: widget タイプ別 defaultSize を使う。
+		const { w, h } = defaultSizeFor(widgetType);
 		if (wouldOverlapAt(x, y, w, h, widgetsToRects(widgets))) {
 			toastStore.add('他のウィジェットと重なるため配置できません', 'error');
 			return;
 		}
 		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
-		await workspaceIpc.updateWidgetPosition(widget.id, x, y, widget.width, widget.height);
+		await workspaceIpc.updateWidgetPosition(widget.id, x, y, w, h);
 		widget.position_x = x;
 		widget.position_y = y;
+		widget.width = w;
+		widget.height = h;
 		widgets = [...widgets, widget];
 		// PH-issue-002: history record (add)
 		workspaceHistory.record({
@@ -220,8 +224,7 @@ async function bulkAddItemWidgets(itemIds: string[]): Promise<number> {
 	let placed = 0;
 	try {
 		for (const itemId of itemIds) {
-			const w = 2;
-			const h = 2;
+			const { w, h } = defaultSizeFor('item');
 			const pos = findFreePosition(
 				w,
 				h,
@@ -237,11 +240,13 @@ async function bulkAddItemWidgets(itemIds: string[]): Promise<number> {
 				break;
 			}
 			const widget = await workspaceIpc.addWidget(activeWorkspaceId, 'item');
-			await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
+			await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, w, h);
 			const config = JSON.stringify({ item_id: itemId });
 			const updated = await workspaceIpc.updateWidgetConfig(widget.id, config);
 			updated.position_x = pos.x;
 			updated.position_y = pos.y;
+			updated.width = w;
+			updated.height = h;
 			widgets = [...widgets, updated];
 			workspaceHistory.record({
 				kind: 'add',

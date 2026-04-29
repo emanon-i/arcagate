@@ -22,11 +22,12 @@ pub fn add_watched_path(
 
     // PH-421 / Codex Rule C 最重要指摘: silent failure 解消。
     // watcher 登録を先に試み、失敗したら DB 書き込み前に Err 返却。
+    // 検収 #13: ウォッチパスはサブフォルダも再帰監視 (Recursive)。
     {
         let mut w = watcher.0.lock().map_err(|_| AppError::DbLock)?;
         w.watch(
             std::path::Path::new(&path_str),
-            notify::RecursiveMode::NonRecursive,
+            notify::RecursiveMode::Recursive,
         )
         .map_err(|e| {
             log::warn!("watcher: failed to watch '{}': {}", path_str, e);

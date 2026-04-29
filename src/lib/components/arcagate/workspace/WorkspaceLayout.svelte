@@ -82,8 +82,9 @@ let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
 
 function instantDeleteWidget(id: string) {
+	// 検収 #2: toast 文言から「Ctrl+Z で戻せます」を削除 (注意書き残骸)。Undo は標準操作なので説明不要。
 	void workspaceStore.removeWidget(id);
-	toastStore.add('ウィジェットを削除しました（Ctrl+Z で戻せます）', 'info');
+	toastStore.add('ウィジェットを削除しました', 'info');
 }
 // PH-issue-024: 右クリック「Open with…」 popup の表示状態 + 位置
 let contextMenuOpen = $state(false);
@@ -93,17 +94,42 @@ let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
-// PH-issue-034 / 検収項目 #9: 初回 mount 時に infinite canvas の中央付近に scroll する。
-// padding-top/right=2000px のため、widget area は (2000, 2000) からスタート。
-// scroll を (1900, 1900) 付近に置けば widgets 上に少し空きを残しつつ画面内に収まる。
+// 検収 #4: infinite canvas を 10000×10000 + padding 4000px に拡大、中央付近 (3900,3900) を
+// 初期 scroll に置く。widget なし時は空白の中央が見える。
+// 検収 #8: 切替後の戻りで pan 位置を復元するため localStorage に保存 / 読み込み。
+const PAN_KEY = 'arcagate.workspace.pan';
+let panSaveTimer: ReturnType<typeof setTimeout> | null = null;
 $effect(() => {
 	if (workspaceContainer && infiniteCanvas) {
-		// 1 回だけ初期 scroll
 		queueMicrotask(() => {
-			workspaceContainer?.scrollTo({ left: 1900, top: 1900, behavior: 'instant' });
+			if (!workspaceContainer) return;
+			let left = 3900;
+			let top = 3900;
+			try {
+				const raw = typeof window !== 'undefined' ? localStorage.getItem(PAN_KEY) : null;
+				if (raw) {
+					const v = JSON.parse(raw);
+					if (typeof v?.left === 'number') left = v.left;
+					if (typeof v?.top === 'number') top = v.top;
+				}
+			} catch {
+				/* ignore corrupt JSON */
+			}
+			workspaceContainer.scrollTo({ left, top, behavior: 'instant' });
 		});
 	}
 });
+function onWorkspaceScroll() {
+	if (typeof window === 'undefined' || !workspaceContainer) return;
+	if (panSaveTimer) clearTimeout(panSaveTimer);
+	panSaveTimer = setTimeout(() => {
+		if (!workspaceContainer) return;
+		localStorage.setItem(
+			PAN_KEY,
+			JSON.stringify({ left: workspaceContainer.scrollLeft, top: workspaceContainer.scrollTop }),
+		);
+	}, 200);
+}
 
 $effect(() => {
 	const el = workspaceContainer;
@@ -345,9 +371,9 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		{/if}
 
 		<!-- 上部 toolbar: PageTabBar (workspace 切替 + 壁紙設定 button)。
-		     半透明 + backdrop-blur で wallpaper を透かす (P11 装飾より対象)。 -->
+		     検収 #11: 背景色削除 (透明)、border のみ残す。wallpaper / canvas 背景がそのまま透けて見える。 -->
 		<div
-			class="relative z-20 shrink-0 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)]/85 px-5 py-3 backdrop-blur-sm"
+			class="relative z-20 shrink-0 border-b border-[var(--ag-border)] px-5 py-3"
 		>
 			<PageTabBar
 				onSelectWorkspace={handleSelectWorkspace}
@@ -369,28 +395,22 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			onpointerdown={onCanvasPointerDown}
 			onpointermove={onCanvasPointerMove}
 			onpointerup={onCanvasPointerUp}
+			onscroll={onWorkspaceScroll}
 		>
-			<!-- PH-issue-034: 5000x5000 の infinite canvas、widgets は中央寄せ。
-			     pan で 4 方向に移動可能 (scroll 範囲が大きいため負方向にも見える)。 -->
+			<!-- 検収 #4: 10000×10000 の infinite canvas、widgets は中央寄せ (padding 4000)。
+			     pan で 4 方向に長距離移動可能。dotted grid は scroll 追従 (Obsidian と一致)。 -->
 			<div
 				class="relative"
-				style="width: 5000px; height: 5000px; padding: 2000px 2000px 0 0; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
+				style="width: 10000px; height: 10000px; padding: 4000px 4000px 0 4000px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 				bind:this={infiniteCanvas}
 			>
 				<div class="flex gap-4 p-5">
-					<div class="min-w-0 flex-1">
-						{#if workspaceStore.widgets.length === 0}
-							<!-- 空状態: widget 追加促し (sidebar が常時開いてるので追加可能) -->
-							<div class="mt-12 flex flex-col items-center justify-center gap-2 text-center">
-								<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
-								<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
-									ウィジェットを追加しましょう
-								</p>
-								<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
-									左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
-								</p>
-							</div>
-						{:else}
+					<div class="relative min-w-0 flex-1">
+						<!-- 検収 #6: WorkspaceWidgetGrid は **常時** 描画する。
+						     旧実装では `widgets.length === 0` のとき grid が unmount されており、
+						     その間に sidebar pointerdown で pointerDrag.start しても、grid の document
+						     listener が無いため pointerup で addWidget が呼ばれず click 追加が失敗していた。
+						     空状態のヒントは grid の上に absolute オーバーレイで表示する (pointer-events-none)。 -->
 						<WorkspaceWidgetGrid
 							{dynamicCols}
 							{maxRow}
@@ -404,8 +424,20 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 							onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
 							onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
 						/>
-					{/if}
-				</div>
+						{#if workspaceStore.widgets.length === 0}
+							<div
+								class="pointer-events-none absolute inset-x-0 top-12 flex flex-col items-center justify-center gap-2 text-center"
+							>
+								<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
+								<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
+									ウィジェットを追加しましょう
+								</p>
+								<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
+									左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
+								</p>
+							</div>
+						{/if}
+					</div>
 
 				{#if contextItemId}
 					<div class="w-80 shrink-0">

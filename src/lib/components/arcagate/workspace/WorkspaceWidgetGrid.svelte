@@ -75,15 +75,44 @@ $effect(() => {
 		}
 	}
 
+	/**
+	 * 検収 #5: dropZone の viewport-visible 中央セルを返す。click 追加時に widget が画面外に
+	 * 配置される問題への対策。dropZone (= 全 grid) の中で、scroll コンテナの可視矩形と交差する
+	 * 領域の中央セルを計算する。
+	 */
+	function viewportCenterCell(): { x: number; y: number } | null {
+		const ref = dropZoneEl;
+		if (!ref) return null;
+		const dropRect = ref.getBoundingClientRect();
+		// 可視矩形 = window viewport (Workspace canvas は overflow-auto なので getBoundingClientRect は
+		// scroll 後の絶対座標を返す)。dropZone の可視範囲は dropRect ∩ window viewport。
+		const vpLeft = Math.max(0, dropRect.left);
+		const vpTop = Math.max(0, dropRect.top);
+		const vpRight = Math.min(window.innerWidth, dropRect.right);
+		const vpBottom = Math.min(window.innerHeight, dropRect.bottom);
+		if (vpRight <= vpLeft || vpBottom <= vpTop) return null;
+		const cx = (vpLeft + vpRight) / 2;
+		const cy = (vpTop + vpBottom) / 2;
+		return calcDropCell(cx, cy);
+	}
+
 	function onUp(_e: PointerEvent) {
 		const cell = pointerDrag.dropCell;
 		const src = pointerDrag.active;
 		pointerDrag.end();
 
-		if (cell && src) {
-			if (src.kind === 'add') {
+		if (!src) return;
+		if (src.kind === 'add') {
+			// 検収 #5/#6: drag drop か click かで分岐。click (cell 無し) は viewport 中央起点に
+			// 自動配置、drag (cell あり) は指定セルに配置。click handler 二重発火は撤廃済 (Sidebar)。
+			if (cell) {
 				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y);
-			} else if (src.kind === 'move') {
+			} else {
+				const near = viewportCenterCell() ?? undefined;
+				void workspaceStore.addWidget(src.widgetType, near);
+			}
+		} else if (src.kind === 'move') {
+			if (cell) {
 				void workspaceStore.moveWidget(src.widgetId, cell.x, cell.y);
 			}
 		}

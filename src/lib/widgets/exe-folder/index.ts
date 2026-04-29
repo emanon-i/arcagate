@@ -10,6 +10,7 @@ export const meta: WidgetMeta = {
 	icon: FolderOpen,
 	label: 'Exe フォルダ監視',
 	defaultConfig: { scan_depth: 2 },
+	defaultSize: { w: 3, h: 3 },
 	addable: true,
 	SettingsContent: ExeFolderSettings,
 };

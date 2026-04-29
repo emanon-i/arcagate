@@ -28,7 +28,20 @@ import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 
 type ActiveView = 'library' | 'workspace';
 
-let activeView = $state<ActiveView>('library');
+// 検収 #8/#9: activeView は localStorage で永続化。Library / Workspace 切替後の再起動でも
+// 最後に開いていた画面を復元する (Obsidian / VSCode の挙動と一致)。
+const VIEW_KEY = 'arcagate.app.activeView';
+function getInitialView(): ActiveView {
+	if (typeof window === 'undefined') return 'library';
+	const v = localStorage.getItem(VIEW_KEY);
+	return v === 'workspace' ? 'workspace' : 'library';
+}
+let activeView = $state<ActiveView>(getInitialView());
+$effect(() => {
+	if (typeof window !== 'undefined') {
+		localStorage.setItem(VIEW_KEY, activeView);
+	}
+});
 let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
 let droppedPaths = $state<string[] | undefined>(undefined);

@@ -43,11 +43,11 @@ pub fn start_watcher(app: &tauri::AppHandle) -> WatcherState {
             })
             .unwrap_or_default()
     };
+    // 検収 #13: ウォッチフォルダのサブフォルダ監視を有効化 (Recursive)。
+    // 旧 NonRecursive は「サブフォルダの追加が即時反映されない」問題の原因だった。
     for path in &active_paths {
-        if let Err(e) = watcher.watch(
-            std::path::Path::new(path),
-            notify::RecursiveMode::NonRecursive,
-        ) {
+        if let Err(e) = watcher.watch(std::path::Path::new(path), notify::RecursiveMode::Recursive)
+        {
             log::warn!("watcher: failed to watch '{}': {:?}", path, e);
         }
     }

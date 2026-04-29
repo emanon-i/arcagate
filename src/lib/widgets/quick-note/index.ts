@@ -10,6 +10,7 @@ export const meta: WidgetMeta = {
 	icon: NotebookPen,
 	label: 'メモ',
 	defaultConfig: { font_size: 'md' },
+	defaultSize: { w: 3, h: 2 },
 	addable: true,
 	SettingsContent: QuickNoteSettings,
 };

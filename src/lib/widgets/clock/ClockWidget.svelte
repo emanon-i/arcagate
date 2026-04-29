@@ -101,6 +101,8 @@ let display = $derived.by(() => {
 	}
 	return {
 		prefix,
+		hour: String(h).padStart(2, '0'),
+		minute: m,
 		hm: `${String(h).padStart(2, '0')}:${m}`,
 		seconds: s,
 	};
@@ -113,28 +115,41 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>
-	<!-- @container で widget 自身のサイズに応じて段階的に密度を変える。
-	     overflow-hidden で scrollbar 出ないことを保証 (PH-issue-021)。 -->
+	<!-- 検収 #16: container query を細分化、極小サイズでも崩れないように。
+	     - 〜120px: HH と MM を 2 行に縦表示 (visually balanced compact mode)
+	     - @xs (160px+): HH:MM 横、秒は隠す
+	     - @sm (240px+): + 秒
+	     - @md (320px+): + 日付・曜日
+	     - @lg (480px+): + TZ 名 + 全体的に大きい
+	     overflow-hidden で widget shell からはみ出さない (検収 #14, #16)。 -->
 	<div
-		class="@container flex h-full flex-col items-center justify-center overflow-hidden"
+		class="@container relative flex h-full w-full flex-col items-center justify-center overflow-hidden"
 	>
-		<!-- 時間: 主要、container サイズに応じて巨大化 -->
+		<!-- 縦表示 (極小): @xs 未満で表示。HH 改行 MM。 -->
 		<div
-			class="flex items-baseline gap-1 font-mono font-semibold tabular-nums text-[var(--ag-text-primary)]"
+			class="flex flex-col items-center gap-0 font-mono font-semibold tabular-nums leading-none text-[var(--ag-text-primary)] @xs:hidden"
+		>
+			<span class="text-3xl">{display.hour}</span>
+			<span class="text-3xl">{display.minute}</span>
+		</div>
+
+		<!-- 横表示 (@xs+): HH:MM + 秒 -->
+		<div
+			class="hidden items-baseline gap-1 font-mono font-semibold tabular-nums text-[var(--ag-text-primary)] @xs:flex"
 		>
 			{#if !config.use_24h}
-				<span class="text-xs text-[var(--ag-text-muted)] @xs:text-sm @md:text-base">
+				<span class="text-xs text-[var(--ag-text-muted)] @md:text-base">
 					{display.prefix}
 				</span>
 			{/if}
 			<span
-				class="text-3xl leading-none @xs:text-4xl @sm:text-5xl @md:text-6xl @lg:text-7xl"
+				class="text-4xl leading-none @sm:text-5xl @md:text-6xl @lg:text-7xl"
 			>
 				{display.hm}
 			</span>
 			{#if config.show_seconds}
 				<span
-					class="hidden text-base leading-none text-[var(--ag-text-secondary)] @xs:inline @sm:text-xl @md:text-2xl @lg:text-3xl"
+					class="hidden text-base leading-none text-[var(--ag-text-secondary)] @sm:inline @md:text-2xl @lg:text-3xl"
 				>:{display.seconds}</span>
 			{/if}
 		</div>
@@ -142,7 +157,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		<!-- 日付 + 曜日: @sm 以上で表示 -->
 		{#if config.show_date || config.show_weekday}
 			<div
-				class="hidden items-center gap-1 text-xs text-[var(--ag-text-muted)] @sm:flex @md:text-sm @lg:text-base"
+				class="hidden items-center gap-1 truncate text-xs text-[var(--ag-text-muted)] @sm:flex @md:text-sm @lg:text-base"
 			>
 				{#if config.show_date}<span>{dateStr}</span>{/if}
 				{#if config.show_weekday}<span>{weekdayStr}</span>{/if}
@@ -152,7 +167,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		<!-- タイムゾーン: @md 以上で表示 -->
 		{#if config.show_timezone && tzAbbr}
 			<div
-				class="mt-1 hidden text-xs uppercase tracking-wider text-[var(--ag-text-faint)] @md:block @lg:text-sm"
+				class="mt-1 hidden truncate text-xs uppercase tracking-wider text-[var(--ag-text-faint)] @md:block @lg:text-sm"
 			>
 				{tzAbbr}
 			</div>

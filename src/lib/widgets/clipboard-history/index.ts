@@ -10,6 +10,7 @@ export const meta: WidgetMeta = {
 	icon: ClipboardList,
 	label: 'クリップボード履歴',
 	defaultConfig: { max_items: 20, poll_interval_ms: 1500 },
+	defaultSize: { w: 2, h: 3 },
 	addable: true,
 	SettingsContent: ClipboardHistorySettings,
 };

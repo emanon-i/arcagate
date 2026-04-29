@@ -20,6 +20,7 @@ export const meta: WidgetMeta = {
 		watched_folder: '',
 		auto_add: false,
 	},
+	defaultSize: { w: 3, h: 3 },
 	addable: true,
 	SettingsContent: ProjectsSettings,
 };
