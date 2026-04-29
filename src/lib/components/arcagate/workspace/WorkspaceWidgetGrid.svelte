@@ -214,9 +214,10 @@ $effect(() => {
 			{/if}
 		{/each}
 
-		<!-- Codex High #4: Drop preview highlight を defaultSize / 移動元 widget の実 size に合わせる。
-		     旧実装は 1 セルだけハイライト → 「OK 見え」で drop した瞬間に重なって reject される UX 不一致。
-		     さらに overlap 事前判定して accent (free) / destructive (blocked) で色分け。 -->
+		<!-- Codex High #4 + 再 review #2: Drop preview highlight を defaultSize / 移動元実 size に合わせる。
+		     overlap 事前判定 + grid 右端越え判定で accent (free) / destructive (blocked / 越境) を色分け。
+		     **width clamp はせず、span は previewSize.w 全幅で出す**（右端で grid 外にはみ出すが、その時は
+		     blocked 色で「ここには配置できない」と視覚的に伝える）。 -->
 		{#if pointerDrag.dropCell && pointerDrag.active}
 			{@const cell = pointerDrag.dropCell}
 			{@const previewSize =
@@ -233,12 +234,15 @@ $effect(() => {
 					pointerDrag.active?.kind === 'move' ? w.id !== pointerDrag.active.widgetId : true,
 				)
 				.map((w) => ({ x: w.position_x, y: w.position_y, w: w.width, h: w.height }))}
-			{@const blocked = wouldOverlapAt(cell.x, cell.y, previewSize.w, previewSize.h, others)}
+			{@const overflowsRight = cell.x + previewSize.w > dynamicCols}
+			{@const blocked =
+				overflowsRight ||
+				wouldOverlapAt(cell.x, cell.y, previewSize.w, previewSize.h, others)}
 			{@const colorVar = blocked ? 'var(--ag-error-text)' : 'var(--ag-accent)'}
 			<div
 				class="pointer-events-none rounded-lg border-2 border-dashed transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none"
 				style="
-					grid-column: {cell.x + 1} / span {Math.min(previewSize.w, dynamicCols - cell.x)};
+					grid-column: {cell.x + 1} / span {previewSize.w};
 					grid-row: {cell.y + 1} / span {previewSize.h};
 					border-color: {colorVar};
 					background: color-mix(in srgb, {colorVar} 10%, transparent);

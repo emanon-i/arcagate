@@ -21,11 +21,11 @@ describe('findFreePositionNear (Codex Critical #1)', () => {
 		const others: Rect[] = [{ x: 2, y: 2, w: 2, h: 2 }];
 		// seed (2,2) は埋まり、(0,2) / (2,0) / (4,2) 等が候補。広い格子なら r=1 で見つかる。
 		const r = findFreePositionNear(2, 2, 2, 2, others, 8, 16);
-		expect(r).not.toBeNull();
+		if (r === null) throw new Error('expected non-null result');
 		// 重ならないことを保証
-		expect(wouldOverlapAt(r!.x, r!.y, 2, 2, others)).toBe(false);
+		expect(wouldOverlapAt(r.x, r.y, 2, 2, others)).toBe(false);
 		// seed からチェビシェフ距離 1〜2 の範囲内に収まる（top-left jump をしていない）
-		expect(Math.max(Math.abs(r!.x - 2), Math.abs(r!.y - 2))).toBeLessThanOrEqual(2);
+		expect(Math.max(Math.abs(r.x - 2), Math.abs(r.y - 2))).toBeLessThanOrEqual(2);
 	});
 
 	it('seed 起点で全 ring 走査しても見つからない時は top-left fallback を返す', () => {

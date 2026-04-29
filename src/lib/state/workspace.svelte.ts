@@ -196,6 +196,11 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 	try {
 		// 検収 #7: widget タイプ別 defaultSize を使う。
 		const { w, h } = defaultSizeFor(widgetType);
+		// Codex 再 review #2: grid 右端越えも reject (drag preview の越境表示 = 配置不可と一致)。
+		if (x + w > DEFAULT_GRID_COLS || y + h > DEFAULT_MAX_ROW + 1) {
+			toastStore.add('グリッド範囲外のため配置できません', 'error');
+			return;
+		}
 		if (wouldOverlapAt(x, y, w, h, widgetsToRects(widgets))) {
 			toastStore.add('他のウィジェットと重なるため配置できません', 'error');
 			return;

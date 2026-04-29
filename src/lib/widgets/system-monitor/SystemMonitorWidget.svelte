@@ -92,23 +92,24 @@ const FAILURE_DEGRADED_THRESHOLD = 3;
 let degraded = $derived(consecutiveFailures >= FAILURE_DEGRADED_THRESHOLD);
 
 async function refresh() {
-	let succeeded = false;
+	// Codex Medium #5 + 再 review #3: 各 IPC 失敗を個別に track。
+	// system_stats 成功 + 必要な disk / network すべて成功した時のみ「成功」扱い。
+	// 一部失敗すれば failure 連続カウントが進み、3 回連続で degraded UI を出す。
+	let allOk = true;
 	try {
 		const s = await invoke<SystemStats>('cmd_get_system_stats');
 		stats = s;
 		cpuHistory = pushBuffer(cpuHistory, s.cpuPercent, 60);
 		const memPct = s.memTotalBytes > 0 ? (s.memUsedBytes / s.memTotalBytes) * 100 : 0;
 		memHistory = pushBuffer(memHistory, memPct, 60);
-		succeeded = true;
 	} catch (e) {
-		// Codex Medium #5: 一時失敗は debug log、連続なら degraded UI で user 通知
 		console.debug('SystemMonitor: cmd_get_system_stats failed', e);
+		allOk = false;
 	}
 	if (showDisk) {
 		try {
 			disks = await invoke<DiskStats[]>('cmd_get_disk_stats');
-			// Codex Medium #6: 消失した mount は履歴 prune（slow leak 防止）。
-			// 現 mount のみ繰越し、新規は空 array で開始。
+			// Codex Medium #6: 消失 mount は履歴 prune（slow leak 防止）。
 			const newDH: Record<string, number[]> = {};
 			for (const d of disks) {
 				const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0;
@@ -117,6 +118,7 @@ async function refresh() {
 			diskHistory = newDH;
 		} catch (e) {
 			console.debug('SystemMonitor: cmd_get_disk_stats failed', e);
+			allOk = false;
 		}
 	}
 	if (showNetwork) {
@@ -143,9 +145,10 @@ async function refresh() {
 			prevNetworks = newPrev;
 		} catch (e) {
 			console.debug('SystemMonitor: cmd_get_network_stats failed', e);
+			allOk = false;
 		}
 	}
-	consecutiveFailures = succeeded ? 0 : consecutiveFailures + 1;
+	consecutiveFailures = allOk ? 0 : consecutiveFailures + 1;
 }
 
 $effect(() => {
