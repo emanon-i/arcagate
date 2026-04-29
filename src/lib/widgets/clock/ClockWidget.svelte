@@ -1,4 +1,23 @@
 <script lang="ts">
+/**
+ * PH-issue-035 / 検収項目 #24-26: ClockWidget 抹本改修。
+ *
+ * - #24: widget 全体を活用、サイズに応じて表示密度を変える (空白を活かす)
+ * - #25: 1×1 (compact) では時:分のみ、大きいときは秒 / 年月日 / TZ を段階的に表示
+ * - #26: JST 既定 + タイムゾーン表示 (Intl.DateTimeFormat 経由)
+ *
+ * 引用元 guideline:
+ * - docs/desktop_ui_ux_agent_rules.md P11 装飾より対象 / P9 画面密度 / P3 主要 vs 補助
+ * - docs/l1_requirements/ux_standards.md §6-1 Widget fluid sizing
+ * - docs/l0_ideas/arcagate-visual-language.md「よく磨かれた工具」 (派手 NG、機能美)
+ *
+ * 表示階層 (container query):
+ * - 1×1 (~120px wide): HH:MM 大型のみ
+ * - @xs (~160px+):     + 秒 (config による)
+ * - @sm (~280px+):     + 日付 (YYYY/MM/DD) + 曜日
+ * - @md (~320px+):     + タイムゾーン名
+ * - @lg (~480px+):     全部 + より大きいフォント
+ */
 import { Clock } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
@@ -24,32 +43,71 @@ $effect(() => {
 
 let config = $derived(parseWidgetConfig(widget?.config, CLOCK_WIDGET_DEFAULTS));
 
-let timeStr = $derived.by(() => {
-	const h = config.use_24h ? now.getHours() : now.getHours() % 12 || 12;
-	const m = String(now.getMinutes()).padStart(2, '0');
-	const s = String(now.getSeconds()).padStart(2, '0');
-	const prefix = config.use_24h ? '' : now.getHours() < 12 ? 'AM ' : 'PM ';
-	return `${prefix}${String(h).padStart(2, '0')}:${m}${config.show_seconds ? `:${s}` : ''}`;
+// PH-issue-035: timezone 経由でローカライズした時刻を Intl で取得
+function partsForTz(date: Date, timezone: string) {
+	try {
+		const fmt = new Intl.DateTimeFormat('ja-JP', {
+			timeZone: timezone,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			weekday: 'short',
+			hour12: false,
+		});
+		const parts = fmt.formatToParts(date);
+		const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+		return {
+			year: get('year'),
+			month: get('month'),
+			day: get('day'),
+			hour: get('hour'),
+			minute: get('minute'),
+			second: get('second'),
+			weekday: get('weekday'),
+		};
+	} catch {
+		// 不正な timezone 文字列 → ローカル fallback
+		return partsForTz(date, Intl.DateTimeFormat().resolvedOptions().timeZone);
+	}
+}
+
+let parts = $derived(partsForTz(now, config.timezone));
+
+// timezone 短縮表記 (JST / EST / etc.)
+let tzAbbr = $derived.by(() => {
+	try {
+		const fmt = new Intl.DateTimeFormat('en-US', {
+			timeZone: config.timezone,
+			timeZoneName: 'short',
+		});
+		const tznPart = fmt.formatToParts(now).find((p) => p.type === 'timeZoneName');
+		return tznPart?.value ?? config.timezone;
+	} catch {
+		return '';
+	}
 });
 
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
-
-let dateStr = $derived.by(() => {
-	const parts: string[] = [];
-	if (config.show_date) {
-		parts.push(
-			`${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`,
-		);
+let display = $derived.by(() => {
+	let h = Number(parts.hour);
+	const m = parts.minute;
+	const s = parts.second;
+	const prefix = config.use_24h ? '' : h < 12 ? 'AM' : 'PM';
+	if (!config.use_24h) {
+		h = h % 12 || 12;
 	}
-	if (config.show_weekday) {
-		parts.push(`(${WEEKDAYS[now.getDay()]})`);
-	}
-	return parts.join(' ');
+	return {
+		prefix,
+		hm: `${String(h).padStart(2, '0')}:${m}`,
+		seconds: s,
+	};
 });
 
-// menuItems = 1 個（「設定」即モーダル）に統一。
-// 旧: 4 項目 DropdownMenu（秒/日付/曜日/12-24h トグル）→ CLAUDE.md「選択肢1個のメニューを挟むな」に従い
-// 全ウィジェット共通の WidgetSettingsDialog へ統合。
+let dateStr = $derived(`${parts.year}/${parts.month}/${parts.day}`);
+let weekdayStr = $derived(`(${parts.weekday})`);
+
 let menuItems = $derived(
 	widget
 		? [
@@ -65,27 +123,53 @@ let menuItems = $derived(
 </script>
 
 <WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>
-	<!-- PH-issue-021: container query で fluid sizing。
-	     1×1 (~320px wide) は text-xl、2×1+ は text-3xl、大きいほど text-5xl。
-	     overflow-hidden で scrollbar 出ないことを保証 (検収項目 #25)。 -->
-	<div class="@container flex h-full flex-col items-center justify-center gap-1 overflow-hidden">
-		<span
-			class="font-mono text-xl font-semibold tabular-nums text-[var(--ag-text-primary)] @xs:text-2xl @sm:text-3xl @md:text-4xl @lg:text-5xl"
+	<!-- @container で widget 自身のサイズに応じて段階的に密度を変える。
+	     overflow-hidden で scrollbar 出ないことを保証 (PH-issue-021)。 -->
+	<div
+		class="@container flex h-full flex-col items-center justify-center overflow-hidden"
+	>
+		<!-- 時間: 主要、container サイズに応じて巨大化 -->
+		<div
+			class="flex items-baseline gap-1 font-mono font-semibold tabular-nums text-[var(--ag-text-primary)]"
 		>
-			{timeStr}
-		</span>
-		{#if dateStr}
-			<span class="hidden text-xs text-[var(--ag-text-muted)] @xs:inline @sm:text-sm">
-				{dateStr}
+			{#if !config.use_24h}
+				<span class="text-xs text-[var(--ag-text-muted)] @xs:text-sm @md:text-base">
+					{display.prefix}
+				</span>
+			{/if}
+			<span
+				class="text-3xl leading-none @xs:text-4xl @sm:text-5xl @md:text-6xl @lg:text-7xl"
+			>
+				{display.hm}
 			</span>
+			{#if config.show_seconds}
+				<span
+					class="hidden text-base leading-none text-[var(--ag-text-secondary)] @xs:inline @sm:text-xl @md:text-2xl @lg:text-3xl"
+				>:{display.seconds}</span>
+			{/if}
+		</div>
+
+		<!-- 日付 + 曜日: @sm 以上で表示 -->
+		{#if config.show_date || config.show_weekday}
+			<div
+				class="hidden items-center gap-1 text-xs text-[var(--ag-text-muted)] @sm:flex @md:text-sm @lg:text-base"
+			>
+				{#if config.show_date}<span>{dateStr}</span>{/if}
+				{#if config.show_weekday}<span>{weekdayStr}</span>{/if}
+			</div>
+		{/if}
+
+		<!-- タイムゾーン: @md 以上で表示 -->
+		{#if config.show_timezone && tzAbbr}
+			<div
+				class="mt-1 hidden text-xs uppercase tracking-wider text-[var(--ag-text-faint)] @md:block @lg:text-sm"
+			>
+				{tzAbbr}
+			</div>
 		{/if}
 	</div>
 </WidgetShell>
 
 {#if widget}
-	<WidgetSettingsDialog
-		{widget}
-		open={settingsOpen}
-		onClose={() => (settingsOpen = false)}
-	/>
+	<WidgetSettingsDialog {widget} open={settingsOpen} onClose={() => (settingsOpen = false)} />
 {/if}
