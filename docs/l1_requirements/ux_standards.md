@@ -604,12 +604,42 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 
 ---
 
-## 13. Workspace Canvas 編集 UX 規約 (PH-issue-002 で Obsidian Canvas 完全実装)
+## 13. Workspace Canvas 編集 UX 規約 (PH-issue-002 / 029 / 034 / 040 で確立)
 
 ### 編集モード撤廃 (即時保存)
 
 **Workspace は常時編集可能**。旧「編集モード」toggle は廃止。すべての pointer-up / config 変更で即 IPC + DB 反映。
 誤操作回復は **Undo / Redo** で行う (P2 失敗は前提で立て直し)。
+
+### Layout 階層: scroll 境界の 3 階層 (PH-issue-029 / 034 / 040 で確立)
+
+Workspace Canvas は以下の 3 階層で構成される。**新機能を追加する際は必ずどの階層に属するか明示**:
+
+1. **背景 (固定)** — wallpaper / 親 column の最背景 absolute layer。
+   - canvas (overflow-auto) の **外側**に配置。
+   - pan / scroll の影響を受けない。
+   - 例: `WorkspaceLayout` の `data-testid="workspace-wallpaper"` div。
+
+2. **Toolbar (固定)** — PageTabBar (上部) / Undo toolbar (右下) / HintBar (下部)。
+   - canvas の **sibling** として親 column の中で `relative z-XX shrink-0` で配置。
+   - pan / scroll の影響を受けない、常時アクセス可能 (Apple HIG / Material 3 sticky toolbar 準拠)。
+   - 例: `<div class="relative z-20 shrink-0 ... backdrop-blur-sm"><PageTabBar/></div>`。
+
+3. **Content (scroll/pan)** — widget grid。
+   - canvas (`overflow-auto`) 内部に **infinite-canvas wrapper (5000x5000、padding 2000px)** を置き、
+     widget は wrapper 内 grid 配置。
+   - pan で 4 方向 (上/下/左/右) 自由に移動。Obsidian Canvas 慣習。
+   - 初期 scroll は wrapper 中央付近 (1900, 1900) に置く。
+
+**禁止**:
+
+- 上記 3 階層の境界を曖昧にする (例: wallpaper を canvas 内 absolute に置く → pan で動く、PR #255 で fix)。
+- toolbar を canvas 内に置く (例: PageTabBar を canvas 内 → pan で消える、PR #255 で fix)。
+- canvas content を実 widget 数に応じてサイズ変動 (例: widget なしで scroll 不可、PR #259 で fix)。
+
+### Widget 同士は重ならない (PH-issue-003)
+
+**全経路で overlap reject、auto-rearrange / (0,0) fallback 禁止**。
 
 ### Widget 同士は重ならない (PH-issue-003)
 

@@ -44,6 +44,11 @@ pre-commit:
     no-horizontal-scrollbar:
       glob: "src/lib/widgets/**/*.{svelte,ts,tsx}"
       run: bash scripts/audit-no-horizontal-scrollbar.sh
+    widget-settings-schema:
+      # PH-issue-021 retrospective (lessons.md Class B): widget の SettingsContent
+      # registry が config schema と一致するか検証 (CommonMaxItemsSettings の誤用検出)。
+      glob: "src/lib/widgets/**/*.{svelte,ts}"
+      run: bash scripts/audit-widget-settings-schema.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

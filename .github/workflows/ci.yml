@@ -78,6 +78,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-no-horizontal-scrollbar.sh
 
+      - name: Widget Settings schema audit (PH-issue-021 retrospective)
+        shell: bash
+        run: bash scripts/audit-widget-settings-schema.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings
