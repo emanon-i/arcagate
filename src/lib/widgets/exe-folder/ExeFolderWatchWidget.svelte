@@ -1,5 +1,12 @@
 <script lang="ts">
-import { FolderOpen, MoreHorizontal, Settings } from '@lucide/svelte';
+import {
+	AppWindow,
+	ArrowDown,
+	ArrowUp,
+	FolderOpen,
+	MoreHorizontal,
+	Settings,
+} from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
@@ -29,13 +36,21 @@ interface ExeFolderEntry {
 	folderName: string;
 	exeCandidates: ExeCandidate[];
 	iconPath?: string;
+	/** PH-issue-038 / 検収項目 #20: バックエンドが返す mtime (ms epoch、無ければ 0)。 */
+	mtimeMs?: number;
 }
+
+type SortField = 'name' | 'mtime';
+type SortOrder = 'asc' | 'desc';
 
 interface WidgetConfig {
 	watch_path?: string;
 	scan_depth?: number;
 	title?: string;
 	item_overrides?: Record<string, string>;
+	/** PH-issue-038 / 検収項目 #20: 並び替え設定。 */
+	sort_field?: SortField;
+	sort_order?: SortOrder;
 }
 
 let config = $derived.by<WidgetConfig>(() => {
@@ -50,6 +65,26 @@ let config = $derived.by<WidgetConfig>(() => {
 let entries = $state<ExeFolderEntry[]>([]);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
+
+// PH-issue-038 / 検収項目 #20: sort 適用済 entries (元 entries は immutable、表示のみ並べ替え)
+let sortField = $derived<SortField>(config.sort_field ?? 'name');
+let sortOrder = $derived<SortOrder>(config.sort_order ?? 'asc');
+let sortedEntries = $derived.by(() => {
+	const list = [...entries];
+	const dir = sortOrder === 'asc' ? 1 : -1;
+	if (sortField === 'name') {
+		list.sort((a, b) => dir * a.folderName.localeCompare(b.folderName, 'ja'));
+	} else {
+		// mtime descending = 新しい順 (asc=古い順)
+		list.sort((a, b) => dir * ((a.mtimeMs ?? 0) - (b.mtimeMs ?? 0)));
+	}
+	return list;
+});
+
+async function setSort(field: SortField) {
+	const nextOrder: SortOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
+	await persistConfig({ ...config, sort_field: field, sort_order: nextOrder });
+}
 // PH-issue-017: race condition fix — 古い path の async 結果が新 path に
 // 書き戻されないよう request id で stale response を破棄する。
 let scanRequestId = 0;
@@ -182,7 +217,7 @@ let menuItems = $derived(
 );
 </script>
 
-<WidgetShell title={config.title || 'Exe Folders'} icon={FolderOpen} {menuItems}>
+<WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems}>
 	{#if !config.watch_path}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
 		<EmptyState
@@ -205,8 +240,52 @@ let menuItems = $derived(
 			指定フォルダ内に exe を含むサブフォルダがありません。
 		</p>
 	{:else}
+		<!-- PH-issue-038 / 検収項目 #20: 並び替え toolbar。clicking same field toggles asc/desc。 -->
+		<div class="mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] pb-1.5 text-xs">
+			<span class="text-[var(--ag-text-muted)]">並び替え:</span>
+			<button
+				type="button"
+				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
+				'name'
+					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+					: 'text-[var(--ag-text-secondary)]'}"
+				onclick={() => void setSort('name')}
+				aria-label="名前で並び替え{sortField === 'name'
+					? sortOrder === 'asc'
+						? ' (現在 昇順)'
+						: ' (現在 降順)'
+					: ''}"
+			>
+				名前
+				{#if sortField === 'name'}
+					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
+							class="h-3 w-3"
+						/>{/if}
+				{/if}
+			</button>
+			<button
+				type="button"
+				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
+				'mtime'
+					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+					: 'text-[var(--ag-text-secondary)]'}"
+				onclick={() => void setSort('mtime')}
+				aria-label="更新日時で並び替え{sortField === 'mtime'
+					? sortOrder === 'asc'
+						? ' (現在 古い順)'
+						: ' (現在 新しい順)'
+					: ''}"
+			>
+				更新日時
+				{#if sortField === 'mtime'}
+					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
+							class="h-3 w-3"
+						/>{/if}
+				{/if}
+			</button>
+		</div>
 		<ul class="space-y-1">
-			{#each entries as entry (entry.folderPath)}
+			{#each sortedEntries as entry (entry.folderPath)}
 				{@const currentExe = resolveExe(entry)}
 				{@const hasOverride = !!config.item_overrides?.[entry.folderPath]}
 				<li class="relative flex min-w-0 items-center gap-1">
@@ -216,7 +295,8 @@ let menuItems = $derived(
 						aria-label="{entry.folderName} を起動"
 						onclick={() => launchEntry(entry)}
 					>
-						<FolderOpen class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
+						<!-- PH-issue-038 / 検収項目 #19: フォルダ icon → AppWindow (実体は exe 起動なので) -->
+						<AppWindow class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
 						<span class="min-w-0 flex-1 truncate">{entry.folderName}</span>
 						<span class="shrink-0 text-xs {hasOverride ? 'text-[var(--ag-accent-text)]' : 'text-[var(--ag-text-faint)]'}">
 							{entry.exeCandidates.length} exe{hasOverride ? ' ◉' : ''}

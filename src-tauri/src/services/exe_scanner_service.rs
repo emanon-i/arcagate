@@ -13,6 +13,9 @@ pub struct ExeFolderEntry {
     pub folder_name: String,
     pub exe_candidates: Vec<ExeCandidate>,
     pub icon_path: Option<String>,
+    /// PH-issue-038 / 検収項目 #20: フォルダの mtime (ms epoch、取得失敗時は 0)。
+    /// フロントの並び替え (更新日時昇順 / 降順) に使用。
+    pub mtime_ms: u64,
 }
 
 #[derive(Serialize, Default, Debug, PartialEq, Clone)]
@@ -97,11 +100,19 @@ fn walk(dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEntry>) {
             .and_then(|n| n.to_str())
             .unwrap_or("")
             .to_string();
+        // PH-issue-038: フォルダの mtime を取得 (UNIX epoch ms)、失敗時は 0。
+        let mtime_ms = fs::metadata(dir)
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
         out.push(ExeFolderEntry {
             folder_path: dir.to_string_lossy().into_owned(),
             folder_name,
             exe_candidates: exes,
             icon_path: ico,
+            mtime_ms,
         });
     }
 
