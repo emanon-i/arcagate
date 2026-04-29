@@ -848,3 +848,127 @@ agent が user に報告する文言で `verify 通過 = 治った` と表現す
 - `memory/design_guidelines_index.md`
 - `memory/handoff_user_redo_start.md`
 - 本 retrospective が記録される PR: rollback to Goal A (#216 の squash)
+
+---
+
+## 2026-04-29 user dev 検収 30 項目 retrospective (PR #252-#265 の根本原因分析)
+
+本日 user の dev 目視で 30 件の改善要望が出た。実装は 14 PR で全件 main 反映、機械検証
+全通過 + agent CDP 検証 31/31 pass。だが「同種の問題がまだ他にある or 再発する」 risk を
+潰すため、各 fix を **症状クラスタ** に分類して根本原因 + 再発防止策を整理する。
+
+### Class A: 機能撤廃時の横展開不足 (#1)
+
+**症状**: PH-issue-002 (Obsidian Canvas、編集モード撤廃) で **sidebar の open/close toggle を
+一緒に剥がした**。user は「ウィジェット追加パネル開閉できなくなった」とフィードバック。
+
+**根本原因**: 大規模リファクタ時、削除する機能の周辺機能を grep + 列挙する手順が無かった。
+「編集モード」と「sidebar toggle」は別機能だが旧コードで同じ箇所にあった → 一緒に消えた。
+
+**再発防止**:
+
+- L3 plan に「**横展開 audit (削除対象 / 影響範囲)**」section 必須化 (既に §11 で要求)
+- リファクタ系 PR は user fb 特有のキーワード (toggle / 開閉 / 削除 / 表示) で grep audit を
+  PR description に必ず embed する
+- 大規模リファクタは「機能保持リスト」を Plan に書き、各機能を個別に keep / drop 判断する
+
+### Class B: widget config schema mismatch (#21、横展開で daily_task / snippet も発見)
+
+**症状**: ItemWidget の SettingsContent registry が CommonMaxItemsSettings を指していた。
+ItemWidget config = `{ item_id }` だが Settings dialog は max_items + sort_field を編集する。
+→ 設定を変えても何も起きない壊れた状態。
+
+**根本原因**: widget の `index.ts` は手書きの object literal で、TypeScript 型レベルでは
+SettingsContent が config schema を満たすことを強制していない。CommonMaxItemsSettings は
+LIST_WIDGET_DEFAULTS 専用なのに、generic な見た目 (CommonXxx) が誤って flowed-down された。
+
+**再発防止**:
+
+- 新規 audit script `scripts/audit-widget-settings-schema.sh` を新設 (PR #265 後追加):
+  CommonMaxItemsSettings を指す widget の本体が `max_items` を config から読んでいるか検証、
+  違反時 CI fail
+- `WidgetMeta` 型に generic `<TConfig>` を導入する long-term plan (型レベル強制) は別 issue
+- 似た parametric schema (CommonXxxSettings) は使う前に widget config schema を grep 確認
+
+### Class C: scroll/pan 境界の設計欠落 (#3, #7, #8, #9, #10)
+
+**症状**: scroll/pan で widget や toolbar や壁紙が一緒に動いて画面外に消える / 接地する。
+
+**根本原因**: layout 階層の「**scroll 対象 / 固定対象 / 背景**」の境界が明示的に設計されていない。
+PH-issue-002 (Obsidian Canvas) で canvas が `overflow-auto` になったが、その内側に PageTabBar /
+壁紙 / widget grid 全部入っていた → pan で全部動く。
+
+**再発防止**:
+
+- `ux_standards.md §13 Workspace Canvas` に「scroll 境界の 3 階層」を明文化:
+  1. **背景 (固定)**: wallpaper / dotted grid (canvas の外 absolute)
+  2. **toolbar (固定)**: PageTabBar + 右下 Undo + HintBar (canvas の sibling)
+  3. **content (scroll)**: widget grid (canvas overflow-auto 内部、infinite 5000x5000)
+- 新規 widget / canvas 改修時、Plan で「どの階層に属するか」を明記必須
+- container query (`@container`) を widget 内部 fluid sizing の標準化 (#18, #30 の解)
+
+### Class D: 仕様統一の不徹底 (#11-#18, #14, #16, #23)
+
+**症状**: 似た widget (ProjectsWidget vs ExeFolderWatchWidget) で空状態 / Clear button / 説明欄 /
+icon が不統一。10 widget で同じ「設定」 menuItem が独自定義されていた。
+
+**根本原因**: widget 単位で個別実装するため、新機能を 1 widget に追加すると他 widget で漏れが
+発生する。共通化された helper / component が無いと「均一に治る」保証が取れない。
+
+**再発防止**:
+
+- `widgetMenuItems` helper (PR #264) で settings menu を 1 箇所集約 (10 widget 統一)
+- `EmptyState` component を WatchFolder 系 widget で共通化 (PR #262)
+- `Switch` component を toggle で共通化 (PR #251)
+- 今後新規 widget 追加時、L3 plan に「既存 widget との比較 audit」 section 必須
+
+### Class E: visual consistency / fluid sizing (#22, #24-26, #29, #30)
+
+**症状**: 「ダサい」「文字つぶれて見えない」「サイズ変動で崩れる」。
+
+**根本原因**: container query / 段階表示 / preview UI が一部 widget にしか入っていない。
+
+**再発防止**:
+
+- container query (`@xs`, `@sm`, `@md`, `@lg`) を fluid sizing の標準化
+- font-size hardcode の audit script (`audit-font-hardcode.sh`、既存) を維持、CI で fail
+- visual preview を必要とする UI (font size select 等) は preview chip pattern を使う
+  (QuickNoteSettings、PR #256 で確立)
+
+### Class F: feature gap (#19, #20, #27, #28, #29, opener registry 全体)
+
+**症状**: 機能不足 — EXE icon が違う、並び替え無し、ネットワーク監視無し、CPU 値が違う、
+opener registry 無い。
+
+**根本原因**: vision.md / use-cases に該当機能が記載されていない、または agent が「scope 外」と
+誤判定して実装しなかった。
+
+**再発防止**:
+
+- vision.md M1 「launch 摩擦ゼロ」を支える周辺機能 (opener / sort / network monitor) を
+  サブ機能として M1 に明示記載
+- user fb は「scope 外」と判定する前に Codex セカンドオピニオンを取る (新 plan、batch-92 で
+  運用確立済の Rule C)
+
+### audit script CI 統合状況
+
+| audit script                        | 検出 class                       | 状態                   |
+| ----------------------------------- | -------------------------------- | ---------------------- |
+| audit-widget-coverage.sh            | widget enum 整合                 | ✅ CI lefthook         |
+| audit-hotkey-consistency.sh         | hotkey notation 統一             | ✅ CI lefthook         |
+| audit-design-tokens.sh              | hardcoded colors                 | ✅ CI lefthook         |
+| audit-font-hardcode.sh              | font-size 直書き                 | ✅ CI lefthook         |
+| audit-text-overflow.sh              | flex-1 + truncate に min-w-0     | ✅ CI lefthook         |
+| audit-no-horizontal-scrollbar.sh    | widget overflow-x                | ✅ CI lefthook         |
+| **audit-widget-settings-schema.sh** | **Class B** widget config schema | **新規追加 (Phase 2)** |
+
+### 残課題 (本 retrospective から派生)
+
+- WidgetMeta 型に generic `<TConfig>` を導入する型レベル強制 (long-term)
+- vision.md M1 の周辺機能リスト整理 (opener / sort / TZ / etc.)
+- 「機能撤廃時の機能保持リスト」 template を docs/dispatch-operation.md に追加
+
+### 参照
+
+- 本日 PR: #252 〜 #265 (14 PR)
+- agent CDP verify: tmp/screenshots/verify-results.json (31/31 pass)
