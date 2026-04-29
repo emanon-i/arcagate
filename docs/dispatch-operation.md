@@ -1,250 +1,93 @@
-# ディスパッチ運用マニュアル
+# Dispatch Operation
 
-> Claude デスクトップアプリのディスパッチ機能が Arcagate プロジェクトを自律的に
-> 進めるための操作規約。各セッション開始時に**まずこの文書を読み込む**こと。
-
----
-
-## 0. ディスパッチの基本動作
-
-### セッション開始時の手順
-
-1. 本ドキュメントと `CLAUDE.md` を読む（禁止事項・意図的な設計判断を把握）
-2. `docs/l0_ideas/` / `docs/l1_requirements/` 配下を読む（concept / vision / ux_standards / engineering-principles）
-3. `docs/dispatch-log.md` を読む（最新 30 行 + 手動確認依頼セクション + 実機確認結果）
-4. `git fetch` → 作業ブランチの HEAD が最新か確認
-5. `docs/l3_phases/` を一覧し、`status: wip` または `status: todo` の L3 Plan を **id 昇順** で列挙
-6. 最も古い未着手 Plan を 1 つ選び §3 に従って実行する
-
-### 終了条件
-
-- 作業ログに「本日作業終了」と記録 + git push 済み状態で止まる
-- §5「暴走ブレーキ」に該当した時点で即停止
+ディスパッチ運用の **判断ルール** だけを集約。コマンド例 / フローチャート列挙 等の事実は除去（git log / gh pr / lefthook で自明）。詳細歴史は `docs/archive/dispatch-operation-historical.md`。
 
 ---
 
-## 1. 開発の流れ canonical
+## <severity>critical</severity> §11 user-redo depth-first（現運用、最優先）
 
-### バッチ全体
+batch-109 全体劣化を受けて 2026-04-28 制定。並行 5 plan モードを **撤回**。
 
+### 1 issue の depth-first サイクル
+
+1. **fact 確認**: コードの実態 / 再現手順 / screenshot / **root cause** まで特定（推測で plan 書かない）
+2. **guideline 引用**: `memory/design_guidelines_index.md` から該当 doc を引いて該当 section を Read
+3. **plan 文書化**: A 案 / B 案比較、引用元 doc + section、横展開対象、影響範囲
+4. **横展開 audit**: 同パターンが他に無いか grep / audit script で機械検証
+5. **実装 + 検証**: 1 PR で plan + fix + 横展開 fix + screenshot 検証 + （可能なら）audit script 追加
+6. **push**: user dev session で目視確認 → 「治った / まだダメ」反応待ち（agent は idle で OK）
+
+### Rule 1: 1 issue ずつ depth-first
+
+並行 plan / 並行 PR **禁止**。1 PR が main 入って user 検収 OK まで次の PR 開かない。
+複数 session 並走時は dispatch-queue.md で当番を明記、他は別 batch / 待機。
+
+### Rule 2: 「治った」の定義
+
+❌ pnpm verify pass = 治った
+❌ E2E pass = 治った
+❌ DOM 存在確認 = 治った
+✅ user の dev session 目視で「治った」と言う = 治った
+
+agent の screenshot 自己評価は補助。**最終 OK は user dev 検収**。
+
+### Rule 3: スピードより確実性
+
+batch / Plan の在庫切れで止まるな。1 issue 平均 30 分〜数時間想定、速度を目的化しない。
+
+### Rule 4: Plan 文書化のフォーマット
+
+```markdown
+## 引用元 guideline doc
+
+| Doc | Section | 採用判断への寄与 |
+| --- | ------- | ---------------- |
+
+## guideline と plan の整合 / 不整合 audit
+
+- ✅ 整合 / ⚠ 注意 / ❌ 不整合（doc 更新必須）
+
+## 横展開チェック
+
+同パターンを {grep / audit script} で確認した結果。
 ```
-feature/batch-YYYYMMDD-N を main から切る
-  ↓
-5 Plan を順に実装（§2 参照）
-  ↓
-pnpm verify 全通過 → PR 1 本作成（base: main）
-  ↓
-CI 緑 → gh pr merge --rebase --delete-branch
-```
 
-- **1バッチ = 1PR**。squash merge 禁止（rebase-and-merge でコミット履歴を保持）
-- ブランチ命名: `feature/batch-YYYYMMDD-N`（例: `feature/batch-20260424-57`）
-- バッチ番号 N は連番（dispatch-log のバッチ履歴で最大値 + 1）
-
-### Plan ごと
-
-```
-Plan 選択 → status: wip に更新
-  ↓
-実装（Edit / Write / Bash で直接進める。ExitPlanMode は使わない）
-  ↓
-pnpm verify 全通過
-  ↓
-/simplify で差分レビュー → 妥当な指摘を修正 → git commit
-  ↓
-受け入れ条件を検証（自動検証 → [x]、主観確認 → dispatch-log に積む）
-  ↓
-status: done に更新
-```
-
-### バッチ完走後
-
-```
-PR merge 完了
-  ↓
-L3 plan ファイルを docs/l3_phases/archive/ に移動 → commit → push
-  ↓
-dispatch-log に「batch-XX 完走」を記録
-  ↓
-/clear でコンテキストリフレッシュ（ユーザ UI 操作が必要なため、自律運用時は代替手順 ★ を参照）
-  ↓
-60 秒以内に次バッチの Plan 設計（改善 3 + 防衛 1 + 整理 1 の 5 Plan）を始める
-```
-
-★ 自律運用中（ユーザが PC 前にいない）の `/clear` 代替手順:
-L0/L1（concept / vision / ux_standards / engineering-principles）+ dispatch-log を再読してからバッチ着手。
-再読完了後 60 秒以内に次バッチ Plan 設計を開始する（idle 停止禁止）。
+doc citation の無い plan は **不完全とみなす**。
 
 ---
 
-## 2. バッチ設計
+## <severity>critical</severity> 暴走ブレーキ（即停止）
 
-### 1バッチ = 5 Plan 内訳
+以下に該当したらその場で停止し作業ログに停止理由を明記:
 
-| 枠        | 分類              | 内容                               |
-| --------- | ----------------- | ---------------------------------- |
-| 改善 1〜3 | 機能改善・UX 磨き | 実機で体験できる変化を伴う         |
-| 防衛      | 品質防衛          | テスト追加・リグレッション防止     |
-| 整理      | 整理系            | ドキュメント・リファクタ・依存整理 |
-
-- 1バッチ 5 Plan 内訳は固定（増減なし）
-- Plan 在庫切れでは止まらない（§4d「Plan 自律作成の許可条件」参照）
-
-### ブランチ戦略
-
-- **main 起点**で feature ブランチを切る（develop は廃止済み・過去履歴のみ残存）
-- `feature/batch-YYYYMMDD-N` → main への PR → rebase-and-merge
-- ホットフィックスや調査用: `spike/<slug>` または `chore/<slug>`
-
-### 保護ブランチ
-
-- `main`: force push / 直 push は禁止。PR 経由 merge のみ
+1. `pnpm verify` 2 回連続失敗 + 原因不明
+2. 同箇所を 3 回修正しても受け入れ条件を満たせない
+3. CLAUDE.md の禁止事項に触れる修正を検討し始めた
+4. Plan 外のファイルを変更する必要が出てきた
+5. git の index 破損 / push 失敗 / 認証エラー等で自力復旧不可
+6. CI が 2 回連続失敗
+7. 作業開始から連続 4 時間経過
 
 ---
 
-## 3. Plan 実行フロー
+## <severity>critical</severity> 安全ルール
 
-### 1. Plan 選択と引き当て
+### dev / E2E は user 許可制
 
-1. 選んだ Plan の `status` を `todo` → `wip` に更新（`chore: start PH-YYYYMMDD-NNN` コミット）
-2. 「実装ステップ」を順に実行。**ExitPlanMode は使わない**（Edit / Write / Bash で直接進める）
+`pnpm tauri dev` / `pnpm test:e2e` は user が「走らせて OK」と明示した場合のみ。
+自動バッチでも適用。drag / D&D / グローバルホットキーを含む E2E は実行前に user に告知 + OK 待ち。
 
-### 2. 実装とコミット
-
-- コミット粒度は**ステップ単位**（Plan 内の見出しごとに 1 commit が目安）
-- コミットメッセージ形式: `<type>(batch-NN): <ja 要約>`
-  - 例: `feat(batch-57): dispatch-operation.md canonical 化`
-- **commit 前に `/simplify` でローカル差分をレビューする**:
-  1. `pnpm verify` 全通過を確認
-  2. `/simplify` を実行して diff を精査
-  3. 妥当な指摘はその場で修正してから commit（同コミットに混ぜる推奨）
-  4. 不要・スコープ外の指摘は dispatch-log に 1 行理由を記録してスキップ
-
-### 3. 受け入れ条件の検証
-
-受け入れ条件は **自動検証可** と **主観確認** の 2 種に分ける:
-
-| 種別       | 判定方法                      | 記録先                                                   |
-| ---------- | ----------------------------- | -------------------------------------------------------- |
-| 自動検証可 | CI / pnpm verify / E2E テスト | Plan の `[x]`                                            |
-| 主観確認   | 実機目視・使用感              | dispatch-log「手動確認依頼」セクション（非ブロッキング） |
-
-- **実機検証は Playwright CDP 経由**で行う。`pnpm test:e2e` が通れば「直った」と言える
-- 目視・スクショ確認が必要な項目は dispatch-log に積んで次回ユーザ確認時に消化
-- 「コードを読んだだけで `[x]`」は禁止（lessons.md 参照）
-
-### 4. 完了処理
-
-1. Plan の `status: wip` → `status: done` に更新
-2. バッチ全 Plan 完了後、`pnpm verify` 全通過を確認
-3. `git push -u origin feature/batch-YYYYMMDD-N`
-4. PR 1 本作成:
-
-```bash
-gh pr create --base main --title "feat(batch-NN): <バッチ主要テーマ> (PH-XXX〜YYY)" \
-  --body "$(cat <<'EOF'
-## Summary
-
-- **PH-XXX**: <1行説明>
-- **PH-YYY**: <1行説明>
-
-## Test plan
-
-- [x] `pnpm verify` 全通過
-- [ ] 実機確認（主観確認項目は dispatch-log に記録済み）
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)"
-```
-
-5. CI 緑 → `gh pr merge --rebase --delete-branch`
-6. `git fetch origin && git reset --hard origin/main`（ローカルを最新 main に合わせる）
-7. 全 Plan ドキュメントを一括アーカイブ:
-
-```bash
-for f in docs/l3_phases/PH-YYYYMMDD-N*.md; do
-  mv "$f" docs/l3_phases/archive/
-done
-git add docs/l3_phases/
-git commit -m "chore: batch-NN L3 plan アーカイブ"
-git push
-```
-
-**アーカイブ時の注意**:
-
-- `git mv` ではなく `mv` + `git add` で移動（MINGW でのパス変換干渉回避）
-- 移動後に `git status` で deleted/created が正しく追跡されているか確認
-
----
-
-## 4. コミットメッセージ規約
-
-```
-<type>(batch-NN): <ja 要約>
-```
-
-type は `feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf` / `style` から選ぶ。
-
----
-
-## 4b. PC ロック中の運用ルール
-
-PC がスリープ・ロック状態でも以下の条件で作業を継続する。
-
-### 継続できる作業
-
-- コード実装（ビルドが通れば完了とみなせる変更）
-- E2E テストの追加・修正（CDP 経由で自動実行できるもの）
-- ユニットテスト・smoke-test の追加
-- ドキュメント整備（dispatch-operation.md / lessons.md / dispatch-log.md）
-- リファクタリング・依存整理（ビジュアル変更なし）
-
-### 停止する作業（解錠後まで保留）
-
-- 受け入れ条件に「実機スクショ」「目視確認」が含まれる Plan の `done` 昇格
-- コードインスペクション代替による `[x]` 付け
-
-### ロック中 Plan の扱い
-
-1. 実装は完了させてよい（コミット・PR まで可）
-2. Plan の `status` は `wip` のまま維持
-3. 主観確認項目は dispatch-log「手動確認依頼」セクションに積む
-
----
-
-## 4c. 実機テスト実行の安全ルール
-
-> 2026-04-22 インシデント（Playwright drag テスト中断で mouse.down() が残存→ Ctrl+Alt+Del まで復帰不能）を受けて制定。
-
-### 前提: E2E / dev 起動の許可制
-
-- **`pnpm test:e2e` / `pnpm tauri dev` は、ユーザが「走らせて OK」と明示した場合のみ実行**
-- 自動バッチ進行中はこの許可制が適用される
-
-### drag/drop・キーボードキャプチャを使う E2E テストの実行前告知
-
-E2E テストに drag/drop・Ctrl+wheel・グローバルホットキーを含む spec ファイルが 1 本以上ある場合:
-
-1. 実行前にユーザへ告知: 「X 分間、画面操作がブロックされる可能性があります」
-2. ユーザの「OK」を受けてから実行
-3. 実行後に `Get-Process arcagate,node` でプロセス残存を確認し、残存があれば即 Stop-Process
-
-### Playwright テストの安全解放
-
-drag/drop / hover / keyboard を使うテストには `page.mouse.up()` を afterEach/afterAll で確実に呼ぶ:
+### Playwright 安全解放
 
 ```typescript
 test.afterEach(async ({ page }) => {
-    await page.mouse.up().catch(() => {});
+  await page.mouse.up().catch(() => {});
 });
 ```
 
-### タイムアウト強制終了
+drag テスト中断で `mouse.down()` が残ると PC 操作が乗っ取られる事故あり（2026-04-22 incident）。
 
-`pnpm test:e2e` は playwright.config.ts の `globalTimeout` で 5 分上限（300_000ms）を維持する。
-
-### ハング時の即 kill 手順
+### ハング時 kill 手順
 
 ```powershell
 Get-Process arcagate -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -254,329 +97,53 @@ Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTit
 
 ---
 
-## 4d. Plan 自律作成の許可条件
+## <severity>high</severity> ブランチ / commit / PR 規約
 
-以下の状況ではディスパッチが自律的に Plan を作成してよい:
+### ブランチ
 
-1. CI 待ち中で作業スロットが空いている
-2. 実機確認中に新たな問題を発見した（その場で Plan 化）
-3. 実機フィードバックで明確な粗が見つかった
+- 起点: `main`（develop は廃止済）
+- 命名: `feature/issue-XXX-<slug>` / `fix/issue-XXX-<slug>` / `chore/<slug>` / `spike/<slug>`
+- main: force push / 直 push 禁止。PR 経由 squash merge のみ
 
-**Plan 在庫切れで止まらない**: 在庫が 0 でも自律作成してよい（旧「2件以下で停止」ルール撤回済み）。
+### コミットメッセージ
 
-**作成ルール**:
-
-- 1 回のセッションで最大 5 Plan まで（暴走防止）
-- 既存 Plan と `scope_files` が重複する場合は統合を検討
-- ユーザ確認は不要（dispatch-log に「自律作成: PH-YYYYMMDD-NNN」と記録する）
-- Plan ID は既存の最大 ID + 1 から採番
-
----
-
-## 5. 暴走ブレーキ（全 Plan 共通の停止条件）
-
-以下のいずれかに該当したら、進行中の作業をその場で停止し、作業ログに停止理由を明記してディスパッチを終える。
-
-1. `pnpm verify` が 2 回連続で失敗し、原因が特定できない
-2. 同じ箇所を 3 回修正しても Plan の受け入れ条件を満たせない
-3. CLAUDE.md の禁止事項に触れそうな修正を検討し始めた（`src/lib/components/ui/` 手動編集、ORM 導入、status: done の L1/L2 書き換え、`--no-verify` 使用など）
-4. Plan 外のファイルを変更する必要が出てきた（スコープ拡張判断はユーザ）
-5. git の index 破損・push 失敗・認証エラー等、自力で復旧できないエラー
-6. CI が 2 回連続失敗した
-7. 作業開始から連続 4 時間経過した
-
----
-
-## 6. 作業ログと PR 本文テンプレート
-
-### 作業ログ `docs/dispatch-log.md`
-
-各 Plan 着手・完了・エラー時にここに追記（append-only。過去ログは書き換えない）:
-
-```markdown
-## YYYY-MM-DD [PH-YYYYMMDD-NNN] <start|step|done|stop>
-
-- (step の場合) 何をしたか・結果
-- (stop の場合) 停止理由・§5 のどの条件に該当か
-- (done の場合) PR 番号・マージ SHA
+```
+<type>(issue-NNN): <ja 要約>
 ```
 
-### 手動確認依頼セクション
+type: `feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf` / `style`
 
-主観確認が必要な項目をここに積む（非ブロッキング。ユーザが次回確認時に消化）:
-
-```markdown
-## 手動確認依頼
-
-- [ ] YYYY-MM-DD [PH-XXX] <確認してほしい内容>
-```
-
----
-
-## 7. 禁止事項（リマインダ）
-
-- `src/lib/components/ui/` の手動編集（shadcn-svelte scaffold 出力）
-- ORM 導入（rusqlite + 生 SQL 維持）
-- `status: done` の L1/L2 書き換え
-- pre-commit hook のバイパス（`--no-verify`）
-- main ブランチへの **force push / 直 push**（PR 経由 merge は OK）
-- ユーザの明示指示なしの config / settings.json / CLAUDE.md の改変
-- 実機確認なしで受け入れ条件を `[x]` にマーク
-- **`ExitPlanMode` の使用**（Edit / Write / Bash で直接実装を進める）
-- **squash merge**（rebase-and-merge のみ、auto-merge 経路は squash 解禁・PH-435 例外）
-
-以上に抵触する判断は**即停止**してログに残す。
-
-> Plan 自律作成は §4d で条件付き許可。禁止事項から除外済み。
-
----
-
-## 8. PR auto-merge 必須運用（PH-435 batch-95）
-
-### 原則: push 後は必ず auto-merge 予約 + 1 回 CI 確認
+### PR auto-merge 運用
 
 ```bash
 git push -u origin <branch>
 gh pr create ...
-gh pr merge <#> --auto --squash    # 緑になったら自動 merge
-gh pr checks <#>                   # 1 回確認 (failed なら即 fix)
+gh pr merge <#> --auto --squash --delete-branch    # 緑になったら自動 merge
+gh pr checks <#>                                    # 1 回確認
 ```
 
-### 判定ロジック (auto-kick agent と同期)
+判定:
 
-- **failed**: 即 fix (auto-kick 待たない、自分で push 直す)
-- **pending**: 次バッチに進んで OK (auto-merge が引き取る)
-- **success**: 既に auto-merge が予約済 → 次バッチに進む
+- **failed**: 即 fix（auto-kick 待たない、自分で push 直す）
+- **pending / success**: 次 issue / user 検収待ちへ
 
-### 「auto-merge してくれるから放置」は禁止
-
-- 最低 1 回の `gh pr checks` 確認後に次バッチ着手
-- failed のまま放置は最厳令違反 (idle 同等)
-
-### branch protection (main)
-
-- required status checks: `check / build / e2e / changes` (**strict=false**、batch-100 で OFF 化)
-- 全 pass 必須 → auto-merge は緑になるまで待つ
-- force push / deletion 禁止
-- **strict=false の理由** (batch-100): squash merge 採用 + auto-merge を活用するため。
-  strict=true だと BEHIND PR が auto-merge できず、main 進行中に PR 滞留する。
-  squash で履歴は線形なので strict 不要。
-
-### auto-merge 滞留の回避
-
-複数 PR を並行 auto-merge 予約した際、main が進むと残 PR は BEHIND になる。
-**strict=false なら BEHIND でも auto-merge OK** → 順次 main 反映される。
-strict=true 時代は `gh pr update-branch --rebase` 連打が必要だった。
+「auto-merge してくれるから放置」は禁止。**1 回 checks 確認後に次へ**。
 
 ---
 
-## 9. dispatch-queue.md 更新ルール（PH-435 batch-95）
+## <severity>high</severity> ドキュメント書き換えの境界
 
-`docs/dispatch-queue.md` を Active / Next Up / Completed の 3 区分で常時最新化:
-
-- **着手時**: Active Batch 行を更新、Next Up から消す
-- **完了時 (PR merge 後)**: Completed の最上段に追加、Active Batch をクリア、Next Up から次を移す
-- **Next Up は常に 3 個以上維持** (在庫切れ防止)
-- **Completed は最新 5 件のみ保持** (古い batch は dispatch-log)
-
-在庫切れ時は §4d 自律作成で 5 plan 上限内で補充。
+- `status: done` の L1 / L2 doc は書き換え禁止
+- 規約系（ux_standards / engineering-principles）は plan 着手前に user 確認が望ましい
+- 古い retrospective / 達成済 plan は `docs/l3_phases/archive/` または `docs/archive/`
+- dispatch-log は append-only
 
 ---
 
-## 10. spawn-on-context-pressure（PH-435 batch-95、PH-471 batch-106 で運用見直し）
+## <severity>medium</severity> session 開始時の手順
 
-### ⚠️ 信頼性問題 (batch-106 PH-471 観測)
-
-`mcp__scheduled-tasks__create_scheduled_task` の `fireAt` (one-shot) は **2 連続不発を確認** (resume 11 / resume 12)。
-完全な再現条件は未解明だが、**spawn-on-pressure は default 無効化**運用に切替。
-
-| Resume | fireAt               | user 状態 | 結果         |
-| ------ | -------------------- | --------- | ------------ |
-| 9      | 02:02 UTC            | active    | fired ✅     |
-| 10     | 06:10 UTC            | active    | fired ✅     |
-| 11     | 07:28 UTC            | idle 想定 | NOT fired ❌ |
-| 12     | 09:26 UTC、+60s 短縮 | active    | NOT fired ❌ |
-
-### 現行運用 (batch-106 以降)
-
-1. **default**: 自セッションで分割実装、context 限界まで使い切る
-2. context 切迫時は `memory/spawn_handoff.md` を完全更新して退場する
-3. ユーザは `mcp__dispatch__start_task` を直接叩いて次世代を起動
-
-### 旧運用 (信頼性確認後に再開予定)
-
-- assistant turn 数 ≥ 1800 で `arcagate-dispatch-resume-N` 自動 spawn
-- handoff 読んで queue 続行 → 自セッション退場
-
-### 発動時の手順 (将来の自動化向け)
-
-1. `memory/spawn_handoff.md` に snapshot:
-   - 現在の active batch / branch / PR 番号
-   - dispatch-queue.md の Active + Next Up 抜粋
-   - 進行中の plan の status (wip / 残作業)
-   - 最後に走らせた CI の状態
-2. ~~`mcp__dispatch__start_task` で起動~~ → 信頼性問題のため一時停止、ユーザ手動起動依頼
-3. 自セッションは「memory 完全更新済、ユーザ起動依頼」で終了
-
-### handoff フォーマット
-
-```markdown
-# spawn handoff (YYYY-MM-DD HH:MM)
-
-## Active
-
-- batch-XX (branch: feature/batch-XXXX, PR: #XXX, status: in-progress)
-- last commit: <SHA> "<msg>"
-- CI status: <success/pending/failed>
-
-## In-progress plans
-
-- PH-XXX: <wip steps>
-
-## Next action
-
-- <command or step>
-
-## Queue
-
-- 次バッチ候補: <list>
-```
-
-### auto-kick scheduled task との関係
-
-- auto-kick は idle 検知 + kick (5 分以上活動なし / failed PR / checkpoint 発言で 「進め」 prompt 投下)
-- spawn-on-pressure は context 限界対策 (1800 turn → 次世代に hand off)
-- 両者併用で 24/7 自律運用
-
----
-
-## 11. User-redo depth-first 運用 (2026-04-28、batch-109 全体劣化を受けて)
-
-### 背景
-
-batch-107/108/109 の並行 push 運用 (1 batch = 5 plan、複数セッション並行、PR auto-merge) で:
-
-- **テスト pass / E2E pass の数字は嘘ではない**
-- しかし user の dev 目視で **「全体的に劣化した」** 判定 (体感品質との乖離)
-- 並行セッションが同 plan ID を取り合って duplicate PR 量産、merge 競合多発
-- 「✅ merged」と判定したものも **user の dev 目視がない以上は未確認**
-
-### 新運用ルール (§1-10 を上書き / 補完)
-
-#### Rule 1: 1 issue ずつ depth-first
-
-**並行 plan 着手 禁止**。1 user 指摘 = 1 issue として、以下のサイクルを完了させてから次へ:
-
-1. **(a) 事実確認**: コードの実態 / 再現手順 / 画面 screenshot / **root cause まで** 特定 (推測で plan 書かない)
-2. **(b) plan 文書化**: なぜ A 案を選ぶ / なぜ B 案を捨てる / 影響範囲 / 横展開対象、を 1 文書に明記
-3. **(c) 横展開チェック**: 同じ pattern が他 widget / 他 panel / 他 store にも無いか **grep / audit script で機械検証**
-4. **(d) PR を 1 本** で出す (plan + fix + 横展開 fix + E2E 全部入り)
-5. **(e) dev で目視確認 → user 検収 → user OK で完了**
-
-#### Rule 2: 「治った」の定義
-
-- ❌ pnpm verify pass = 治った と言わない
-- ❌ E2E pass = 治った と言わない
-- ✅ **user の dev session 目視で「治った」と user が言う** = 治った
-
-agent 側 CDP screenshot は補助、user 検収を待つのが最終条件。
-
-#### Rule 3: 並行 plan 禁止
-
-- 並行 PR 禁止 (1 PR が main 入って user 検収 OK まで次の PR 開かない)
-- 複数セッション並走時は **dispatch-queue.md の Active 行で当番 1 セッションを明記**、他セッションは待機 / 別 batch を担当
-- スピード <<< 確実性
-
-#### Rule 4: batch の再定義
-
-- 旧: 1 batch = 5 plan (改善 3 + 防衛 1 + 整理 1)、横並び実装
-- 新: 1 batch = **1 issue depth-first**、サイクル完了後に次 issue
-- batch-NN は user 指摘 1 件 = 1 batch として再採番想定 (運用見直し中、暫定)
-
-#### Rule 5: 既存 plan の凍結
-
-- 既 enqueue 済の plan (batch-109 Phase B / Phase C / Industrial Yellow 含む) は **archive せず `status: wip` で凍結**
-- user 指摘リスト全件を再 audit 後、必要なら復活、不要なら drop
-- 「✅ merged」判定済 plan も **未検収扱い**で再評価対象
-
-#### Rule 6: 平均所要時間
-
-- 1 issue 平均 30 分〜数時間 想定 (急がない)
-- 速度より「user の体感品質に届くかどうか」が第一指標
-
-#### Rule 7: dev push のたびに user 検収を取る
-
-- user は dev session を触っている前提
-- agent push 直後は idle で OK、user の「治った / まだダメ」コメント待ち
-
-### 旧 §1-10 ルールとの関係
-
-旧 §1-10 は「並行高速 push」前提。新 §11 はそれを置き換える。
-
-- §1 (canonical 流れ) → 新 §11 Rule 1 で上書き
-- §2 (5 plan 内訳) → 新 §11 Rule 4 で上書き
-- §4d (Plan 自律作成) → **当面停止**、user 指摘ベースのみ
-- §8 (auto-merge 必須) → 1 PR ずつなので auto-merge は使うが「次バッチに進む」前提は撤廃
-- §10 (spawn-on-pressure) → 信頼性問題既知、user-redo モードでは不要
-
-### 撤回 / 凍結対象 (2026-04-28 時点)
-
-- batch-109 Phase B (PH-499/500/504/505) は **merged 済でも user 未検収**、再評価対象
-- batch-109 per-widget polish 8 plan (PH-506-513) **凍結**
-- batch-110 Settings dialog polish 8 plan (PH-514-521) **凍結**
-- batch-111 Industrial Yellow 8 plan (PH-522-529) **凍結**
-- PH-503 Obsidian Canvas 続編は元から user OK 待ち、引き続き停止
-
-### 次世代セッションの起動ルール
-
-1. `memory/handoff_user_redo_start.md` を最初に読む (snapshot + 残作業 + 撤回方針)
-2. **`memory/design_guidelines_index.md` を読む** (新規、各 plan で必ず参照する design / UX guideline doc 地図)
-3. user 指摘リスト (memory `feedback_widget_editing_ux.md` 項目 1〜29) を **項目 1 から順次** depth-first で再開
-4. 1 項目ずつ:
-   - fact 確認 (コード read + dev session screenshot)
-   - **guideline doc grep + 該当 section read** ← 必ず先に
-   - 横展開チェック (同 pattern が他に無いか grep / audit)
-   - UX 本質 (なぜ user がそう言ったか深掘り)
-   - plan ドラフト (A/B 案比較 + **引用元 doc + section** 明示)
-   - **即実装 + 1 PR で fix + 横展開 fix + E2E** (user 確認待ちなし、2026-04-28 user 追加指示で gate 撤回)
-   - push → main 反映 → 次項目 (user dev session の体感反応で取る)
-5. 1 項目で 30 分〜数時間、急がない
-
-### Plan 文書化フォーマット (2026-04-28 user 指摘で必須化)
-
-過去 user 指摘: **「Doc に UX や UI デザインの指針となるドキュメントを作ったのに全く活用してないよね？」**
-
-各 plan に以下の section を必ず含める:
-
-```markdown
-## 引用元 guideline doc
-
-| Doc                                    | Section          | 採用判断への寄与       |
-| -------------------------------------- | ---------------- | ---------------------- |
-| `docs/desktop_ui_ux_agent_rules.md`    | P1 / P3 / P11 等 | 何の判断に効いたか     |
-| `docs/l1_requirements/ux_standards.md` | §X-Y             | コンポーネント仕様引用 |
-| ...                                    | ...              | ...                    |
-
-## guideline と plan の整合 / 不整合 audit
-
-- ✅ 整合: 〜
-- ⚠️ 整合 (ただし注意): 〜
-- ❌ 不整合 (規格更新が必要): 〜
-  → 規格更新を本 plan の commit 内で同時に行う、または別 plan で先行 update
-```
-
-**運用ルール**:
-
-1. plan 書く前に必ず `memory/design_guidelines_index.md` から該当 doc を引いて該当 section を read
-2. plan 文書化時に「引用元 doc + section」テーブルを必ず書く
-3. guideline に書かれていない agent 独自判断は **明示マーク** + 理由
-4. guideline と plan の不整合は **plan の前に guideline を更新する** (新運用 user 確認 gate 撤回後は agent 即決可、ただし update commit を plan に embed)
-5. 横展開 audit script は CI に追加可能なら追加 (再発防止の機械化、§11 Rule 1 の (c) phase)
-
-### Guideline doc 不活用の禁止 (lessons.md にも記録)
-
-- ❌ doc 作成のみで参照しない (劣化の主因、過去 user fb で繰り返し指摘)
-- ❌ plan 文書化時に doc citation がない → 規格逸脱に気付けない
-- ❌ 横展開チェックを doc 規定の構造で行わない → 1 ファイル fix で済ませる癖
-
-→ **plan 文書化時に doc 引用を必須化することで再発防止** (§11 / lessons.md / design_guidelines_index.md の 3 点同時運用)。
+1. CLAUDE.md（auto-load） + lessons.md / dispatch-operation.md は **on-demand**
+2. `git fetch && git status && git log --oneline -10 origin/main` で最新確認
+3. 着手 issue を決める（user fb 起点 / dispatch-queue.md / 自律 audit）
+4. 引用元 guideline doc を Read
+5. depth-first サイクル（Rule 1）開始
