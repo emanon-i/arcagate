@@ -12,13 +12,13 @@ import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPa
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { widgetRegistry } from '$lib/widgets';
 import ItemContextMenu from './ItemContextMenu.svelte';
 import PageTabBar from './PageTabBar.svelte';
-import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
 import WorkspaceSidebar from './WorkspaceSidebar.svelte';
@@ -74,8 +74,17 @@ $effect(() => {
 		localStorage.setItem(SIDEBAR_KEY, String(sidebarOpen));
 	}
 });
+
+// PH-issue-031 / 検収項目 #5: 削除確認 modal 撤廃、即削除 + Undo toast。
+// deleteConfirmId は WidgetHandles の callback shape 維持のため transient で残すが
+// 即 instantDeleteWidget で消費される。
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
+
+function instantDeleteWidget(id: string) {
+	void workspaceStore.removeWidget(id);
+	toastStore.add('ウィジェットを削除しました（Ctrl+Z で戻せます）', 'info');
+}
 // PH-issue-024: 右クリック「Open with…」 popup の表示状態 + 位置
 let contextMenuOpen = $state(false);
 let contextMenuX = $state(0);
@@ -212,16 +221,18 @@ $effect(() => {
 			return;
 		}
 		// Esc: 選択解除
-		if (e.key === 'Escape' && selectedWidgetId && !deleteConfirmId && !renameOpen) {
+		if (e.key === 'Escape' && selectedWidgetId && !renameOpen) {
 			e.preventDefault();
 			selectedWidgetId = null;
 			return;
 		}
-		// Delete/Backspace: 選択 widget 削除確認
+		// Delete/Backspace: 選択 widget を即削除 (PH-issue-031: 確認 modal 撤廃、Undo で戻せる)
 		if (e.key === 'Delete' || e.key === 'Backspace') {
-			if (selectedWidgetId && !deleteConfirmId && !renameOpen) {
+			if (selectedWidgetId && !renameOpen) {
 				e.preventDefault();
-				deleteConfirmId = selectedWidgetId;
+				const id = selectedWidgetId;
+				selectedWidgetId = null;
+				instantDeleteWidget(id);
 			}
 		}
 	}
@@ -480,14 +491,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	</div>
 </div>
 
-<WorkspaceDeleteConfirmDialog
-	widgetId={deleteConfirmId}
-	onConfirm={() => {
-		if (deleteConfirmId) void workspaceStore.removeWidget(deleteConfirmId);
-		deleteConfirmId = null;
-	}}
-	onCancel={() => (deleteConfirmId = null)}
-/>
+<!-- PH-issue-031 / 検収項目 #5: 削除確認 dialog 撤廃 (Undo で戻せるため) -->
 
 <WorkspaceRenameDialog
 	open={renameOpen}

@@ -204,14 +204,9 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 		aria-label={RESIZE_LABELS.nw}
 		onpointerdown={(e) => handleResizeStart(e, 'nw')}
 	></div>
-	<!-- 右上 (ne) -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div
-		class="absolute -right-1.5 -top-1.5 z-20 h-3 w-3 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] transition-transform duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:scale-125 hover:border-[var(--ag-accent)]"
-		style="cursor: {RESIZE_CURSORS.ne}"
-		aria-label={RESIZE_LABELS.ne}
-		onpointerdown={(e) => handleResizeStart(e, 'ne')}
-	></div>
+	<!-- 右上 (ne): PH-issue-031 / 検収項目 #2 — 右上 × button (-right-3 -top-3) と
+	     視覚位置が衝突するため ne resize handle は撤廃。
+	     ne 方向リサイズは n + e の組合せで代替可能、× が右上の主役に。 -->
 	<!-- 左下 (sw) -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
