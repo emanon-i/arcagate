@@ -90,7 +90,11 @@ let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
-// 検収 #4: infinite canvas を 10000×10000 + padding 4000px に拡大、中央付近 (3900,3900) を初期 scroll。
+// PR #268 Codex review #1: canvas 10000×10000 (paint area 100Mpx) は iGPU で
+// PC ブラックアウト誘発の risk が指摘された (user 報告と一致)。6000×6000 +
+// padding 2000 全方向 (中央 2000×2000、4 方向各 2000px の pan 余裕) に縮小。
+// 旧 5000×5000 (25Mpx) 比 1.44 倍、新 36Mpx で iGPU でも安全圏。
+// 検収 #4 (大幅 pan): 6000×6000 + padding 2000、初期 scroll (1900,1900)。
 // 検収 #8 + Codex Medium #7: pan 位置は **workspace ごと** に永続化（旧 global key は cross-workspace
 // contamination を起こしていた）。safe helper 経由で quota / SecurityError を握り潰す。
 function panKey(wsId: string | null): string {
@@ -104,8 +108,8 @@ $effect(() => {
 	queueMicrotask(() => {
 		if (!workspaceContainer) return;
 		const saved = loadJSON<{ left?: number; top?: number }>(panKey(wsId), {});
-		const left = typeof saved.left === 'number' ? saved.left : 3900;
-		const top = typeof saved.top === 'number' ? saved.top : 3900;
+		const left = typeof saved.left === 'number' ? saved.left : 1900;
+		const top = typeof saved.top === 'number' ? saved.top : 1900;
 		workspaceContainer.scrollTo({ left, top, behavior: 'instant' });
 	});
 });
@@ -388,11 +392,11 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			onpointerup={onCanvasPointerUp}
 			onscroll={onWorkspaceScroll}
 		>
-			<!-- 検収 #4: 10000×10000 の infinite canvas、widgets は中央寄せ (padding 4000)。
-			     pan で 4 方向に長距離移動可能。dotted grid は scroll 追従 (Obsidian と一致)。 -->
+			<!-- PR #268 Codex review #1: 6000×6000 (36Mpx) で iGPU 安全圏。padding 2000 全方向。
+			     pan で 4 方向に十分移動可能。dotted grid は scroll 追従 (Obsidian と一致)。 -->
 			<div
 				class="relative"
-				style="width: 10000px; height: 10000px; padding: 4000px 4000px 0 4000px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
+				style="width: 6000px; height: 6000px; padding: 2000px 2000px 0 2000px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 				bind:this={infiniteCanvas}
 			>
 				<div class="flex gap-4 p-5">

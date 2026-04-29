@@ -78,7 +78,7 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		if (!el) return;
 		if (widgets.length === 0) {
 			resetZoom();
-			el.scrollTo({ left: 3900, top: 3900, behavior: 'instant' });
+			el.scrollTo({ left: 1900, top: 1900, behavior: 'instant' });
 			return;
 		}
 		const minX = widgets.reduce((m, w) => Math.min(m, w.position_x), Infinity);
@@ -106,12 +106,12 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.floor(ratio * 100)));
 		setZoom(targetZoom);
 
-		// 検収 #4: infinite canvas は 10000×10000 / padding 4000 構造 (WorkspaceLayout.svelte)。
-		// widget pixel coord = padding-left(4000) + p-5(20px) + grid_pos × (cell + gap)
+		// PR #268 Codex review #1: infinite canvas は 6000×6000 / padding 2000 構造 (iGPU blackout 回避)。
+		// widget pixel coord = padding-left(2000) + p-5(20px) + grid_pos × (cell + gap)
 		const newCellW = (BASE_W * targetZoom) / 100;
 		const newCellH = (BASE_H * targetZoom) / 100;
-		const PADDING_LEFT = 4000;
-		const PADDING_TOP = 4000;
+		const PADDING_LEFT = 2000;
+		const PADDING_TOP = 2000;
 		const INNER_PAD = 20; // p-5
 		const bbLeft = PADDING_LEFT + INNER_PAD + minX * (newCellW + gap);
 		const bbTop = PADDING_TOP + INNER_PAD + minY * (newCellH + gap);
