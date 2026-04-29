@@ -3,6 +3,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { removeKey } from '$lib/utils/local-storage';
 import {
 	findFreePosition,
 	findFreePositionNear,
@@ -103,6 +104,9 @@ async function deleteWorkspace(id: string): Promise<void> {
 			activeWorkspaceId = workspaces.length > 0 ? workspaces[0].id : null;
 			widgets = activeWorkspaceId ? await workspaceIpc.listWidgets(activeWorkspaceId) : [];
 		}
+		// PR #268 Codex review #10: workspace 削除時に per-workspace pan key を localStorage から
+		// GC して quota 圧迫を防ぐ。既存 helper 経由で SecurityError も握り潰す。
+		removeKey(`arcagate.workspace.pan.${id}`);
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
