@@ -19,7 +19,6 @@ import { fade, fly } from 'svelte/transition';
  */
 interface Props {
 	// PH-issue-002 で編集モード撤廃、prop 互換のため受け取るが常時表示。
-	// biome-ignore lint/correctness/noUnusedFunctionParameters: 後方互換、撤廃予定
 	editMode?: boolean;
 	selectedWidgetId: string | null;
 }

@@ -91,7 +91,21 @@ let consecutiveFailures = $state(0);
 const FAILURE_DEGRADED_THRESHOLD = 3;
 let degraded = $derived(consecutiveFailures >= FAILURE_DEGRADED_THRESHOLD);
 
+// Codex r3 #2: in-flight guard。slow IPC で setInterval が refresh を再入起動して race / pile-up
+// するのを防ぐ。前回 refresh 完了前に次が来たら skip。
+let refreshing = false;
+
 async function refresh() {
+	if (refreshing) return;
+	refreshing = true;
+	try {
+		await refreshInner();
+	} finally {
+		refreshing = false;
+	}
+}
+
+async function refreshInner() {
 	// Codex Medium #5 + 再 review #3: 各 IPC 失敗を個別に track。
 	// system_stats 成功 + 必要な disk / network すべて成功した時のみ「成功」扱い。
 	// 一部失敗すれば failure 連続カウントが進み、3 回連続で degraded UI を出す。

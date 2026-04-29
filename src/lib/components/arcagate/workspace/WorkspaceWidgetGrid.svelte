@@ -104,13 +104,13 @@ $effect(() => {
 
 		if (!src) return;
 		if (src.kind === 'add') {
-			// 検収 #5/#6: drag drop か click かで分岐。click (cell 無し) は viewport 中央起点に
-			// 自動配置、drag (cell あり) は指定セルに配置。click handler 二重発火は撤廃済 (Sidebar)。
+			// 検収 #5/#6 + Codex r3 #1: 配置経路に dynamicCols を渡し、preview の bounds と一致させる
+			// (responsive widt で 5 列以上ある時、addWidgetAt が fix=4 で reject していた regression を解消)。
 			if (cell) {
-				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y);
+				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y, dynamicCols);
 			} else {
 				const near = viewportCenterCell() ?? undefined;
-				void workspaceStore.addWidget(src.widgetType, near);
+				void workspaceStore.addWidget(src.widgetType, near, dynamicCols);
 			}
 		} else if (src.kind === 'move') {
 			if (cell) {

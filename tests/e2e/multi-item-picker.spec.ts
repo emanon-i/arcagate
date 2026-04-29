@@ -54,7 +54,7 @@ test.describe('ItemPicker 複数選択', () => {
 			expect(workspaces.length).toBeGreaterThan(0);
 			const wsId = workspaces[0].id;
 
-			const itemWidget = await invoke<Widget>(page, 'cmd_add_widget', {
+			const _itemWidget = await invoke<Widget>(page, 'cmd_add_widget', {
 				workspaceId: wsId,
 				widgetType: 'item',
 			});
