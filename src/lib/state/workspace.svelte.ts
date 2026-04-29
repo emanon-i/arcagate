@@ -155,9 +155,11 @@ async function addWidget(
 		// 検収 #5 + Codex Critical #1: nearCell 起点の **spiral 探索**。
 		// 指定 cell が埋まっていたら top-left に飛ばず、最寄りの空きセルを spiral で探す
 		// (top-left fallback は near が見つからない時のみ)。
-		// Codex r3 #1: viewport 幅から導出された responsive `cols` を尊重 (旧 fix=4 は wide canvas で
-		// drop preview と addWidgetAt の判定 mismatch を起こしていた)。
-		const effectiveCols = Math.max(DEFAULT_GRID_COLS, cols ?? DEFAULT_GRID_COLS);
+		// Codex r3 #1 / r4 HIGH #1: viewport 幅から導出された responsive `cols` を **そのまま** 尊重。
+		// 旧 `Math.max(DEFAULT_GRID_COLS, cols ?? DEFAULT_GRID_COLS)` は cols<4 の narrow viewport で
+		// 強制的に 4 にしていたため、preview (dynamicCols=2 等) と判定が乖離する新たな mismatch を発生させていた。
+		// 引数未指定時のみ DEFAULT_GRID_COLS にフォールバック。負/0 は最低 1 で sanity guard。
+		const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
 		const rects = widgetsToRects(widgets);
 		const pos = nearCell
 			? findFreePositionNear(nearCell.x, nearCell.y, w, h, rects, effectiveCols, DEFAULT_MAX_ROW)
@@ -201,9 +203,11 @@ async function addWidgetAt(
 	try {
 		// 検収 #7: widget タイプ別 defaultSize を使う。
 		const { w, h } = defaultSizeFor(widgetType);
-		// Codex r2 #2 + r3 #1: grid 右端越え reject。preview と一致する `cols` を caller から
-		// 受け取り、wide canvas (responsive dynamicCols > 4) と狭い canvas で同じ判定に。
-		const effectiveCols = Math.max(DEFAULT_GRID_COLS, cols ?? DEFAULT_GRID_COLS);
+		// Codex r2 #2 + r3 #1 + r4 HIGH #1: grid 右端越え reject。preview と一致する `cols` を caller から
+		// 受け取り、wide / narrow 両 canvas で同じ判定に。下限を 4 に強制すると narrow viewport
+		// (dynamicCols<4) で preview と addWidgetAt の判定が乖離するため、`cols` を **そのまま** 採用する
+		// (未指定時のみ DEFAULT_GRID_COLS、負/0 は最低 1 で sanity guard)。
+		const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
 		if (x + w > effectiveCols || y + h > DEFAULT_MAX_ROW + 1) {
 			toastStore.add('グリッド範囲外のため配置できません', 'error');
 			return;
@@ -366,7 +370,7 @@ async function resizeWidget(id: string, width: number, height: number): Promise<
 	}
 }
 
-async function moveWidget(id: string, x: number, y: number): Promise<void> {
+async function moveWidget(id: string, x: number, y: number, cols?: number): Promise<void> {
 	const target = widgets.find((w) => w.id === id);
 	if (!target) return;
 	error = null;
@@ -377,6 +381,23 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 		w: target.width,
 		h: target.height,
 	};
+
+	// Codex r4 HIGH #2: drop preview は overflowsRight / 下端越えを blocked 表示するが、
+	// pointerup で moveWidget を呼ぶ経路に bound check が無いと「赤プレビュー」のまま
+	// commit して overflow 位置が DB に永続化される (UI と論理の乖離)。
+	// → addWidgetAt と同一の bound check を caller の dynamicCols 付きで実行する。
+	// Codex r5 HIGH #1: narrow viewport (dynamicCols<4) でも preview と一致させるため、
+	// `cols` をそのまま採用 (旧 Math.max(4, ...) は同じ class の mismatch を発生させていた)。
+	const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
+	if (
+		x < 0 ||
+		y < 0 ||
+		x + target.width > effectiveCols ||
+		y + target.height > DEFAULT_MAX_ROW + 1
+	) {
+		toastStore.add('グリッド範囲外のため移動できません', 'error');
+		return;
+	}
 
 	// PH-issue-003: 移動先 overlap なら拒否 + toast、auto-rearrange 廃止
 	// (user fb 「単純に重ならない」)。

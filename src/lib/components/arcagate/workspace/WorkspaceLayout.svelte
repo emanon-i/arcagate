@@ -335,7 +335,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	<WorkspaceHintBar editMode={true} {selectedWidgetId} />
 
 	{#if sidebarOpen}
-		<WorkspaceSidebar onClose={() => (sidebarOpen = false)} />
+		<WorkspaceSidebar {dynamicCols} onClose={() => (sidebarOpen = false)} />
 	{:else}
 		<!-- PH-issue-028: sidebar 非表示時は左端に再オープン用 narrow toggle bar -->
 		<button

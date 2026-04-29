@@ -114,7 +114,9 @@ $effect(() => {
 			}
 		} else if (src.kind === 'move') {
 			if (cell) {
-				void workspaceStore.moveWidget(src.widgetId, cell.x, cell.y);
+				// Codex r4 HIGH #2: move 経路にも dynamicCols を渡し、preview の bound 判定と
+				// store の commit 判定を同期させる。preview が「越境 = 赤」表示なのに commit が通る乖離を防止。
+				void workspaceStore.moveWidget(src.widgetId, cell.x, cell.y, dynamicCols);
 			}
 		}
 	}
