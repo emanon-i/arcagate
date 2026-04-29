@@ -275,18 +275,10 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	<WorkspaceSidebar />
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<!-- PH-issue-009: per-workspace 背景壁紙レイヤー (active workspace に wallpaper_path がある場合のみ可視)。
-	     dotted grid + gradient は CSS 通常背景、wallpaper はその上に absolute layer で重ねる。
-	     opacity / blur は CSS 変数経由、Reduced Motion 時は blur=0 へ。 -->
-	<div
-		class="canvas-edit-mode relative min-w-0 flex-1 overflow-auto p-5 [scrollbar-gutter:stable]"
-		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%); background-size: 24px 24px, 100% 100%;"
-		data-zoom={configStore.widgetZoom}
-		bind:this={workspaceContainer}
-		onpointerdown={onCanvasPointerDown}
-		onpointermove={onCanvasPointerMove}
-		onpointerup={onCanvasPointerUp}
-	>
+	<!-- PH-issue-029 / 検収項目 #6/#7/#8: 上部 PageTabBar + 壁紙 layer を canvas の外に出す。
+	     pan で動くのは widget grid のみ、PageTabBar / 壁紙 / 右下 toolbar / HintBar は固定。 -->
+	<div class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+		<!-- 壁紙: 親 (この column) を覆う、scroll しない最背景 -->
 		{#if workspaceStore.activeWorkspace?.wallpaper_path}
 			{@const ws = workspaceStore.activeWorkspace}
 			{@const wpUrl = convertFileSrc(ws.wallpaper_path ?? '')}
@@ -297,7 +289,12 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 				data-testid="workspace-wallpaper"
 			></div>
 		{/if}
-		<div class="mb-5">
+
+		<!-- 上部 toolbar: PageTabBar (workspace 切替 + 壁紙設定 button)。
+		     半透明 + backdrop-blur で wallpaper を透かす (P11 装飾より対象)。 -->
+		<div
+			class="relative z-20 shrink-0 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)]/85 px-5 py-3 backdrop-blur-sm"
+		>
 			<PageTabBar
 				onSelectWorkspace={handleSelectWorkspace}
 				onRenameActive={() => (renameOpen = true)}
@@ -305,45 +302,56 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			/>
 		</div>
 
-		<div class="flex gap-4">
-			<div class="min-w-0 flex-1">
-				{#if workspaceStore.widgets.length === 0}
-					<!-- 空状態: widget 追加促し (sidebar が常時開いてるので追加可能) -->
-					<div class="mt-12 flex flex-col items-center justify-center gap-2 text-center">
-						<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
-						<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
-							ウィジェットを追加しましょう
-						</p>
-						<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
-							左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
-						</p>
+		<!-- Canvas: widget grid のみが scroll/pan 可能 -->
+		<div
+			class="canvas-edit-mode relative z-10 min-h-0 flex-1 overflow-auto p-5 [scrollbar-gutter:stable]"
+			style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px), linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%); background-size: 24px 24px, 100% 100%;"
+			data-zoom={configStore.widgetZoom}
+			bind:this={workspaceContainer}
+			onpointerdown={onCanvasPointerDown}
+			onpointermove={onCanvasPointerMove}
+			onpointerup={onCanvasPointerUp}
+		>
+			<div class="flex gap-4">
+				<div class="min-w-0 flex-1">
+					{#if workspaceStore.widgets.length === 0}
+						<!-- 空状態: widget 追加促し (sidebar が常時開いてるので追加可能) -->
+						<div class="mt-12 flex flex-col items-center justify-center gap-2 text-center">
+							<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
+							<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
+								ウィジェットを追加しましょう
+							</p>
+							<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
+								左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
+							</p>
+						</div>
+					{:else}
+						<WorkspaceWidgetGrid
+							{dynamicCols}
+							{maxRow}
+							widgetW={zoom.widgetW}
+							widgetH={zoom.widgetH}
+							{widgetComponents}
+							{selectedWidgetId}
+							{deleteConfirmId}
+							editMode={true}
+							onItemContext={handleItemContext}
+							onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
+							onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
+						/>
+					{/if}
+				</div>
+
+				{#if contextItemId}
+					<div class="w-80 shrink-0">
+						<LibraryDetailPanel
+							selectedItemId={contextItemId}
+							{onEditItem}
+							onClose={() => (contextItemId = null)}
+						/>
 					</div>
-				{:else}
-					<WorkspaceWidgetGrid
-						{dynamicCols}
-						{maxRow}
-						widgetW={zoom.widgetW}
-						widgetH={zoom.widgetH}
-						{widgetComponents}
-						{selectedWidgetId}
-						{deleteConfirmId}
-						editMode={true}
-						onItemContext={handleItemContext}
-						onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
-						onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
-					/>
 				{/if}
 			</div>
-
-			{#if contextItemId}
-				<div class="w-80 shrink-0">
-					<LibraryDetailPanel
-						selectedItemId={contextItemId}
-						{onEditItem}
-						onClose={() => (contextItemId = null)}
-					/>
-				</div>
-			{/if}
 		</div>
 	</div>
 

@@ -31,7 +31,16 @@ async function loadWorkspaces(): Promise<void> {
 	error = null;
 	try {
 		workspaces = await workspaceIpc.listWorkspaces();
-		if (workspaces.length > 0 && activeWorkspaceId === null) {
+		// PH-issue-029 / 検収項目 #6: 初回起動時 (workspaces 0 件) は default workspace を auto-create。
+		// 旧実装は 0 件で何も起きず、user が「Home が無い」状態を見てしまっていた (vision M1 違反)。
+		if (workspaces.length === 0) {
+			const ws = await workspaceIpc.createWorkspace('Home');
+			workspaces = [ws];
+			activeWorkspaceId = ws.id;
+			await seedDefaultWidgets(ws.id);
+			return;
+		}
+		if (activeWorkspaceId === null) {
 			activeWorkspaceId = workspaces[0].id;
 			await loadWidgets(workspaces[0].id);
 		}
