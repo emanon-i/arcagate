@@ -87,10 +87,27 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
             };
         }
         Remove(_) => {
+            // Codex High #3: RecursiveMode::Recursive で watch path 配下の **全削除** が
+            // event 化される。フォルダ削除で 100s ファイルが連続削除イベントを生むため、
+            // **DB に登録されている tracked item の target と一致する場合のみ emit** する
+            // (toast 嵐 防止)。一致しないファイルは debug log のみ。
+            let db = app.state::<DbState>();
+            let conn = match db.0.lock() {
+                Ok(c) => c,
+                Err(_) => return,
+            };
             for path in &event.paths {
                 let path_str = path.to_string_lossy().to_string();
-                app.emit("item://path-not-found", &path_str).ok();
-                log::info!("path-not-found: {}", path_str);
+                let is_tracked = match item_repository::find_by_target(&conn, &path_str) {
+                    Ok(Some(it)) => it.is_tracked,
+                    _ => false,
+                };
+                if is_tracked {
+                    app.emit("item://path-not-found", &path_str).ok();
+                    log::info!("path-not-found (tracked): {}", path_str);
+                } else {
+                    log::debug!("watch remove (untracked, suppressed): {}", path_str);
+                }
             }
         }
         _ => {}

@@ -59,3 +59,48 @@ export function findFreePosition(
 	}
 	return null;
 }
+
+/**
+ * Codex Critical #1: viewport center 起点の **spiral 探索**。
+ * クリックで widget を追加した時、指定 cell が埋まっていたら top-left に飛ぶのでなく、
+ * 指定 cell から広がる**同心円 (チェビシェフ距離)** で最寄りの空きセルを探す。
+ * 見つからなければ findFreePosition (top-left 線形 scan) に fallback。
+ *
+ * @param seedX 起点 x（負値は 0 にクランプ）
+ * @param seedY 起点 y（負値は 0 にクランプ）
+ * @param w 配置 widget の幅
+ * @param h 配置 widget の高さ
+ * @param others 既存 widget の rect 配列
+ * @param maxCols グリッド列数
+ * @param maxRow 走査上限行
+ */
+export function findFreePositionNear(
+	seedX: number,
+	seedY: number,
+	w: number,
+	h: number,
+	others: Rect[],
+	maxCols: number,
+	maxRow: number,
+): { x: number; y: number } | null {
+	// widget が grid に収まらないなら探索不要
+	if (w > maxCols || h > maxRow + 1) return null;
+	const sx = Math.max(0, Math.min(maxCols - w, Math.floor(seedX)));
+	const sy = Math.max(0, Math.min(maxRow, Math.floor(seedY)));
+	if (!wouldOverlapAt(sx, sy, w, h, others)) return { x: sx, y: sy };
+	const maxRing = Math.max(maxCols, maxRow);
+	for (let r = 1; r <= maxRing; r++) {
+		// チェビシェフ距離 r のリングを上→右→下→左で走査
+		for (let dy = -r; dy <= r; dy++) {
+			for (let dx = -r; dx <= r; dx++) {
+				if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+				const x = sx + dx;
+				const y = sy + dy;
+				if (x < 0 || y < 0 || x + w > maxCols || y > maxRow) continue;
+				if (!wouldOverlapAt(x, y, w, h, others)) return { x, y };
+			}
+		}
+	}
+	// near では見つからないなら通常 scan で fallback
+	return findFreePosition(w, h, others, maxCols, maxRow);
+}

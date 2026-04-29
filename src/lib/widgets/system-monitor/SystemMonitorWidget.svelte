@@ -85,29 +85,54 @@ let cpuHistory = $state<number[]>([]);
 let memHistory = $state<number[]>([]);
 let diskHistory = $state<Record<string, number[]>>({});
 
+// Codex Medium #5: 静かに無視 → 連続失敗回数を track + degraded UI 表示。
+// 個人アプリなので toast 嵐は避けるが、widget 自身が「取得失敗中 (Nx)」を表示する。
+let consecutiveFailures = $state(0);
+const FAILURE_DEGRADED_THRESHOLD = 3;
+let degraded = $derived(consecutiveFailures >= FAILURE_DEGRADED_THRESHOLD);
+
+// Codex r3 #2: in-flight guard。slow IPC で setInterval が refresh を再入起動して race / pile-up
+// するのを防ぐ。前回 refresh 完了前に次が来たら skip。
+let refreshing = false;
+
 async function refresh() {
+	if (refreshing) return;
+	refreshing = true;
+	try {
+		await refreshInner();
+	} finally {
+		refreshing = false;
+	}
+}
+
+async function refreshInner() {
+	// Codex Medium #5 + 再 review #3: 各 IPC 失敗を個別に track。
+	// system_stats 成功 + 必要な disk / network すべて成功した時のみ「成功」扱い。
+	// 一部失敗すれば failure 連続カウントが進み、3 回連続で degraded UI を出す。
+	let allOk = true;
 	try {
 		const s = await invoke<SystemStats>('cmd_get_system_stats');
 		stats = s;
 		cpuHistory = pushBuffer(cpuHistory, s.cpuPercent, 60);
-		// 検収 #17: メモリ % も履歴に積む (chart_type=sparkline で表示)。
 		const memPct = s.memTotalBytes > 0 ? (s.memUsedBytes / s.memTotalBytes) * 100 : 0;
 		memHistory = pushBuffer(memHistory, memPct, 60);
-	} catch {
-		// 一時失敗は静かに無視
+	} catch (e) {
+		console.debug('SystemMonitor: cmd_get_system_stats failed', e);
+		allOk = false;
 	}
 	if (showDisk) {
 		try {
 			disks = await invoke<DiskStats[]>('cmd_get_disk_stats');
-			// 検収 #17: ディスク mount ごとに履歴 (sparkline 用)。
-			const newDH: Record<string, number[]> = { ...diskHistory };
+			// Codex Medium #6: 消失 mount は履歴 prune（slow leak 防止）。
+			const newDH: Record<string, number[]> = {};
 			for (const d of disks) {
 				const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0;
-				newDH[d.mount] = pushBuffer(newDH[d.mount] ?? [], pct, 60);
+				newDH[d.mount] = pushBuffer(diskHistory[d.mount] ?? [], pct, 60);
 			}
 			diskHistory = newDH;
-		} catch {
-			// disk 取得失敗は無視
+		} catch (e) {
+			console.debug('SystemMonitor: cmd_get_disk_stats failed', e);
+			allOk = false;
 		}
 	}
 	if (showNetwork) {
@@ -132,10 +157,12 @@ async function refresh() {
 			networks = next;
 			netRates = newRates;
 			prevNetworks = newPrev;
-		} catch {
-			// network 取得失敗は無視
+		} catch (e) {
+			console.debug('SystemMonitor: cmd_get_network_stats failed', e);
+			allOk = false;
 		}
 	}
+	consecutiveFailures = allOk ? 0 : consecutiveFailures + 1;
 }
 
 $effect(() => {
@@ -196,6 +223,16 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'システムモニタ'} icon={Activity} {menuItems}>
+	{#if degraded}
+		<!-- Codex Medium #5: 連続失敗時 degraded UI badge。stale data も表示し続けるが
+		     user に「取得できていない」事実を見せる。silent failure 解消。 -->
+		<p
+			class="mb-2 truncate rounded border border-[var(--ag-warm-text)]/30 bg-[var(--ag-warm-text)]/10 px-2 py-1 text-xs text-[var(--ag-warm-text)]"
+			title="cmd_get_system_stats など telemetry IPC が連続失敗中"
+		>
+			取得失敗中 ({consecutiveFailures}回連続)
+		</p>
+	{/if}
 	{#if !stats}
 		<p class="text-xs text-[var(--ag-text-muted)]">取得中...</p>
 	{:else}

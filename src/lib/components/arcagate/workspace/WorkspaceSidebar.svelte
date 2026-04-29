@@ -40,6 +40,21 @@ function startDrag(e: PointerEvent, widgetType: WidgetType) {
 	(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 	pointerDrag.start({ kind: 'add', widgetType }, e.clientX, e.clientY);
 }
+
+/**
+ * Codex High #2 + 再 review #1: キーボード a11y。Enter / Space で widget を追加する経路を復活。
+ * onclick を付けると mouse drag 後の click 合成で二重発火（前回の regression 元）するため、
+ * onkeydown でキー判定して **直接** workspaceStore.addWidget を呼ぶ。
+ * Space は preventDefault して click 合成を抑制（pointerdown 経路と分離）。
+ * **`e.repeat` を必ず guard**：キー長押しで keydown が連射 → widget 大量追加される spam を防ぐ
+ * (Codex 再 review High #1 指摘の regression)。
+ */
+function keyboardAdd(e: KeyboardEvent, widgetType: WidgetType) {
+	if (e.key !== 'Enter' && e.key !== ' ') return;
+	if (e.repeat) return;
+	e.preventDefault();
+	void workspaceStore.addWidget(widgetType);
+}
 </script>
 
 <aside
@@ -78,8 +93,9 @@ function startDrag(e: PointerEvent, widgetType: WidgetType) {
 				class:opacity-50={isDragging}
 				data-widget-type={aw.type}
 				aria-label="{aw.label} を追加"
-				title="クリックで追加 / ドラッグで配置"
+				title="クリック or Enter で追加 / ドラッグで配置"
 				onpointerdown={(e) => startDrag(e, aw.type)}
+				onkeydown={(e) => keyboardAdd(e, aw.type)}
 			>
 				<Grip
 					class="h-3.5 w-3.5 shrink-0 text-[var(--ag-text-faint)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover/add:text-[var(--ag-text-muted)]"

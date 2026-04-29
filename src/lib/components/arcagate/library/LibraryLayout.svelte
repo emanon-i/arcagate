@@ -1,4 +1,13 @@
 <script lang="ts">
+import {
+	loadBool,
+	loadNumber,
+	loadString,
+	removeKey,
+	saveBool,
+	saveNumber,
+	saveString,
+} from '$lib/utils/local-storage';
 import LibraryDetailPanel from './LibraryDetailPanel.svelte';
 import LibraryMainArea from './LibraryMainArea.svelte';
 import LibrarySidebar from './LibrarySidebar.svelte';
@@ -10,45 +19,35 @@ interface Props {
 
 let { onEditItem, onAddItem }: Props = $props();
 
-// 検収 #9: Library sidebar 展開状態 / activeTag を localStorage で永続化。
+// 検収 #9 + Codex Low #8: Library sidebar 展開状態 / activeTag を safe helper 経由で永続化。
 const SIDEBAR_KEY = 'arcagate.library.sidebar.expanded';
 const TAG_KEY = 'arcagate.library.activeTag';
-let sidebarExpanded = $state<boolean>(
-	typeof window !== 'undefined' ? localStorage.getItem(SIDEBAR_KEY) === 'true' : false,
-);
+let sidebarExpanded = $state<boolean>(loadBool(SIDEBAR_KEY, false));
 let selectedItemId: string | null = $state(null);
-let activeTag: string | null = $state(
-	typeof window !== 'undefined' ? localStorage.getItem(TAG_KEY) : null,
-);
+let activeTag: string | null = $state(loadString(TAG_KEY, '') || null);
 
 $effect(() => {
-	if (typeof window !== 'undefined') {
-		localStorage.setItem(SIDEBAR_KEY, String(sidebarExpanded));
-		if (activeTag === null) {
-			localStorage.removeItem(TAG_KEY);
-		} else {
-			localStorage.setItem(TAG_KEY, activeTag);
-		}
-	}
+	saveBool(SIDEBAR_KEY, sidebarExpanded);
+	if (activeTag === null) removeKey(TAG_KEY);
+	else saveString(TAG_KEY, activeTag);
 });
 
-// 検収 #8: scroll 位置永続化。 mount 時に復元、scroll で保存 (debounce 200ms)。
+// 検収 #8 + Codex Low #8: scroll 位置永続化（mount 復元 + 200ms debounce 保存）。safe helper 経由。
 const SCROLL_KEY = 'arcagate.library.mainScrollTop';
 let mainScrollEl = $state<HTMLDivElement | null>(null);
 let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
 $effect(() => {
-	if (mainScrollEl && typeof window !== 'undefined') {
-		const saved = Number(localStorage.getItem(SCROLL_KEY) ?? 0);
-		queueMicrotask(() => {
-			if (mainScrollEl && saved > 0) mainScrollEl.scrollTop = saved;
-		});
-	}
+	if (!mainScrollEl) return;
+	const saved = loadNumber(SCROLL_KEY, 0, 0);
+	queueMicrotask(() => {
+		if (mainScrollEl && saved > 0) mainScrollEl.scrollTop = saved;
+	});
 });
 function onMainScroll() {
-	if (typeof window === 'undefined' || !mainScrollEl) return;
+	if (!mainScrollEl) return;
 	if (scrollSaveTimer) clearTimeout(scrollSaveTimer);
 	scrollSaveTimer = setTimeout(() => {
-		if (mainScrollEl) localStorage.setItem(SCROLL_KEY, String(mainScrollEl.scrollTop));
+		if (mainScrollEl) saveNumber(SCROLL_KEY, mainScrollEl.scrollTop);
 	}, 200);
 }
 

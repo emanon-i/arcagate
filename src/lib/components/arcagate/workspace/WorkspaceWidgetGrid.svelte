@@ -3,7 +3,8 @@ import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { WIDGET_LABELS } from '$lib/types/workspace';
-import { clampWidget } from '$lib/utils/widget-grid';
+import { clampWidget, wouldOverlapAt } from '$lib/utils/widget-grid';
+import { widgetRegistry } from '$lib/widgets';
 import WidgetHandles from './WidgetHandles.svelte';
 
 interface Props {
@@ -103,13 +104,13 @@ $effect(() => {
 
 		if (!src) return;
 		if (src.kind === 'add') {
-			// 検収 #5/#6: drag drop か click かで分岐。click (cell 無し) は viewport 中央起点に
-			// 自動配置、drag (cell あり) は指定セルに配置。click handler 二重発火は撤廃済 (Sidebar)。
+			// 検収 #5/#6 + Codex r3 #1: 配置経路に dynamicCols を渡し、preview の bounds と一致させる
+			// (responsive widt で 5 列以上ある時、addWidgetAt が fix=4 で reject していた regression を解消)。
 			if (cell) {
-				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y);
+				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y, dynamicCols);
 			} else {
 				const near = viewportCenterCell() ?? undefined;
-				void workspaceStore.addWidget(src.widgetType, near);
+				void workspaceStore.addWidget(src.widgetType, near, dynamicCols);
 			}
 		} else if (src.kind === 'move') {
 			if (cell) {
@@ -213,11 +214,40 @@ $effect(() => {
 			{/if}
 		{/each}
 
-		<!-- Drop zone highlight -->
-		{#if pointerDrag.dropCell}
+		<!-- Codex High #4 + 再 review #2: Drop preview highlight を defaultSize / 移動元実 size に合わせる。
+		     overlap 事前判定 + grid 右端越え判定で accent (free) / destructive (blocked / 越境) を色分け。
+		     **width clamp はせず、span は previewSize.w 全幅で出す**（右端で grid 外にはみ出すが、その時は
+		     blocked 色で「ここには配置できない」と視覚的に伝える）。 -->
+		{#if pointerDrag.dropCell && pointerDrag.active}
+			{@const cell = pointerDrag.dropCell}
+			{@const previewSize =
+				pointerDrag.active.kind === 'add'
+					? (widgetRegistry[pointerDrag.active.widgetType]?.defaultSize ?? { w: 2, h: 2 })
+					: (() => {
+							const moving = workspaceStore.widgets.find(
+								(w) => pointerDrag.active?.kind === 'move' && w.id === pointerDrag.active.widgetId,
+							);
+							return moving ? { w: moving.width, h: moving.height } : { w: 2, h: 2 };
+						})()}
+			{@const others = workspaceStore.widgets
+				.filter((w) =>
+					pointerDrag.active?.kind === 'move' ? w.id !== pointerDrag.active.widgetId : true,
+				)
+				.map((w) => ({ x: w.position_x, y: w.position_y, w: w.width, h: w.height }))}
+			{@const overflowsRight = cell.x + previewSize.w > dynamicCols}
+			{@const blocked =
+				overflowsRight ||
+				wouldOverlapAt(cell.x, cell.y, previewSize.w, previewSize.h, others)}
+			{@const colorVar = blocked ? 'var(--ag-error-text)' : 'var(--ag-accent)'}
 			<div
-				class="pointer-events-none rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-accent)]/10 shadow-[0_0_0_2px_var(--ag-accent)]"
-				style="grid-column: {pointerDrag.dropCell.x + 1}; grid-row: {pointerDrag.dropCell.y + 1};"
+				class="pointer-events-none rounded-lg border-2 border-dashed transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none"
+				style="
+					grid-column: {cell.x + 1} / span {previewSize.w};
+					grid-row: {cell.y + 1} / span {previewSize.h};
+					border-color: {colorVar};
+					background: color-mix(in srgb, {colorVar} 10%, transparent);
+					box-shadow: 0 0 0 2px {colorVar};
+				"
 			></div>
 		{/if}
 	</div>
