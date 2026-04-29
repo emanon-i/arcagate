@@ -1,6 +1,6 @@
 import { CheckSquare } from '@lucide/svelte';
-import CommonMaxItemsSettings from '../_shared/CommonMaxItemsSettings.svelte';
 import type { WidgetMeta } from '../_shared/types';
+import DailyTaskSettings from './DailyTaskSettings.svelte';
 import Component from './DailyTaskWidget.svelte';
 
 export const widgetType = 'daily_task' as const;
@@ -11,5 +11,7 @@ export const meta: WidgetMeta = {
 	label: 'デイリータスク',
 	defaultConfig: {},
 	addable: true,
-	SettingsContent: CommonMaxItemsSettings,
+	// PH-issue-027: 旧 CommonMaxItemsSettings は config schema 不一致 (max_items 無し) のため
+	// 専用 DailyTaskSettings (title + hideCompleted) に置換。
+	SettingsContent: DailyTaskSettings,
 };

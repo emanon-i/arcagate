@@ -1,6 +1,6 @@
 import { Clipboard } from '@lucide/svelte';
-import CommonMaxItemsSettings from '../_shared/CommonMaxItemsSettings.svelte';
 import type { WidgetMeta } from '../_shared/types';
+import SnippetSettings from './SnippetSettings.svelte';
 import Component from './SnippetWidget.svelte';
 
 export const widgetType = 'snippet' as const;
@@ -11,5 +11,7 @@ export const meta: WidgetMeta = {
 	label: 'スニペット',
 	defaultConfig: {},
 	addable: true,
-	SettingsContent: CommonMaxItemsSettings,
+	// PH-issue-027: 旧 CommonMaxItemsSettings は config schema 不一致 (max_items 無し) のため
+	// 専用 SnippetSettings (title のみ) に置換。
+	SettingsContent: SnippetSettings,
 };
