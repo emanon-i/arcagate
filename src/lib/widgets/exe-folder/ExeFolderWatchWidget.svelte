@@ -17,6 +17,7 @@ import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -203,18 +204,7 @@ async function launchEntry(entry: ExeFolderEntry) {
 		.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
 }
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems}>

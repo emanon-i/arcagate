@@ -28,6 +28,7 @@ import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -130,18 +131,7 @@ $effect(() => {
 
 let title = $derived(config.title || WIDGET_LABELS.projects);
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 async function handleLaunch(item: Item) {
 	try {

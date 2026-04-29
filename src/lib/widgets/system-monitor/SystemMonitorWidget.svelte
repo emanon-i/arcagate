@@ -5,6 +5,7 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { bufferToSparklinePath, pushBuffer } from '$lib/utils/history-buffer';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -103,18 +104,7 @@ function pctColorVar(pct: number): string {
 	return 'var(--ag-accent)';
 }
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'システムモニタ'} icon={Activity} {menuItems}>
