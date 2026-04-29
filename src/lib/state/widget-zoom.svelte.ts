@@ -76,13 +76,13 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	function fitToContent(widgets: WorkspaceWidget[]) {
 		const el = containerRef();
 		if (!el) return;
-		// 4/30 user 検収 #4 + #10: canvas を 10000x10000 に拡大、padding 全方向 4000 に変更。
-		// grid 開始は (4020, 4020)、widgets 0 件時は grid 直前の余白に scroll。
+		// Codex review #1 fix: canvas 6000x6000 + padding 2000 全方向 (iGPU 対応)。
+		// grid 開始は (2020, 2020)、widgets 0 件時は grid 直前の余白に scroll。
 		if (widgets.length === 0) {
 			resetZoom();
 			el.scrollTo({
-				left: Math.max(0, 4020 - 80),
-				top: Math.max(0, 4020 - 80),
+				left: Math.max(0, 2020 - 80),
+				top: Math.max(0, 2020 - 80),
 				behavior: 'instant',
 			});
 			return;
@@ -114,14 +114,14 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.floor(ratio * 100)));
 		setZoom(targetZoom);
 
-		// canvas 構造 (4/30 拡大版):
-		// canvas-edit-mode (overflow-auto) > infinite-canvas (10000x10000, padding: 4000 全方向)
+		// canvas 構造 (Codex review #1 fix 後):
+		// canvas-edit-mode (overflow-auto) > infinite-canvas (6000x6000, padding: 2000 全方向)
 		//   > flex p-5 > grid
-		// widget pixel coord (canvas-relative) = padding-left(=4000) + p-5(=20px) + grid_pos × (cell + gap)
+		// widget pixel coord (canvas-relative) = padding-left(=2000) + p-5(=20px) + grid_pos × (cell + gap)
 		const newCellW = (BASE_W * targetZoom) / 100;
 		const newCellH = (BASE_H * targetZoom) / 100;
-		const PADDING_LEFT = 4000;
-		const PADDING_TOP = 4000;
+		const PADDING_LEFT = 2000;
+		const PADDING_TOP = 2000;
 		const INNER_PAD = 20; // p-5
 		const bbLeft = PADDING_LEFT + INNER_PAD + minX * (newCellW + gap);
 		const bbTop = PADDING_TOP + INNER_PAD + minY * (newCellH + gap);

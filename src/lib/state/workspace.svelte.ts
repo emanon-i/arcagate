@@ -103,6 +103,15 @@ async function deleteWorkspace(id: string): Promise<void> {
 	try {
 		await workspaceIpc.deleteWorkspace(id);
 		workspaces = workspaces.filter((w) => w.id !== id);
+		// Codex review #10 fix: workspace 削除時に per-workspace localStorage key を GC。
+		// 旧実装は key が永久に残るため、long-running ユーザで quota 圧迫の risk があった。
+		try {
+			if (typeof localStorage !== 'undefined') {
+				localStorage.removeItem(`arcagate.workspace.pan.${id}`);
+			}
+		} catch {
+			// localStorage 失敗は無視 (quota / private mode 等)
+		}
 		if (activeWorkspaceId === id) {
 			activeWorkspaceId = workspaces.length > 0 ? workspaces[0].id : null;
 			widgets = activeWorkspaceId ? await workspaceIpc.listWidgets(activeWorkspaceId) : [];

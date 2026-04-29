@@ -94,14 +94,17 @@ let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
-// 4/30 user 検収 #4 + #8: canvas を 10000×10000 に拡大 + per-workspace pan position 永続化。
+// 4/30 user 検収 #4 + #8: canvas を拡大 + per-workspace pan position 永続化。
 // - 旧 5000×5000 + padding 2000 2000 0 0 → 「無限じゃない」 user fb 対応
 // - 旧実装は再 mount のたびに固定座標に戻ってた → user 「Library から戻ると違う場所」 fb 対応
-// grid 開始 = padding-top/left 4000 + flex p-5 (20) = (4020, 4020)。
-// 初期 scroll は localStorage の最終 scroll 位置 (per-workspace)、なければ grid 左上付近に scroll。
+//
+// Codex review #1 fix: 10000×10000 + padding 4000 だと iGPU で paint area 100Mpx となり
+// PC ブラックアウト risk。6000×6000 + padding 2000 全方向 (中央 2000×2000) に縮小。
+// 旧 5000×5000 (25Mpx) → 新 6000×6000 (36Mpx)、 1.44 倍に抑える (4 方向各 2000px の pan 余裕)。
+// grid 開始 = padding-top/left 2000 + flex p-5 (20) = (2020, 2020)。
 const PAN_KEY_PREFIX = 'arcagate.workspace.pan.';
-const DEFAULT_PAN_LEFT = Math.max(0, 4020 - 80);
-const DEFAULT_PAN_TOP = Math.max(0, 4020 - 80);
+const DEFAULT_PAN_LEFT = Math.max(0, 2020 - 80);
+const DEFAULT_PAN_TOP = Math.max(0, 2020 - 80);
 
 $effect(() => {
 	const wsId = workspaceStore.activeWorkspaceId;
@@ -310,9 +313,9 @@ function handleSelectWorkspace(id: string) {
  * grid 領域の絶対座標起点は infinite-canvas の padding 内 + flex p-5 (20px) なので、
  * scroll 位置と clientWidth/Height から viewport 中央 cell を求める。
  */
-// 4/30 user 検収 #4: canvas を 10000×10000 に拡大、padding 4000 全方向に変更。
-const CANVAS_PADDING_TOP = 4020; // padding-top 4000 + flex p-5 (20)
-const CANVAS_PADDING_LEFT = 4020; // padding-left 4000 + flex p-5 (20)
+// Codex review #1 fix: 6000×6000 + padding 2000 全方向 (iGPU 対応で blackout 回避)。
+const CANVAS_PADDING_TOP = 2020; // padding-top 2000 + flex p-5 (20)
+const CANVAS_PADDING_LEFT = 2020; // padding-left 2000 + flex p-5 (20)
 
 function computeViewportOriginCell(): { x: number; y: number } {
 	const el = workspaceContainer;
@@ -443,12 +446,13 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			onpointerup={onCanvasPointerUp}
 			onscroll={onCanvasScroll}
 		>
-			<!-- 4/30 user 検収 #4: 10000x10000 の infinite canvas、widgets は中央付近。
-			     pan で 4 方向に大幅 scroll 可能 (旧 5000x5000 から拡大、user 「無限じゃない」 fb 対応)。
-			     padding 4000 全方向で grid 領域を中央 2000x2000 に配置。 -->
+			<!-- Codex review #1 fix: canvas 6000×6000 + padding 2000 全方向 (iGPU paint area 36Mpx)。
+			     旧 10000×10000 (100Mpx) は PC ブラックアウト risk があった。
+			     pan で 4 方向に各 2000px の余裕 (旧 5000×5000 比で 1.44 倍に抑制)。
+			     padding 2000 全方向で grid 領域を中央 2000×2000 に配置。 -->
 			<div
 				class="relative"
-				style="width: 10000px; height: 10000px; padding: 4000px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
+				style="width: 6000px; height: 6000px; padding: 2000px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 				bind:this={infiniteCanvas}
 			>
 				<div class="flex gap-4 p-5">

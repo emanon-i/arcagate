@@ -44,6 +44,10 @@ let pointerDownPos = $state<{ x: number; y: number; widgetType: WidgetType } | n
 
 function onItemPointerDown(e: PointerEvent, widgetType: WidgetType) {
 	e.preventDefault();
+	// Codex review #2 fix: setPointerCapture を pointerdown 時に立てる。
+	// 旧実装は drag 開始時のみ capture していたため、user が item 外で release すると
+	// onpointerup が item に届かず click が drop されるバグがあった。
+	(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 	pointerDownPos = { x: e.clientX, y: e.clientY, widgetType };
 }
 
@@ -53,7 +57,7 @@ function onItemPointerMove(e: PointerEvent) {
 	const dy = e.clientY - pointerDownPos.y;
 	if (Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
 		const wt = pointerDownPos.widgetType;
-		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		// pointerdown で既に capture 済、再 capture は no-op
 		pointerDrag.start({ kind: 'add', widgetType: wt }, e.clientX, e.clientY);
 		pointerDownPos = null;
 	}

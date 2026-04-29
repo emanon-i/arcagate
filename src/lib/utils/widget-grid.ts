@@ -91,7 +91,9 @@ export function findFreePositionNear(
 				if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
 				const x = startX + dx;
 				const y = startY + dy;
-				if (x < 0 || y < 0 || x + w > maxCols || y > maxRow) continue;
+				// Codex review #3 fix: widget の bottom edge は y + h - 1 なので、
+				// 旧 `y > maxRow` だと widget が maxRow を超えても通ってしまうバグ。
+				if (x < 0 || y < 0 || x + w > maxCols || y + h > maxRow + 1) continue;
 				if (!wouldOverlapAt(x, y, w, h, others)) {
 					return { x, y };
 				}
