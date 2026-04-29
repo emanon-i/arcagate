@@ -24,9 +24,12 @@ pub fn add_watched_path(
     // watcher 登録を先に試み、失敗したら DB 書き込み前に Err 返却。
     {
         let mut w = watcher.0.lock().map_err(|_| AppError::DbLock)?;
+        // 4/30 user 検収 #13: サブフォルダ監視壊れ → Recursive に変更。
+        // 旧 NonRecursive ではユーザの「監視フォルダ配下のサブフォルダ追加 / 変更が反応しない」
+        // を引き起こしていた。Recursive で path 配下全階層を監視。
         w.watch(
             std::path::Path::new(&path_str),
-            notify::RecursiveMode::NonRecursive,
+            notify::RecursiveMode::Recursive,
         )
         .map_err(|e| {
             log::warn!("watcher: failed to watch '{}': {}", path_str, e);

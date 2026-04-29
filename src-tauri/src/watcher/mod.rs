@@ -44,10 +44,11 @@ pub fn start_watcher(app: &tauri::AppHandle) -> WatcherState {
             .unwrap_or_default()
     };
     for path in &active_paths {
-        if let Err(e) = watcher.watch(
-            std::path::Path::new(path),
-            notify::RecursiveMode::NonRecursive,
-        ) {
+        // 4/30 user 検収 #13: サブフォルダ監視壊れ → Recursive に変更。
+        // 旧 NonRecursive はトップレベルのみ検出で、ネストされた path 配下の
+        // 追加 / 削除 / 変更を捕捉できていなかった (user fb 「サブフォルダが反応しない」)。
+        if let Err(e) = watcher.watch(std::path::Path::new(path), notify::RecursiveMode::Recursive)
+        {
             log::warn!("watcher: failed to watch '{}': {:?}", path, e);
         }
     }
