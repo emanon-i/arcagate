@@ -1,5 +1,12 @@
 <script lang="ts">
-import { LayoutGrid, Maximize2, Redo2, RotateCcw as ResetIcon, Undo2 } from '@lucide/svelte';
+import {
+	LayoutGrid,
+	Maximize2,
+	PanelLeftOpen,
+	Redo2,
+	RotateCcw as ResetIcon,
+	Undo2,
+} from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
 import { configStore } from '$lib/state/config.svelte';
@@ -56,6 +63,17 @@ $effect(() => {
 let selectedWidgetId = $state<string | null>(null);
 let renameOpen = $state(false);
 let wallpaperOpen = $state(false);
+// PH-issue-028 / 検収項目 #1: ウィジェット追加パネル open/close 状態
+// localStorage で永続化、初期値は open。
+const SIDEBAR_KEY = 'arcagate.workspace.sidebar.open';
+let sidebarOpen = $state<boolean>(
+	typeof window !== 'undefined' ? (localStorage.getItem(SIDEBAR_KEY) ?? 'true') === 'true' : true,
+);
+$effect(() => {
+	if (typeof window !== 'undefined') {
+		localStorage.setItem(SIDEBAR_KEY, String(sidebarOpen));
+	}
+});
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
 // PH-issue-024: 右クリック「Open with…」 popup の表示状態 + 位置
@@ -272,7 +290,20 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 <div class="relative flex h-full">
 	<WorkspaceHintBar editMode={true} {selectedWidgetId} />
 
-	<WorkspaceSidebar />
+	{#if sidebarOpen}
+		<WorkspaceSidebar onClose={() => (sidebarOpen = false)} />
+	{:else}
+		<!-- PH-issue-028: sidebar 非表示時は左端に再オープン用 narrow toggle bar -->
+		<button
+			type="button"
+			class="flex h-full w-7 shrink-0 items-center justify-center border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+			aria-label="ウィジェットパネルを開く"
+			title="ウィジェットを追加"
+			onclick={() => (sidebarOpen = true)}
+		>
+			<PanelLeftOpen class="h-4 w-4" />
+		</button>
+	{/if}
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<!-- PH-issue-009: per-workspace 背景壁紙レイヤー (active workspace に wallpaper_path がある場合のみ可視)。
