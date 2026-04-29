@@ -366,7 +366,7 @@ async function resizeWidget(id: string, width: number, height: number): Promise<
 	}
 }
 
-async function moveWidget(id: string, x: number, y: number): Promise<void> {
+async function moveWidget(id: string, x: number, y: number, cols?: number): Promise<void> {
 	const target = widgets.find((w) => w.id === id);
 	if (!target) return;
 	error = null;
@@ -377,6 +377,21 @@ async function moveWidget(id: string, x: number, y: number): Promise<void> {
 		w: target.width,
 		h: target.height,
 	};
+
+	// Codex r4 HIGH #2: drop preview は overflowsRight / 下端越えを blocked 表示するが、
+	// pointerup で moveWidget を呼ぶ経路に bound check が無いと「赤プレビュー」のまま
+	// commit して overflow 位置が DB に永続化される (UI と論理の乖離)。
+	// → addWidgetAt と同一の bound check を caller の dynamicCols 付きで実行する。
+	const effectiveCols = Math.max(DEFAULT_GRID_COLS, cols ?? DEFAULT_GRID_COLS);
+	if (
+		x < 0 ||
+		y < 0 ||
+		x + target.width > effectiveCols ||
+		y + target.height > DEFAULT_MAX_ROW + 1
+	) {
+		toastStore.add('グリッド範囲外のため移動できません', 'error');
+		return;
+	}
 
 	// PH-issue-003: 移動先 overlap なら拒否 + toast、auto-rearrange 廃止
 	// (user fb 「単純に重ならない」)。
