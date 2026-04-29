@@ -12,6 +12,7 @@ import {
 	pushClipboardEntry,
 } from '$lib/utils/clipboard-history';
 import { formatIpcError } from '$lib/utils/ipc-error';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -87,18 +88,7 @@ function deleteEntry(id: string) {
 	void persist({ ...config, history: next });
 }
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 function previewText(text: string): string {
 	const oneline = text.replace(/\s+/g, ' ').trim();

@@ -6,6 +6,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { formatIpcError } from '$lib/utils/ipc-error';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -55,18 +56,7 @@ function deleteSnippet(id: string) {
 	void persist({ ...config, snippets: next });
 }
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'スニペット'} icon={Clipboard} {menuItems}>

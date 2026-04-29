@@ -14,6 +14,7 @@ import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -47,18 +48,7 @@ let widgetIconClass = $derived(
 			: 'h-5 w-5 shrink-0 object-cover',
 );
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 async function handleLaunch(id: string) {
 	const item = favorites.find((i) => i.id === id);

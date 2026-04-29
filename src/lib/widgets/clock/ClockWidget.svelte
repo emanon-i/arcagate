@@ -24,6 +24,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { CLOCK_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -108,18 +109,7 @@ let display = $derived.by(() => {
 let dateStr = $derived(`${parts.year}/${parts.month}/${parts.day}`);
 let weekdayStr = $derived(`(${parts.weekday})`);
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>

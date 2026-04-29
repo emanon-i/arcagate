@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Settings, StickyNote } from '@lucide/svelte';
+import { StickyNote } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -8,6 +8,7 @@ import { QUICK_NOTE_DEFAULTS, type QuickNoteFontSize } from '$lib/types/widget-c
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -68,19 +69,7 @@ async function saveNote() {
 	}
 }
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					icon: Settings,
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={WIDGET_LABELS.quick_note} icon={StickyNote} {menuItems}>

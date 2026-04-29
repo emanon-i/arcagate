@@ -10,6 +10,7 @@ import { STATS_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
+import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -28,18 +29,7 @@ $effect(() => {
 	});
 });
 
-let menuItems = $derived(
-	widget
-		? [
-				{
-					label: '設定',
-					onclick: () => {
-						settingsOpen = true;
-					},
-				},
-			]
-		: [],
-);
+let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 async function handleLaunch(id: string) {
 	const item = topItems.find((i) => i.id === id);
