@@ -62,35 +62,68 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	}
 
 	/**
-	 * 全 widget の bounding box が container に収まるよう zoom 自動計算。
-	 * widgets が空なら 100% にリセット。
+	 * PH-issue-040 / 検収項目 #10: Fit to content 改修。
+	 *
+	 * 全 widget の bounding box が現在の window viewport に収まるよう zoom + scroll 調整。
+	 * 旧実装は scroll を (0,0) にしていたため、PH-issue-034 (infinite canvas、padding 2000px)
+	 * 導入後は widgets が画面外のまま見えないバグ。
+	 *
+	 * - BB を min/max で計算 (widgets が左上から始まらない場合も対応)
+	 * - zoom 比率は `availW / BB_W`, `availH / BB_H` の min
+	 * - scroll は BB を viewport 中央に置く位置に
+	 * - widgets が空なら resetZoom + 初期 scroll (1900, 1900) に戻す
 	 */
 	function fitToContent(widgets: WorkspaceWidget[]) {
 		const el = containerRef();
-		if (!el || widgets.length === 0) {
+		if (!el) return;
+		if (widgets.length === 0) {
 			resetZoom();
+			el.scrollTo({ left: 1900, top: 1900, behavior: 'instant' });
 			return;
 		}
+		const minX = widgets.reduce((m, w) => Math.min(m, w.position_x), Infinity);
+		const minY = widgets.reduce((m, w) => Math.min(m, w.position_y), Infinity);
 		const maxX = widgets.reduce((m, w) => Math.max(m, w.position_x + w.width), 0);
 		const maxY = widgets.reduce((m, w) => Math.max(m, w.position_y + w.height), 0);
-		if (maxX === 0 || maxY === 0) {
+		const cols = maxX - minX;
+		const rows = maxY - minY;
+		if (cols <= 0 || rows <= 0) {
 			resetZoom();
 			return;
 		}
+
 		const gap = 16;
-		const padding = 32;
-		const availW = el.clientWidth - padding;
-		const availH = el.clientHeight - padding;
-		const requiredW = maxX * (BASE_W + gap);
-		const requiredH = maxY * (BASE_H + gap);
-		const ratioW = availW / requiredW;
-		const ratioH = availH / requiredH;
-		const ratio = Math.min(ratioW, ratioH);
+		const margin = 64; // viewport 周囲の breathing room
+		const availW = Math.max(1, el.clientWidth - margin);
+		const availH = Math.max(1, el.clientHeight - margin);
+		const requiredW = cols * (BASE_W + gap);
+		const requiredH = rows * (BASE_H + gap);
+		const ratio = Math.min(availW / requiredW, availH / requiredH);
 		const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.floor(ratio * 100)));
 		setZoom(targetZoom);
-		// scroll を (0,0) に戻して全体が見えるように
-		el.scrollLeft = 0;
-		el.scrollTop = 0;
+
+		// PH-issue-034 の infinite canvas wrapper 構造に合わせて scroll を計算:
+		// canvas-edit-mode (overflow-auto) > infinite-canvas (5000x5000, padding: 2000 2000 0 0)
+		//   > flex p-5 > grid
+		// widget pixel coord (canvas-relative) = padding-left(=0) + p-5(=20px) + grid_pos × (cell + gap)
+		const newCellW = (BASE_W * targetZoom) / 100;
+		const newCellH = (BASE_H * targetZoom) / 100;
+		const PADDING_LEFT = 0;
+		const PADDING_TOP = 2000;
+		const INNER_PAD = 20; // p-5
+		const bbLeft = PADDING_LEFT + INNER_PAD + minX * (newCellW + gap);
+		const bbTop = PADDING_TOP + INNER_PAD + minY * (newCellH + gap);
+		const bbW = cols * (newCellW + gap);
+		const bbH = rows * (newCellH + gap);
+		// BB を viewport の中央に配置
+		const targetLeft = Math.max(0, bbLeft + bbW / 2 - el.clientWidth / 2);
+		const targetTop = Math.max(0, bbTop + bbH / 2 - el.clientHeight / 2);
+		const rm =
+			typeof window !== 'undefined' &&
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		queueMicrotask(() => {
+			el.scrollTo({ left: targetLeft, top: targetTop, behavior: rm ? 'instant' : 'smooth' });
+		});
 	}
 
 	return {
