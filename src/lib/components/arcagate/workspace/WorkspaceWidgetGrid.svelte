@@ -100,25 +100,9 @@ $effect(() => {
 	};
 });
 
-// PH-issue-001: 編集モード時 Delete / Backspace で選択 widget を削除確認 (§13 規格)
-function handleKeydown(e: KeyboardEvent) {
-	if (!editMode || !selectedWidgetId) return;
-	const target = e.target as HTMLElement | null;
-	const isEditable =
-		target &&
-		(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-	if (isEditable) return;
-	if (e.key === 'Delete' || e.key === 'Backspace') {
-		e.preventDefault();
-		onDeleteConfirmIdChange(selectedWidgetId);
-	}
-}
-
-$effect(() => {
-	if (!editMode) return;
-	document.addEventListener('keydown', handleKeydown);
-	return () => document.removeEventListener('keydown', handleKeydown);
-});
+// 4/30 user 検収 #1: Delete/Backspace の listener は WorkspaceLayout 側で集約。
+// 旧実装はここでも document.addEventListener していたため、× button click 経由と
+// keyboard 経由で removeWidget が二重に走る race があった。
 </script>
 
 <!-- L-3: Grid with overlay -->

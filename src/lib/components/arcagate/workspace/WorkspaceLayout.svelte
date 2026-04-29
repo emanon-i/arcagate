@@ -76,8 +76,9 @@ $effect(() => {
 });
 
 // PH-issue-031 / 検収項目 #5: 削除確認 modal 撤廃、即削除 + Undo toast。
-// deleteConfirmId は WidgetHandles の callback shape 維持のため transient で残すが
-// 即 instantDeleteWidget で消費される。
+// 4/30 user 検収 #1: WidgetHandles の × button が `onDeleteConfirmIdChange(id)` で
+// state を set するだけで instantDeleteWidget を呼ぶ経路が無く「削除ボタン機能停止」
+// に見えていた (PR #254 で確認 modal を撤廃した残留バグ)。callback で即削除に変更。
 let deleteConfirmId = $state<string | null>(null);
 let contextItemId = $state<string | null>(null);
 
@@ -475,7 +476,14 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 							editMode={true}
 							onItemContext={handleItemContext}
 							onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
-							onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
+							onDeleteConfirmIdChange={(id) => {
+								// 4/30 user 検収 #1: × button click → 即削除 (Undo で戻せる)。
+								if (id) {
+									selectedWidgetId = null;
+									instantDeleteWidget(id);
+								}
+								deleteConfirmId = null;
+							}}
 						/>
 					{/if}
 				</div>
