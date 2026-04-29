@@ -81,12 +81,16 @@ let networks = $state<NetworkStats[]>([]);
 let prevNetworks = $state<Record<string, { rx: number; tx: number; t: number }>>({});
 let netRates = $state<Record<string, { rxBps: number; txBps: number }>>({});
 let cpuHistory = $state<number[]>([]);
+// 4/30 user 検収 #17: chart_type を CPU 専用ではなく memory にも適用するため history buffer 追加。
+let memHistory = $state<number[]>([]);
 
 async function refresh() {
 	try {
 		const s = await invoke<SystemStats>('cmd_get_system_stats');
 		stats = s;
 		cpuHistory = pushBuffer(cpuHistory, s.cpuPercent, 60);
+		const memPct = s.memTotalBytes > 0 ? (s.memUsedBytes / s.memTotalBytes) * 100 : 0;
+		memHistory = pushBuffer(memHistory, memPct, 60);
 	} catch {
 		// 一時失敗は静かに無視
 	}
@@ -155,7 +159,8 @@ let memPercent = $derived(
 	stats && stats.memTotalBytes > 0 ? (stats.memUsedBytes / stats.memTotalBytes) * 100 : 0,
 );
 
-let sparklinePath = $derived(bufferToSparklinePath(cpuHistory, 100, 20, 100));
+let cpuSparklinePath = $derived(bufferToSparklinePath(cpuHistory, 100, 20, 100));
+let memSparklinePath = $derived(bufferToSparklinePath(memHistory, 100, 20, 100));
 
 function pctColorVar(pct: number): string {
 	if (pct >= 85) return 'var(--ag-error-text)';
@@ -194,7 +199,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					<!-- PH-issue-042 / 検収項目 #29: chart_type で表示切替 -->
 					{#if chartType === 'sparkline'}
 						<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
-							<path d={sparklinePath} fill="none" stroke={cpuColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+							<path d={cpuSparklinePath} fill="none" stroke={cpuColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
 						</svg>
 					{:else if chartType === 'bar'}
 						<div
@@ -228,18 +233,32 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							{formatBytes(stats.memUsedBytes)} / {formatBytes(stats.memTotalBytes)}
 						</span>
 					</div>
-					<div
-						class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
-						role="progressbar"
-						aria-valuenow={memPercent}
-						aria-valuemin="0"
-						aria-valuemax="100"
-					>
+					<!-- 4/30 user 検収 #17: memory にも chart_type を適用 (CPU 専用から拡張)。 -->
+					{#if chartType === 'sparkline'}
+						<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
+							<path d={memSparklinePath} fill="none" stroke={memColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+						</svg>
+					{:else if chartType === 'bar'}
 						<div
-							class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
-							style="width: {memPercent.toFixed(1)}%; background-color: {memColor};"
-						></div>
-					</div>
+							class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
+							role="progressbar"
+							aria-valuenow={memPercent}
+							aria-valuemin="0"
+							aria-valuemax="100"
+						>
+							<div
+								class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
+								style="width: {memPercent.toFixed(1)}%; background-color: {memColor};"
+							></div>
+						</div>
+					{:else if chartType === 'gauge'}
+						<div class="flex items-center justify-center">
+							<svg viewBox="0 0 48 48" class="h-12 w-12" aria-hidden="true">
+								<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="4" stroke-linecap="round" />
+								<path d={gaugePath(memPercent)} fill="none" stroke={memColor} stroke-width="4" stroke-linecap="round" />
+							</svg>
+						</div>
+					{/if}
 				</div>
 			{/if}
 			{#if showDisk && disks.length > 0}

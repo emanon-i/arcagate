@@ -118,7 +118,9 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	<div
 		class="@container flex h-full flex-col items-center justify-center overflow-hidden"
 	>
-		<!-- 時間: 主要、container サイズに応じて巨大化 -->
+		<!-- 時間: 主要、container サイズに応じて段階的に拡大。
+		     4/30 user 検収 #16: 1×1 (240×135) で text-3xl + 日付/曜日が見切れる症状
+		     を解消するため text-2xl から開始 (24px、leading-none で line-height 1)。 -->
 		<div
 			class="flex items-baseline gap-1 font-mono font-semibold tabular-nums text-[var(--ag-text-primary)]"
 		>
@@ -128,13 +130,13 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				</span>
 			{/if}
 			<span
-				class="text-3xl leading-none @xs:text-4xl @sm:text-5xl @md:text-6xl @lg:text-7xl"
+				class="text-2xl leading-none @xs:text-3xl @sm:text-4xl @md:text-5xl @lg:text-6xl"
 			>
 				{display.hm}
 			</span>
 			{#if config.show_seconds}
 				<span
-					class="hidden text-base leading-none text-[var(--ag-text-secondary)] @xs:inline @sm:text-xl @md:text-2xl @lg:text-3xl"
+					class="hidden text-sm leading-none text-[var(--ag-text-secondary)] @xs:inline @sm:text-base @md:text-xl @lg:text-2xl"
 				>:{display.seconds}</span>
 			{/if}
 		</div>
