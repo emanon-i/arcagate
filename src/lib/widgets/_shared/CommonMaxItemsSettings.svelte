@@ -1,7 +1,10 @@
 <script lang="ts">
 /**
  * PH-issue-026 (Issue 23): CommonMaxItemsSettings polish — clamp 統一 (1〜100)。
+ * 4/30 user 検収 #12: native `<select>` を SelectField に置換 (Windows ダーク dropdown 読めない)。
  */
+import SelectField from '$lib/components/common/SelectField.svelte';
+
 interface Props {
 	config: { max_items?: number; sort_field?: 'default' | 'name' };
 }
@@ -10,6 +13,11 @@ let { config = $bindable() }: Props = $props();
 
 let maxItems = $derived(config.max_items ?? 10);
 let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
+
+const SORT_OPTIONS: { value: 'default' | 'name'; label: string }[] = [
+	{ value: 'default', label: 'デフォルト（IPC 順）' },
+	{ value: 'name', label: '名前順（A-Z）' },
+];
 </script>
 
 <div class="space-y-1">
@@ -36,18 +44,13 @@ let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
 
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sort-field">並び順</label>
-	<select
+	<SelectField
 		id="ws-sort-field"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		aria-label="並び順を選ぶ"
 		value={sortField}
-		onchange={(e) => {
-			config = {
-				...config,
-				sort_field: (e.currentTarget as HTMLSelectElement).value as 'default' | 'name',
-			};
+		options={SORT_OPTIONS}
+		onChange={(v) => {
+			config = { ...config, sort_field: v };
 		}}
-	>
-		<option value="default">デフォルト（IPC 順）</option>
-		<option value="name">名前順（A-Z）</option>
-	</select>
+	/>
 </div>

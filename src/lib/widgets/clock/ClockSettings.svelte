@@ -1,11 +1,13 @@
 <script lang="ts">
 /**
  * PH-issue-035 / 検収項目 #24-26: ClockWidget 抹本改修に対応する Settings dialog。
+ * 4/30 user 検収 #12: native `<select>` を SelectField に置換 (TZ dropdown 読めなかった)。
  *
  * 旧設定 (秒 / 日付 / 曜日 / 24h) に加え:
  * - timezone: IANA TZ identifier (default 'Asia/Tokyo')
  * - show_timezone: TZ 名を widget に表示するか
  */
+import SelectField from '$lib/components/common/SelectField.svelte';
 import Switch from '$lib/components/common/Switch.svelte';
 
 interface Props {
@@ -41,21 +43,20 @@ const TZ_PRESETS: { value: string; label: string }[] = [
 
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clock-tz">タイムゾーン</label>
-	<select
+	<SelectField
 		id="ws-clock-tz"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		aria-label="タイムゾーンを選ぶ"
 		value={timezone}
-		onchange={(e) => {
-			config = { ...config, timezone: (e.currentTarget as HTMLSelectElement).value };
+		options={[
+			...TZ_PRESETS,
+			...(TZ_PRESETS.some((t) => t.value === timezone)
+				? []
+				: [{ value: timezone, label: `${timezone} (カスタム)` }]),
+		]}
+		onChange={(v) => {
+			config = { ...config, timezone: v };
 		}}
-	>
-		{#each TZ_PRESETS as tz (tz.value)}
-			<option value={tz.value}>{tz.label}</option>
-		{/each}
-		{#if !TZ_PRESETS.some((t) => t.value === timezone)}
-			<option value={timezone}>{timezone} (カスタム)</option>
-		{/if}
-	</select>
+	/>
 </div>
 
 <div class="flex items-center justify-between gap-3 text-sm">

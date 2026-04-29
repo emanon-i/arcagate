@@ -2,7 +2,9 @@
 /**
  * PH-issue-026 (Issue 23): SystemMonitorSettings polish — 共通 Switch 採用 + clamp 統一。
  * PH-issue-042 (Issue 27/29): ネットワーク表示 toggle + chart_type select 追加。
+ * 4/30 user 検収 #12: native `<select>` を SelectField に置換 (chart 切替 dropdown 読めなかった)。
  */
+import SelectField from '$lib/components/common/SelectField.svelte';
 import Switch from '$lib/components/common/Switch.svelte';
 
 type ChartType = 'sparkline' | 'bar' | 'gauge';
@@ -95,26 +97,24 @@ let smTitle = $derived(config.title ?? '');
 		aria-label="ネットワークを表示する"
 	/>
 </div>
-<!-- PH-issue-042 / 検収項目 #29: chart 切替 -->
+<!-- PH-issue-042 / 検収項目 #29 + 4/30 #17: chart 切替は CPU 専用ではなく全 metric 共通。 -->
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-chart">
-		CPU グラフ表示
+		グラフ表示形式（全メトリクス共通）
 	</label>
-	<select
+	<SelectField
 		id="ws-sm-chart"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		aria-label="グラフ表示形式を選ぶ"
 		value={smChartType}
-		onchange={(e) => {
-			config = {
-				...config,
-				chart_type: (e.currentTarget as HTMLSelectElement).value as ChartType,
-			};
+		options={[
+			{ value: 'sparkline' as ChartType, label: 'スパークライン (折れ線)' },
+			{ value: 'bar' as ChartType, label: 'バー (横棒)' },
+			{ value: 'gauge' as ChartType, label: 'ゲージ (円弧)' },
+		]}
+		onChange={(v) => {
+			config = { ...config, chart_type: v };
 		}}
-	>
-		<option value="sparkline">スパークライン (折れ線)</option>
-		<option value="bar">バー (横棒)</option>
-		<option value="gauge">ゲージ (円弧)</option>
-	</select>
+	/>
 </div>
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sm-title">タイトル</label>
