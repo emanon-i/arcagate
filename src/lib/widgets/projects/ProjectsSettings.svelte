@@ -1,7 +1,9 @@
 <script lang="ts">
 /**
  * PH-issue-026 (Issue 23): ProjectsSettings polish — 共通 Switch / clamp / placeholder 統一。
+ * PH-issue-039 / 検収項目 #12, #13: 名称「フォルダ監視」+ Clear button 追加。
  */
+import { X } from '@lucide/svelte';
 import { open } from '@tauri-apps/plugin-dialog';
 import Switch from '$lib/components/common/Switch.svelte';
 import { Button } from '$lib/components/ui/button';
@@ -34,6 +36,11 @@ async function handlePickFolder() {
 	});
 	if (!selected || Array.isArray(selected)) return;
 	config = { ...config, watched_folder: selected };
+}
+
+// PH-issue-039 / 検収項目 #13: 監視対象フォルダの reset
+function handleClearFolder() {
+	config = { ...config, watched_folder: '' };
 }
 </script>
 
@@ -87,7 +94,7 @@ async function handlePickFolder() {
 		id="ws-title"
 		type="text"
 		autocomplete="off"
-		placeholder="ウォッチフォルダー"
+		placeholder="フォルダ監視"
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={wsTitle}
 		oninput={(e) => {
@@ -120,6 +127,19 @@ async function handlePickFolder() {
 			{watchedFolder || '未選択'}
 		</div>
 		<Button type="button" variant="outline" size="sm" onclick={handlePickFolder}>選択</Button>
+		{#if watchedFolder}
+			<!-- PH-issue-039 / 検収項目 #13: Clear button (ghost-icon、destructive hover) -->
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+				onclick={handleClearFolder}
+				aria-label="監視フォルダを解除"
+			>
+				<X class="h-3.5 w-3.5" />
+			</Button>
+		{/if}
 	</div>
 </div>
 
