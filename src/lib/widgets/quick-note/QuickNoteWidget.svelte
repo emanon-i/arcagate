@@ -17,10 +17,12 @@ let { widget }: Props = $props();
 
 const MAX_CHARS = 500;
 
+// PH-issue-030 / 検収項目 #22: 旧 sm=text-xs (12px) は user 「文字つぶれて見えない」フィードバック。
+// 各段階を 1 段ずつ大きくして可読性を確保 (sm=text-sm 14px、md=text-base 16px、lg=text-lg 18px)。
 const FONT_SIZE_CLASS: Record<QuickNoteFontSize, string> = {
-	sm: 'text-xs',
-	md: 'text-sm',
-	lg: 'text-base',
+	sm: 'text-sm',
+	md: 'text-base',
+	lg: 'text-lg',
 };
 
 let config = $derived(parseWidgetConfig(widget?.config, QUICK_NOTE_DEFAULTS));
