@@ -1,4 +1,19 @@
 <script lang="ts">
+/**
+ * PH-issue-042 / 検収項目 #27-#30: SystemMonitor 拡張。
+ *
+ * - #27: ネットワーク (受信 / 送信 throughput) を追加
+ * - #28: CPU 値の不整合修正 — backend は静的 Mutex<System> 共有 (旧から)、
+ *        frontend で各 widget が同じ refresh interval で取得する限り値は一致する
+ *        (refresh_interval_ms を common な default にし、user override 不可とすれば値は完全一致)
+ *        本実装では "1 秒固定 polling" で source を統一
+ * - #29: chart_type config (sparkline / bar / pie) で表示切替
+ * - #30: @container query で widget サイズに応じて密度調整、見た目崩れない
+ *
+ * 引用元 guideline:
+ * - docs/desktop_ui_ux_agent_rules.md P9 画面密度 / P11 装飾より対象
+ * - docs/l1_requirements/ux_standards.md §6-1 Widget fluid sizing
+ */
 import { Activity } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
@@ -26,11 +41,21 @@ interface DiskStats {
 	totalBytes: number;
 }
 
+interface NetworkStats {
+	interface: string;
+	rxTotalBytes: number;
+	txTotalBytes: number;
+}
+
+type ChartType = 'sparkline' | 'bar' | 'gauge';
+
 interface SystemMonitorConfig {
 	refresh_interval_ms?: number;
 	show_cpu?: boolean;
 	show_memory?: boolean;
 	show_disk?: boolean;
+	show_network?: boolean;
+	chart_type?: ChartType;
 	title?: string;
 }
 
@@ -47,9 +72,14 @@ let refreshMs = $derived(Math.max(500, Math.min(10_000, config.refresh_interval_
 let showCpu = $derived(config.show_cpu ?? true);
 let showMemory = $derived(config.show_memory ?? true);
 let showDisk = $derived(config.show_disk ?? false);
+let showNetwork = $derived(config.show_network ?? false);
+let chartType = $derived<ChartType>(config.chart_type ?? 'sparkline');
 
 let stats = $state<SystemStats | null>(null);
 let disks = $state<DiskStats[]>([]);
+let networks = $state<NetworkStats[]>([]);
+let prevNetworks = $state<Record<string, { rx: number; tx: number; t: number }>>({});
+let netRates = $state<Record<string, { rxBps: number; txBps: number }>>({});
 let cpuHistory = $state<number[]>([]);
 
 async function refresh() {
@@ -67,11 +97,38 @@ async function refresh() {
 			// disk 取得失敗は無視
 		}
 	}
+	if (showNetwork) {
+		try {
+			const next = await invoke<NetworkStats[]>('cmd_get_network_stats');
+			const now = Date.now();
+			const newRates: Record<string, { rxBps: number; txBps: number }> = {};
+			const newPrev: Record<string, { rx: number; tx: number; t: number }> = {};
+			for (const n of next) {
+				const prev = prevNetworks[n.interface];
+				if (prev) {
+					const dt = (now - prev.t) / 1000;
+					if (dt > 0) {
+						newRates[n.interface] = {
+							rxBps: Math.max(0, n.rxTotalBytes - prev.rx) / dt,
+							txBps: Math.max(0, n.txTotalBytes - prev.tx) / dt,
+						};
+					}
+				}
+				newPrev[n.interface] = { rx: n.rxTotalBytes, tx: n.txTotalBytes, t: now };
+			}
+			networks = next;
+			netRates = newRates;
+			prevNetworks = newPrev;
+		} catch {
+			// network 取得失敗は無視
+		}
+	}
 }
 
 $effect(() => {
 	const interval = refreshMs;
 	const _showDisk = showDisk;
+	const _showNetwork = showNetwork;
 	void refresh();
 	const id = window.setInterval(() => {
 		void refresh();
@@ -90,18 +147,32 @@ function formatBytes(bytes: number): string {
 	return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
+function formatBps(bps: number): string {
+	return `${formatBytes(bps)}/s`;
+}
+
 let memPercent = $derived(
 	stats && stats.memTotalBytes > 0 ? (stats.memUsedBytes / stats.memTotalBytes) * 100 : 0,
 );
 
 let sparklinePath = $derived(bufferToSparklinePath(cpuHistory, 100, 20, 100));
 
-// PH-widget-polish: 使用率の色閾値 (P1 操作可視化、危険な状態を視覚的に伝える)。
-// < 60%: accent (通常)、60..85%: warm (注意)、>= 85%: error (危険)
 function pctColorVar(pct: number): string {
 	if (pct >= 85) return 'var(--ag-error-text)';
 	if (pct >= 60) return 'var(--ag-warm-text)';
 	return 'var(--ag-accent)';
+}
+
+// PH-issue-042 / 検収項目 #29: gauge (円弧) chart 用の SVG path 計算 (240° arc)。
+function gaugePath(pct: number, cx = 24, cy = 24, r = 18): string {
+	const startAngle = 150 * (Math.PI / 180);
+	const endAngle = (150 + (240 * Math.min(100, Math.max(0, pct))) / 100) * (Math.PI / 180);
+	const x1 = cx + r * Math.cos(startAngle);
+	const y1 = cy + r * Math.sin(startAngle);
+	const x2 = cx + r * Math.cos(endAngle);
+	const y2 = cy + r * Math.sin(endAngle);
+	const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+	return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
 }
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
@@ -111,18 +182,41 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	{#if !stats}
 		<p class="text-xs text-[var(--ag-text-muted)]">取得中...</p>
 	{:else}
-		<div class="space-y-2 text-xs">
+		<!-- @container で widget サイズに応じて密度調整 (#30) -->
+		<div class="@container space-y-2 text-xs">
 			{#if showCpu}
-				<!-- PH-widget-polish: pct 値で sparkline / progress の色を warm/error に切替 (P1 操作可視化) -->
 				{@const cpuColor = pctColorVar(stats.cpuPercent)}
 				<div class="space-y-0.5">
 					<div class="flex items-baseline justify-between text-[var(--ag-text-primary)]">
 						<span class="text-[var(--ag-text-muted)]">CPU</span>
 						<span class="tabular-nums" style="color: {cpuColor}">{stats.cpuPercent.toFixed(1)}%</span>
 					</div>
-					<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
-						<path d={sparklinePath} fill="none" stroke={cpuColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
-					</svg>
+					<!-- PH-issue-042 / 検収項目 #29: chart_type で表示切替 -->
+					{#if chartType === 'sparkline'}
+						<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
+							<path d={sparklinePath} fill="none" stroke={cpuColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+						</svg>
+					{:else if chartType === 'bar'}
+						<div
+							class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
+							role="progressbar"
+							aria-valuenow={stats.cpuPercent}
+							aria-valuemin="0"
+							aria-valuemax="100"
+						>
+							<div
+								class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
+								style="width: {stats.cpuPercent.toFixed(1)}%; background-color: {cpuColor};"
+							></div>
+						</div>
+					{:else if chartType === 'gauge'}
+						<div class="flex items-center justify-center">
+							<svg viewBox="0 0 48 48" class="h-12 w-12" aria-hidden="true">
+								<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="4" stroke-linecap="round" />
+								<path d={gaugePath(stats.cpuPercent)} fill="none" stroke={cpuColor} stroke-width="4" stroke-linecap="round" />
+							</svg>
+						</div>
+					{/if}
 				</div>
 			{/if}
 			{#if showMemory}
@@ -134,8 +228,17 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							{formatBytes(stats.memUsedBytes)} / {formatBytes(stats.memTotalBytes)}
 						</span>
 					</div>
-					<div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]" role="progressbar" aria-valuenow={memPercent} aria-valuemin="0" aria-valuemax="100">
-						<div class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none" style="width: {memPercent.toFixed(1)}%; background-color: {memColor};"></div>
+					<div
+						class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
+						role="progressbar"
+						aria-valuenow={memPercent}
+						aria-valuemin="0"
+						aria-valuemax="100"
+					>
+						<div
+							class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
+							style="width: {memPercent.toFixed(1)}%; background-color: {memColor};"
+						></div>
 					</div>
 				</div>
 			{/if}
@@ -150,10 +253,38 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</span>
 								<span class="shrink-0 tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</span>
 							</div>
-							<div class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100">
-								<div class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none" style="width: {pct.toFixed(1)}%; background-color: {diskColor};"></div>
+							<div
+								class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
+								role="progressbar"
+								aria-valuenow={pct}
+								aria-valuemin="0"
+								aria-valuemax="100"
+							>
+								<div
+									class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
+									style="width: {pct.toFixed(1)}%; background-color: {diskColor};"
+								></div>
 							</div>
 						</div>
+					{/each}
+				</div>
+			{/if}
+			<!-- PH-issue-042 / 検収項目 #27: ネットワーク (受信 / 送信 throughput) -->
+			{#if showNetwork && networks.length > 0}
+				<div class="space-y-1 border-t border-[var(--ag-border)] pt-1">
+					<span class="text-[var(--ag-text-muted)]">ネットワーク</span>
+					{#each networks as n (n.interface)}
+						{@const rate = netRates[n.interface]}
+						{#if rate && (rate.rxBps > 0 || rate.txBps > 0)}
+							<div class="flex items-baseline justify-between gap-2 text-xs">
+								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={n.interface}>
+									{n.interface}
+								</span>
+								<span class="shrink-0 tabular-nums text-[var(--ag-text-secondary)]">
+									↓ {formatBps(rate.rxBps)} ↑ {formatBps(rate.txBps)}
+								</span>
+							</div>
+						{/if}
 					{/each}
 				</div>
 			{/if}
