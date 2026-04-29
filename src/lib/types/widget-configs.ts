@@ -23,6 +23,10 @@ export interface ClockWidgetConfig {
 	show_date: boolean;
 	show_weekday: boolean;
 	use_24h: boolean;
+	/** PH-issue-035 / 検収項目 #26: タイムゾーン (IANA 表記、'Asia/Tokyo' = JST 既定)。 */
+	timezone: string;
+	/** PH-issue-035: タイムゾーン名を表示するか (大きい widget で表示)。 */
+	show_timezone: boolean;
 }
 
 export const CLOCK_WIDGET_DEFAULTS: ClockWidgetConfig = {
@@ -30,6 +34,8 @@ export const CLOCK_WIDGET_DEFAULTS: ClockWidgetConfig = {
 	show_date: true,
 	show_weekday: true,
 	use_24h: true,
+	timezone: 'Asia/Tokyo',
+	show_timezone: true,
 };
 
 export interface StatsWidgetConfig {
