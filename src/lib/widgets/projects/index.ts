@@ -21,5 +21,6 @@ export const meta: WidgetMeta = {
 		auto_add: false,
 	},
 	addable: true,
+	defaultSize: { w: 2, h: 3 },
 	SettingsContent: ProjectsSettings,
 };

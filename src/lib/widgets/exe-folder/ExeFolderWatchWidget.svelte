@@ -48,6 +48,12 @@ interface WidgetConfig {
 	watch_path?: string;
 	scan_depth?: number;
 	title?: string;
+	/**
+	 * 4/30 user 検収 #14: ExeFolderSettings で description を保存していたが、
+	 * Widget 本体の WidgetConfig に未定義で表示されていなかった (silent dead field)。
+	 * 120 文字制限の説明文を widget header 直下に line-clamp-2 で表示する。
+	 */
+	description?: string;
 	item_overrides?: Record<string, string>;
 	/** PH-issue-038 / 検収項目 #20: 並び替え設定。 */
 	sort_field?: SortField;
@@ -208,6 +214,10 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems}>
+	{#if config.description}
+		<!-- 4/30 user 検収 #14: ExeFolderSettings.description を widget body に表示 (line-clamp-2)。 -->
+		<p class="mb-2 line-clamp-2 text-xs text-[var(--ag-text-muted)]">{config.description}</p>
+	{/if}
 	{#if !config.watch_path}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
 		<EmptyState

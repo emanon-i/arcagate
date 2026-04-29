@@ -16,9 +16,15 @@ import { widgetRegistry } from '$lib/widgets';
 
 interface Props {
 	onClose?: () => void;
+	/**
+	 * 4/30 user 検収 #5: click 経路の addWidget は viewport 中央起点で配置したいため、
+	 * parent (WorkspaceLayout) が container ref を見て viewport cell を計算する。
+	 * 未指定なら従来の `workspaceStore.addWidget(type)` (左上から空き探索) で fallback。
+	 */
+	onAddWidget?: (widgetType: WidgetType) => void;
 }
 
-let { onClose }: Props = $props();
+let { onClose, onAddWidget }: Props = $props();
 
 const availableWidgets: { type: WidgetType; label: string; icon: Component }[] = Object.entries(
 	widgetRegistry,
@@ -30,14 +36,45 @@ const availableWidgets: { type: WidgetType; label: string; icon: Component }[] =
 		icon: meta?.icon,
 	}));
 
-function startDrag(e: PointerEvent, widgetType: WidgetType) {
+// 4/30 user 検収 #6: click と drag が同居していた旧実装は、click 経路 (addWidget) と
+// drag 経路 (addWidgetAt) が両方 fire して widget が二重追加されていた。
+// 業界標準 (HTML5 D&D / Apple HIG) どおり 5px しきい値で排他: 5px 未満 = click、5px 以上 = drag。
+const DRAG_THRESHOLD_PX = 5;
+let pointerDownPos = $state<{ x: number; y: number; widgetType: WidgetType } | null>(null);
+
+function onItemPointerDown(e: PointerEvent, widgetType: WidgetType) {
 	e.preventDefault();
-	(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-	pointerDrag.start({ kind: 'add', widgetType }, e.clientX, e.clientY);
+	pointerDownPos = { x: e.clientX, y: e.clientY, widgetType };
 }
 
-function clickAdd(widgetType: WidgetType) {
-	void workspaceStore.addWidget(widgetType);
+function onItemPointerMove(e: PointerEvent) {
+	if (!pointerDownPos || pointerDrag.active) return;
+	const dx = e.clientX - pointerDownPos.x;
+	const dy = e.clientY - pointerDownPos.y;
+	if (Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
+		const wt = pointerDownPos.widgetType;
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		pointerDrag.start({ kind: 'add', widgetType: wt }, e.clientX, e.clientY);
+		pointerDownPos = null;
+	}
+}
+
+function onItemPointerUp(_e: PointerEvent, widgetType: WidgetType) {
+	if (pointerDownPos) {
+		// drag に切り替わってない (5px 未満) = click として addWidget
+		pointerDownPos = null;
+		if (onAddWidget) {
+			onAddWidget(widgetType);
+		} else {
+			void workspaceStore.addWidget(widgetType);
+		}
+		return;
+	}
+	// drag に切替済の場合は WorkspaceWidgetGrid の document-level pointerup listener が処理する
+}
+
+function onItemPointerCancel() {
+	pointerDownPos = null;
 }
 </script>
 
@@ -78,8 +115,10 @@ function clickAdd(widgetType: WidgetType) {
 				data-widget-type={aw.type}
 				aria-label="{aw.label} を追加"
 				title="クリックで追加 / ドラッグで配置"
-				onpointerdown={(e) => startDrag(e, aw.type)}
-				onclick={() => clickAdd(aw.type)}
+				onpointerdown={(e) => onItemPointerDown(e, aw.type)}
+				onpointermove={onItemPointerMove}
+				onpointerup={(e) => onItemPointerUp(e, aw.type)}
+				onpointercancel={onItemPointerCancel}
 			>
 				<Grip
 					class="h-3.5 w-3.5 shrink-0 text-[var(--ag-text-faint)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover/add:text-[var(--ag-text-muted)]"

@@ -59,3 +59,44 @@ export function findFreePosition(
 	}
 	return null;
 }
+
+/**
+ * 4/30 user 検収 #5: 現在 viewport が見ている grid cell 範囲内で空きを探索する。
+ * 旧実装は `findFreePosition(0, 0, ...)` で常に左上 cell から探索 → user の現在の pan
+ * 位置と無関係に widget が画面外に置かれる症状があった。
+ *
+ * - originX/Y を中心に、外向き (距離が短い順) で空き cell を探索する。
+ * - viewport を超える cell も探索対象 (見つからなければ findFreePosition で fallback)。
+ * - 大幅な探索範囲 (search radius) は 6 に制限 (typical viewport で 6 行 6 列 = 36 cells)。
+ */
+export function findFreePositionNear(
+	w: number,
+	h: number,
+	others: Rect[],
+	maxCols: number,
+	maxRow: number,
+	originX: number,
+	originY: number,
+	searchRadius = 6,
+): { x: number; y: number } | null {
+	const startX = Math.max(0, Math.min(originX, maxCols - w));
+	const startY = Math.max(0, Math.min(originY, maxRow));
+	if (!wouldOverlapAt(startX, startY, w, h, others)) {
+		return { x: startX, y: startY };
+	}
+	for (let r = 1; r <= searchRadius; r++) {
+		// 距離 r の cells (Chebyshev / 8-neighbor) を試す
+		for (let dy = -r; dy <= r; dy++) {
+			for (let dx = -r; dx <= r; dx++) {
+				if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+				const x = startX + dx;
+				const y = startY + dy;
+				if (x < 0 || y < 0 || x + w > maxCols || y > maxRow) continue;
+				if (!wouldOverlapAt(x, y, w, h, others)) {
+					return { x, y };
+				}
+			}
+		}
+	}
+	return null;
+}

@@ -16,5 +16,6 @@ export const meta: WidgetMeta = {
 		use_24h: true,
 	},
 	addable: true,
+	defaultSize: { w: 2, h: 1 },
 	SettingsContent: ClockSettings,
 };

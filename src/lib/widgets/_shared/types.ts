@@ -24,6 +24,15 @@ export interface WidgetMeta {
 	/** WidgetSettingsDialog から `bind:config` で動的 mount される設定 UI（batch-84 PH-375）。 */
 	// biome-ignore lint/suspicious/noExplicitAny: widget ごとに異なる config 型を 1 つの WidgetMeta に集約する都合
 	SettingsContent?: Component<any, any, any>;
+	/**
+	 * 4/30 user 検収 #7: 新規追加時の default サイズ (grid cell 単位)。
+	 * 未指定時は `{ w: 2, h: 2 }` fallback。widget の用途に合わせて設定する:
+	 * - 単一表示 (clock / stats): 横長 2×1
+	 * - リスト系 (exe-folder / file-search / snippet / daily-task): 縦長 2×3
+	 * - パッド系 (favorites / system-monitor): 2×2
+	 * - 単独 item (item): 1×1
+	 */
+	defaultSize?: { w: number; h: number };
 }
 
 /** widgets/<name>/index.ts の export 形式（auto-collect 用） */

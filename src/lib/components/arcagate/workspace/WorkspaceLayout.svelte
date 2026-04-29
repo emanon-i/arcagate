@@ -93,17 +93,58 @@ let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
-// PH-issue-034 / 検収項目 #9: 初回 mount 時に infinite canvas の中央付近に scroll する。
-// padding-top/right=2000px のため、widget area は (2000, 2000) からスタート。
-// scroll を (1900, 1900) 付近に置けば widgets 上に少し空きを残しつつ画面内に収まる。
+// 4/30 user 検収 #4 + #8: canvas を 10000×10000 に拡大 + per-workspace pan position 永続化。
+// - 旧 5000×5000 + padding 2000 2000 0 0 → 「無限じゃない」 user fb 対応
+// - 旧実装は再 mount のたびに固定座標に戻ってた → user 「Library から戻ると違う場所」 fb 対応
+// grid 開始 = padding-top/left 4000 + flex p-5 (20) = (4020, 4020)。
+// 初期 scroll は localStorage の最終 scroll 位置 (per-workspace)、なければ grid 左上付近に scroll。
+const PAN_KEY_PREFIX = 'arcagate.workspace.pan.';
+const DEFAULT_PAN_LEFT = Math.max(0, 4020 - 80);
+const DEFAULT_PAN_TOP = Math.max(0, 4020 - 80);
+
 $effect(() => {
-	if (workspaceContainer && infiniteCanvas) {
-		// 1 回だけ初期 scroll
-		queueMicrotask(() => {
-			workspaceContainer?.scrollTo({ left: 1900, top: 1900, behavior: 'instant' });
-		});
+	const wsId = workspaceStore.activeWorkspaceId;
+	if (!workspaceContainer || !wsId) return;
+	let left = DEFAULT_PAN_LEFT;
+	let top = DEFAULT_PAN_TOP;
+	try {
+		const stored = localStorage.getItem(PAN_KEY_PREFIX + wsId);
+		if (stored) {
+			const parsed = JSON.parse(stored) as { left: number; top: number };
+			if (typeof parsed.left === 'number' && typeof parsed.top === 'number') {
+				left = parsed.left;
+				top = parsed.top;
+			}
+		}
+	} catch {
+		// localStorage / JSON パース失敗は無視、default に fallback
 	}
+	queueMicrotask(() => {
+		workspaceContainer?.scrollTo({ left, top, behavior: 'instant' });
+	});
 });
+
+// scroll 位置を debounce (250ms) で per-workspace に永続化
+let panSaveTimer: ReturnType<typeof setTimeout> | null = null;
+function onCanvasScroll() {
+	const wsId = workspaceStore.activeWorkspaceId;
+	if (!workspaceContainer || !wsId) return;
+	if (panSaveTimer) clearTimeout(panSaveTimer);
+	panSaveTimer = setTimeout(() => {
+		if (!workspaceContainer || !wsId) return;
+		try {
+			localStorage.setItem(
+				PAN_KEY_PREFIX + wsId,
+				JSON.stringify({
+					left: workspaceContainer.scrollLeft,
+					top: workspaceContainer.scrollTop,
+				}),
+			);
+		} catch {
+			// localStorage quota / serialize 失敗は無視
+		}
+	}, 250);
+}
 
 $effect(() => {
 	const el = workspaceContainer;
@@ -261,6 +302,35 @@ function handleSelectWorkspace(id: string) {
 	void workspaceStore.selectWorkspace(id);
 }
 
+/**
+ * 4/30 user 検収 #5: click で widget を追加するとき、現在 user が見ている viewport
+ * 中央付近の grid cell から空きを探索する (旧実装は (0,0) 固定で画面外配置になっていた)。
+ *
+ * grid 領域の絶対座標起点は infinite-canvas の padding 内 + flex p-5 (20px) なので、
+ * scroll 位置と clientWidth/Height から viewport 中央 cell を求める。
+ */
+// 4/30 user 検収 #4: canvas を 10000×10000 に拡大、padding 4000 全方向に変更。
+const CANVAS_PADDING_TOP = 4020; // padding-top 4000 + flex p-5 (20)
+const CANVAS_PADDING_LEFT = 4020; // padding-left 4000 + flex p-5 (20)
+
+function computeViewportOriginCell(): { x: number; y: number } {
+	const el = workspaceContainer;
+	if (!el) return { x: 0, y: 0 };
+	const cellW = zoom.widgetW + 16;
+	const cellH = zoom.widgetH + 16;
+	const cx = el.scrollLeft + el.clientWidth / 2 - CANVAS_PADDING_LEFT;
+	const cy = el.scrollTop + el.clientHeight / 2 - CANVAS_PADDING_TOP;
+	return {
+		x: Math.max(0, Math.floor(cx / cellW)),
+		y: Math.max(0, Math.floor(cy / cellH)),
+	};
+}
+
+function handleAddWidget(widgetType: import('$lib/types/workspace').WidgetType) {
+	const cell = computeViewportOriginCell();
+	void workspaceStore.addWidget(widgetType, cell);
+}
+
 function confirmRename(name: string) {
 	const ws = workspaceStore.workspaces.find((w) => w.id === workspaceStore.activeWorkspaceId);
 	if (ws && name.trim() && name !== ws.name) {
@@ -314,7 +384,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	<WorkspaceHintBar editMode={true} {selectedWidgetId} />
 
 	{#if sidebarOpen}
-		<WorkspaceSidebar onClose={() => (sidebarOpen = false)} />
+		<WorkspaceSidebar onClose={() => (sidebarOpen = false)} onAddWidget={handleAddWidget} />
 	{:else}
 		<!-- PH-issue-028: sidebar 非表示時は左端に再オープン用 narrow toggle bar -->
 		<button
@@ -344,10 +414,11 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			></div>
 		{/if}
 
-		<!-- 上部 toolbar: PageTabBar (workspace 切替 + 壁紙設定 button)。
-		     半透明 + backdrop-blur で wallpaper を透かす (P11 装飾より対象)。 -->
+		<!-- 4/30 user 検収 #11: 上部 toolbar の背景色 (`bg-...85` + `backdrop-blur-sm`) を削除。
+		     wallpaper を素通しにし、視覚 noise を最小化 (P11 装飾より対象)。
+		     border-b は構造線として残す (PageTabBar と canvas の境目を示すため)。 -->
 		<div
-			class="relative z-20 shrink-0 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)]/85 px-5 py-3 backdrop-blur-sm"
+			class="relative z-20 shrink-0 border-b border-[var(--ag-border)] px-5 py-3"
 		>
 			<PageTabBar
 				onSelectWorkspace={handleSelectWorkspace}
@@ -369,12 +440,14 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			onpointerdown={onCanvasPointerDown}
 			onpointermove={onCanvasPointerMove}
 			onpointerup={onCanvasPointerUp}
+			onscroll={onCanvasScroll}
 		>
-			<!-- PH-issue-034: 5000x5000 の infinite canvas、widgets は中央寄せ。
-			     pan で 4 方向に移動可能 (scroll 範囲が大きいため負方向にも見える)。 -->
+			<!-- 4/30 user 検収 #4: 10000x10000 の infinite canvas、widgets は中央付近。
+			     pan で 4 方向に大幅 scroll 可能 (旧 5000x5000 から拡大、user 「無限じゃない」 fb 対応)。
+			     padding 4000 全方向で grid 領域を中央 2000x2000 に配置。 -->
 			<div
 				class="relative"
-				style="width: 5000px; height: 5000px; padding: 2000px 2000px 0 0; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
+				style="width: 10000px; height: 10000px; padding: 4000px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 				bind:this={infiniteCanvas}
 			>
 				<div class="flex gap-4 p-5">

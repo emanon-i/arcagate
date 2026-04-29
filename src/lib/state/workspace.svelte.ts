@@ -3,7 +3,21 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, Workspace, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
-import { findFreePosition, type Rect, wouldOverlapAt } from '$lib/utils/widget-grid';
+import {
+	findFreePosition,
+	findFreePositionNear,
+	type Rect,
+	wouldOverlapAt,
+} from '$lib/utils/widget-grid';
+import { widgetRegistry } from '$lib/widgets';
+
+/**
+ * 4/30 user 検収 #7: 新規 widget の default サイズは widget meta から取る (widget type ごとに最適化)。
+ * 未定義の widget は 2×2 で fallback。
+ */
+function getDefaultSize(widgetType: WidgetType): { w: number; h: number } {
+	return widgetRegistry[widgetType]?.defaultSize ?? { w: 2, h: 2 };
+}
 
 let workspaces = $state<Workspace[]>([]);
 let activeWorkspaceId = $state<string | null>(null);
@@ -16,9 +30,12 @@ const activeWorkspace = $derived(workspaces.find((w) => w.id === activeWorkspace
 /**
  * PH-issue-003: 配置 / 移動の overlap 判定は `$lib/utils/widget-grid` の純粋関数に統一。
  * 旧 (0,0) fallback バグ排除のため `findFreePosition` は null 返却版を使う。
+ *
+ * 4/30 user 検収 #4: canvas 10000×10000 拡大に合わせて探索範囲も拡大 (旧 4×32 → 30×100)。
+ * 旧範囲だと viewport 中央起点 (#5) で見つけた空き候補が探索外に飛び出して fallback が走る現象があった。
  */
-const DEFAULT_GRID_COLS = 4;
-const DEFAULT_MAX_ROW = 32;
+const DEFAULT_GRID_COLS = 30;
+const DEFAULT_MAX_ROW = 100;
 
 function widgetsToRects(list: WorkspaceWidget[], excludeId?: string): Rect[] {
 	return list
@@ -31,13 +48,14 @@ async function loadWorkspaces(): Promise<void> {
 	error = null;
 	try {
 		workspaces = await workspaceIpc.listWorkspaces();
-		// PH-issue-029 / 検収項目 #6: 初回起動時 (workspaces 0 件) は default workspace を auto-create。
-		// 旧実装は 0 件で何も起きず、user が「Home が無い」状態を見てしまっていた (vision M1 違反)。
+		// 初回起動時 (workspaces 0 件) は default workspace を auto-create (空のまま)。
+		// 4/30 user 検収: 旧 seedDefaultWidgets で favorites/recent/projects を勝手に置く挙動を撤廃。
+		// 「user がゼロから配置するのを邪魔しない」が新方針 (P11 装飾より対象 / vision「毎日使えるか」)。
 		if (workspaces.length === 0) {
 			const ws = await workspaceIpc.createWorkspace('Home');
 			workspaces = [ws];
 			activeWorkspaceId = ws.id;
-			await seedDefaultWidgets(ws.id);
+			widgets = [];
 			return;
 		}
 		if (activeWorkspaceId === null) {
@@ -58,7 +76,7 @@ async function createWorkspace(name: string): Promise<void> {
 		const ws = await workspaceIpc.createWorkspace(name);
 		workspaces = [...workspaces, ws];
 		activeWorkspaceId = ws.id;
-		await seedDefaultWidgets(ws.id);
+		widgets = [];
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -114,9 +132,6 @@ async function loadWidgets(workspaceId: string): Promise<void> {
 	error = null;
 	try {
 		widgets = await workspaceIpc.listWidgets(workspaceId);
-		if (widgets.length === 0) {
-			await seedDefaultWidgets(workspaceId);
-		}
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -124,38 +139,41 @@ async function loadWidgets(workspaceId: string): Promise<void> {
 	}
 }
 
-async function seedDefaultWidgets(workspaceId: string): Promise<void> {
-	const defaults: { type: WidgetType; x: number; y: number; w: number; h: number }[] = [
-		{ type: 'favorites', x: 0, y: 0, w: 1, h: 2 },
-		{ type: 'recent', x: 1, y: 0, w: 2, h: 1 },
-		{ type: 'projects', x: 1, y: 1, w: 2, h: 1 },
-	];
-	for (const d of defaults) {
-		const widget = await workspaceIpc.addWidget(workspaceId, d.type);
-		await workspaceIpc.updateWidgetPosition(widget.id, d.x, d.y, d.w, d.h);
-	}
-	widgets = await workspaceIpc.listWidgets(workspaceId);
-}
-
-async function addWidget(widgetType: WidgetType): Promise<void> {
+async function addWidget(
+	widgetType: WidgetType,
+	originCell?: { x: number; y: number },
+): Promise<void> {
 	if (!activeWorkspaceId) return;
 	loading = true;
 	error = null;
 	try {
-		// PH-issue-003: IPC 発行**前に** 空き position を求める。空きなしなら toast + 早期 return
-		// (旧 (0,0) fallback で既存 widget と重なるバグの根本対策)。
-		// 新規 widget のデフォルトサイズは Rust 側 (`workspace_service::add_widget`) と一致させる (2x2)
-		const w = 2;
-		const h = 2;
-		const pos = findFreePosition(w, h, widgetsToRects(widgets), DEFAULT_GRID_COLS, DEFAULT_MAX_ROW);
+		// 4/30 user 検収 #7: widget type に応じた default size を使う (旧 2×2 一律から改善)。
+		const { w, h } = getDefaultSize(widgetType);
+		const rects = widgetsToRects(widgets);
+		// 4/30 user 検収 #5: viewport 起点で空きを探索。origin 周辺になければ全範囲で fallback。
+		// origin 未指定 (legacy 呼び出し) は従来どおり (0,0) から探す。
+		const pos = originCell
+			? (findFreePositionNear(
+					w,
+					h,
+					rects,
+					DEFAULT_GRID_COLS,
+					DEFAULT_MAX_ROW,
+					originCell.x,
+					originCell.y,
+					10, // searchRadius: viewport 中央周辺 10 cells で十分な探索範囲
+				) ?? findFreePosition(w, h, rects, DEFAULT_GRID_COLS, DEFAULT_MAX_ROW))
+			: findFreePosition(w, h, rects, DEFAULT_GRID_COLS, DEFAULT_MAX_ROW);
 		if (pos === null) {
 			toastStore.add('空きスペースがありません。既存ウィジェットを縮小・削除してください', 'error');
 			return;
 		}
 		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
-		await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
+		await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, w, h);
 		widget.position_x = pos.x;
 		widget.position_y = pos.y;
+		widget.width = w;
+		widget.height = h;
 		widgets = [...widgets, widget];
 		// PH-issue-002: history record (add)
 		workspaceHistory.record({
@@ -178,19 +196,18 @@ async function addWidgetAt(widgetType: WidgetType, x: number, y: number): Promis
 	loading = true;
 	error = null;
 	try {
-		// PH-issue-003: 指定セルが overlap なら拒否 + toast。別セルへの auto-rearrange は廃止
-		// (user fb 「単純に重ならない」)。
-		// 新規 widget のデフォルトサイズは Rust 側 (`workspace_service::add_widget`) と一致させる (2x2)
-		const w = 2;
-		const h = 2;
+		// 4/30 user 検収 #7: widget type ごとの default size を使う。
+		const { w, h } = getDefaultSize(widgetType);
 		if (wouldOverlapAt(x, y, w, h, widgetsToRects(widgets))) {
 			toastStore.add('他のウィジェットと重なるため配置できません', 'error');
 			return;
 		}
 		const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
-		await workspaceIpc.updateWidgetPosition(widget.id, x, y, widget.width, widget.height);
+		await workspaceIpc.updateWidgetPosition(widget.id, x, y, w, h);
 		widget.position_x = x;
 		widget.position_y = y;
+		widget.width = w;
+		widget.height = h;
 		widgets = [...widgets, widget];
 		// PH-issue-002: history record (add)
 		workspaceHistory.record({
@@ -219,9 +236,9 @@ async function bulkAddItemWidgets(itemIds: string[]): Promise<number> {
 	error = null;
 	let placed = 0;
 	try {
+		// 4/30 user 検収 #7: item widget の default size (1×1)
+		const { w, h } = getDefaultSize('item');
 		for (const itemId of itemIds) {
-			const w = 2;
-			const h = 2;
 			const pos = findFreePosition(
 				w,
 				h,
@@ -237,11 +254,13 @@ async function bulkAddItemWidgets(itemIds: string[]): Promise<number> {
 				break;
 			}
 			const widget = await workspaceIpc.addWidget(activeWorkspaceId, 'item');
-			await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, widget.width, widget.height);
+			await workspaceIpc.updateWidgetPosition(widget.id, pos.x, pos.y, w, h);
 			const config = JSON.stringify({ item_id: itemId });
 			const updated = await workspaceIpc.updateWidgetConfig(widget.id, config);
 			updated.position_x = pos.x;
 			updated.position_y = pos.y;
+			updated.width = w;
+			updated.height = h;
 			widgets = [...widgets, updated];
 			workspaceHistory.record({
 				kind: 'add',

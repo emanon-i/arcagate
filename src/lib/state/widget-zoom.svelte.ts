@@ -76,9 +76,15 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	function fitToContent(widgets: WorkspaceWidget[]) {
 		const el = containerRef();
 		if (!el) return;
+		// 4/30 user 検収 #4 + #10: canvas を 10000x10000 に拡大、padding 全方向 4000 に変更。
+		// grid 開始は (4020, 4020)、widgets 0 件時は grid 直前の余白に scroll。
 		if (widgets.length === 0) {
 			resetZoom();
-			el.scrollTo({ left: 1900, top: 1900, behavior: 'instant' });
+			el.scrollTo({
+				left: Math.max(0, 4020 - 80),
+				top: Math.max(0, 4020 - 80),
+				behavior: 'instant',
+			});
 			return;
 		}
 		const minX = widgets.reduce((m, w) => Math.min(m, w.position_x), Infinity);
@@ -93,31 +99,39 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		}
 
 		const gap = 16;
-		const margin = 64; // viewport 周囲の breathing room
-		const availW = Math.max(1, el.clientWidth - margin);
-		const availH = Math.max(1, el.clientHeight - margin);
+		// 4/30 user 検収 #10: HintBar (~30px、absolute bottom-0) と右下 toolbar (~40px) に被らないよう
+		// 方向別 margin を取る。top は workspace tab bar が canvas の外にあるので少なめ、
+		// bottom は HintBar + toolbar 分を確保。
+		const TOP_MARGIN = 32;
+		const BOTTOM_MARGIN = 100; // HintBar + 右下 toolbar + 余白
+		const LEFT_MARGIN = 32;
+		const RIGHT_MARGIN = 32;
+		const availW = Math.max(1, el.clientWidth - LEFT_MARGIN - RIGHT_MARGIN);
+		const availH = Math.max(1, el.clientHeight - TOP_MARGIN - BOTTOM_MARGIN);
 		const requiredW = cols * (BASE_W + gap);
 		const requiredH = rows * (BASE_H + gap);
 		const ratio = Math.min(availW / requiredW, availH / requiredH);
 		const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.floor(ratio * 100)));
 		setZoom(targetZoom);
 
-		// PH-issue-034 の infinite canvas wrapper 構造に合わせて scroll を計算:
-		// canvas-edit-mode (overflow-auto) > infinite-canvas (5000x5000, padding: 2000 2000 0 0)
+		// canvas 構造 (4/30 拡大版):
+		// canvas-edit-mode (overflow-auto) > infinite-canvas (10000x10000, padding: 4000 全方向)
 		//   > flex p-5 > grid
-		// widget pixel coord (canvas-relative) = padding-left(=0) + p-5(=20px) + grid_pos × (cell + gap)
+		// widget pixel coord (canvas-relative) = padding-left(=4000) + p-5(=20px) + grid_pos × (cell + gap)
 		const newCellW = (BASE_W * targetZoom) / 100;
 		const newCellH = (BASE_H * targetZoom) / 100;
-		const PADDING_LEFT = 0;
-		const PADDING_TOP = 2000;
+		const PADDING_LEFT = 4000;
+		const PADDING_TOP = 4000;
 		const INNER_PAD = 20; // p-5
 		const bbLeft = PADDING_LEFT + INNER_PAD + minX * (newCellW + gap);
 		const bbTop = PADDING_TOP + INNER_PAD + minY * (newCellH + gap);
 		const bbW = cols * (newCellW + gap);
 		const bbH = rows * (newCellH + gap);
-		// BB を viewport の中央に配置
-		const targetLeft = Math.max(0, bbLeft + bbW / 2 - el.clientWidth / 2);
-		const targetTop = Math.max(0, bbTop + bbH / 2 - el.clientHeight / 2);
+		// BB を「visible area = viewport - margin all sides」 の中央に配置 (HintBar / toolbar に被らない)。
+		const visibleCenterX = LEFT_MARGIN + (el.clientWidth - LEFT_MARGIN - RIGHT_MARGIN) / 2;
+		const visibleCenterY = TOP_MARGIN + (el.clientHeight - TOP_MARGIN - BOTTOM_MARGIN) / 2;
+		const targetLeft = Math.max(0, bbLeft + bbW / 2 - visibleCenterX);
+		const targetTop = Math.max(0, bbTop + bbH / 2 - visibleCenterY);
 		const rm =
 			typeof window !== 'undefined' &&
 			window.matchMedia('(prefers-reduced-motion: reduce)').matches;

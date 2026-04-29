@@ -11,5 +11,6 @@ export const meta: WidgetMeta = {
 	label: 'メモ',
 	defaultConfig: { font_size: 'md' },
 	addable: true,
+	defaultSize: { w: 2, h: 2 },
 	SettingsContent: QuickNoteSettings,
 };

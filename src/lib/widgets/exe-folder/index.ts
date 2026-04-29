@@ -11,5 +11,6 @@ export const meta: WidgetMeta = {
 	label: 'Exe フォルダ監視',
 	defaultConfig: { scan_depth: 2 },
 	addable: true,
+	defaultSize: { w: 2, h: 3 },
 	SettingsContent: ExeFolderSettings,
 };

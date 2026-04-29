@@ -11,5 +11,6 @@ export const meta: WidgetMeta = {
 	label: 'よく使うもの',
 	defaultConfig: { max_items: 10 },
 	addable: true,
+	defaultSize: { w: 2, h: 2 },
 	SettingsContent: CommonMaxItemsSettings,
 };

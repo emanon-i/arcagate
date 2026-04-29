@@ -11,5 +11,6 @@ export const meta: WidgetMeta = {
 	label: '最近起動',
 	defaultConfig: { max_items: 10 },
 	addable: true,
+	defaultSize: { w: 2, h: 3 },
 	SettingsContent: CommonMaxItemsSettings,
 };
