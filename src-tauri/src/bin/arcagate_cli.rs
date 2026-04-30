@@ -1301,13 +1301,16 @@ mod tests {
         assert!(validate_widget_type("favorites").is_ok());
         assert!(validate_widget_type("recent").is_ok());
         assert!(validate_widget_type("projects").is_ok());
-        assert!(validate_widget_type("clock").is_ok());
+        // 5/01 user 判断: clock 廃止後、"clock" は invalid 扱い (migration v021 で DB 側除去)。
+        assert!(validate_widget_type("system_monitor").is_ok());
     }
 
     #[test]
     fn test_validate_widget_type_invalid() {
         let result = validate_widget_type("invalid");
         assert!(result.is_err());
+        // 5/01 user 判断: 廃止された "clock" は明示的に invalid を確認。
+        assert!(validate_widget_type("clock").is_err());
     }
 
     #[test]

@@ -5,13 +5,13 @@ export type { WidgetType };
 
 // WIDGET_LABELS は batch-79 で widget-registry に統合予定（後方互換のため当面残す）
 // Library 側「お気に入り」と統一 (PH-416 H4 一貫性)
+// 5/01 user 判断: clock 廃止 — `WidgetType` 自体から除去済 (Rust enum + ts-rs binding)。
 export const WIDGET_LABELS: Record<WidgetType, string> = {
 	favorites: 'お気に入り',
 	recent: '最近起動',
 	// PH-issue-039 / 検収項目 #12: 「ウォッチフォルダー」→「フォルダ監視」 (内容と名称の整合)。
 	projects: 'フォルダ監視',
 	item: 'アイテム',
-	clock: '時計',
 	stats: 'よく使うもの',
 	quick_note: 'メモ',
 	exe_folder: 'Exe フォルダ監視',
