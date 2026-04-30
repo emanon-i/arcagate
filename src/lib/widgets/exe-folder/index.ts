@@ -12,5 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: { scan_depth: 2 },
 	defaultSize: { w: 3, h: 3 },
 	addable: true,
+	category: 'watch',
+	categoryOrder: 2,
 	SettingsContent: ExeFolderSettings,
 };

@@ -17,5 +17,7 @@ export const meta: WidgetMeta = {
 	},
 	defaultSize: { w: 2, h: 2 },
 	addable: true,
+	category: 'info',
+	categoryOrder: 1,
 	SettingsContent: ClockSettings,
 };

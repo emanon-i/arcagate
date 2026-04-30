@@ -17,5 +17,7 @@ export const meta: WidgetMeta = {
 	},
 	defaultSize: { w: 2, h: 3 },
 	addable: true,
+	category: 'info',
+	categoryOrder: 2,
 	SettingsContent: SystemMonitorSettings,
 };

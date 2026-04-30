@@ -12,5 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: { font_size: 'md' },
 	defaultSize: { w: 3, h: 2 },
 	addable: true,
+	category: 'memo',
+	categoryOrder: 1,
 	SettingsContent: QuickNoteSettings,
 };

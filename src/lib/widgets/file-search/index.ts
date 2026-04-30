@@ -12,5 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: { depth: 2, limit: 200 },
 	defaultSize: { w: 2, h: 4 },
 	addable: true,
+	category: 'tool',
+	categoryOrder: 2,
 	SettingsContent: FileSearchSettings,
 };

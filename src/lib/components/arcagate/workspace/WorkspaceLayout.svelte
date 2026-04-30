@@ -72,9 +72,20 @@ $effect(() => {
 });
 
 // PH-issue-031 / 検収項目 #5: 削除確認 modal 撤廃、即削除 + Undo toast。
-// deleteConfirmId は WidgetHandles の callback shape 維持のため transient で残すが
-// 即 instantDeleteWidget で消費される。
+// 4/30 user 検収 retrospective (致命的 regression): WidgetHandles の × button が
+// `onDeleteConfirmIdChange(id)` を呼ぶのに parent で受け取った id を消費せず
+// **削除されないまま放置されていた**。$effect 経由は再発火 / loop の罠が多い (toast spam を
+// 起こした) ため、callback が直接 instantDeleteWidget を呼ぶように変更。
+// deleteConfirmId 自体は WidgetHandles の callback shape 互換 + UI 内 transient state として残す。
 let deleteConfirmId = $state<string | null>(null);
+function consumeDeleteConfirm(id: string | null) {
+	if (id) {
+		// 即削除を実行。state 更新は記録のみ。
+		instantDeleteWidget(id);
+	}
+	// id を null に戻して transient マーカーを消費 (UI には残さない)。
+	deleteConfirmId = null;
+}
 let contextItemId = $state<string | null>(null);
 
 function instantDeleteWidget(id: string) {
@@ -426,7 +437,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 							editMode={true}
 							onItemContext={handleItemContext}
 							onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
-							onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
+							onDeleteConfirmIdChange={consumeDeleteConfirm}
 						/>
 						{#if workspaceStore.widgets.length === 0}
 							<div

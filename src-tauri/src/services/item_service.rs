@@ -258,7 +258,10 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
         )));
     }
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    let mut registered = Vec::new();
+    // 4/30 user 検収 retrospective: 旧実装は **新規登録分のみ返却** していたため、
+    // 2 回目以降の呼び出しで `[]` が返り ProjectsWidget が「サブフォルダがありません」と
+    // 誤判定していた。挙動変更: 既存 item も含めて root 直下の全サブフォルダを返す。
+    let mut all_items: Vec<Item> = Vec::new();
     let entries = std::fs::read_dir(root).map_err(AppError::Io)?;
     for entry in entries.flatten() {
         let path = entry.path();
@@ -266,7 +269,8 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
             continue;
         }
         let target = path.to_string_lossy().to_string();
-        if item_repository::find_by_target(&conn, &target)?.is_some() {
+        if let Some(existing) = item_repository::find_by_target(&conn, &target)? {
+            all_items.push(existing);
             continue;
         }
         let default_label = path
@@ -324,9 +328,9 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
         if prev.is_some() {
             widget_item_settings_repository::touch_seen(&conn, &target)?;
         }
-        registered.push(item_repository::find_by_id(&conn, &id)?);
+        all_items.push(item_repository::find_by_id(&conn, &id)?);
     }
-    Ok(registered)
+    Ok(all_items)
 }
 
 /// sys-starred タグを付与または解除する。
@@ -613,9 +617,21 @@ mod tests {
             );
         }
 
-        // Running again should not create duplicates
+        // 4/30 user 検収: 2 回目以降の呼び出しは **既存 + 新規** をすべて返す
+        // (旧仕様の 「新規分のみ」 → ProjectsWidget で空判定される bug 解消)。
+        // DB 上の重複作成は依然防止 (find_by_target で skip insert)。
         let result2 = auto_register_folder_items(&db, &root_path).unwrap();
-        assert_eq!(result2.len(), 0, "should skip already registered items");
+        assert_eq!(
+            result2.len(),
+            2,
+            "should return all subdirs (existing + new)"
+        );
+        let items_after = list_items(&db).unwrap();
+        assert_eq!(
+            items_after.len(),
+            2,
+            "DB should still have only 2 items (no duplicates)"
+        );
 
         // cleanup
         let _ = std::fs::remove_dir_all(&tmp);

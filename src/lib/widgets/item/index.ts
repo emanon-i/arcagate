@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
 	label: 'アイテム',
 	defaultSize: { w: 2, h: 2 },
 	addable: true,
+	category: 'library',
+	categoryOrder: 3,
 	// PH-issue-027: 旧 CommonMaxItemsSettings は ItemWidget の config schema (item_id のみ) と
 	// 一致しない壊れた状態だったため、専用 ItemSettings に置換。
 	SettingsContent: ItemSettings,

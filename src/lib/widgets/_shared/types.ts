@@ -27,10 +27,30 @@ export interface WidgetMeta {
 	defaultSize?: { w: number; h: number };
 	/** 編集モード Sidebar palette に表示するか（false なら API でのみ追加可能） */
 	addable: boolean;
+	/**
+	 * 4/30 user 検収: Sidebar palette を用途別にグルーピング。
+	 * 表示順: library → watch → memo → tool → info。未指定は末尾。
+	 */
+	category?: 'library' | 'watch' | 'memo' | 'tool' | 'info';
+	/** カテゴリ内での並び順 (小さいほど上)。同 category 同 order なら label 昇順。 */
+	categoryOrder?: number;
 	/** WidgetSettingsDialog から `bind:config` で動的 mount される設定 UI（batch-84 PH-375）。 */
 	// biome-ignore lint/suspicious/noExplicitAny: widget ごとに異なる config 型を 1 つの WidgetMeta に集約する都合
 	SettingsContent?: Component<any, any, any>;
 }
+
+/**
+ * 4/30 user 検収: Sidebar palette のカテゴリラベル + 表示順序。
+ * 「これ何順ですか？」 user fb に答えるための明示的グルーピング。
+ */
+export const WIDGET_CATEGORIES: Array<{ key: NonNullable<WidgetMeta['category']>; label: string }> =
+	[
+		{ key: 'library', label: 'ライブラリ系' },
+		{ key: 'watch', label: 'フォルダ監視' },
+		{ key: 'memo', label: 'メモ・タスク' },
+		{ key: 'tool', label: 'ツール' },
+		{ key: 'info', label: '情報・状態' },
+	];
 
 /** widgets/<name>/index.ts の export 形式（auto-collect 用） */
 export interface WidgetModule {
