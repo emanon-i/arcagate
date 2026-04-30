@@ -82,6 +82,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-widget-settings-schema.sh
 
+      - name: Widget shell consistency audit (PR #275)
+        shell: bash
+        run: bash scripts/audit-widget-shell.sh
+
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy -- -D warnings
