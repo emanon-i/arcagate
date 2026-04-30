@@ -49,6 +49,11 @@ pre-commit:
       # registry が config schema と一致するか検証 (CommonMaxItemsSettings の誤用検出)。
       glob: "src/lib/widgets/**/*.{svelte,ts}"
       run: bash scripts/audit-widget-settings-schema.sh
+    widget-shell:
+      # 5/01 user 検収 (ItemWidget 旧形式設定 button): 全 widget が共通 shell パターン
+      # (WidgetShell + widgetMenuItems + WidgetSettingsDialog) に従っているか検証。
+      glob: "src/lib/widgets/**/*Widget.svelte"
+      run: bash scripts/audit-widget-shell.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行
