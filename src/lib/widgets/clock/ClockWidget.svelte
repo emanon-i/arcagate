@@ -115,63 +115,68 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={WIDGET_LABELS.clock} icon={Clock} {menuItems}>
-	<!-- 検収 #16: container query を細分化、極小サイズでも崩れないように。
-	     - 〜120px: HH と MM を 2 行に縦表示 (visually balanced compact mode)
-	     - @xs (160px+): HH:MM 横、秒は隠す
-	     - @sm (240px+): + 秒
-	     - @md (320px+): + 日付・曜日
-	     - @lg (480px+): + TZ 名 + 全体的に大きい
-	     overflow-hidden で widget shell からはみ出さない (検収 #14, #16)。 -->
+	<!-- 4/30 user 検収: industrial / 工具 美学に再構築。
+	     - **時刻は warm-text (amber)** ← 「磨かれた工具」signature color、視認性 + 機能美
+	     - tabular-nums + font-mono で digit width 固定、跳ねない表示
+	     - 副情報 (日付 / TZ) は muted、tracking-wide で hierarchical
+	     - compact (極小) も「stack 縦並び」廃止、HH:MM 横で 2xl まで縮める
+	     - widget shell からはみ出さない overflow-hidden 維持
+	     段階表示 (container query):
+	     - ~140px: HH:MM のみ (秒・日付・TZ 全て hidden)
+	     - @xs (~180px+): + 秒 (config 有効時)
+	     - @sm (~260px+): + 日付 (yyyy/mm/dd) + 曜日
+	     - @md (~340px+): + TZ ラベル + フォント拡大
+	     - @lg (~520px+): 最大化、機械式メーターのような威風
+	     -->
 	<div
-		class="@container relative flex h-full w-full flex-col items-center justify-center overflow-hidden"
+		class="@container relative flex h-full w-full flex-col items-center justify-center gap-1 overflow-hidden px-2 py-1"
 	>
-		<!-- 縦表示 (極小): @xs 未満で表示。HH 改行 MM。 -->
+		<!-- 主時刻: amber (warm) で industrial signature。
+		     段階拡大: ~140 = 4xl, @xs = 5xl, @sm = 6xl, @md = 7xl, @lg = 8xl。
+		     leading-none で行高 squash、tabular-nums で digit width 等幅 (跳ねない)。 -->
 		<div
-			class="flex flex-col items-center gap-0 font-mono font-semibold tabular-nums leading-none text-[var(--ag-text-primary)] @xs:hidden"
-		>
-			<span class="text-3xl">{display.hour}</span>
-			<span class="text-3xl">{display.minute}</span>
-		</div>
-
-		<!-- 横表示 (@xs+): HH:MM + 秒 -->
-		<div
-			class="hidden items-baseline gap-1 font-mono font-semibold tabular-nums text-[var(--ag-text-primary)] @xs:flex"
+			class="flex items-baseline gap-1 font-mono font-medium tabular-nums leading-none"
+			style="color: var(--ag-warm-text);"
 		>
 			{#if !config.use_24h}
-				<span class="text-xs text-[var(--ag-text-muted)] @md:text-base">
+				<span class="text-xs uppercase tracking-wider text-[var(--ag-text-muted)] @md:text-sm">
 					{display.prefix}
 				</span>
 			{/if}
-			<span
-				class="text-4xl leading-none @sm:text-5xl @md:text-6xl @lg:text-7xl"
-			>
+			<span class="text-4xl @xs:text-5xl @sm:text-6xl @md:text-7xl @lg:text-8xl">
 				{display.hm}
 			</span>
 			{#if config.show_seconds}
 				<span
-					class="hidden text-base leading-none text-[var(--ag-text-secondary)] @sm:inline @md:text-2xl @lg:text-3xl"
-				>:{display.seconds}</span>
+					class="hidden text-xs uppercase tracking-wider tabular-nums text-[var(--ag-text-faint)] @xs:inline @md:text-sm"
+				>
+					{display.seconds}
+				</span>
 			{/if}
 		</div>
 
-		<!-- 日付 + 曜日: @sm 以上で表示 -->
-		{#if config.show_date || config.show_weekday}
+		<!-- 区切り横線: @sm 以上で表示。工具スケールのような細線で hierarchy 明示。 -->
+		{#if config.show_date || config.show_weekday || (config.show_timezone && tzAbbr)}
 			<div
-				class="hidden items-center gap-1 truncate text-xs text-[var(--ag-text-muted)] @sm:flex @md:text-sm @lg:text-base"
-			>
-				{#if config.show_date}<span>{dateStr}</span>{/if}
-				{#if config.show_weekday}<span>{weekdayStr}</span>{/if}
-			</div>
+				class="hidden h-px w-12 bg-[var(--ag-border)] @sm:block @md:w-16 @lg:w-24"
+				aria-hidden="true"
+			></div>
 		{/if}
 
-		<!-- タイムゾーン: @md 以上で表示 -->
-		{#if config.show_timezone && tzAbbr}
-			<div
-				class="mt-1 hidden truncate text-xs uppercase tracking-wider text-[var(--ag-text-faint)] @md:block @lg:text-sm"
-			>
-				{tzAbbr}
-			</div>
-		{/if}
+		<!-- 副情報: 日付 + 曜日 + TZ を 1 行で。muted text、industrial 工具刻印のような tracking。 -->
+		<div
+			class="hidden flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs uppercase tracking-wider text-[var(--ag-text-muted)] @sm:flex @md:text-sm"
+		>
+			{#if config.show_date}
+				<span class="tabular-nums">{dateStr}</span>
+			{/if}
+			{#if config.show_weekday}
+				<span class="text-[var(--ag-text-faint)]">{weekdayStr}</span>
+			{/if}
+			{#if config.show_timezone && tzAbbr}
+				<span class="hidden font-medium text-[var(--ag-warm-text)]/70 @md:inline">{tzAbbr}</span>
+			{/if}
+		</div>
 	</div>
 </WidgetShell>
 

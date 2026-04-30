@@ -74,8 +74,18 @@ async function fetchGitStatuses(items: Item[], merge = false): Promise<void> {
 // PH-issue-039 / 検収項目 #14 (仕様統一): config.watched_folder が変わったら scan を即時 reset + run。
 // 旧実装は autoRegisterFolderItems を全 widget の任意 folder で呼んで結果を merge していたため
 // 「同じ widget で folder 共有 (#11)」のように見えていた。本実装で widget config 経由のみに限定。
+//
+// 4/30 user 検収: WatchFolder widget をリサイズすると中身が消えるバグの root cause —
+// `workspaceStore.optimisticMoveAndResize` が pointermove のたびに `{...w, ...}` で widget
+// オブジェクトを作り直す → ProjectsWidget の `config = $derived(parseWidgetConfig(...))` が
+// 毎フレーム新オブジェクト作成 → 本 $effect が再実行 → `folderItems = []` で **毎フレーム
+// アイテム消去** されていた。修正: 前回 folder 値を変数で保持し、文字列が変わったときだけ scan
+// reset + 再 fetch。これでリサイズ中も folderItems がそのまま残る。
+let prevFolder: string | undefined;
 $effect(() => {
 	const folder = config.watched_folder;
+	if (folder === prevFolder) return; // resize 等で widget object が更新されても folder 不変なら何もしない
+	prevFolder = folder;
 	folderItems = [];
 	scanError = null;
 	if (!folder) {

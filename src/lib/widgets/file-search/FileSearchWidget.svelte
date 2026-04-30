@@ -106,10 +106,18 @@ async function cancelCurrent() {
 	}
 }
 
+// 4/30 user 検収: ProjectsWidget / ExeFolder と同じ resize-empties-content bug。
+// optimisticMoveAndResize が widget object を毎フレーム差し替え → config $derived 再評価 →
+// 本 $effect が refresh() を呼び entries=[] でリセット → リサイズ中ずっと空。
+// 実値変更時のみ refresh する。
+let prevRoot: string | undefined;
+let prevDepth: number | undefined;
+let prevLimit: number | undefined;
 $effect(() => {
-	const _root = root;
-	const _depth = depth;
-	const _limit = limit;
+	if (root === prevRoot && depth === prevDepth && limit === prevLimit) return;
+	prevRoot = root;
+	prevDepth = depth;
+	prevLimit = limit;
 	void refresh();
 });
 
