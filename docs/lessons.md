@@ -74,6 +74,26 @@
 
 ---
 
+## <severity>high</severity> 同 widget を 4 回繰り返し fix しても user 体感が改善しないなら廃止 (2026-05-01 ClockWidget)
+
+### 観測
+
+- ClockWidget を 4 回 (PR #260, #267, #273 redo / redo2) 視覚改修したが、user fb は毎回「相変わらずダサい」
+- 機械検証 / audit / Codex review すべて green でも体感品質がプロダクトに合わない判断
+- 5/01 user 判断で「やめよう！」 → scope から完全削除
+
+### 再発防止
+
+<critical-rule id="abandon-after-three-fixes">
+- 同じ fb が **3 回連続で出る** widget / 機能は、4 回目に「廃止 vs 抜本再設計」を user 確認
+- 4 回 fix しても改善しない場合は **削除を最優先案** とする (惰性で残さない)
+- 廃止時は: コード削除 + WidgetType enum 削除 + migration で既存 instance 削除 + lessons へ記録
+</critical-rule>
+
+参照: PR #274 (migration v021 で workspace_widgets から clock 一括削除)
+
+---
+
 ## <severity>high</severity> Native `<select>` の dropdown popup は OS 依存で読めなくなる
 
 ### 観測

@@ -4,12 +4,13 @@ use ts_rs::TS;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
 #[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "../../src/lib/bindings/")]
+// 5/01 user 判断: ClockWidget は 4 回 fix しても user 体感が改善しなかったため廃止。
+// 旧 `WidgetType::Clock` / "clock" は完全削除。既存 DB 上の widget は migration v021 で除去。
 pub enum WidgetType {
     Favorites,
     Recent,
     Projects,
     Item,
-    Clock,
     Stats,
     QuickNote,
     ExeFolder,
@@ -27,7 +28,6 @@ impl WidgetType {
             WidgetType::Recent => "recent",
             WidgetType::Projects => "projects",
             WidgetType::Item => "item",
-            WidgetType::Clock => "clock",
             WidgetType::Stats => "stats",
             WidgetType::QuickNote => "quick_note",
             WidgetType::ExeFolder => "exe_folder",
@@ -46,7 +46,6 @@ impl WidgetType {
             "recent" => Some(WidgetType::Recent),
             "projects" => Some(WidgetType::Projects),
             "item" => Some(WidgetType::Item),
-            "clock" => Some(WidgetType::Clock),
             "stats" => Some(WidgetType::Stats),
             "quick_note" => Some(WidgetType::QuickNote),
             "exe_folder" => Some(WidgetType::ExeFolder),
@@ -133,7 +132,6 @@ mod tests {
         assert_eq!(WidgetType::Recent.as_str(), "recent");
         assert_eq!(WidgetType::Projects.as_str(), "projects");
         assert_eq!(WidgetType::Item.as_str(), "item");
-        assert_eq!(WidgetType::Clock.as_str(), "clock");
         assert_eq!(WidgetType::Stats.as_str(), "stats");
         assert_eq!(WidgetType::QuickNote.as_str(), "quick_note");
         assert_eq!(WidgetType::ExeFolder.as_str(), "exe_folder");
@@ -153,7 +151,6 @@ mod tests {
         assert_eq!(WidgetType::from_str("recent"), Some(WidgetType::Recent));
         assert_eq!(WidgetType::from_str("projects"), Some(WidgetType::Projects));
         assert_eq!(WidgetType::from_str("item"), Some(WidgetType::Item));
-        assert_eq!(WidgetType::from_str("clock"), Some(WidgetType::Clock));
         assert_eq!(WidgetType::from_str("stats"), Some(WidgetType::Stats));
         assert_eq!(
             WidgetType::from_str("quick_note"),
@@ -187,6 +184,9 @@ mod tests {
         assert_eq!(WidgetType::from_str("unknown"), None);
         assert_eq!(WidgetType::from_str("Favorites"), None);
         assert_eq!(WidgetType::from_str(""), None);
+        // 5/01 user 判断: clock 廃止後、文字列 "clock" は無効値として扱う
+        // (migration v021 で DB 側からも除去済みのため、新規受付されない)。
+        assert_eq!(WidgetType::from_str("clock"), None);
     }
 
     #[test]
@@ -196,7 +196,6 @@ mod tests {
             WidgetType::Recent,
             WidgetType::Projects,
             WidgetType::Item,
-            WidgetType::Clock,
             WidgetType::Stats,
             WidgetType::QuickNote,
             WidgetType::ExeFolder,

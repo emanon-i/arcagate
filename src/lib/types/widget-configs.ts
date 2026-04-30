@@ -18,25 +18,8 @@ export const ITEM_WIDGET_DEFAULTS: ItemWidgetConfig = {
 	item_id: null,
 };
 
-export interface ClockWidgetConfig {
-	show_seconds: boolean;
-	show_date: boolean;
-	show_weekday: boolean;
-	use_24h: boolean;
-	/** PH-issue-035 / 検収項目 #26: タイムゾーン (IANA 表記、'Asia/Tokyo' = JST 既定)。 */
-	timezone: string;
-	/** PH-issue-035: タイムゾーン名を表示するか (大きい widget で表示)。 */
-	show_timezone: boolean;
-}
-
-export const CLOCK_WIDGET_DEFAULTS: ClockWidgetConfig = {
-	show_seconds: true,
-	show_date: true,
-	show_weekday: true,
-	use_24h: true,
-	timezone: 'Asia/Tokyo',
-	show_timezone: true,
-};
+// 5/01 user 判断: ClockWidget 廃止のため ClockWidgetConfig / CLOCK_WIDGET_DEFAULTS を削除。
+// 既存 widget instance は migration v021 で DB から除去される。
 
 export interface StatsWidgetConfig {
 	max_items: number;

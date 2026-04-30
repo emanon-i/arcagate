@@ -22,7 +22,7 @@ export interface WidgetMeta {
 	/**
 	 * 検収 #7: widget タイプごとの推奨デフォルトサイズ (グリッドセル単位)。
 	 * addWidget / addWidgetAt / bulkAddItemWidgets で使用。未指定時は 2x2。
-	 * クリック追加時に widget が極小 (Clock 1x1 等) で出るのを防ぐ。
+	 * クリック追加時に widget が極小 (1x1 等) で出るのを防ぐ。
 	 */
 	defaultSize?: { w: number; h: number };
 	/** 編集モード Sidebar palette に表示するか（false なら API でのみ追加可能） */
