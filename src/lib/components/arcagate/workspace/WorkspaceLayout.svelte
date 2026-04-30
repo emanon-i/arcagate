@@ -72,9 +72,20 @@ $effect(() => {
 });
 
 // PH-issue-031 / 検収項目 #5: 削除確認 modal 撤廃、即削除 + Undo toast。
-// deleteConfirmId は WidgetHandles の callback shape 維持のため transient で残すが
-// 即 instantDeleteWidget で消費される。
+// 4/30 user 検収 retrospective (致命的 regression): WidgetHandles の × button が
+// `onDeleteConfirmIdChange(id)` を呼ぶのに parent で受け取った id を消費せず
+// **削除されないまま放置されていた**。$effect 経由は再発火 / loop の罠が多い (toast spam を
+// 起こした) ため、callback が直接 instantDeleteWidget を呼ぶように変更。
+// deleteConfirmId 自体は WidgetHandles の callback shape 互換 + UI 内 transient state として残す。
 let deleteConfirmId = $state<string | null>(null);
+function consumeDeleteConfirm(id: string | null) {
+	if (id) {
+		// 即削除を実行。state 更新は記録のみ。
+		instantDeleteWidget(id);
+	}
+	// id を null に戻して transient マーカーを消費 (UI には残さない)。
+	deleteConfirmId = null;
+}
 let contextItemId = $state<string | null>(null);
 
 function instantDeleteWidget(id: string) {
@@ -352,7 +363,12 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<!-- PH-issue-029 / 検収項目 #6/#7/#8: 上部 PageTabBar + 壁紙 layer を canvas の外に出す。
 	     pan で動くのは widget grid のみ、PageTabBar / 壁紙 / 右下 toolbar / HintBar は固定。 -->
-	<div class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+	<!-- 4/30 user 検収: wallpaper 未設定時の fallback gradient を column 自体に置く。
+	     canvas-edit-mode は透明、wallpaper layer (z-0) があれば最前で見え、無ければこの gradient が見える。 -->
+	<div
+		class="relative flex min-w-0 flex-1 flex-col overflow-hidden"
+		style="background: linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%);"
+	>
 		<!-- 壁紙: 親 (この column) を覆う、scroll しない最背景 -->
 		{#if workspaceStore.activeWorkspace?.wallpaper_path}
 			{@const ws = workspaceStore.activeWorkspace}
@@ -382,9 +398,13 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 		     overflow-auto + 内側に大きな infinite-canvas div (5000x5000 + 周囲 padding) を置き、
 		     初期 scroll を中央付近に置く → user は 4 方向 pan 可能。widget なしでも pan 可能。
 		     dotted grid 背景は infinite-canvas に置くので scroll に追従 (Obsidian と一致)。 -->
+		<!-- 4/30 user 検収: canvas-edit-mode の linear-gradient 背景が wallpaper layer (z-0) を
+		     完全に覆っていたため、wallpaper が user の意図する場所 (canvas 背景) に出ていなかった。
+		     ここを透明にして wallpaper / 既定 surface を透けて見せる。
+		     wallpaper 未設定時の surface gradient は **ラッパー column** に移して fallback。 -->
 		<div
 			class="canvas-edit-mode relative z-10 min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]"
-			style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background: linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%);"
+			style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background: transparent;"
 			data-zoom={configStore.widgetZoom}
 			bind:this={workspaceContainer}
 			onpointerdown={onCanvasPointerDown}
@@ -417,7 +437,7 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 							editMode={true}
 							onItemContext={handleItemContext}
 							onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
-							onDeleteConfirmIdChange={(id) => (deleteConfirmId = id)}
+							onDeleteConfirmIdChange={consumeDeleteConfirm}
 						/>
 						{#if workspaceStore.widgets.length === 0}
 							<div

@@ -12,5 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: { max_items: 20, poll_interval_ms: 1500 },
 	defaultSize: { w: 2, h: 3 },
 	addable: true,
+	category: 'tool',
+	categoryOrder: 1,
 	SettingsContent: ClipboardHistorySettings,
 };

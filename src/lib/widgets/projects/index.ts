@@ -22,5 +22,7 @@ export const meta: WidgetMeta = {
 	},
 	defaultSize: { w: 3, h: 3 },
 	addable: true,
+	category: 'watch',
+	categoryOrder: 1,
 	SettingsContent: ProjectsSettings,
 };

@@ -1,6 +1,5 @@
 <script lang="ts">
 import { Image as ImageIcon } from '@lucide/svelte';
-import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 
 interface Props {
@@ -46,22 +45,32 @@ function handleKeydown(e: KeyboardEvent) {
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
+	<!-- 4/30 user 検収: workspace 選択 chip の塗りつぶし削除。border-only で active を識別、
+	     wallpaper / surface gradient が透けて見えるよう全 chip を bg-transparent に。 -->
 	{#each workspaceStore.workspaces as ws (ws.id)}
-		<Chip
-			tone={ws.id === workspaceStore.activeWorkspaceId ? "accent" : "default"}
-			size="md"
+		{@const isActive = ws.id === workspaceStore.activeWorkspaceId}
+		<button
+			type="button"
+			class="rounded-full border bg-transparent px-3.5 py-1.5 text-xs transition-[color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class:border-[var(--ag-accent-border)]={isActive}
+			class:text-[var(--ag-accent-text)]={isActive}
+			class:font-medium={isActive}
+			class:border-[var(--ag-border)]={!isActive}
+			class:text-[var(--ag-text-secondary)]={!isActive}
+			class:hover:text-[var(--ag-text-primary)]={!isActive}
+			class:hover:border-[var(--ag-border-strong)]={!isActive}
 			onclick={() => onSelectWorkspace?.(ws.id)}
-			ondblclick={ws.id === workspaceStore.activeWorkspaceId ? () => onRenameActive?.() : undefined}
+			ondblclick={isActive ? () => onRenameActive?.() : undefined}
 			data-testid="workspace-tab-{ws.id}"
 		>
 			{ws.name}
-		</Chip>
+		</button>
 	{/each}
 	{#if isAdding}
 		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			type="text"
-			class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-surface-3)] px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
+			class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-transparent px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
 			placeholder="名前"
 			autocomplete="off"
 			bind:value={newName}
@@ -83,7 +92,7 @@ function handleKeydown(e: KeyboardEvent) {
 	{#if onEditWallpaper && workspaceStore.activeWorkspaceId}
 		<button
 			type="button"
-			class="ml-auto flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="ml-auto flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-transparent px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label="このワークスペースの壁紙を設定"
 			onclick={() => onEditWallpaper()}
 		>

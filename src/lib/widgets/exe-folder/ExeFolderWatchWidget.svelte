@@ -92,10 +92,20 @@ async function setSort(field: SortField) {
 // 書き戻されないよう request id で stale response を破棄する。
 let scanRequestId = 0;
 
+// 4/30 user 検収: ProjectsWidget と同じ resize-causes-empty bug。
+// optimisticMoveAndResize が widget object を作り直す → config が新オブジェクトに更新 →
+// `entries = []` が毎フレーム実行されて scan 結果が消えていた。前回 path/depth を覚えて
+// 実値が変わった時のみ reset + 再 scan に変更。
+let prevPath: string | undefined;
+let prevDepth: number | undefined;
+
 // Lazy fetch: watch_path / scan_depth が設定されたとき + 変化時に scan
 $effect(() => {
 	const path = config.watch_path;
 	const depth = config.scan_depth ?? 2;
+	if (path === prevPath && depth === prevDepth) return;
+	prevPath = path;
+	prevDepth = depth;
 	// 派生 state を即時 clear (path 変更 / unset 直後に旧 entries が残らない)。
 	entries = [];
 	scanError = null;

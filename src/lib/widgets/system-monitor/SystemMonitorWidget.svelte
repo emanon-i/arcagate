@@ -55,7 +55,12 @@ interface SystemMonitorConfig {
 	show_memory?: boolean;
 	show_disk?: boolean;
 	show_network?: boolean;
+	/** 4/30 user 検収: 旧 `chart_type` (CPU 専用) → metric 別に独立。下位互換のため残す。 */
 	chart_type?: ChartType;
+	cpu_chart_type?: ChartType;
+	memory_chart_type?: ChartType;
+	disk_chart_type?: ChartType;
+	network_chart_type?: ChartType;
 	title?: string;
 }
 
@@ -73,7 +78,16 @@ let showCpu = $derived(config.show_cpu ?? true);
 let showMemory = $derived(config.show_memory ?? true);
 let showDisk = $derived(config.show_disk ?? false);
 let showNetwork = $derived(config.show_network ?? false);
-let chartType = $derived<ChartType>(config.chart_type ?? 'sparkline');
+// 4/30 user 検収: per-metric chart_type。各 metric は metric 専用 config が無ければ
+// 旧 `chart_type` (legacy 共通) → 既定値の順に fallback。後方互換 + 新 settings UI。
+let cpuChartType = $derived<ChartType>(config.cpu_chart_type ?? config.chart_type ?? 'sparkline');
+let memChartType = $derived<ChartType>(
+	config.memory_chart_type ?? config.chart_type ?? 'sparkline',
+);
+let diskChartType = $derived<ChartType>(config.disk_chart_type ?? config.chart_type ?? 'gauge');
+let networkChartType = $derived<ChartType>(
+	config.network_chart_type ?? config.chart_type ?? 'sparkline',
+);
 
 let stats = $state<SystemStats | null>(null);
 let disks = $state<DiskStats[]>([]);
@@ -84,6 +98,8 @@ let cpuHistory = $state<number[]>([]);
 // 検収 #17: chart_type は CPU だけでなくメモリ / ディスクの履歴も切替対象にする。
 let memHistory = $state<number[]>([]);
 let diskHistory = $state<Record<string, number[]>>({});
+// 4/30 user 検収: ネットワークも sparkline 切替対応のため rx Bps を interface ごとに蓄積。
+let netRxHistory = $state<Record<string, number[]>>({});
 
 // Codex Medium #5: 静かに無視 → 連続失敗回数を track + degraded UI 表示。
 // 個人アプリなので toast 嵐は避けるが、widget 自身が「取得失敗中 (Nx)」を表示する。
@@ -157,6 +173,16 @@ async function refreshInner() {
 			networks = next;
 			netRates = newRates;
 			prevNetworks = newPrev;
+			// 4/30 user 検収: rx Bps の履歴 (sparkline 用)。現存 interface のみ繰越し、prune 同時。
+			const newNH: Record<string, number[]> = {};
+			for (const n of next) {
+				newNH[n.interface] = pushBuffer(
+					netRxHistory[n.interface] ?? [],
+					newRates[n.interface]?.rxBps ?? 0,
+					60,
+				);
+			}
+			netRxHistory = newNH;
 		} catch (e) {
 			console.debug('SystemMonitor: cmd_get_network_stats failed', e);
 			allOk = false;
@@ -199,6 +225,28 @@ let sparklinePath = $derived(bufferToSparklinePath(cpuHistory, 100, 20, 100));
 let memSparklinePath = $derived(bufferToSparklinePath(memHistory, 100, 20, 100));
 function diskSparklinePath(mount: string): string {
 	return bufferToSparklinePath(diskHistory[mount] ?? [], 100, 20, 100);
+}
+
+// 4/30 user 検収: ネットワーク sparkline。rx Bps を 動的 max でスケール (% scale が無いため)。
+function netSparklinePath(iface: string): string {
+	const buf = netRxHistory[iface] ?? [];
+	if (buf.length === 0) return '';
+	const maxBps = Math.max(...buf, 1);
+	return bufferToSparklinePath(buf, 100, 16, maxBps);
+}
+// 4/30 user 検収: ネットワーク bar (現値 / 直近最大に対する割合) — relative scale なので peak 比較しやすい。
+function netRxBarPct(iface: string): number {
+	const buf = netRxHistory[iface] ?? [];
+	const cur = netRates[iface]?.rxBps ?? 0;
+	const peak = Math.max(...buf, cur, 1);
+	return Math.min(100, (cur / peak) * 100);
+}
+function netTxBarPct(iface: string): number {
+	// tx peak は別途 track せず、直近 rate と rx peak の和で normalize (簡易)。
+	const buf = netRxHistory[iface] ?? [];
+	const cur = netRates[iface]?.txBps ?? 0;
+	const peak = Math.max(...buf, cur, 1);
+	return Math.min(100, (cur / peak) * 100);
 }
 
 function pctColorVar(pct: number): string {
@@ -245,12 +293,12 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						<span class="text-[var(--ag-text-muted)]">CPU</span>
 						<span class="tabular-nums" style="color: {cpuColor}">{stats.cpuPercent.toFixed(1)}%</span>
 					</div>
-					<!-- PH-issue-042 / 検収項目 #29: chart_type で表示切替 -->
-					{#if chartType === 'sparkline'}
+					<!-- PH-issue-042 / 検収項目 #29 + 4/30 user 検収: per-metric chart_type で CPU 個別切替 -->
+					{#if cpuChartType === 'sparkline'}
 						<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
 							<path d={sparklinePath} fill="none" stroke={cpuColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
 						</svg>
-					{:else if chartType === 'bar'}
+					{:else if cpuChartType === 'bar'}
 						<div
 							class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
 							role="progressbar"
@@ -263,7 +311,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 								style="width: {stats.cpuPercent.toFixed(1)}%; background-color: {cpuColor};"
 							></div>
 						</div>
-					{:else if chartType === 'gauge'}
+					{:else if cpuChartType === 'gauge'}
 						<div class="flex items-center justify-center">
 							<svg viewBox="0 0 48 48" class="h-12 w-12" aria-hidden="true">
 								<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="4" stroke-linecap="round" />
@@ -282,12 +330,12 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							{formatBytes(stats.memUsedBytes)} / {formatBytes(stats.memTotalBytes)}
 						</span>
 					</div>
-					<!-- 検収 #17: chart_type を memory にも適用 (CPU だけでなく)。 -->
-					{#if chartType === 'sparkline'}
+					<!-- 4/30 user 検収: メモリも独立 chart_type で切替 -->
+					{#if memChartType === 'sparkline'}
 						<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-5 w-full" aria-hidden="true">
 							<path d={memSparklinePath} fill="none" stroke={memColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
 						</svg>
-					{:else if chartType === 'gauge'}
+					{:else if memChartType === 'gauge'}
 						<div class="flex items-center justify-center">
 							<svg viewBox="0 0 48 48" class="h-12 w-12" aria-hidden="true">
 								<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="4" stroke-linecap="round" />
@@ -321,12 +369,12 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</span>
 								<span class="shrink-0 tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</span>
 							</div>
-							<!-- 検収 #17: chart_type を disk にも適用。 -->
-							{#if chartType === 'sparkline'}
+							<!-- 4/30 user 検収: ディスクも独立 chart_type -->
+							{#if diskChartType === 'sparkline'}
 								<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
 									<path d={diskSparklinePath(d.mount)} fill="none" stroke={diskColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
 								</svg>
-							{:else if chartType === 'gauge'}
+							{:else if diskChartType === 'gauge'}
 								<div class="flex items-center justify-center">
 									<svg viewBox="0 0 48 48" class="h-10 w-10" aria-hidden="true">
 										<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="3" stroke-linecap="round" />
@@ -351,20 +399,41 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					{/each}
 				</div>
 			{/if}
-			<!-- PH-issue-042 / 検収項目 #27: ネットワーク (受信 / 送信 throughput) -->
+			<!-- PH-issue-042 / 検収項目 #27 + 4/30 user 検収: ネットワークも独立 chart_type で
+			     bar (rx/tx スループット bar) / sparkline (rx 履歴) / text (数値のみ、既定) を切替 -->
 			{#if showNetwork && networks.length > 0}
 				<div class="space-y-1 border-t border-[var(--ag-border)] pt-1">
 					<span class="text-[var(--ag-text-muted)]">ネットワーク</span>
 					{#each networks as n (n.interface)}
 						{@const rate = netRates[n.interface]}
 						{#if rate && (rate.rxBps > 0 || rate.txBps > 0)}
-							<div class="flex items-baseline justify-between gap-2 text-xs">
-								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={n.interface}>
-									{n.interface}
-								</span>
-								<span class="shrink-0 tabular-nums text-[var(--ag-text-secondary)]">
-									↓ {formatBps(rate.rxBps)} ↑ {formatBps(rate.txBps)}
-								</span>
+							<div class="space-y-0.5">
+								<div class="flex items-baseline justify-between gap-2 text-xs">
+									<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={n.interface}>
+										{n.interface}
+									</span>
+									<span class="shrink-0 tabular-nums text-[var(--ag-text-secondary)]">
+										↓ {formatBps(rate.rxBps)} ↑ {formatBps(rate.txBps)}
+									</span>
+								</div>
+								{#if networkChartType === 'sparkline'}
+									<svg viewBox="0 0 100 16" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
+										<path d={netSparklinePath(n.interface)} fill="none" stroke="var(--ag-accent-text)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+									</svg>
+								{:else if networkChartType === 'bar'}
+									<div class="flex gap-1 text-xs text-[var(--ag-text-faint)]">
+										<div class="flex-1">
+											<div class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]">
+												<div class="h-full rounded-full bg-[var(--ag-accent-text)]" style="width: {netRxBarPct(n.interface)}%"></div>
+											</div>
+										</div>
+										<div class="flex-1">
+											<div class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]">
+												<div class="h-full rounded-full bg-[var(--ag-warm-text)]" style="width: {netTxBarPct(n.interface)}%"></div>
+											</div>
+										</div>
+									</div>
+								{/if}
 							</div>
 						{/if}
 					{/each}

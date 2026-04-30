@@ -12,5 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: { max_items: 10 },
 	defaultSize: { w: 2, h: 3 },
 	addable: true,
+	category: 'library',
+	categoryOrder: 1,
 	SettingsContent: CommonMaxItemsSettings,
 };

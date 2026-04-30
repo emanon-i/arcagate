@@ -34,10 +34,15 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 				ライブラリ全体
 			</h3>
 		{/if}
+		<!-- 4/30 user 検収 C4: 旧実装は items.length (現在 load 済み件数) を表示 → タグ別 count
+		     (DB 全件) と乖離 (例: フォルダ 114 / すべて 11)。libraryStats.total_items (全件数) に
+		     統一してデータ整合性を確保。 -->
 		<SidebarRow
 			icon={NAV_TOP.library.icon}
 			label="すべて"
-			meta={expanded ? String(itemStore.items.length) : undefined}
+			meta={expanded
+				? String(itemStore.libraryStats?.total_items ?? itemStore.items.length)
+				: undefined}
 			iconOnly={!expanded}
 			active={activeTag === null}
 			onclick={() => onSelectTag?.(null)}
