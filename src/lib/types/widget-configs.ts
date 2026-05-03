@@ -11,11 +11,19 @@ export const LIST_WIDGET_DEFAULTS: ListWidgetConfig = {
 };
 
 export interface ItemWidgetConfig {
-	item_id: string | null;
+	/** 旧仕様: 単一 item id (legacy、後方互換のため残す)。新規は item_ids[] 経由で設定する。 */
+	item_id?: string | null;
+	/** 5/03 user 検収 (C): collection の item id 配列。空 = 未設定。 */
+	item_ids?: string[];
+	view_mode?: 'grid' | 'list';
+	sort_field?: 'manual' | 'name' | 'recent';
 }
 
 export const ITEM_WIDGET_DEFAULTS: ItemWidgetConfig = {
 	item_id: null,
+	item_ids: [],
+	view_mode: 'grid',
+	sort_field: 'manual',
 };
 
 // 5/01 user 判断: ClockWidget 廃止のため ClockWidgetConfig / CLOCK_WIDGET_DEFAULTS を削除。
