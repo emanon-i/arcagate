@@ -145,6 +145,25 @@ pub fn cmd_auto_register_folder_items(
     item_service::auto_register_folder_items(&db, &root_path)
 }
 
+/// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録。
+#[tauri::command]
+pub fn cmd_register_exe_item(
+    db: State<DbState>,
+    path: String,
+    label: Option<String>,
+) -> Result<Item, AppError> {
+    item_service::register_exe_item(&db, &path, label)
+}
+
+/// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録 (ExeFolderWatchWidget の "全部追加" button 用)。
+#[tauri::command]
+pub fn cmd_register_exe_items_bulk(
+    db: State<DbState>,
+    paths: Vec<String>,
+) -> Result<Vec<Item>, AppError> {
+    item_service::register_exe_items_bulk(&db, paths)
+}
+
 #[tauri::command]
 pub fn cmd_check_is_directory(path: String) -> bool {
     std::path::Path::new(&path).is_dir()

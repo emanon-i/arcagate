@@ -8,7 +8,7 @@ use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
     Workspace, WorkspaceWidget,
 };
-use crate::repositories::{tag_repository, workspace_repository};
+use crate::repositories::{item_repository, tag_repository, workspace_repository};
 use crate::utils::error::AppError;
 use crate::utils::git;
 
@@ -112,6 +112,7 @@ pub fn add_widget(db: &DbState, input: AddWidgetInput) -> Result<WorkspaceWidget
 
     let widgets = workspace_repository::find_widgets_by_workspace(&conn, &input.workspace_id)?;
     let id = Uuid::now_v7().to_string();
+    let workspace_id = input.workspace_id.clone();
 
     let widget = WorkspaceWidget {
         id: id.clone(),
@@ -127,7 +128,45 @@ pub fn add_widget(db: &DbState, input: AddWidgetInput) -> Result<WorkspaceWidget
     };
 
     workspace_repository::insert_widget(&conn, &widget)?;
+    // 5/01 user 検収 (C3): widget 追加直後に workspace tag 同期 (item_id を持つ widget なら item に sys-ws-{wsId} 付与)。
+    sync_workspace_item_tags(&conn, &workspace_id)?;
     workspace_repository::find_widget_by_id(&conn, &id)
+}
+
+/// 5/01 user 検収 (C3): 指定 workspace 内の全 widget config を走査し、`item_id` フィールドを持つ
+/// widget が参照する items に対して `sys-ws-{wsId}` タグを付与。逆に、もう参照されなくなった
+/// items からは同タグを除去。これで Library 画面の workspace タグフィルタが実機で機能する。
+pub fn sync_workspace_item_tags(
+    conn: &rusqlite::Connection,
+    workspace_id: &str,
+) -> Result<(), AppError> {
+    let sys_tag_id = tag::sys_ws_tag_id(workspace_id);
+    let widgets = workspace_repository::find_widgets_by_workspace(conn, workspace_id)?;
+    // 現在 widget が参照する item_id 集合を抽出 (config JSON から)
+    let mut current_item_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for w in &widgets {
+        if let Some(cfg) = &w.config {
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(cfg) {
+                if let Some(id) = value.get("item_id").and_then(|v| v.as_str()) {
+                    current_item_ids.insert(id.to_string());
+                }
+            }
+        }
+    }
+    // 既に sys-ws-{wsId} を持つ items を取得
+    let existing_tagged: std::collections::HashSet<String> =
+        item_repository::find_ids_by_tag(conn, &sys_tag_id)?
+            .into_iter()
+            .collect();
+    // 追加: current にあって existing に無いもの
+    for id in current_item_ids.difference(&existing_tagged) {
+        item_repository::add_system_tag(conn, id, &sys_tag_id)?;
+    }
+    // 除去: existing にあって current に無いもの
+    for id in existing_tagged.difference(&current_item_ids) {
+        item_repository::remove_system_tag(conn, id, &sys_tag_id)?;
+    }
+    Ok(())
 }
 
 pub fn list_widgets(db: &DbState, workspace_id: &str) -> Result<Vec<WorkspaceWidget>, AppError> {
@@ -150,12 +189,20 @@ pub fn update_widget_config(
     config: Option<&str>,
 ) -> Result<WorkspaceWidget, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    workspace_repository::update_widget_config(&conn, id, config)
+    let updated = workspace_repository::update_widget_config(&conn, id, config)?;
+    // 5/01 user 検収 (C3): config 変更で item_id が変わる可能性 → workspace tag 再同期。
+    sync_workspace_item_tags(&conn, &updated.workspace_id)?;
+    Ok(updated)
 }
 
 pub fn remove_widget(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    workspace_repository::delete_widget(&conn, id)
+    // 5/01 user 検収 (C3): 削除前に workspace_id を取得、削除後に tag 同期。
+    let widget = workspace_repository::find_widget_by_id(&conn, id)?;
+    let workspace_id = widget.workspace_id.clone();
+    workspace_repository::delete_widget(&conn, id)?;
+    sync_workspace_item_tags(&conn, &workspace_id)?;
+    Ok(())
 }
 
 pub fn get_frequent_items(db: &DbState, limit: i64) -> Result<Vec<Item>, AppError> {
