@@ -323,7 +323,14 @@ function openItemDetail(itemId: string) {
 	contextMenuOpen = false;
 }
 
-let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
+// 5/03 user 検収 (E): 旧 `max(3, widget bottom)` だと widget が少ない時に grid が 3 行しか
+// 描画されず、user が下のセルに drop できない bug ("配置できない場所がある")。
+// store 側 `DEFAULT_MAX_ROW = 32` と揃えて、常に 32 行 + 既存 widget の bottom 以下のうち
+// 大きい方まで grid を render する。これで下方向の drop 可能領域 = 配置可能領域 と一致。
+const MIN_VISIBLE_ROWS = 32;
+let maxRow = $derived(
+	Math.max(MIN_VISIBLE_ROWS, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
+);
 </script>
 
 <!-- Pointer drag ghost -->

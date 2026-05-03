@@ -22,6 +22,7 @@ import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { getFolderItems, getGitStatus } from '$lib/ipc/workspace';
+import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
@@ -97,6 +98,12 @@ $effect(() => {
 		.then(async (items) => {
 			folderItems = items;
 			await fetchGitStatuses(items);
+			// 5/03 user 検収 (B): 「Library に追加してもすべてに含まれない」 fb 対応。
+			// auto-register で DB に新規 item を入れた後、itemStore の items / libraryStats /
+			// tagWithCounts を再取得し、Library 画面の表示と count を即同期する。
+			await itemStore.loadItems();
+			await itemStore.loadLibraryStats();
+			await itemStore.loadTagWithCounts();
 		})
 		.catch((e: unknown) => {
 			scanError = String(e);

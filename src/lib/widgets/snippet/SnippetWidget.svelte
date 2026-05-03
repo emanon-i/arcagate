@@ -61,9 +61,21 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 <WidgetShell title={config.title || 'スニペット'} icon={Clipboard} {menuItems}>
 	{#if snippets.length === 0}
-		<p class="text-xs text-[var(--ag-text-muted)]">
-			設定からスニペットを追加してください。
-		</p>
+		<!-- 5/03 user 検収 (D): 「snippet widget が何ができるかわからない」 fb 対応。
+		     EmptyState で widget の目的と主要操作を明示、設定 dialog 直接起動 button 追加。 -->
+		<button
+			type="button"
+			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-center text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
+			aria-label="スニペットを追加"
+			onclick={() => (settingsOpen = true)}
+		>
+			<Plus class="h-6 w-6" />
+			<span class="text-xs font-medium">スニペットを追加</span>
+			<span class="px-3 text-xs leading-relaxed text-[var(--ag-text-faint)]">
+				よく使う文字列をクリックでコピー。<br />
+				メールテンプレ / コマンド / コードスニペット等。
+			</span>
+		</button>
 	{:else}
 		<!-- PH-widget-polish: list-row に min-w-0 (PH-issue-016 規格)、
 		     button に title 属性で長 label / body の tooltip。
