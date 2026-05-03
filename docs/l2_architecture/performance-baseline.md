@@ -308,3 +308,62 @@ batch-92 PH-419 で実施:
 - ⏸ 実機計測の実行は許可制 (dispatch-operation §4c)、ユーザの「OK」を待ってから次セッションで実行
 
 実測値が出たら engineering-principles.md §9 表の「未計測」を ✅ / ⚠️ / 🔴 で更新。
+
+---
+
+## 13. 2026-05-01 perf 計測サマリ (post-redo cycle、agent 自身の measurement)
+
+PR #267〜#276 を経た時点で agent が手元 dev で取れた範囲の更新値。実機 user dev session 計測は別途。
+
+### 13.1 実測値（手元 Win11 / iGPU 環境）
+
+| 観点                            | 実測                                                           | 制約                                   | 達成                                          |
+| ------------------------------- | -------------------------------------------------------------- | -------------------------------------- | --------------------------------------------- |
+| **release exe size**            | **12.14 MB** (12,726,272 bytes)                                | 20 MB                                  | ✅ (61% 余裕、§1 計測 2026-04-26 比 -4.30 MB) |
+| **arcagate.exe (dev) idle RAM** | 60 ± 0.1 MB (60s sampling)                                     | 100 MB                                 | ✅                                            |
+| WebView2 (arcagate-only)        | 512〜522 MB / 6 procs (browser + gpu + 2 utility + 2 renderer) | (Tauri 標準)                           | ⚠ Tauri WebView2 標準 footprint               |
+| 合計 footprint                  | 581 MB                                                         | (Idle 100 MB は arcagate.exe 単体目標) | —                                             |
+| **idle CPU**                    | 3.6〜9.7% (60s sampling)                                       | (vision 未明示)                        | ✅ idle で安定                                |
+| **memory leak**                 | 60s で drift なし (60.4 ± 0.1 MB)                              | 1 MB / hr 以内                         | ✅ short-window では検出されず                |
+| audit script (8 + 3 = 11 本)    | 全 0 violations                                                | —                                      | ✅                                            |
+
+### 13.2 PC ブラックアウト risk 評価 (PR #271 fix の確認)
+
+PR #271 で canvas dimension を 10000² (100 Mpx) → 6000² (36 Mpx) に縮小。iGPU 環境でも安全圏に。
+
+| 項目                  | 旧 (PR #271 前)     | 新                 |
+| --------------------- | ------------------- | ------------------ |
+| canvas 内側 dimension | 10000 × 10000       | 6000 × 6000        |
+| paint area            | 100 Mpx (iGPU 危険) | 36 Mpx (iGPU 安全) |
+| pan 余裕              | 4 方向各 4000px     | 4 方向各 2000px    |
+
+**結論 (現時点で reproducible でない範囲)**: agent 60s 計測で leak / spike なし、canvas 縮小済。**user dev session で再発有無を引き続き監視**。再発したら個別 root cause を究明。
+
+### 13.3 未計測（user 許可待ち、別 session 推奨）
+
+| 項目                          | 計測方法                                                   | 必要時間 |
+| ----------------------------- | ---------------------------------------------------------- | -------- |
+| 起動 P95 (cold/warm)          | `scripts/bench/startup.ps1 -Iterations 100`                | 約 5 分  |
+| idle memory 30 min growth     | `scripts/bench/idle-memory.ps1`                            | 約 30 分 |
+| widget 50 個 placement render | bulk add 50 widgets, measure first paint + interaction fps | 約 5 分  |
+| pan/zoom fps                  | DevTools Performance タブで record                         | 約 5 分  |
+
+実機 dev は user 許可制 (`dispatch-operation §4c`)、user の「OK」が出てから上記を回す。
+
+### 13.4 audit script による退行防止網
+
+| script                        | 検出対象                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| audit-design-tokens           | ハードコード色                                                                       |
+| audit-font-hardcode           | font-size ハードコード (Tailwind default 強制)                                       |
+| audit-handle-style            | resize handle style 不一致                                                           |
+| audit-hotkey-consistency      | hotkey 表記揺れ                                                                      |
+| audit-labels                  | アイコン名ラベル禁止違反                                                             |
+| audit-no-horizontal-scrollbar | widget 内横スクロール禁止                                                            |
+| audit-text-overflow           | flex-1 + truncate に min-w-0 必須                                                    |
+| audit-version-sync            | Cargo.toml / tauri.conf.json / package.json バージョン 3 点同期                      |
+| audit-widget-coverage         | Rust enum と TS bindings の WidgetType variant 一致                                  |
+| audit-widget-settings-schema  | widget の SettingsContent registry が config schema と一致                           |
+| audit-widget-shell            | 全 widget が WidgetShell + widgetMenuItems + WidgetSettingsDialog 共通 shell pattern |
+
+**11 本すべて 2026-05-01 時点で 0 violations**。CI + lefthook で機械化、退行は merge 前に検出される。
