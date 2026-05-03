@@ -72,6 +72,15 @@ export async function autoRegisterFolderItems(rootPath: string): Promise<Item[]>
 	return invoke<Item[]>('cmd_auto_register_folder_items', { rootPath });
 }
 
+// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録 (idempotent: 既存 target はそのまま返す)。
+export async function registerExeItem(path: string, label?: string): Promise<Item> {
+	return invoke<Item>('cmd_register_exe_item', { path, label: label ?? null });
+}
+
+export async function registerExeItemsBulk(paths: string[]): Promise<Item[]> {
+	return invoke<Item[]>('cmd_register_exe_items_bulk', { paths });
+}
+
 export async function toggleStar(itemId: string, starred: boolean): Promise<Item> {
 	return invoke<Item>('cmd_toggle_star', { itemId, starred });
 }

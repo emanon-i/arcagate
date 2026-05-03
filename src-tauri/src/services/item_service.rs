@@ -333,6 +333,62 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
     Ok(all_items)
 }
 
+/// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録 (item_type=Exe + sys-type-exe tag)。
+/// 同 target が既に存在すれば既存 item を返す (idempotent)。`label` 未指定時は filename から導出。
+pub fn register_exe_item(
+    db: &DbState,
+    path: &str,
+    label: Option<String>,
+) -> Result<Item, AppError> {
+    let p = std::path::Path::new(path);
+    if !p.is_file() {
+        return Err(AppError::InvalidInput(format!("Not a file: {}", path)));
+    }
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    if let Some(existing) = item_repository::find_by_target(&conn, path)? {
+        return Ok(existing);
+    }
+    let derived_label = p
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| path.to_string());
+    let id = Uuid::now_v7().to_string();
+    let item = Item {
+        id: id.clone(),
+        item_type: crate::models::item::ItemType::Exe,
+        label: label.unwrap_or(derived_label),
+        target: path.to_string(),
+        args: None,
+        working_dir: None,
+        icon_path: None,
+        icon_type: None,
+        aliases: vec![],
+        sort_order: 0,
+        is_enabled: true,
+        is_tracked: false,
+        default_app: None,
+        card_override_json: None,
+        created_at: String::new(),
+        updated_at: String::new(),
+    };
+    item_repository::insert(&conn, &item)?;
+    let sys_tag_id = crate::models::tag::sys_type_tag_id(&crate::models::item::ItemType::Exe);
+    item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+    item_repository::find_by_id(&conn, &id)
+}
+
+/// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録。1 件ずつ register_exe_item と同等の処理。
+/// 戻り値: 各 path に対応する Item (新規 / 既存) のリスト。
+pub fn register_exe_items_bulk(db: &DbState, paths: Vec<String>) -> Result<Vec<Item>, AppError> {
+    let mut out = Vec::with_capacity(paths.len());
+    for path in &paths {
+        let item = register_exe_item(db, path, None)?;
+        out.push(item);
+    }
+    Ok(out)
+}
+
 /// sys-starred タグを付与または解除する。
 pub fn toggle_star(db: &DbState, item_id: &str, starred: bool) -> Result<Item, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
