@@ -101,11 +101,8 @@ let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
-// PR #268 Codex review #1: canvas 10000×10000 (paint area 100Mpx) は iGPU で
-// PC ブラックアウト誘発の risk が指摘された (user 報告と一致)。6000×6000 +
-// padding 2000 全方向 (中央 2000×2000、4 方向各 2000px の pan 余裕) に縮小。
-// 旧 5000×5000 (25Mpx) 比 1.44 倍、新 36Mpx で iGPU でも安全圏。
-// 検収 #4 (大幅 pan): 6000×6000 + padding 2000、初期 scroll (1900,1900)。
+// 5/04 user 検収 (post-redo3 #2): canvas size = max(viewport, grid)、padding 0 に変更
+// (旧 6000×6000 + padding 2000 は dead zone 元凶)。初期 scroll = (0, 0) は grid 左上 = canvas 左上。
 // 検収 #8 + Codex Medium #7: pan 位置は **workspace ごと** に永続化（旧 global key は cross-workspace
 // contamination を起こしていた）。safe helper 経由で quota / SecurityError を握り潰す。
 function panKey(wsId: string | null): string {
@@ -119,8 +116,8 @@ $effect(() => {
 	queueMicrotask(() => {
 		if (!workspaceContainer) return;
 		const saved = loadJSON<{ left?: number; top?: number }>(panKey(wsId), {});
-		const left = typeof saved.left === 'number' ? saved.left : 1900;
-		const top = typeof saved.top === 'number' ? saved.top : 1900;
+		const left = typeof saved.left === 'number' ? saved.left : 0;
+		const top = typeof saved.top === 'number' ? saved.top : 0;
 		workspaceContainer.scrollTo({ left, top, behavior: 'instant' });
 	});
 });
@@ -323,7 +320,48 @@ function openItemDetail(itemId: string) {
 	contextMenuOpen = false;
 }
 
-let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.position_y + w.height)));
+// 5/04 user 検収 (post-redo3 #2): 「見える範囲広いのにウィジットが置けない」 bug。
+// 旧実装は canvas を 6000×6000 + padding 2000 で無駄に拡大、grid (= dropZone) は
+// 1960×4816 しかなく、左/上/右に 2020px の dead zone があった。pan して dead zone に
+// click → drop fail (toast「グリッド範囲外」 or 配置位置ズレ)。
+// 修正: canvas を grid と viewport の **大きい方** に揃え、dead zone を 0 にする。
+//   - canvas width  = max(viewport width, grid width)
+//   - canvas height = max(viewport height, grid height)
+//   - padding = 0 (旧 2000 全方向は無駄 pan space + dead zone の元凶)
+//   - 初期 scroll = (0, 0)
+// MIN_VISIBLE_ROWS は維持 (widget 0 個の空 workspace でも 32 行の drop zone を確保)。
+const MIN_VISIBLE_ROWS = 32;
+let maxRow = $derived(
+	Math.max(MIN_VISIBLE_ROWS, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
+);
+
+// canvas inner box size (grid 込みの flex container 全体): grid と viewport の大きい方。
+// 計算式:
+//   gridContentW = dynamicCols × (widgetW + gap) + flex p-5 padding (40)
+//   gridContentH = maxRow × (widgetH + gap) + flex p-5 padding (40)
+//   gap = 16 (WorkspaceWidgetGrid の grid gap)
+// containerHeight は ResizeObserver で計測するのが理想だが、簡略のため scrollSize から推定。
+const FLEX_PADDING = 40; // p-5 = 20px × 2
+const GRID_GAP = 16;
+let containerHeight = $state(0);
+$effect(() => {
+	const el = workspaceContainer;
+	if (!el) return;
+	containerHeight = el.clientHeight;
+	const ro = new ResizeObserver((entries) => {
+		for (const entry of entries) {
+			containerHeight = entry.contentRect.height;
+		}
+	});
+	ro.observe(el);
+	return () => ro.disconnect();
+});
+let canvasW = $derived(
+	Math.max(containerWidth, dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING),
+);
+let canvasH = $derived(
+	Math.max(containerHeight, maxRow * (zoom.widgetH + GRID_GAP) + FLEX_PADDING),
+);
 </script>
 
 <!-- Pointer drag ghost -->
@@ -412,11 +450,13 @@ let maxRow = $derived(Math.max(3, ...workspaceStore.widgets.map((w) => w.positio
 			onpointerup={onCanvasPointerUp}
 			onscroll={onWorkspaceScroll}
 		>
-			<!-- PR #268 Codex review #1: 6000×6000 (36Mpx) で iGPU 安全圏。padding 2000 全方向。
-			     pan で 4 方向に十分移動可能。dotted grid は scroll 追従 (Obsidian と一致)。 -->
+			<!-- 5/04 user 検収 (post-redo3 #2): canvas size = max(viewport, grid)、padding 0。
+			     旧 6000×6000 + padding 2000 は dead zone (左/上/右 2020px ずつ) を生み、
+			     pan して dead zone に click → drop fail を起こしていた。
+			     新 canvas は grid と viewport の大きい方に揃え、見える範囲 = 配置可能範囲を保証。 -->
 			<div
 				class="relative"
-				style="width: 6000px; height: 6000px; padding: 2000px 2000px 0 2000px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
+				style="width: {canvasW}px; height: {canvasH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 				bind:this={infiniteCanvas}
 			>
 				<div class="flex gap-4 p-5">
