@@ -118,7 +118,7 @@ test.describe('ウィジェットズーム', () => {
 		await setStoredZoom(page, DEFAULT_ZOOM);
 	});
 
-	test('ズーム範囲が 50〜200 にクランプされること', async ({ page }) => {
+	test('ズーム範囲が 25〜200 にクランプされること', async ({ page }) => {
 		// 200% に設定してリロード
 		await setStoredZoom(page, 200);
 		await page.reload();

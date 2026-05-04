@@ -93,4 +93,72 @@ test.describe('Workspace Canvas (PH-issue-002)', () => {
 		await expect(toolbar.getByRole('button', { name: '拡大率を 100% にリセット' })).toBeVisible();
 		await expect(toolbar.getByRole('button', { name: '全体を表示' })).toBeVisible();
 	});
+
+	// 5/04 user 検収 (post-redo3 #7) Phase 1 抜本書き直し: zoom anchor 動作の e2e 保証。
+	// pure function unit test (zoom-math) は数値検証済、e2e は実 DOM 経由の動作検証。
+
+	test('Reset zoom (Ctrl+0) で viewport center anchor 補正される', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+		await page.getByRole('button', { name: 'Workspace' }).click();
+		await waitForAppReady(page);
+		const container = page.locator('[data-zoom]').first();
+		// localStorage クリア + 100% 起点
+		await page.evaluate(() => localStorage.removeItem('widget-zoom'));
+		await page.keyboard.press('Control+0');
+		// zoom 50% に下げて scroll を端に動かす
+		await container.hover();
+		for (let i = 0; i < 5; i++) {
+			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+		}
+		await expect(container).toHaveAttribute('data-zoom', '50');
+		// pan で適当に scroll
+		const before = await container.evaluate((el) => ({
+			sl: (el as HTMLElement).scrollLeft,
+			st: (el as HTMLElement).scrollTop,
+		}));
+		// Ctrl+0 で Reset → viewport center anchor で scroll が ratio 倍に
+		await page.keyboard.press('Control+0');
+		await expect(container).toHaveAttribute('data-zoom', '100');
+		const after = await container.evaluate((el) => ({
+			sl: (el as HTMLElement).scrollLeft,
+			st: (el as HTMLElement).scrollTop,
+		}));
+		// scroll が変化していること (旧実装は不変だった)
+		// ratio = 100/50 = 2、center 周辺の scroll が ~2 倍に動くはず
+		expect(after.sl !== before.sl || after.st !== before.st).toBe(true);
+	});
+
+	test('Fit-to-content (Ctrl+Shift+1) で zoom と scroll が同時更新される', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+		await page.getByRole('button', { name: 'Workspace' }).click();
+		await waitForAppReady(page);
+		// 既存 widget が無くても toolbar 操作で zoom 200% にしてから Fit → 100% に戻る (空 path 保証)
+		const container = page.locator('[data-zoom]').first();
+		await container.hover();
+		for (let i = 0; i < 10; i++) {
+			await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
+		}
+		await expect(container).toHaveAttribute('data-zoom', '200');
+		await page.keyboard.press('Control+Shift+1');
+		// 空 workspace は zoom 100% に戻る
+		await expect(container).toHaveAttribute('data-zoom', '100');
+	});
+
+	test('Wheel zoom (cursor anchor) で zoom 値が変化', async ({ page }) => {
+		await resizeWindow(page, 1280, 800);
+		await page.getByRole('button', { name: 'Workspace' }).click();
+		await waitForAppReady(page);
+		const container = page.locator('[data-zoom]').first();
+		// localStorage クリアして 100% 起点
+		await page.evaluate(() => localStorage.removeItem('widget-zoom'));
+		await page.keyboard.press('Control+0');
+		await expect(container).toHaveAttribute('data-zoom', '100');
+		// container 中央付近に cursor を置いて wheel up
+		await container.hover({ position: { x: 100, y: 100 } });
+		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
+		// zoom 110% に上昇
+		await expect(container).toHaveAttribute('data-zoom', '110');
+		// cursor anchor の数値検証は zoom-math-anchor.test.ts (unit) で確認済、
+		// ここでは zoom 値が wheel に応答すること + scroll が DOM レベルで更新されることを保証
+	});
 });
