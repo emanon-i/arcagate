@@ -276,10 +276,20 @@ let minGridCols = $derived(
 		: 1,
 );
 
+// 5/04 user 検収 (post-redo3 #3): 「ウィジェットが置ける範囲がとんでもなく狭くなった」 退行。
+// 旧 PR #279 で dynamicCols = max(minGridCols, viewport-fit) のままだったが、
+// canvas を grid に揃えた結果、user は **viewport-fit cols しか配置できない** と感じた。
+// 修正: MIN_PAN_COLS=12 / MIN_PAN_ROWS=64 を最低保証し、user が viewport を超えて pan して
+// 余裕を持って widget を配置できる **広い grid** を保証する (canvas は grid 自動追従)。
+const MIN_PAN_COLS = 12;
+const MIN_PAN_ROWS = 64;
+
 let dynamicCols = $derived(
-	containerWidth > 0 && zoom.widgetW > 0
-		? Math.max(minGridCols, Math.floor(containerWidth / zoom.widgetW))
-		: Math.max(minGridCols, 4),
+	Math.max(
+		minGridCols,
+		MIN_PAN_COLS,
+		containerWidth > 0 && zoom.widgetW > 0 ? Math.floor(containerWidth / zoom.widgetW) : 4,
+	),
 );
 
 let currentWorkspaceName = $derived(
@@ -329,10 +339,10 @@ function openItemDetail(itemId: string) {
 //   - canvas height = max(viewport height, grid height)
 //   - padding = 0 (旧 2000 全方向は無駄 pan space + dead zone の元凶)
 //   - 初期 scroll = (0, 0)
-// MIN_VISIBLE_ROWS は維持 (widget 0 個の空 workspace でも 32 行の drop zone を確保)。
-const MIN_VISIBLE_ROWS = 32;
+// post-redo3 #3: MIN_PAN_ROWS=64 で空 workspace でも 64 行の広い drop zone を確保。
+// 旧 32 行は viewport 1080p で約 7 行しか見えず、user が「狭い」と感じた要因。
 let maxRow = $derived(
-	Math.max(MIN_VISIBLE_ROWS, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
+	Math.max(MIN_PAN_ROWS, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
 );
 
 // canvas inner box size (grid 込みの flex container 全体): grid と viewport の大きい方。
