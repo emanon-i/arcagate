@@ -143,6 +143,20 @@ describe('zoom-math: computeZoomAnchorScroll (anchor = mouse cursor / Wheel zoom
 		expect(r.scrollLeft).toBeCloseTo(1118.75, 1);
 		expect(r.scrollTop).toBeCloseTo(707.95, 1);
 	});
+	// 5/05 Codex Phase 1.1 M1 fix: anchor が container bounds 外でも内部 clamp で大 jump 防止
+	it('clamps out-of-viewport anchor internally (defense in depth)', () => {
+		const viewport = { clientWidth: 800, clientHeight: 600, scrollLeft: 200, scrollTop: 100 };
+		// anchor (-500, -500) → 内部 clamp で (0, 0) → top-left cursor anchor 結果と一致
+		const r1 = computeZoomAnchorScroll(100, 200, viewport, { x: -500, y: -500 });
+		const r2 = computeZoomAnchorScroll(100, 200, viewport, { x: 0, y: 0 });
+		expect(r1.scrollLeft).toBeCloseTo(r2.scrollLeft, 5);
+		expect(r1.scrollTop).toBeCloseTo(r2.scrollTop, 5);
+		// anchor (9999, 9999) → 内部 clamp で (800, 600) → bottom-right cursor anchor と一致
+		const r3 = computeZoomAnchorScroll(100, 200, viewport, { x: 9999, y: 9999 });
+		const r4 = computeZoomAnchorScroll(100, 200, viewport, { x: 800, y: 600 });
+		expect(r3.scrollLeft).toBeCloseTo(r4.scrollLeft, 5);
+		expect(r3.scrollTop).toBeCloseTo(r4.scrollTop, 5);
+	});
 	it('cursor anchor invariant: zoom 後も cursor 下の世界 cell が同じ', () => {
 		// scroll(300, 200), cursor(100, 50), zoom 100→150
 		// cellStrideX(150) = round(360)+16 = 376, cellStrideY(150) = round(202.5)+16 = 219

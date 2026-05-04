@@ -89,11 +89,19 @@ export function computeZoomAnchorScroll(
 	if (!Number.isFinite(oldZoom) || !Number.isFinite(newZoom) || oldZoom <= 0 || newZoom <= 0) {
 		return { scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop };
 	}
-	const ax = anchor ? anchor.x : viewport.clientWidth / 2;
-	const ay = anchor ? anchor.y : viewport.clientHeight / 2;
+	// 5/05 Codex (Phase 1.1) M1 fix: anchor を内部 clamp (defense in depth)。
+	// caller (widget-zoom handleWheel) も `clampAnchor` 経由で渡すが、外部直 call や
+	// `Math.NaN` 等が来た時に out-of-viewport anchor で大 jump するのを防ぐ。
+	// viewport center default はそもそも range 内なので clamp 効果なし、no-op。
+	const { x: ax, y: ay } = anchor
+		? clampAnchor(anchor, viewport)
+		: { x: viewport.clientWidth / 2, y: viewport.clientHeight / 2 };
 	// 5/05 Phase 1.1: cell-coord based ratio。
 	// anchor 下の canvas point を「どの cell の何分の位置か」 で表現 (oldZoom 基準)、
 	// 新 zoom の cell stride で px に再変換。INNER_PAD は scale 対象外なので別扱い。
+	// boundary 注: scrollLeft + ax < INNER_PAD で cellAtAnchor が負になった場合、
+	// 結果 scroll が `Math.max(0, ...)` で 0 にクランプされる。これは canvas top-left
+	// 境界で anchor 厳密保存ができない既知の振る舞い (Codex L2)。
 	const sxOld = cellStrideX(oldZoom);
 	const syOld = cellStrideY(oldZoom);
 	const sxNew = cellStrideX(newZoom);
