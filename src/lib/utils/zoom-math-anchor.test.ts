@@ -62,6 +62,17 @@ describe('zoom-math: computeZoomAnchorScroll (anchor = viewport center / Reset z
 		expect(r.scrollLeft).toBe(200);
 		expect(r.scrollTop).toBe(100);
 	});
+	// 5/05 Codex M4 fix: invalid input guard 拡張 (newZoom 側 + non-finite)
+	it('handles invalid input gracefully (no-op for 0 / 負値 / NaN / Infinity)', () => {
+		const viewport = { clientWidth: 800, clientHeight: 600, scrollLeft: 200, scrollTop: 100 };
+		const expected = { scrollLeft: 200, scrollTop: 100 };
+		expect(computeZoomAnchorScroll(100, 0, viewport)).toEqual(expected);
+		expect(computeZoomAnchorScroll(100, -50, viewport)).toEqual(expected);
+		expect(computeZoomAnchorScroll(100, NaN, viewport)).toEqual(expected);
+		expect(computeZoomAnchorScroll(100, Infinity, viewport)).toEqual(expected);
+		// oldZoom NaN (旧 oldZoom <= 0 だけでは NaN を捉えられないため Number.isFinite 追加で対応)
+		expect(computeZoomAnchorScroll(NaN, 100, viewport)).toEqual(expected);
+	});
 });
 
 describe('zoom-math: computeZoomAnchorScroll (anchor = mouse cursor / Wheel zoom)', () => {

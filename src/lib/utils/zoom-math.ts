@@ -72,7 +72,10 @@ export function computeZoomAnchorScroll(
 	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight' | 'scrollLeft' | 'scrollTop'>,
 	anchor?: { x: number; y: number },
 ): { scrollLeft: number; scrollTop: number } {
-	if (oldZoom <= 0) {
+	// 5/05 Codex M4 fix: newZoom 側の non-finite / 0 / 負値も guard。
+	// caller は通常 clampZoom() 経由で [25, 200] の正整数を渡すが、外部からの直 call にも
+	// 防御 (defensive)。invalid input なら現 scroll をそのまま返す = no-op。
+	if (!Number.isFinite(oldZoom) || !Number.isFinite(newZoom) || oldZoom <= 0 || newZoom <= 0) {
 		return { scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop };
 	}
 	const ax = anchor ? anchor.x : viewport.clientWidth / 2;
