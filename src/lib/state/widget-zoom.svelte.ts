@@ -3,6 +3,7 @@ import type { WorkspaceWidget } from '$lib/types/workspace';
 import {
 	BASE_H,
 	BASE_W,
+	clampAnchor,
 	clampZoom,
 	computeBoundingBox,
 	computeFitScroll,
@@ -47,7 +48,13 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 			const newZoom = clampZoom(oldZoom + delta);
 			if (newZoom === oldZoom) return;
 			const rect = el.getBoundingClientRect();
-			const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+			// 5/05 Codex L5 fix: cursor anchor を container bounds に clamp。
+			// momentum wheel / iframe / DPR 不整合で viewport 外座標が来た場合に
+			// scroll が急 jump するのを防ぐ。
+			const cursor = clampAnchor(
+				{ x: e.clientX - rect.left, y: e.clientY - rect.top },
+				{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
+			);
 			applyZoom(el, oldZoom, newZoom, cursor);
 		} else if (e.shiftKey) {
 			e.preventDefault();

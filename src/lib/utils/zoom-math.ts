@@ -91,6 +91,26 @@ export function computeZoomAnchorScroll(
 	};
 }
 
+/**
+ * 5/05 Codex L5 fix: cursor anchor を container bounds に clamp する pure 関数。
+ *
+ * Wheel zoom 時、`e.clientX - rect.left` は通常 `[0, clientWidth]` 範囲だが、
+ * momentum wheel / transformed layout / iframe / DPR 不整合などで viewport 外
+ * (負値 / clientWidth 超) になり得る。invalid anchor で zoom すると scroll が
+ * 急 jump する edge case が発生する。
+ *
+ * `[0, clientWidth] × [0, clientHeight]` に clamp して安全な anchor を保証。
+ */
+export function clampAnchor(
+	anchor: { x: number; y: number },
+	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight'>,
+): { x: number; y: number } {
+	return {
+		x: Math.max(0, Math.min(viewport.clientWidth, anchor.x)),
+		y: Math.max(0, Math.min(viewport.clientHeight, anchor.y)),
+	};
+}
+
 export interface BoundingBox {
 	minX: number;
 	minY: number;

@@ -4,6 +4,7 @@ import {
 	BASE_W,
 	cellStrideX,
 	cellStrideY,
+	clampAnchor,
 	clampZoom,
 	computeBoundingBox,
 	computeOrigin,
@@ -97,6 +98,26 @@ describe('zoom-math: computeOrigin', () => {
 			cellX: 2.5,
 			cellY: 5.5,
 		});
+	});
+});
+
+// 5/05 Codex L5 fix: cursor anchor を container bounds に clamp する。
+describe('zoom-math: clampAnchor', () => {
+	const viewport = { clientWidth: 800, clientHeight: 600 };
+	it('passes through anchor inside bounds', () => {
+		expect(clampAnchor({ x: 100, y: 50 }, viewport)).toEqual({ x: 100, y: 50 });
+		expect(clampAnchor({ x: 0, y: 0 }, viewport)).toEqual({ x: 0, y: 0 });
+		expect(clampAnchor({ x: 800, y: 600 }, viewport)).toEqual({ x: 800, y: 600 });
+	});
+	it('clamps negative anchor to 0', () => {
+		expect(clampAnchor({ x: -100, y: 50 }, viewport)).toEqual({ x: 0, y: 50 });
+		expect(clampAnchor({ x: 100, y: -50 }, viewport)).toEqual({ x: 100, y: 0 });
+		expect(clampAnchor({ x: -1, y: -1 }, viewport)).toEqual({ x: 0, y: 0 });
+	});
+	it('clamps anchor exceeding container bounds to clientWidth/Height', () => {
+		expect(clampAnchor({ x: 1000, y: 50 }, viewport)).toEqual({ x: 800, y: 50 });
+		expect(clampAnchor({ x: 100, y: 700 }, viewport)).toEqual({ x: 100, y: 600 });
+		expect(clampAnchor({ x: 9999, y: 9999 }, viewport)).toEqual({ x: 800, y: 600 });
 	});
 });
 
