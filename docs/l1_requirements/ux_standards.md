@@ -353,10 +353,23 @@ playClick(soundStore.soundVolume);  // soundEnabled チェック後に呼ぶ
 **グリッドセル base size 仕様** (PH-issue-004):
 
 - BASE_W = 240px / BASE_H = 135px (16:9、zoom 100%)
-- zoom 範囲 50〜200%: 50% で 120×67 / 200% で 480×270
+- zoom 範囲 25〜200%: 25% で 60×34 / 50% で 120×68 / 200% で 480×270
 - 1280×800 viewport で 5×5=25 セル表示可能 (旧 320×180 base では 4×4=16 セル)
-- 実装: `src/lib/state/widget-zoom.svelte.ts` BASE_W / BASE_H 定数
+- 実装: `src/lib/state/widget-zoom.svelte.ts` BASE_W / BASE_H 定数 + `src/lib/utils/zoom-math.ts` の純粋関数群
 - ClockWidget 等の fluid sizing は container query で base 縮小に追従 (PH-issue-021)
+
+**Zoom anchor 仕様** (post-redo3 #7、業界標準 Excalidraw / tldraw / Figma / Miro / Obsidian 準拠):
+
+- **Wheel zoom** (Ctrl + wheel): mouse cursor を anchor (cursor 下の世界点が cursor 下に居続ける)
+- **Reset zoom** (Ctrl+0 / toolbar button): viewport center を anchor、zoom のみ 100% に戻す
+- **Fit to content** (Ctrl+Shift+1 / toolbar button): BB 重心 = origin を viewport visual center に置く
+- **Button zoom** (将来): viewport center を anchor (Reset と同じ pattern)
+- 計算式 (canonical formula): `T1 = Sm − (Sm − T0) × (z1 / z0)` (T = scroll、Sm = anchor、z = zoom)
+- 実装: `src/lib/utils/zoom-math.ts` の `computeZoomAnchorScroll` / `computeFitZoom` / `computeFitScroll` 純粋関数 + `src/lib/utils/zoom-math.test.ts` + `src/lib/utils/zoom-math-anchor.test.ts` で 32 件 unit test
+- clamp は `clampZoom()` 一箇所のみ (二重 clamp / 5 単位 round 撤廃で drift 解消、Q2 確定)
+- scroll は `behavior: 'instant'` (smooth 撤廃で timing race 排除、Q4 確定)
+- 初期 scroll (workspace 切替) も `computeFitScroll` で統一 (Q3 確定、旧 `computeInitialScroll` 独自計算撤廃)
+- Settings 表示は raw integer (Math.round 済値、5 単位丸め撤廃で 73% 等を表示、Q5 確定)
 
 **Watched folder unset 時の cascade 仕様** (PH-issue-023 Phase A + B):
 

@@ -17,6 +17,7 @@ import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { loadBool, loadJSON, saveBool, saveJSON } from '$lib/utils/local-storage';
+import { computeBoundingBox, computeFitScroll, computeOrigin } from '$lib/utils/zoom-math';
 import { widgetRegistry } from '$lib/widgets';
 import ItemContextMenu from './ItemContextMenu.svelte';
 import PageTabBar from './PageTabBar.svelte';
@@ -112,32 +113,37 @@ function panKey(wsId: string | null): string {
 let panSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
- * 初期 scroll 位置を計算: widget があれば BB 中央、なければ grid 中央。
- * canvas サイズと viewport サイズの差分の真ん中に viewport を置く。
+ * 初期 scroll 位置を計算 (Q3 確定: Fit と spec 統一)。
+ *   - widget あり: zoom-math.computeFitScroll で BB 重心を viewport visual center に置く
+ *   - widget なし: canvas 中央 (grid 全景表示)
+ *
+ * 旧実装は独自に BB center 計算していたが、Fit の computeFitScroll と spec 重複だったため統一。
+ * これで初期表示と Fit ボタンが同じ scroll 計算式を使う。
  */
 function computeInitialScroll(el: HTMLElement): { left: number; top: number } {
 	const widgets = workspaceStore.widgets;
-	const cellW = zoom.widgetW + 16; // gap 16
-	const cellH = zoom.widgetH + 16;
-	const INNER_PAD = 20; // p-5
-
 	if (widgets.length === 0) {
-		// canvas 中央に viewport を置く (= widget が無くても中央起点で空間を見渡せる)
 		return {
 			left: Math.max(0, (el.scrollWidth - el.clientWidth) / 2),
 			top: Math.max(0, (el.scrollHeight - el.clientHeight) / 2),
 		};
 	}
-	// widget BB の中央 (px 座標) を viewport 中央に置く
-	const minX = widgets.reduce((m, w) => Math.min(m, w.position_x), Infinity);
-	const minY = widgets.reduce((m, w) => Math.min(m, w.position_y), Infinity);
-	const maxX = widgets.reduce((m, w) => Math.max(m, w.position_x + w.width), 0);
-	const maxY = widgets.reduce((m, w) => Math.max(m, w.position_y + w.height), 0);
-	const bbCenterX = INNER_PAD + ((minX + maxX) / 2) * cellW;
-	const bbCenterY = INNER_PAD + ((minY + maxY) / 2) * cellH;
+	const bb = computeBoundingBox(widgets);
+	if (!bb) {
+		return {
+			left: Math.max(0, (el.scrollWidth - el.clientWidth) / 2),
+			top: Math.max(0, (el.scrollHeight - el.clientHeight) / 2),
+		};
+	}
+	const origin = computeOrigin(bb);
+	const fit = computeFitScroll(origin, configStore.widgetZoom, {
+		clientWidth: el.clientWidth,
+		clientHeight: el.clientHeight,
+	});
+	// scrollWidth/Height 上限のみここで適用 (computeFitScroll は下限 0 のみ補正)
 	return {
-		left: Math.max(0, Math.min(el.scrollWidth - el.clientWidth, bbCenterX - el.clientWidth / 2)),
-		top: Math.max(0, Math.min(el.scrollHeight - el.clientHeight, bbCenterY - el.clientHeight / 2)),
+		left: Math.min(el.scrollWidth - el.clientWidth, fit.scrollLeft),
+		top: Math.min(el.scrollHeight - el.clientHeight, fit.scrollTop),
 	};
 }
 

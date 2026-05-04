@@ -91,21 +91,23 @@ function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
 	persistLibraryCard();
 }
 
-// Widget zoom (50-200%, persisted in localStorage)
-const ZOOM_STORAGE_KEY = 'widget-zoom';
-const DEFAULT_ZOOM = 100;
-// 5/04 user 検収 (post-redo3 #4): MIN_ZOOM 50 → 25 (Fit-to-content で全 widget 収納のため)。
-// widget-zoom.svelte.ts の MIN_ZOOM と同期。
-const MIN_ZOOM = 25;
-const MAX_ZOOM = 200;
+// Widget zoom (25-200%, persisted in localStorage)
+// 5/04 user 検収 (Q2 override 確定): write-time clamp 撤廃。
+//   - clamp は zoom-math の `clampZoom()` 一箇所のみ
+//   - caller は **必ず** clampZoom 済の値を渡す前提 (defense in depth ではない)
+//   - 二重 clamp / 5 単位 round / 整数化を全部撤廃
+//   - load-time clamp のみ残す (corrupted localStorage 対策、value drift 検知不能のため)
+import { MAX_ZOOM, MIN_ZOOM, RESET_ZOOM } from '$lib/utils/zoom-math';
 
-let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM));
+const ZOOM_STORAGE_KEY = 'widget-zoom';
+
+let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, RESET_ZOOM, MIN_ZOOM, MAX_ZOOM));
 
 function setWidgetZoom(zoom: number): void {
-	const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom / 5) * 5));
-	if (widgetZoom === clamped) return;
-	widgetZoom = clamped;
-	saveNumber(ZOOM_STORAGE_KEY, clamped);
+	// caller は clampZoom() 済の値を渡す前提。本関数は no-op-skip + persist のみ。
+	if (widgetZoom === zoom) return;
+	widgetZoom = zoom;
+	saveNumber(ZOOM_STORAGE_KEY, zoom);
 }
 
 async function loadConfig(): Promise<void> {
