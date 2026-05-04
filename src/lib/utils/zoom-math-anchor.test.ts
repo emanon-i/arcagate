@@ -151,18 +151,28 @@ describe('zoom-math: computeFitZoom', () => {
 });
 
 describe('zoom-math: computeFitScroll', () => {
-	it('places origin at viewport visual center', () => {
+	// 5/05 H1 fix 反映: BB center px = INNER_PAD + origin.cell × stride − GRID_GAP/2
+	// 旧 8px bias は撤廃済 (Codex H1 検出 + 修正)
+	it('places origin at viewport visual center (8px bias 撤廃)', () => {
+		// origin (5, 5), zoom 100 → cellW=256, cellH=151
+		// originPx = (20 + 5*256 − 8, 20 + 5*151 − 8) = (1292, 767)
+		// visual center: x=960, y=80+(1080-160)/2=540
+		// scroll = (1292-960, 767-540) = (332, 227)
 		const r = computeFitScroll({ cellX: 5, cellY: 5 }, 100, {
 			clientWidth: 1920,
 			clientHeight: 1080,
 		});
-		expect(r.scrollLeft).toBe(340);
-		expect(r.scrollTop).toBe(235);
+		expect(r.scrollLeft).toBe(332);
+		expect(r.scrollTop).toBe(227);
 	});
 	it('places origin at center for zoom 50', () => {
+		// origin (4, 4), zoom 50 → cellW=136, cellH=84
+		// originPx = (20 + 4*136 − 8, 20 + 4*84 − 8) = (556, 348)
+		// visual center: 400, 300
+		// scroll = (556-400, 348-300) = (156, 48)
 		const r = computeFitScroll({ cellX: 4, cellY: 4 }, 50, { clientWidth: 800, clientHeight: 600 });
-		expect(r.scrollLeft).toBe(164);
-		expect(r.scrollTop).toBe(56);
+		expect(r.scrollLeft).toBe(156);
+		expect(r.scrollTop).toBe(48);
 	});
 	it('clamps negative scroll to 0', () => {
 		const r = computeFitScroll({ cellX: 0, cellY: 0 }, 100, {
@@ -171,6 +181,42 @@ describe('zoom-math: computeFitScroll', () => {
 		});
 		expect(r.scrollLeft).toBe(0);
 		expect(r.scrollTop).toBe(0);
+	});
+	// 5/05 Codex H1 検出 + Phase 1 で対処: BB center 計算が真の center に一致することを直接検証。
+	// 旧実装は origin.cellX × stride で計算していたが、これは BB end が widgetW px 先行で
+	// GRID_GAP/2 = 8px の系統的 bias が乗っていた。修正後は真の BB center に合致。
+	it('BB center を真の中心に置く (Codex H1 修正検証)', () => {
+		// BB span cols=4 rows=2 (整数 origin)。origin = ((0+4)/2, (0+2)/2) = (2, 1)。
+		// 真の BB px range (zoom 100):
+		//   start_x = INNER_PAD = 20
+		//   end_x   = 20 + 4*240 + 3*16 = 1028  (4 cells × widgetW + 3 gap)
+		//   true center_x = (20 + 1028) / 2 = 524
+		// 公式 (修正後): 20 + 2*256 − 8 = 524 ✓ (旧公式: 20 + 2*256 = 532 で 8px bias)
+		//   start_y = 20, end_y = 20 + 2*135 + 1*16 = 306
+		//   true center_y = (20 + 306) / 2 = 163
+		// 公式: 20 + 1*151 − 8 = 163 ✓
+		// viewport を BB を完全に内包する大きさにして scroll が origin px と直結することを確認。
+		const r = computeFitScroll({ cellX: 2, cellY: 1 }, 100, {
+			clientWidth: 4000,
+			clientHeight: 4000,
+		});
+		// originPxX=524 < visualCenterX=2000 で max(0, 524-2000) = 0 にクランプされる。
+		// originPxY=163 < visualCenterY=80+(4000-160)/2=2000 で同じく 0。
+		// → 公式が真の center を返している証跡として、別途 visual center を超えるケースを併用検証。
+		expect(r.scrollLeft).toBe(0);
+		expect(r.scrollTop).toBe(0);
+
+		// visualCenter 越えの origin で公式と真の center の一致を確認
+		// origin (10, 10), viewport 1920x1080: visualCenterX=960, visualCenterY=540
+		// originPxX = 20 + 10*256 − 8 = 2572
+		// originPxY = 20 + 10*151 − 8 = 1522
+		// scroll = (2572 - 960, 1522 - 540) = (1612, 982)
+		const r2 = computeFitScroll({ cellX: 10, cellY: 10 }, 100, {
+			clientWidth: 1920,
+			clientHeight: 1080,
+		});
+		expect(r2.scrollLeft).toBe(1612);
+		expect(r2.scrollTop).toBe(982);
 	});
 });
 
@@ -181,13 +227,20 @@ describe('zoom-math: integration (Fit then Reset)', () => {
 			{ clientWidth: 1920, clientHeight: 1080 },
 		);
 		expect(fitZoom).toBe(25);
+		// origin (10, 15), zoom 25 → cellW=76, cellH=50
+		// originPx = (20 + 10*76 − 8, 20 + 15*50 − 8) = (772, 762)
+		// visual center: x=960, y=540
+		// scroll = max(0, 772-960=-188) = 0, max(0, 762-540) = 222
 		const fitScroll = computeFitScroll({ cellX: 10, cellY: 15 }, fitZoom, {
 			clientWidth: 1920,
 			clientHeight: 1080,
 		});
 		expect(fitScroll.scrollLeft).toBe(0);
-		expect(fitScroll.scrollTop).toBe(230);
+		expect(fitScroll.scrollTop).toBe(222);
 
+		// Reset 25→100: anchor = viewport center (clientWidth/2, clientHeight/2)
+		// canvasPoint = (0+960, 222+540) = (960, 762), ratio = 4
+		// newCanvasPoint = (3840, 3048), newScroll = (3840-960, 3048-540) = (2880, 2508)
 		const resetScroll = computeZoomAnchorScroll(25, 100, {
 			clientWidth: 1920,
 			clientHeight: 1080,
@@ -195,6 +248,6 @@ describe('zoom-math: integration (Fit then Reset)', () => {
 			scrollTop: fitScroll.scrollTop,
 		});
 		expect(resetScroll.scrollLeft).toBe(2880);
-		expect(resetScroll.scrollTop).toBe(2540);
+		expect(resetScroll.scrollTop).toBe(2508);
 	});
 });

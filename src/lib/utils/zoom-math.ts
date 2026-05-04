@@ -164,9 +164,14 @@ export function computeFitScroll(
 ): { scrollLeft: number; scrollTop: number } {
 	const sx = cellStrideX(zoom);
 	const sy = cellStrideY(zoom);
-	// origin の pixel 座標 (canvas 原点起点): INNER_PAD + origin.cell × stride
-	const originPxX = INNER_PAD + origin.cellX * sx;
-	const originPxY = INNER_PAD + origin.cellY * sy;
+	// 5/05 Codex H1 fix: BB center px の正確な計算。
+	// BB 端 = INNER_PAD + (minX × stride) 〜 INNER_PAD + (maxX × stride − gap)
+	//   (最後のセルは widgetW px、後続 gap なし)
+	// → BB center = INNER_PAD + ((minX + maxX) / 2) × stride − gap/2
+	//             = INNER_PAD + origin.cellX × stride − GRID_GAP / 2
+	// 旧実装は GRID_GAP/2 = 8px の系統的 bias で BB が右下に 8px ずれていた。
+	const originPxX = INNER_PAD + origin.cellX * sx - GRID_GAP / 2;
+	const originPxY = INNER_PAD + origin.cellY * sy - GRID_GAP / 2;
 	// visual center: chrome reserve を考慮した available area の中央
 	// X: 単純な viewport 中央 (左右 reserve は対称なので center は不変)
 	// Y: TOP_RESERVE 〜 (clientHeight - BOTTOM_RESERVE) の中央
