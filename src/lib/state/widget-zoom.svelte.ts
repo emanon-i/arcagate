@@ -39,12 +39,16 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		if (!el) return;
 		if (e.ctrlKey) {
 			e.preventDefault();
-			// wheel zoom も viewport-anchor で挙動を Reset と統一
+			// Q1 確定: Wheel zoom anchor = mouse cursor (Excalidraw / Figma / tldraw 業界標準)。
+			// e.clientX/Y は viewport (window) coord のため、container の clientRect を引いて
+			// container-relative coord に変換する。container は左右に sidebar 等があるため offset 必須。
 			const delta = e.deltaY > 0 ? -10 : 10;
 			const oldZoom = configStore.widgetZoom;
 			const newZoom = clampZoom(oldZoom + delta);
 			if (newZoom === oldZoom) return;
-			applyZoom(el, oldZoom, newZoom);
+			const rect = el.getBoundingClientRect();
+			const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+			applyZoom(el, oldZoom, newZoom, cursor);
 		} else if (e.shiftKey) {
 			e.preventDefault();
 			el.scrollLeft += e.deltaY;
@@ -59,16 +63,27 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	});
 
 	/**
-	 * zoom 変更 + viewport-center anchor scroll 補正の共通処理。
-	 * Reset zoom と wheel zoom の両方が呼ぶ。
+	 * zoom 変更 + anchor-preserving scroll 補正の共通処理。
+	 * Reset / Button zoom: anchor 省略 → viewport center
+	 * Wheel zoom: anchor = mouse cursor (container-relative)
 	 */
-	function applyZoom(el: HTMLElement, oldZoom: number, newZoom: number) {
-		const target = computeZoomAnchorScroll(oldZoom, newZoom, {
-			clientWidth: el.clientWidth,
-			clientHeight: el.clientHeight,
-			scrollLeft: el.scrollLeft,
-			scrollTop: el.scrollTop,
-		});
+	function applyZoom(
+		el: HTMLElement,
+		oldZoom: number,
+		newZoom: number,
+		anchor?: { x: number; y: number },
+	) {
+		const target = computeZoomAnchorScroll(
+			oldZoom,
+			newZoom,
+			{
+				clientWidth: el.clientWidth,
+				clientHeight: el.clientHeight,
+				scrollLeft: el.scrollLeft,
+				scrollTop: el.scrollTop,
+			},
+			anchor,
+		);
 		configStore.setWidgetZoom(newZoom);
 		// Svelte reactive flush + DOM reflow を待ってから scrollTo。
 		// queueMicrotask は reflow 前に走ることがあるため requestAnimationFrame を使う。
