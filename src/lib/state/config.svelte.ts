@@ -94,11 +94,15 @@ function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
 // Widget zoom (50-200%, persisted in localStorage)
 const ZOOM_STORAGE_KEY = 'widget-zoom';
 const DEFAULT_ZOOM = 100;
+// 5/04 user 検収 (post-redo3 #4): MIN_ZOOM 50 → 25 (Fit-to-content で全 widget 収納のため)。
+// widget-zoom.svelte.ts の MIN_ZOOM と同期。
+const MIN_ZOOM = 25;
+const MAX_ZOOM = 200;
 
-let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, DEFAULT_ZOOM, 50, 200));
+let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM));
 
 function setWidgetZoom(zoom: number): void {
-	const clamped = Math.max(50, Math.min(200, Math.round(zoom / 10) * 10));
+	const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom / 5) * 5));
 	if (widgetZoom === clamped) return;
 	widgetZoom = clamped;
 	saveNumber(ZOOM_STORAGE_KEY, clamped);

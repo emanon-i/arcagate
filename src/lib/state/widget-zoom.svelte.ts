@@ -7,7 +7,12 @@ import type { WorkspaceWidget } from '$lib/types/workspace';
 const BASE_W = 240;
 const BASE_H = 135;
 
-const MIN_ZOOM = 50;
+// 5/04 user 検収 (post-redo3 #4): MIN_ZOOM 50 → 25 に拡張。
+// Fit-to-content で 16+ widget の BB を viewport に収めるには 50% では不足し
+// 「全部入らない」 user 退行が発生していた。25% まで下げると BB が約 4 倍まで
+// 収納可能、widget は読みづらくなるが「全 widget が画面内に見える」を優先。
+// 視認性が必要なら user は手動で zoom up すれば良い。
+const MIN_ZOOM = 25;
 const MAX_ZOOM = 200;
 const RESET_ZOOM = 100;
 
@@ -63,22 +68,22 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 
 	/**
 	 * PH-issue-040 / 検収項目 #10: Fit to content 改修。
+	 * 5/04 user 検収 (post-redo3 #2): canvas が padding 0 + dynamic size に変わったため、
+	 *   旧 PADDING_LEFT/TOP=2000 と (1900, 1900) 初期 scroll を **完全撤廃**。
 	 *
 	 * 全 widget の bounding box が現在の window viewport に収まるよう zoom + scroll 調整。
-	 * 旧実装は scroll を (0,0) にしていたため、PH-issue-034 (infinite canvas、padding 2000px)
-	 * 導入後は widgets が画面外のまま見えないバグ。
 	 *
 	 * - BB を min/max で計算 (widgets が左上から始まらない場合も対応)
 	 * - zoom 比率は `availW / BB_W`, `availH / BB_H` の min
 	 * - scroll は BB を viewport 中央に置く位置に
-	 * - widgets が空なら resetZoom + 初期 scroll (1900, 1900) に戻す
+	 * - widgets が空なら resetZoom + scroll (0, 0) (= grid 左上)
 	 */
 	function fitToContent(widgets: WorkspaceWidget[]) {
 		const el = containerRef();
 		if (!el) return;
 		if (widgets.length === 0) {
 			resetZoom();
-			el.scrollTo({ left: 1900, top: 1900, behavior: 'instant' });
+			el.scrollTo({ left: 0, top: 0, behavior: 'instant' });
 			return;
 		}
 		const minX = widgets.reduce((m, w) => Math.min(m, w.position_x), Infinity);
@@ -106,15 +111,13 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.floor(ratio * 100)));
 		setZoom(targetZoom);
 
-		// PR #268 Codex review #1: infinite canvas は 6000×6000 / padding 2000 構造 (iGPU blackout 回避)。
-		// widget pixel coord = padding-left(2000) + p-5(20px) + grid_pos × (cell + gap)
+		// 5/04 fix (post-redo3 #2): canvas は padding 0、grid 起点 = canvas (0, 0) + flex p-5 (20px)。
+		// widget pixel coord = INNER_PAD (20) + grid_pos × (cell + gap)
 		const newCellW = (BASE_W * targetZoom) / 100;
 		const newCellH = (BASE_H * targetZoom) / 100;
-		const PADDING_LEFT = 2000;
-		const PADDING_TOP = 2000;
 		const INNER_PAD = 20; // p-5
-		const bbLeft = PADDING_LEFT + INNER_PAD + minX * (newCellW + gap);
-		const bbTop = PADDING_TOP + INNER_PAD + minY * (newCellH + gap);
+		const bbLeft = INNER_PAD + minX * (newCellW + gap);
+		const bbTop = INNER_PAD + minY * (newCellH + gap);
 		const bbW = cols * (newCellW + gap);
 		const bbH = rows * (newCellH + gap);
 		// 検収 #10: BB を viewport の中央に配置するが、上 toolbar 高さぶん補正して widgets が被らないようにする。
