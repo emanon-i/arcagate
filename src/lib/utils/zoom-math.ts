@@ -52,12 +52,23 @@ export interface Viewport {
 /**
  * Zoom 変化時の anchor-preserving scroll 計算 (Reset / Wheel / Button zoom 共通)。
  *
- * 仕様:
+ * 仕様 (5/05 Phase 1.1: cell-coord based):
  *   - 与えられた `anchor` (viewport-relative px) の canvas 世界点を zoom 変化前後で保つ
- *   - cell サイズが ratio = newZoom / oldZoom 倍になるので、canvas 上の任意の pixel 座標も ratio 倍に動く
- *   - canonical formula: `T1 = Sm − (Sm − T0) × ratio`
- *     ここで T = scroll, Sm = anchor (viewport coord), z0/z1 = oldZoom/newZoom
- *   - viewport-relative coord: `canvasPoint = scroll + anchor` → `newScroll = canvasPoint × ratio − anchor`
+ *   - canvas 拡縮は **cell stride** ベース (描画と同じ) ＝ `Math.round(BASE × zoom/100) + GRID_GAP`
+ *   - INNER_PAD (20px) は scale されない fixed offset として別扱い
+ *
+ * 旧 raw zoom ratio (`newZoom / oldZoom`) は canvas 全体一律拡縮 前提だったが、
+ * gap=16 / INNER_PAD=20 が fixed なので zoom 変化が大きいと drift が累積し、
+ * widget が viewport 外へジャンプする bug があった (Phase 1 regression、Codex M3 関連)。
+ *
+ * 新 formula:
+ *   cellAtAnchorX = (T0.x + ax − INNER_PAD) / cellStrideX(oldZoom)
+ *   cellAtAnchorY = (T0.y + ay − INNER_PAD) / cellStrideY(oldZoom)
+ *   newCanvasX = INNER_PAD + cellAtAnchorX × cellStrideX(newZoom)
+ *   newCanvasY = INNER_PAD + cellAtAnchorY × cellStrideY(newZoom)
+ *   T1 = max(0, newCanvasX − ax), max(0, newCanvasY − ay)
+ *
+ * これで描画と同じ単位で計算するため drift = 0 (Math.round の sub-px 偏差を除く)。
  *
  * @param anchor viewport 内の anchor 座標 (`{x, y}` viewport-relative px)。
  *   省略時は viewport center (`{clientWidth/2, clientHeight/2}`) = Reset / Button zoom 用。
@@ -80,14 +91,20 @@ export function computeZoomAnchorScroll(
 	}
 	const ax = anchor ? anchor.x : viewport.clientWidth / 2;
 	const ay = anchor ? anchor.y : viewport.clientHeight / 2;
-	// canvas point under anchor (旧 zoom)
-	const canvasX = viewport.scrollLeft + ax;
-	const canvasY = viewport.scrollTop + ay;
-	const ratio = newZoom / oldZoom;
-	// canvas point は ratio 倍に拡縮、その点が anchor 位置に来る scroll を解く
+	// 5/05 Phase 1.1: cell-coord based ratio。
+	// anchor 下の canvas point を「どの cell の何分の位置か」 で表現 (oldZoom 基準)、
+	// 新 zoom の cell stride で px に再変換。INNER_PAD は scale 対象外なので別扱い。
+	const sxOld = cellStrideX(oldZoom);
+	const syOld = cellStrideY(oldZoom);
+	const sxNew = cellStrideX(newZoom);
+	const syNew = cellStrideY(newZoom);
+	const cellAtAnchorX = (viewport.scrollLeft + ax - INNER_PAD) / sxOld;
+	const cellAtAnchorY = (viewport.scrollTop + ay - INNER_PAD) / syOld;
+	const newCanvasX = INNER_PAD + cellAtAnchorX * sxNew;
+	const newCanvasY = INNER_PAD + cellAtAnchorY * syNew;
 	return {
-		scrollLeft: Math.max(0, canvasX * ratio - ax),
-		scrollTop: Math.max(0, canvasY * ratio - ay),
+		scrollLeft: Math.max(0, newCanvasX - ax),
+		scrollTop: Math.max(0, newCanvasY - ay),
 	};
 }
 
