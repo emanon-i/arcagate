@@ -7,7 +7,12 @@ import type { WorkspaceWidget } from '$lib/types/workspace';
 const BASE_W = 240;
 const BASE_H = 135;
 
-const MIN_ZOOM = 50;
+// 5/04 user 検収 (post-redo3 #4): MIN_ZOOM 50 → 25 に拡張。
+// Fit-to-content で 16+ widget の BB を viewport に収めるには 50% では不足し
+// 「全部入らない」 user 退行が発生していた。25% まで下げると BB が約 4 倍まで
+// 収納可能、widget は読みづらくなるが「全 widget が画面内に見える」を優先。
+// 視認性が必要なら user は手動で zoom up すれば良い。
+const MIN_ZOOM = 25;
 const MAX_ZOOM = 200;
 const RESET_ZOOM = 100;
 

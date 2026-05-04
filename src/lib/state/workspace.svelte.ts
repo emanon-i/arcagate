@@ -33,9 +33,9 @@ const activeWorkspace = $derived(workspaces.find((w) => w.id === activeWorkspace
  * 旧 (0,0) fallback バグ排除のため `findFreePosition` は null 返却版を使う。
  */
 const DEFAULT_GRID_COLS = 4;
-// 5/04 user 検収 (post-redo3 #3): 32 → 64 に拡大。MIN_PAN_ROWS と整合。
-// findFreePosition / addWidgetAt の row bound check は y + h <= DEFAULT_MAX_ROW + 1 (= 65)。
-const DEFAULT_MAX_ROW = 64;
+// 5/04 user 検収 (post-redo3 #4): MIN_PAN_ROWS と整合させ 128 に拡大。
+// findFreePosition / addWidgetAt の row bound check は y + h <= DEFAULT_MAX_ROW + 1 (= 129)。
+const DEFAULT_MAX_ROW = 128;
 
 function widgetsToRects(list: WorkspaceWidget[], excludeId?: string): Rect[] {
 	return list

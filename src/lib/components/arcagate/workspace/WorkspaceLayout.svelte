@@ -101,24 +101,68 @@ let contextMenuItemId = $state<string | null>(null);
 let workspaceContainer = $state<HTMLDivElement | null>(null);
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
 let containerWidth = $state(0);
-// 5/04 user 検収 (post-redo3 #2): canvas size = max(viewport, grid)、padding 0 に変更
-// (旧 6000×6000 + padding 2000 は dead zone 元凶)。初期 scroll = (0, 0) は grid 左上 = canvas 左上。
-// 検収 #8 + Codex Medium #7: pan 位置は **workspace ごと** に永続化（旧 global key は cross-workspace
-// contamination を起こしていた）。safe helper 経由で quota / SecurityError を握り潰す。
+// 5/04 user 検収 (post-redo3 #4): 「左端 / 上端の壁」と「初期位置が左上」を解消。
+// 修正:
+//   - 初期 scroll は grid 中央 (saved 位置がない場合) に変更。widget 群がある場合は widget BB 中央に focus。
+//   - grid サイズ自体も MIN_PAN_COLS=24 / MIN_PAN_ROWS=128 に拡大 (中央起点 + 4 方向に広い pan 余裕)。
+// pan 位置は **workspace ごと** に永続化 (cross-workspace contamination 防止)。
 function panKey(wsId: string | null): string {
 	return wsId ? `arcagate.workspace.pan.${wsId}` : 'arcagate.workspace.pan.__default__';
 }
 let panSaveTimer: ReturnType<typeof setTimeout> | null = null;
-// active workspace 切替で pan を別 workspace の最後位置に復元
+
+/**
+ * 初期 scroll 位置を計算: widget があれば BB 中央、なければ grid 中央。
+ * canvas サイズと viewport サイズの差分の真ん中に viewport を置く。
+ */
+function computeInitialScroll(el: HTMLElement): { left: number; top: number } {
+	const widgets = workspaceStore.widgets;
+	const cellW = zoom.widgetW + 16; // gap 16
+	const cellH = zoom.widgetH + 16;
+	const INNER_PAD = 20; // p-5
+
+	if (widgets.length === 0) {
+		// canvas 中央に viewport を置く (= widget が無くても中央起点で空間を見渡せる)
+		return {
+			left: Math.max(0, (el.scrollWidth - el.clientWidth) / 2),
+			top: Math.max(0, (el.scrollHeight - el.clientHeight) / 2),
+		};
+	}
+	// widget BB の中央 (px 座標) を viewport 中央に置く
+	const minX = widgets.reduce((m, w) => Math.min(m, w.position_x), Infinity);
+	const minY = widgets.reduce((m, w) => Math.min(m, w.position_y), Infinity);
+	const maxX = widgets.reduce((m, w) => Math.max(m, w.position_x + w.width), 0);
+	const maxY = widgets.reduce((m, w) => Math.max(m, w.position_y + w.height), 0);
+	const bbCenterX = INNER_PAD + ((minX + maxX) / 2) * cellW;
+	const bbCenterY = INNER_PAD + ((minY + maxY) / 2) * cellH;
+	return {
+		left: Math.max(0, Math.min(el.scrollWidth - el.clientWidth, bbCenterX - el.clientWidth / 2)),
+		top: Math.max(0, Math.min(el.scrollHeight - el.clientHeight, bbCenterY - el.clientHeight / 2)),
+	};
+}
+
+// active workspace 切替で pan を別 workspace の最後位置に復元 (新規は中央起点)。
+// 初回 scroll は **per workspace 1 度だけ** 適用 (widget 配置毎に再 center しない)。
+let lastInitializedWorkspaceId = $state<string | null>(null);
 $effect(() => {
 	const wsId = workspaceStore.activeWorkspaceId;
-	if (!workspaceContainer || !infiniteCanvas) return;
+	const widgets = workspaceStore.widgets; // 依存登録: widgets ロード完了で再 trigger
+	if (!workspaceContainer || !infiniteCanvas || !wsId) return;
+	if (workspaceStore.loading) return; // widgets ロード中は待機
+	if (lastInitializedWorkspaceId === wsId) return;
+	lastInitializedWorkspaceId = wsId;
 	queueMicrotask(() => {
 		if (!workspaceContainer) return;
 		const saved = loadJSON<{ left?: number; top?: number }>(panKey(wsId), {});
-		const left = typeof saved.left === 'number' ? saved.left : 0;
-		const top = typeof saved.top === 'number' ? saved.top : 0;
-		workspaceContainer.scrollTo({ left, top, behavior: 'instant' });
+		if (typeof saved.left === 'number' && typeof saved.top === 'number') {
+			workspaceContainer.scrollTo({ left: saved.left, top: saved.top, behavior: 'instant' });
+			return;
+		}
+		// widget が読み込まれている前提で BB / canvas 中央計算
+		const _w = widgets; // unused 警告抑制 (依存登録のため reference 必要)
+		void _w;
+		const init = computeInitialScroll(workspaceContainer);
+		workspaceContainer.scrollTo({ left: init.left, top: init.top, behavior: 'instant' });
 	});
 });
 function onWorkspaceScroll() {
@@ -276,13 +320,14 @@ let minGridCols = $derived(
 		: 1,
 );
 
-// 5/04 user 検収 (post-redo3 #3): 「ウィジェットが置ける範囲がとんでもなく狭くなった」 退行。
-// 旧 PR #279 で dynamicCols = max(minGridCols, viewport-fit) のままだったが、
-// canvas を grid に揃えた結果、user は **viewport-fit cols しか配置できない** と感じた。
-// 修正: MIN_PAN_COLS=12 / MIN_PAN_ROWS=64 を最低保証し、user が viewport を超えて pan して
-// 余裕を持って widget を配置できる **広い grid** を保証する (canvas は grid 自動追従)。
-const MIN_PAN_COLS = 12;
-const MIN_PAN_ROWS = 64;
+// 5/04 user 検収 (post-redo3 #4): 「左端 / 上端の壁を感じる」 退行。
+// MIN_PAN_COLS=12 / 64 では viewport (1920×1080) から pan して数 cells で grid 端に到達、
+// 「壁」体感を解消できなかった。grid を **十分広く** 確保し、初期 scroll 中央起点と組合わせて
+// user が grid 端に到達するまでに **24 cols × 128 rows** の pan 余裕を持たせる。
+// 24 cols × 256 px = 6144 px、128 rows × 151 px = 19328 px (zoom 100% 時)。
+// 中央起点なら 4 方向に各 ~3000 / ~9500 px の pan 余裕、user が「壁」を感じない実用上の無限 canvas。
+const MIN_PAN_COLS = 24;
+const MIN_PAN_ROWS = 128;
 
 let dynamicCols = $derived(
 	Math.max(
