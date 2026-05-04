@@ -92,24 +92,22 @@ function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
 }
 
 // Widget zoom (25-200%, persisted in localStorage)
-// 5/04 user 検収 (post-redo3 #7 抜本書き直し):
-//   - 二重 clamp + 5 単位 round を撤廃 (Fit の targetZoom がズレる元凶)
-//   - clamp は配下の `widget-zoom.svelte.ts setZoom` だけが担う
-//   - configStore は store としての persist + integer 化のみ
-const ZOOM_STORAGE_KEY = 'widget-zoom';
-const DEFAULT_ZOOM = 100;
-const MIN_ZOOM = 25;
-const MAX_ZOOM = 200;
+// 5/04 user 検収 (Q2 override 確定): write-time clamp 撤廃。
+//   - clamp は zoom-math の `clampZoom()` 一箇所のみ
+//   - caller は **必ず** clampZoom 済の値を渡す前提 (defense in depth ではない)
+//   - 二重 clamp / 5 単位 round / 整数化を全部撤廃
+//   - load-time clamp のみ残す (corrupted localStorage 対策、value drift 検知不能のため)
+import { MAX_ZOOM, MIN_ZOOM, RESET_ZOOM } from '$lib/utils/zoom-math';
 
-let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM));
+const ZOOM_STORAGE_KEY = 'widget-zoom';
+
+let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, RESET_ZOOM, MIN_ZOOM, MAX_ZOOM));
 
 function setWidgetZoom(zoom: number): void {
-	// loadNumber 側で初期 clamp 済。ここは整数化 + 永続化のみ。
-	// Fit の targetZoom (例 31) を 5 単位に round していた処理は撤廃。
-	const next = Math.round(zoom);
-	if (widgetZoom === next) return;
-	widgetZoom = next;
-	saveNumber(ZOOM_STORAGE_KEY, next);
+	// caller は clampZoom() 済の値を渡す前提。本関数は no-op-skip + persist のみ。
+	if (widgetZoom === zoom) return;
+	widgetZoom = zoom;
+	saveNumber(ZOOM_STORAGE_KEY, zoom);
 }
 
 async function loadConfig(): Promise<void> {
