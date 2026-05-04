@@ -50,31 +50,41 @@ export interface Viewport {
 }
 
 /**
- * Reset zoom (viewport-center anchor)。
+ * Zoom 変化時の anchor-preserving scroll 計算 (Reset / Wheel / Button zoom 共通)。
  *
  * 仕様:
- *   - viewport 中央の canvas pixel point は zoom 変化前後で「同じ視覚位置」を保つ
+ *   - 与えられた `anchor` (viewport-relative px) の canvas 世界点を zoom 変化前後で保つ
  *   - cell サイズが ratio = newZoom / oldZoom 倍になるので、canvas 上の任意の pixel 座標も ratio 倍に動く
- *   - 新 scrollLeft = (旧 viewport center 座標) × ratio − clientWidth/2
+ *   - canonical formula: `T1 = Sm − (Sm − T0) × ratio`
+ *     ここで T = scroll, Sm = anchor (viewport coord), z0/z1 = oldZoom/newZoom
+ *   - viewport-relative coord: `canvasPoint = scroll + anchor` → `newScroll = canvasPoint × ratio − anchor`
  *
- * @returns 新しい scroll 位置 (clamp 前)。caller が scrollTo に使う前に scrollWidth/Height で clamp する想定。
- *   ただし zoom 変化後の scrollWidth/Height は事前に計算困難 (DOM reflow 待ちが必要) のため、
- *   呼び出し側は requestAnimationFrame 経由で scrollTo + max(0, ...) で下限のみ確保する。
+ * @param anchor viewport 内の anchor 座標 (`{x, y}` viewport-relative px)。
+ *   省略時は viewport center (`{clientWidth/2, clientHeight/2}`) = Reset / Button zoom 用。
+ *   Wheel zoom では mouse cursor の viewport-relative 座標を渡す。
+ *
+ * @returns 新しい scroll 位置 (caller が scrollTo に渡す)。
+ *   下限は max(0, ...) で確保、上限は scrollTo の native browser clamp に任せる。
  */
 export function computeZoomAnchorScroll(
 	oldZoom: number,
 	newZoom: number,
 	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight' | 'scrollLeft' | 'scrollTop'>,
+	anchor?: { x: number; y: number },
 ): { scrollLeft: number; scrollTop: number } {
 	if (oldZoom <= 0) {
 		return { scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop };
 	}
-	const centerX = viewport.scrollLeft + viewport.clientWidth / 2;
-	const centerY = viewport.scrollTop + viewport.clientHeight / 2;
+	const ax = anchor ? anchor.x : viewport.clientWidth / 2;
+	const ay = anchor ? anchor.y : viewport.clientHeight / 2;
+	// canvas point under anchor (旧 zoom)
+	const canvasX = viewport.scrollLeft + ax;
+	const canvasY = viewport.scrollTop + ay;
 	const ratio = newZoom / oldZoom;
+	// canvas point は ratio 倍に拡縮、その点が anchor 位置に来る scroll を解く
 	return {
-		scrollLeft: Math.max(0, centerX * ratio - viewport.clientWidth / 2),
-		scrollTop: Math.max(0, centerY * ratio - viewport.clientHeight / 2),
+		scrollLeft: Math.max(0, canvasX * ratio - ax),
+		scrollTop: Math.max(0, canvasY * ratio - ay),
 	};
 }
 
