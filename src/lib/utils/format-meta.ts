@@ -52,12 +52,13 @@ export function formatItemMeta(
 ): { line1: string; line2: string } {
 	switch (item.item_type) {
 		case 'folder': {
+			// 5/04 user 検収 (post-redo3 #6): null も通す `!== undefined` 判定は危険、typeof number に統一。
 			const childPart =
-				meta.childCount !== undefined
+				typeof meta.childCount === 'number'
 					? `${meta.childCount} ${meta.childCount === 1 ? 'item' : 'items'}`
 					: '';
 			const sizePart =
-				meta.folderTotalBytes !== undefined ? formatBytes(meta.folderTotalBytes) : '';
+				typeof meta.folderTotalBytes === 'number' ? formatBytes(meta.folderTotalBytes) : '';
 			return {
 				line1: [childPart, sizePart].filter(Boolean).join(' · '),
 				line2: formatShortDate(meta.modifiedAtUnix),
@@ -66,15 +67,17 @@ export function formatItemMeta(
 		case 'exe':
 		case 'script': {
 			// 画像メタデータがあれば優先（image item_type は ItemType に未定義のため
-			// exe/script 経由でも image_width が埋まっていれば表示）
-			if (meta.imageWidth !== undefined && meta.imageHeight !== undefined) {
+			// exe/script 経由でも image_width が埋まっていれば表示）。
+			// 5/04 user 検収 (post-redo3 #6): 旧 `!== undefined` は null も通すため、IPC で null
+			// が返ったとき "null × null" がそのまま rendering される bug があった。typeof number 判定に。
+			if (typeof meta.imageWidth === 'number' && typeof meta.imageHeight === 'number') {
 				return {
 					line1: `${meta.imageWidth} × ${meta.imageHeight}${meta.imageFormat ? ` ${meta.imageFormat}` : ''}`,
-					line2: meta.sizeBytes !== undefined ? formatBytes(meta.sizeBytes) : '',
+					line2: typeof meta.sizeBytes === 'number' ? formatBytes(meta.sizeBytes) : '',
 				};
 			}
 			return {
-				line1: meta.sizeBytes !== undefined ? formatBytes(meta.sizeBytes) : '',
+				line1: typeof meta.sizeBytes === 'number' ? formatBytes(meta.sizeBytes) : '',
 				line2: formatShortDate(meta.modifiedAtUnix),
 			};
 		}
