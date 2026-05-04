@@ -1,5 +1,30 @@
 <script lang="ts">
-import { Clipboard, Plus, X } from '@lucide/svelte';
+/**
+ * 5/04 user 検収 (post-redo3 #5): SnippetWidget の inline 操作対応 + 用途明示。
+ *
+ * user 原文:
+ *   「結局スニペットウィジットてなに？設定から追加もよく分からんし、
+ *    ウィジット上でスニペット増やしたり消したりできるべきでは？」
+ *
+ * 旧実装の問題:
+ *   - 空状態 button が WidgetSettingsDialog を開くが、Settings dialog には「title」しか
+ *     ないため snippet を追加できない**死んだ**導線だった。
+ *   - 一覧表示時も「+」 button が無く、追加経路 0 (Settings 経由不能 = 完全に詰み)。
+ *   - 各 row の delete (×) はあるが edit が無い、誤入力したら削除→再追加が必要。
+ *
+ * 新実装:
+ *   - widget header に「+」 button を常時配置 (compose mode を toggle)。
+ *   - compose mode: inline form で label + body 入力 → Save で snippet 追加 / 編集。
+ *   - 各 row hover: 編集 (✎) + 削除 (×) icon 表示、Settings dialog 不要で完結。
+ *   - 空状態: 用途説明 + 「+」 button (compose mode 起動)。
+ *   - WidgetSettingsDialog は title など詳細管理用に残す (menu 経由)。
+ *
+ * 引用元 guideline:
+ *   - docs/desktop_ui_ux_agent_rules.md P3 (主要 vs 補助、頻度高い操作は inline)
+ *   - docs/l1_requirements/ux_standards.md §6-1 widget compact UI
+ *   - CLAUDE.md「設定変えたら即見た目が変わる」
+ */
+import { Check, Clipboard, Pencil, Plus, X } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -37,9 +62,56 @@ let config = $derived.by<SnippetConfig>(() => {
 
 let snippets = $derived(config.snippets ?? []);
 
+// compose mode 状態: 'add' = 新規追加 / { id } = 編集中の snippet id / null = 一覧表示
+let composeMode = $state<'add' | { editId: string } | null>(null);
+let composeLabel = $state('');
+let composeBody = $state('');
+
 async function persist(next: SnippetConfig) {
 	if (!widget) return;
 	await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
+}
+
+function startAdd() {
+	composeMode = 'add';
+	composeLabel = '';
+	composeBody = '';
+}
+
+function startEdit(snip: Snippet) {
+	composeMode = { editId: snip.id };
+	composeLabel = snip.label;
+	composeBody = snip.body;
+}
+
+function cancelCompose() {
+	composeMode = null;
+	composeLabel = '';
+	composeBody = '';
+}
+
+function saveCompose() {
+	const label = composeLabel.trim();
+	const body = composeBody;
+	if (!label || !body) {
+		toastStore.add('ラベルと本文の両方を入力してください', 'error');
+		return;
+	}
+	let next: Snippet[];
+	if (composeMode === 'add') {
+		const id =
+			typeof crypto !== 'undefined' && 'randomUUID' in crypto
+				? crypto.randomUUID()
+				: `snip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		next = [...snippets, { id, label, body }];
+	} else if (composeMode && 'editId' in composeMode) {
+		const editId = composeMode.editId;
+		next = snippets.map((s) => (s.id === editId ? { ...s, label, body } : s));
+	} else {
+		return;
+	}
+	void persist({ ...config, snippets: next });
+	cancelCompose();
 }
 
 async function copySnippet(snip: Snippet) {
@@ -60,26 +132,71 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'スニペット'} icon={Clipboard} {menuItems}>
-	{#if snippets.length === 0}
-		<!-- 5/03 user 検収 (D): 「snippet widget が何ができるかわからない」 fb 対応。
-		     EmptyState で widget の目的と主要操作を明示、設定 dialog 直接起動 button 追加。 -->
+	<!-- compose mode: 新規追加 / 編集 inline form -->
+	{#if composeMode}
+		<div class="space-y-2">
+			<input
+				type="text"
+				autocomplete="off"
+				placeholder="ラベル (例: メールテンプレ)"
+				class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
+				bind:value={composeLabel}
+			/>
+			<textarea
+				autocomplete="off"
+				placeholder="本文 (クリックでコピーされる文字列)"
+				rows="3"
+				class="w-full resize-none rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 font-mono text-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
+				bind:value={composeBody}
+			></textarea>
+			<div class="flex items-center justify-end gap-1.5">
+				<button
+					type="button"
+					class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					onclick={cancelCompose}
+				>
+					キャンセル
+				</button>
+				<button
+					type="button"
+					class="flex items-center gap-1 rounded-md border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-2 py-1 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-accent)] hover:text-[var(--ag-accent-text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					onclick={saveCompose}
+				>
+					<Check class="h-3 w-3" />
+					保存
+				</button>
+			</div>
+		</div>
+	{:else if snippets.length === 0}
+		<!-- 空状態: 用途説明 + 「+」 button (Settings ではなく compose mode 起動) -->
 		<button
 			type="button"
 			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-center text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
 			aria-label="スニペットを追加"
-			onclick={() => (settingsOpen = true)}
+			onclick={startAdd}
 		>
 			<Plus class="h-6 w-6" />
 			<span class="text-xs font-medium">スニペットを追加</span>
 			<span class="px-3 text-xs leading-relaxed text-[var(--ag-text-faint)]">
-				よく使う文字列をクリックでコピー。<br />
-				メールテンプレ / コマンド / コードスニペット等。
+				よく使う文字列をワンクリックでコピー。<br />
+				メールテンプレ / コマンド / コード snippet 等。
 			</span>
 		</button>
 	{:else}
-		<!-- PH-widget-polish: list-row に min-w-0 (PH-issue-016 規格)、
-		     button に title 属性で長 label / body の tooltip。
-		     active:scale-[0.97] で「コピーした」フィードバックを触覚的に。 -->
+		<!-- toolbar: 「+」 button (常時) + snippet count -->
+		<div class="mb-2 flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] pb-1.5">
+			<span class="text-xs text-[var(--ag-text-muted)]">{snippets.length} 件</span>
+			<button
+				type="button"
+				class="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+				aria-label="スニペットを追加"
+				title="スニペットを追加"
+				onclick={startAdd}
+			>
+				<Plus class="h-3 w-3" />
+				追加
+			</button>
+		</div>
 		<ul class="space-y-1">
 			{#each snippets as snip (snip.id)}
 				<li class="group flex min-w-0 items-center gap-1">
@@ -95,8 +212,18 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					</button>
 					<button
 						type="button"
-						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
-						aria-label="スニペットを削除"
+						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:opacity-100 group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+						aria-label="{snip.label} を編集"
+						title="編集"
+						onclick={() => startEdit(snip)}
+					>
+						<Pencil class="h-3 w-3" />
+					</button>
+					<button
+						type="button"
+						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:opacity-100 group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+						aria-label="{snip.label} を削除"
+						title="削除"
 						onclick={() => deleteSnippet(snip.id)}
 					>
 						<X class="h-3 w-3" />
