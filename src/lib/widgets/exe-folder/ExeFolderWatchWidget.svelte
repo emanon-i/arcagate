@@ -3,7 +3,6 @@ import {
 	AppWindow,
 	ArrowDown,
 	ArrowUp,
-	BookmarkPlus,
 	FolderOpen,
 	MoreHorizontal,
 	Settings,
@@ -12,7 +11,7 @@ import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
-import { registerExeItem, registerExeItemsBulk } from '$lib/ipc/items';
+import { registerExeItemsBulk } from '$lib/ipc/items';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -119,9 +118,31 @@ $effect(() => {
 	const myId = ++scanRequestId;
 	scanning = true;
 	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { root: path, depth })
-		.then((result) => {
+		.then(async (result) => {
 			if (myId !== scanRequestId) return;
 			entries = result;
+			// 5/03 user 検収: 「Exe 監視なんで library 画面に追加機能なんてつけてんの？」
+			// → ProjectsWidget (`auto_register_folder_items`) と同じく、scan 完了時に
+			// **発見した exe を Library に自動登録** (idempotent: 既存 target は skip)。
+			// 手動 button は撤廃済。
+			const paths: string[] = [];
+			for (const entry of result) {
+				const override = config.item_overrides?.[entry.folderPath];
+				const exePath =
+					override && entry.exeCandidates.some((c) => c.path === override)
+						? override
+						: entry.exeCandidates[0]?.path;
+				if (exePath) paths.push(exePath);
+			}
+			if (paths.length > 0) {
+				await registerExeItemsBulk(paths).catch((e: unknown) => {
+					console.warn('exe auto-register failed', e);
+				});
+				// 5/03 user 検収 (B): Library の「すべて」 / 各タグ count まで完全同期。
+				await itemStore.loadItems();
+				await itemStore.loadLibraryStats();
+				await itemStore.loadTagWithCounts();
+			}
 		})
 		.catch((e: unknown) => {
 			if (myId !== scanRequestId) return;
@@ -219,41 +240,8 @@ async function launchEntry(entry: ExeFolderEntry) {
 		.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
 }
 
-// 5/01 user 検収 (C2): 「監視対象 EXE は library 画面側に EXE アイテムとして登録されないの？
-// なんでフォルダ？」 fb への対応。entry の resolved exe を Library に登録 (idempotent)。
-async function registerEntryToLibrary(entry: ExeFolderEntry) {
-	const exePath = resolveExe(entry);
-	if (!exePath) {
-		toastStore.add(`${entry.folderName}: 登録可能な exe が見つかりません`, 'error');
-		return;
-	}
-	try {
-		await registerExeItem(exePath, entry.folderName);
-		await itemStore.loadItems();
-		toastStore.add(`${entry.folderName} を Library に追加しました`, 'success');
-	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'Library 追加' }, e), 'error');
-	}
-}
-
-async function registerAllEntriesToLibrary() {
-	const paths: string[] = [];
-	for (const entry of sortedEntries) {
-		const exePath = resolveExe(entry);
-		if (exePath) paths.push(exePath);
-	}
-	if (paths.length === 0) {
-		toastStore.add('登録対象の exe がありません', 'info');
-		return;
-	}
-	try {
-		const items = await registerExeItemsBulk(paths);
-		await itemStore.loadItems();
-		toastStore.add(`${items.length} 個の exe を Library に追加しました`, 'success');
-	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'Library 一括追加' }, e), 'error');
-	}
-}
+// 5/03 user 検収: 旧 registerEntryToLibrary / registerAllEntriesToLibrary 手動 button は撤廃。
+// scan 完了時に上の $effect で `registerExeItemsBulk` を自動呼び出し → ProjectsWidget と統一。
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
@@ -285,7 +273,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			指定フォルダ内に exe を含むサブフォルダがありません。
 		</p>
 	{:else}
-		<!-- 5/01 user 検収 (C2): 全 exe を Library に一括追加 button (右端)。 -->
+		<!-- 並び替え toolbar (5/03 user 検収: 旧「全部 Library 追加」 button は撤廃。auto-register on scan に統一)。 -->
 		<div class="mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] pb-1.5 text-xs">
 			<span class="text-[var(--ag-text-muted)]">並び替え:</span>
 			<button
@@ -328,16 +316,6 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						/>{/if}
 				{/if}
 			</button>
-			<button
-				type="button"
-				class="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-				aria-label="全 exe を Library に追加"
-				title="検出された全 exe を Library に Item として追加"
-				onclick={() => void registerAllEntriesToLibrary()}
-			>
-				<BookmarkPlus class="h-3 w-3" />
-				<span>全部 Library 追加</span>
-			</button>
 		</div>
 		<ul class="space-y-1">
 			{#each sortedEntries as entry (entry.folderPath)}
@@ -356,16 +334,6 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						<span class="shrink-0 text-xs {hasOverride ? 'text-[var(--ag-accent-text)]' : 'text-[var(--ag-text-faint)]'}">
 							{entry.exeCandidates.length} exe{hasOverride ? ' ◉' : ''}
 						</span>
-					</button>
-					<!-- 5/01 user 検収 (C2): entry を Library に追加 (per-row、idempotent)。 -->
-					<button
-						type="button"
-						class="shrink-0 rounded p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-						aria-label="{entry.folderName} を Library に追加"
-						title="Library に追加"
-						onclick={() => void registerEntryToLibrary(entry)}
-					>
-						<BookmarkPlus class="h-3 w-3" />
 					</button>
 					{#if entry.exeCandidates.length > 1}
 						<!-- PH-widget-polish: aria-haspopup / aria-expanded で a11y、data-popover-trigger で

@@ -330,17 +330,10 @@ function openItemDetail(itemId: string) {
 	contextMenuOpen = false;
 }
 
-// 5/04 user 検収 (post-redo3 #2): 「見える範囲広いのにウィジットが置けない」 bug。
-// 旧実装は canvas を 6000×6000 + padding 2000 で無駄に拡大、grid (= dropZone) は
-// 1960×4816 しかなく、左/上/右に 2020px の dead zone があった。pan して dead zone に
-// click → drop fail (toast「グリッド範囲外」 or 配置位置ズレ)。
-// 修正: canvas を grid と viewport の **大きい方** に揃え、dead zone を 0 にする。
-//   - canvas width  = max(viewport width, grid width)
-//   - canvas height = max(viewport height, grid height)
-//   - padding = 0 (旧 2000 全方向は無駄 pan space + dead zone の元凶)
+// 5/04 user 検収 (post-redo3 #2 + #3): canvas dead zone 解消 + 配置範囲拡大。
+//   - canvas size = max(viewport, grid)、padding 0 (旧 6000×6000 + padding 2000 の dead zone 解消)
+//   - MIN_PAN_ROWS=64 で空 workspace でも 64 行の drop zone を確保 (旧 32 行は user が「狭い」と感じた)
 //   - 初期 scroll = (0, 0)
-// post-redo3 #3: MIN_PAN_ROWS=64 で空 workspace でも 64 行の広い drop zone を確保。
-// 旧 32 行は viewport 1080p で約 7 行しか見えず、user が「狭い」と感じた要因。
 let maxRow = $derived(
 	Math.max(MIN_PAN_ROWS, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
 );
@@ -350,7 +343,6 @@ let maxRow = $derived(
 //   gridContentW = dynamicCols × (widgetW + gap) + flex p-5 padding (40)
 //   gridContentH = maxRow × (widgetH + gap) + flex p-5 padding (40)
 //   gap = 16 (WorkspaceWidgetGrid の grid gap)
-// containerHeight は ResizeObserver で計測するのが理想だが、簡略のため scrollSize から推定。
 const FLEX_PADDING = 40; // p-5 = 20px × 2
 const GRID_GAP = 16;
 let containerHeight = $state(0);
