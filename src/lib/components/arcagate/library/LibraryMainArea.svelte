@@ -254,14 +254,33 @@ function handleGridKeydown(e: KeyboardEvent) {
 		selectionMode,
 		mod: e.ctrlKey || e.metaKey,
 	});
-	if (action.type === 'noop') return;
+	if (action.type !== 'noop') {
+		e.preventDefault();
+		applyKeyAction(action);
+		return;
+	}
+	// L2-B B3: type-to-jump — gridKeyboardNav が拾わなかった単 printable は
+	// 先頭一致 (case-insensitive、locale-aware) で item を jump。
+	// modifier 付きや長キー名 (ArrowUp 等) は除外。
+	if (e.ctrlKey || e.metaKey || e.altKey) return;
+	if (e.key.length !== 1) return;
+	const prefix = e.key.toLowerCase();
+	const idx = filteredItems.findIndex((i) => i.label.toLowerCase().startsWith(prefix));
+	if (idx < 0) return;
 	e.preventDefault();
-	applyKeyAction(action);
+	focusCardAt(idx);
 }
 </script>
 
 <svelte:window
 	onkeydown={(e) => {
+		// L2-B B3: Ctrl/Cmd+F で search input にフォーカス (browser default の Find は dev tool 経由で代替)
+		if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+			e.preventDefault();
+			searchInputEl?.focus();
+			searchInputEl?.select();
+			return;
+		}
 		if (e.key === '/') {
 			const target = e.target as HTMLElement;
 			if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
