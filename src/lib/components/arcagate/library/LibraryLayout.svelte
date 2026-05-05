@@ -90,7 +90,12 @@ let gridClass = $derived.by(() => {
 		bind:this={mainScrollEl}
 		onscroll={onMainScroll}
 	>
-		<LibraryMainArea {activeTag} onSelectItem={(id: string | null) => (selectedItemId = id)} {onAddItem} />
+		<LibraryMainArea
+			{activeTag}
+			onSelectItem={(id: string | null) => (selectedItemId = id)}
+			{onAddItem}
+			{onEditItem}
+		/>
 	</div>
 	{#if selectedItemId}
 		<div class="hidden min-h-0 overflow-y-auto [scrollbar-gutter:stable] lg:block" data-testid="library-detail-wrapper">

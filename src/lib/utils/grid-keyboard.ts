@@ -13,6 +13,9 @@ export type GridKeyAction =
 	| { type: 'focus'; index: number }
 	| { type: 'launch'; index: number }
 	| { type: 'toggleSelect'; index: number }
+	| { type: 'edit'; index: number }
+	| { type: 'delete'; index: number }
+	| { type: 'selectAll' }
 	| { type: 'dismiss' }
 	| { type: 'noop' };
 
@@ -22,16 +25,24 @@ export interface GridKeyArgs {
 	total: number;
 	cols: number; // 1 for list view
 	selectionMode: boolean;
+	/** Cmd / Ctrl modifier (for Ctrl+A / Cmd+A). */
+	mod?: boolean;
 }
 
 export function gridKeyboardNav(args: GridKeyArgs): GridKeyAction {
-	const { key, currentIndex, total, cols, selectionMode } = args;
+	const { key, currentIndex, total, cols, selectionMode, mod } = args;
 	if (total === 0) return { type: 'noop' };
 	const safeCols = Math.max(1, Math.floor(cols));
 	const safeCurrent = currentIndex >= 0 && currentIndex < total ? currentIndex : 0;
 
 	// 矢印で focus が無い状態 (-1) からの初回押下は先頭にフォーカス
 	const startIfUnfocused = currentIndex < 0 ? 0 : safeCurrent;
+
+	// Ctrl/Cmd 修飾キー組み合わせ (a / A だけ受ける、他は noop)
+	if (mod) {
+		if (key === 'a' || key === 'A') return { type: 'selectAll' };
+		return { type: 'noop' };
+	}
 
 	switch (key) {
 		case 'ArrowRight':
@@ -56,6 +67,13 @@ export function gridKeyboardNav(args: GridKeyArgs): GridKeyAction {
 		case 'Spacebar':
 			if (currentIndex < 0 || !selectionMode) return { type: 'noop' };
 			return { type: 'toggleSelect', index: currentIndex };
+		case 'Delete':
+		case 'Backspace':
+			if (currentIndex < 0) return { type: 'noop' };
+			return { type: 'delete', index: currentIndex };
+		case 'F3':
+			if (currentIndex < 0) return { type: 'noop' };
+			return { type: 'edit', index: currentIndex };
 		case 'Escape':
 			return { type: 'dismiss' };
 		default:

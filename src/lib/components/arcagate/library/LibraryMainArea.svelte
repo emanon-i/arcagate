@@ -17,6 +17,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { libraryHistory } from '$lib/state/library-history.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/grid-keyboard';
@@ -29,9 +30,11 @@ interface Props {
 	activeTag: string | null;
 	onSelectItem?: (id: string | null) => void;
 	onAddItem?: () => void;
+	/** L2-B B2: F3 で focus 中 item の編集 dialog を開く。 */
+	onEditItem?: (id: string) => void;
 }
 
-let { activeTag, onSelectItem, onAddItem }: Props = $props();
+let { activeTag, onSelectItem, onAddItem, onEditItem }: Props = $props();
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
@@ -181,6 +184,15 @@ function focusCardAt(index: number) {
 	el?.focus();
 }
 
+async function deleteWithUndo(item: import('$lib/types/item').Item) {
+	// snapshot を libraryHistory に積み、削除 → snackbar 表示で 5 秒以内 undo 可能。
+	// tag 復元は item.aliases / target だけで再現できないため tagIds は空で記録 (本 PR は item 本体の
+	// 復元 + 既存 starred 等は LibraryDetailPanel.handleDelete 経由で復元する経路を維持。
+	// keyboard delete 経路は MainArea からの簡易動線、tag 完全復元は L3 で getItemTags 連動を検討)。
+	await itemStore.deleteItem(item.id);
+	libraryHistory.recordDelete(item, []);
+}
+
 function applyKeyAction(action: GridKeyAction) {
 	switch (action.type) {
 		case 'focus':
@@ -199,6 +211,20 @@ function applyKeyAction(action: GridKeyAction) {
 			if (item) toggleSelection(item.id);
 			break;
 		}
+		case 'edit': {
+			const item = filteredItems[action.index];
+			if (item) onEditItem?.(item.id);
+			break;
+		}
+		case 'delete': {
+			const item = filteredItems[action.index];
+			if (item) void deleteWithUndo(item);
+			break;
+		}
+		case 'selectAll':
+			selectionMode = true;
+			selectedIds = new Set(filteredItems.map((i) => i.id));
+			break;
 		case 'dismiss':
 			activeCardIndex = -1;
 			onSelectItem?.(null);
@@ -226,6 +252,7 @@ function handleGridKeydown(e: KeyboardEvent) {
 		total: filteredItems.length,
 		cols,
 		selectionMode,
+		mod: e.ctrlKey || e.metaKey,
 	});
 	if (action.type === 'noop') return;
 	e.preventDefault();

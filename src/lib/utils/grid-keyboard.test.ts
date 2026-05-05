@@ -127,4 +127,43 @@ describe('gridKeyboardNav', () => {
 		const r = gridKeyboardNav({ ...base, key: 'Tab', currentIndex: 3, total: 10, cols: 4 });
 		expect(r).toEqual({ type: 'noop' });
 	});
+
+	it('Delete / Backspace は delete action', () => {
+		expect(
+			gridKeyboardNav({ ...base, key: 'Delete', currentIndex: 3, total: 10, cols: 4 }),
+		).toEqual({ type: 'delete', index: 3 });
+		expect(
+			gridKeyboardNav({ ...base, key: 'Backspace', currentIndex: 3, total: 10, cols: 4 }),
+		).toEqual({ type: 'delete', index: 3 });
+	});
+
+	it('Delete は currentIndex=-1 で noop', () => {
+		const r = gridKeyboardNav({ ...base, key: 'Delete', currentIndex: -1, total: 10, cols: 4 });
+		expect(r).toEqual({ type: 'noop' });
+	});
+
+	it('F3 は edit action', () => {
+		const r = gridKeyboardNav({ ...base, key: 'F3', currentIndex: 3, total: 10, cols: 4 });
+		expect(r).toEqual({ type: 'edit', index: 3 });
+	});
+
+	it('mod+a は selectAll (Cmd/Ctrl+A)', () => {
+		expect(
+			gridKeyboardNav({ ...base, key: 'a', currentIndex: 3, total: 10, cols: 4, mod: true }),
+		).toEqual({ type: 'selectAll' });
+		expect(
+			gridKeyboardNav({ ...base, key: 'A', currentIndex: 3, total: 10, cols: 4, mod: true }),
+		).toEqual({ type: 'selectAll' });
+	});
+
+	it('mod+ 他のキーは noop (browser default 維持)', () => {
+		expect(
+			gridKeyboardNav({ ...base, key: 'c', currentIndex: 3, total: 10, cols: 4, mod: true }),
+		).toEqual({ type: 'noop' });
+	});
+
+	it('mod なしの a 単押は noop (search 入力中の互換、caller は INPUT 内では弾く想定)', () => {
+		const r = gridKeyboardNav({ ...base, key: 'a', currentIndex: 3, total: 10, cols: 4 });
+		expect(r).toEqual({ type: 'noop' });
+	});
 });
