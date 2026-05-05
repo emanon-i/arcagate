@@ -35,8 +35,9 @@ export function gridKeyboardNav(args: GridKeyArgs): GridKeyAction {
 	const safeCols = Math.max(1, Math.floor(cols));
 	const safeCurrent = currentIndex >= 0 && currentIndex < total ? currentIndex : 0;
 
-	// 矢印で focus が無い状態 (-1) からの初回押下は先頭にフォーカス
-	const startIfUnfocused = currentIndex < 0 ? 0 : safeCurrent;
+	// focus が無い状態 (-1) で矢印が押された場合、index 0 を初期 focus として確定 (まだ移動しない)。
+	// 2 回目以降の同方向押下で実際に進む。「初回 focus に飛んでから」が一般的な keyboard nav。
+	const isUnfocused = currentIndex < 0;
 
 	// Ctrl/Cmd 修飾キー組み合わせ (a / A だけ受ける、他は noop)
 	if (mod) {
@@ -46,13 +47,19 @@ export function gridKeyboardNav(args: GridKeyArgs): GridKeyAction {
 
 	switch (key) {
 		case 'ArrowRight':
-			return { type: 'focus', index: clamp(startIfUnfocused + 1, 0, total - 1) };
+			return { type: 'focus', index: isUnfocused ? 0 : clamp(safeCurrent + 1, 0, total - 1) };
 		case 'ArrowLeft':
-			return { type: 'focus', index: clamp(startIfUnfocused - 1, 0, total - 1) };
+			return { type: 'focus', index: isUnfocused ? 0 : clamp(safeCurrent - 1, 0, total - 1) };
 		case 'ArrowDown':
-			return { type: 'focus', index: clamp(startIfUnfocused + safeCols, 0, total - 1) };
+			return {
+				type: 'focus',
+				index: isUnfocused ? 0 : clamp(safeCurrent + safeCols, 0, total - 1),
+			};
 		case 'ArrowUp':
-			return { type: 'focus', index: clamp(startIfUnfocused - safeCols, 0, total - 1) };
+			return {
+				type: 'focus',
+				index: isUnfocused ? 0 : clamp(safeCurrent - safeCols, 0, total - 1),
+			};
 		case 'Home':
 			return { type: 'focus', index: 0 };
 		case 'End':

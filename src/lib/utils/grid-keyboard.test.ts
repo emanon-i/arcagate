@@ -91,7 +91,7 @@ describe('gridKeyboardNav', () => {
 		expect(r).toEqual({ type: 'dismiss' });
 	});
 
-	it('currentIndex=-1 の初回 ArrowRight は 0 から +1 で 1 (start at 0)', () => {
+	it('currentIndex=-1 の初回 ArrowRight は 0 (初期 focus を確定、移動は 2 回目から)', () => {
 		const r = gridKeyboardNav({
 			...base,
 			key: 'ArrowRight',
@@ -99,7 +99,18 @@ describe('gridKeyboardNav', () => {
 			total: 10,
 			cols: 4,
 		});
-		expect(r).toEqual({ type: 'focus', index: 1 });
+		expect(r).toEqual({ type: 'focus', index: 0 });
+	});
+
+	it('currentIndex=-1 の初回 ArrowDown も 0 (方向に関わらず先頭)', () => {
+		const r = gridKeyboardNav({
+			...base,
+			key: 'ArrowDown',
+			currentIndex: -1,
+			total: 10,
+			cols: 4,
+		});
+		expect(r).toEqual({ type: 'focus', index: 0 });
 	});
 
 	it('currentIndex=-1 の Enter は noop (focus 無いため)', () => {

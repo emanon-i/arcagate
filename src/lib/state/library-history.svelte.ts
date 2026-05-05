@@ -1,4 +1,4 @@
-import { createItem, deleteItem } from '$lib/ipc/items';
+import { createItem } from '$lib/ipc/items';
 import type { Item } from '$lib/types/item';
 import { itemStore } from './items.svelte';
 
@@ -16,12 +16,16 @@ interface PendingDelete {
 	itemSnapshot: Item;
 	tagIds: string[];
 	expiresAt: number;
+	seq: number;
 }
 
 const UNDO_TTL_MS = 5_000;
 
 let pending = $state<PendingDelete | null>(null);
 let dismissTimer: ReturnType<typeof setTimeout> | null = null;
+// Codex L2-B #2: 並行 delete で older completion が newer pending を上書きする race を防ぐ
+// monotonic シーケンス。recordDelete 呼び出し順 (= caller の delete 完了順) で増える。
+let nextSeq = 0;
 
 function clearPending() {
 	pending = null;
@@ -42,13 +46,19 @@ function scheduleAutoDismiss() {
 /**
  * delete を履歴に積む。caller は実際の delete IPC を独自に発火する責務がある
  * (本 store は snapshot 保持と undo の責任のみ)。
+ *
+ * 並行 delete: caller A → IPC (slow) → IPC return → recordDelete、caller B → IPC (fast) →
+ * IPC return → recordDelete の順序で完了が逆転すると、A の record が B の record を上書きして
+ * しまう。最新ユーザ意図 (= 最後に caller が呼んだ recordDelete) を守るため、seq で常に最新優先。
  */
 function recordDelete(item: Item, tagIds: string[]): void {
+	const seq = ++nextSeq;
 	pending = {
 		type: 'delete',
 		itemSnapshot: item,
 		tagIds: [...tagIds],
 		expiresAt: Date.now() + UNDO_TTL_MS,
+		seq,
 	};
 	scheduleAutoDismiss();
 }
@@ -93,26 +103,11 @@ function dismiss(): void {
 	clearPending();
 }
 
-/**
- * delete + record の helper。caller (LibraryDetailPanel.handleDelete 等) は
- * snapshot 取得 → IPC delete → recordDelete を 1 連で書きやすくする。
- */
-async function deleteAndRecord(item: Item, tagIds: string[]): Promise<void> {
-	await deleteItem(item.id);
-	// itemStore.deleteItem を経由しない直 IPC のため、items 配列と sidebar stats を手動 refresh
-	await itemStore.loadItems();
-	recordDelete(item, tagIds);
-}
-
-// Tauri command 直叩きを type で残す (テストで mock 可能、createItem の方は itemStore 経由)。
-export const __testHooks = { createItem, deleteItem };
-
 export const libraryHistory = {
 	get pendingUndo() {
 		return pending;
 	},
 	recordDelete,
-	deleteAndRecord,
 	undo,
 	dismiss,
 };

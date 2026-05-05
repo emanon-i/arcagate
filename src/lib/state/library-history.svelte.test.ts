@@ -2,14 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Item } from '$lib/types/item';
 
 const createItemMock = vi.fn<(input: unknown) => Promise<Item>>();
-const deleteItemMock = vi.fn<(id: string) => Promise<void>>();
 const listItemsMock = vi.fn<() => Promise<Item[]>>();
 const getLibraryStatsMock = vi.fn();
 const getTagWithCountsMock = vi.fn();
 
 vi.mock('$lib/ipc/items', () => ({
 	createItem: (input: unknown) => createItemMock(input),
-	deleteItem: (id: string) => deleteItemMock(id),
 	listItems: () => listItemsMock(),
 	getLibraryStats: () => getLibraryStatsMock(),
 	getTagWithCounts: () => getTagWithCountsMock(),
@@ -39,7 +37,6 @@ const sampleItem = (id: string, label: string): Item => ({
 beforeEach(() => {
 	vi.resetModules();
 	createItemMock.mockReset();
-	deleteItemMock.mockReset();
 	listItemsMock.mockReset().mockResolvedValue([]);
 	getLibraryStatsMock.mockReset().mockResolvedValue({
 		total_items: 0,

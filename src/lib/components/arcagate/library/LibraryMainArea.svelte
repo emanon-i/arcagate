@@ -12,7 +12,7 @@ import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { Button } from '$lib/components/ui/button';
-import { bulkAddTag, bulkDeleteItems, searchItemsInTag } from '$lib/ipc/items';
+import { bulkAddTag, bulkDeleteItems, getItemTags, searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
@@ -169,10 +169,19 @@ $effect(() => {
 let activeCardIndex = $state(-1);
 let gridContainerEl = $state<HTMLDivElement | null>(null);
 
-// filteredItems が変わったら focus index を範囲内に補正 (delete / filter で範囲縮小時)
+// filteredItems が変わったら focus index を範囲内に補正 (delete / filter で範囲縮小時)。
+// Codex L2-B #4: clamp 後に DOM focus も再適用しないと「削除された card に focus 残り
+// keyboard nav が動作不能」になる。空になった場合は activeCardIndex=-1 にして fall-through。
 $effect(() => {
+	if (filteredItems.length === 0) {
+		activeCardIndex = -1;
+		return;
+	}
 	if (activeCardIndex >= filteredItems.length) {
-		activeCardIndex = filteredItems.length - 1;
+		const next = filteredItems.length - 1;
+		activeCardIndex = next;
+		// DOM 反映後に focus 移動 (microtask タイミング)
+		queueMicrotask(() => focusCardAt(next));
 	}
 });
 
@@ -185,12 +194,17 @@ function focusCardAt(index: number) {
 }
 
 async function deleteWithUndo(item: import('$lib/types/item').Item) {
-	// snapshot を libraryHistory に積み、削除 → snackbar 表示で 5 秒以内 undo 可能。
-	// tag 復元は item.aliases / target だけで再現できないため tagIds は空で記録 (本 PR は item 本体の
-	// 復元 + 既存 starred 等は LibraryDetailPanel.handleDelete 経由で復元する経路を維持。
-	// keyboard delete 経路は MainArea からの簡易動線、tag 完全復元は L3 で getItemTags 連動を検討)。
+	// Codex L2-B #1: tag 完全復元のため、削除前に tag id を取得して libraryHistory に記録する。
+	// best-effort: tag 取得失敗でも本体削除は実施 (tag は失われるが UI は壊さない)。
+	let tagIds: string[] = [];
+	try {
+		const tags = await getItemTags(item.id);
+		tagIds = tags.map((t) => t.id);
+	} catch {
+		// tag 取得 IPC 失敗時は空で続行
+	}
 	await itemStore.deleteItem(item.id);
-	libraryHistory.recordDelete(item, []);
+	libraryHistory.recordDelete(item, tagIds);
 }
 
 function applyKeyAction(action: GridKeyAction) {
