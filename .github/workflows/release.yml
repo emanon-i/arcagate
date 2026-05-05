@@ -154,5 +154,11 @@ sha256sum -c SHA256SUMS.txt
 - updater pubkey は当面 deferred (manual install のみ、auto-update は無効化扱い)
 - Windows 11 64-bit のみサポート
 
+## DB migration 方針 (audit C6)
+
+- **forward-only migration** を採用 (rollback は提供されない)。新 release インストール時に DB schema は自動 forward 適用、戻すことはできない
+- 旧 version に戻す必要が生じた場合は \`%LOCALAPPDATA%\\arcagate\\arcagate.db\` を退避 → 旧 binary を再インストール → DB を初期化、の手順 (data 喪失あり)
+- backup を強く推奨 (本 app は backup IPC + JSON export を提供、Settings → データ → エクスポート から定期取得可能)
+
 詳細は [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) を参照。" \
             --draft
