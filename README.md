@@ -87,6 +87,12 @@ pwsh scripts/sign-windows.ps1
 
 [PRIVACY.md](PRIVACY.md) — デフォルトでは外部送信ゼロ、Telemetry / Crash 監視は将来 Opt-in で追加予定。
 
+## サポート / バグ報告
+
+- 報告 / 質問: [docs/SUPPORT.md](docs/SUPPORT.md) — GitHub Issues / Discussions の経路、log file の場所、SmartScreen 警告の対処を記載
+- Changelog: [CHANGELOG.md](CHANGELOG.md) — release ごとの差分 (Keep a Changelog 形式)
+- 既知 issue: [docs/l1_requirements/library-overhaul/known-issues.md](docs/l1_requirements/library-overhaul/known-issues.md) + [docs/lessons.md](docs/lessons.md)
+
 ## ライセンス
 
 [MIT](LICENSE)
