@@ -88,6 +88,19 @@ async function handleBulkStar() {
 	exitSelectionMode();
 }
 
+async function handleBulkExport() {
+	if (selectedIds.size === 0) return;
+	// 選択中 item を JSON 配列で clipboard へコピー (workspace import / 他端末送信用)。
+	const ids = Array.from(selectedIds);
+	const items = itemStore.items.filter((i) => ids.includes(i.id));
+	try {
+		await navigator.clipboard.writeText(JSON.stringify(items, null, 2));
+		toastStore.add(`${items.length} 件を JSON で clipboard にコピーしました`, 'success');
+	} catch (e: unknown) {
+		toastStore.add(formatIpcError({ operation: 'JSON書き出し' }, e), 'error');
+	}
+}
+
 async function handleBulkDelete() {
 	if (selectedIds.size === 0) return;
 	if (!window.confirm(`${selectedIds.size} 件を削除しますか? (元に戻せません)`)) return;
@@ -422,20 +435,27 @@ function handleGridKeydown(e: KeyboardEvent) {
 		</div>
 	</div>
 
-	<!-- PH-436: 選択モード action bar -->
+	<!-- L3-B: 選択モード action bar を sticky top に変更 + JSON 書き出し追加 (Notion-like floating)。
+	     scroll 中も visible を維持し、大量選択 + scroll での誤キャンセル等を防ぐ。 -->
 	{#if selectionMode && selectedIds.size > 0}
 		<div
-			class="mb-4 flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-4 py-2 text-sm"
+			class="sticky top-0 z-10 mb-4 flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-4 py-2 text-sm shadow-[var(--ag-shadow-md)]"
 			data-testid="library-selection-actionbar"
 		>
 			<span class="text-[var(--ag-accent-text)]">{selectedIds.size} 件選択中</span>
-			<div class="flex-1" />
+			<div class="flex-1"></div>
 			<Button type="button" variant="default" size="sm" onclick={() => void handleBulkStar()}>
 				お気に入りに追加
 			</Button>
-			<Button type="button" variant="destructive" size="sm" onclick={() => void handleBulkDelete()}>
-				削除
+			<Button type="button" variant="outline" size="sm" onclick={() => void handleBulkExport()}>
+				JSON で書き出す
 			</Button>
+			<Button
+				type="button"
+				variant="destructive"
+				size="sm"
+				onclick={() => void handleBulkDelete()}
+			>削除</Button>
 			<Button type="button" variant="outline" size="sm" onclick={exitSelectionMode}>
 				キャンセル
 			</Button>
