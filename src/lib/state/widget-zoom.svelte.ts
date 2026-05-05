@@ -1,5 +1,6 @@
 import { configStore } from '$lib/state/config.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { normalizeWheelStep } from '$lib/utils/wheel-normalize';
 import {
 	BASE_H,
 	BASE_W,
@@ -43,7 +44,7 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 			// Q1 確定: Wheel zoom anchor = mouse cursor (Excalidraw / Figma / tldraw 業界標準)。
 			// e.clientX/Y は viewport (window) coord のため、container の clientRect を引いて
 			// container-relative coord に変換する。container は左右に sidebar 等があるため offset 必須。
-			const delta = e.deltaY > 0 ? -10 : 10;
+			const delta = normalizeWheelStep(e);
 			const oldZoom = configStore.widgetZoom;
 			const newZoom = clampZoom(oldZoom + delta);
 			if (newZoom === oldZoom) return;
@@ -61,6 +62,12 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 			el.scrollLeft += e.deltaY;
 		}
 	}
+
+	// R7-3 / H2 rapid zoom rAF race fix:
+	//   wheel event を超高速で連発すると、複数の requestAnimationFrame が pending になり
+	//   DOM reflow 順序が乱れて scroll target がずれる (古い計算結果が後勝ちする現象)。
+	//   pendingZoomRAF で前回 rAF を cancel、常に最新の計算結果だけ apply する。
+	let pendingZoomRAF: number | null = null;
 
 	$effect(() => {
 		const el = containerRef();
@@ -94,7 +101,10 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		configStore.setWidgetZoom(newZoom);
 		// Svelte reactive flush + DOM reflow を待ってから scrollTo。
 		// queueMicrotask は reflow 前に走ることがあるため requestAnimationFrame を使う。
-		requestAnimationFrame(() => {
+		// R7-3 H2 fix: 前回の pending rAF を cancel して race を排除。
+		if (pendingZoomRAF !== null) cancelAnimationFrame(pendingZoomRAF);
+		pendingZoomRAF = requestAnimationFrame(() => {
+			pendingZoomRAF = null;
 			el.scrollTo({ left: target.scrollLeft, top: target.scrollTop, behavior: 'instant' });
 		});
 	}
@@ -128,7 +138,9 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		if (widgets.length === 0) {
 			// 空: zoom を 100% + canvas 中央へ scroll (instant)
 			configStore.setWidgetZoom(RESET_ZOOM);
-			requestAnimationFrame(() => {
+			if (pendingZoomRAF !== null) cancelAnimationFrame(pendingZoomRAF);
+			pendingZoomRAF = requestAnimationFrame(() => {
+				pendingZoomRAF = null;
 				el.scrollTo({
 					left: Math.max(0, (el.scrollWidth - el.clientWidth) / 2),
 					top: Math.max(0, (el.scrollHeight - el.clientHeight) / 2),
@@ -150,7 +162,9 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		// Fit は viewport-anchor ではなく **明示的に origin を center に置く** ため
 		// applyZoom ではなく直接 setWidgetZoom + 専用 scroll 計算を使う。
 		configStore.setWidgetZoom(targetZoom);
-		requestAnimationFrame(() => {
+		if (pendingZoomRAF !== null) cancelAnimationFrame(pendingZoomRAF);
+		pendingZoomRAF = requestAnimationFrame(() => {
+			pendingZoomRAF = null;
 			const target = computeFitScroll(origin, targetZoom, {
 				clientWidth: el.clientWidth,
 				clientHeight: el.clientHeight,
