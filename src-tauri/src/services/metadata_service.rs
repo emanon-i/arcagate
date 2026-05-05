@@ -39,13 +39,55 @@ pub fn get_item_metadata(db: &DbState, item_id: &str) -> Result<ItemMetadata, Ap
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let item = item_repository::find_by_id(&conn, item_id)?;
     drop(conn);
+    Ok(metadata_from_item_type(
+        item.item_type.as_str(),
+        &item.target,
+    ))
+}
 
-    Ok(match item.item_type.as_str() {
-        "folder" => folder_metadata(&item.target).unwrap_or_default(),
-        "file" | "text" | "exe" | "script" => file_metadata(&item.target).unwrap_or_default(),
-        "url" => url_metadata(&item.target),
+/// 複数 item_id の metadata を一括取得。LibraryCard 一覧表示で per-card IPC 並列を回避する用途。
+///
+/// - DB lookup は単一 Mutex lock (ids 件数 N に対して N 回の find_by_id だが lock 1 回)
+/// - lock 解放後に filesystem stat を実行 (Mutex を握ったまま I/O しない)
+/// - 該当 id が DB に無い場合はその id を結果に含めない (fail-soft)
+/// - filesystem stat 失敗は空 ItemMetadata で埋める
+pub fn get_items_metadata_batch(
+    db: &DbState,
+    ids: &[String],
+) -> Result<Vec<(String, ItemMetadata)>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let mut found: Vec<(String, String, String)> = Vec::with_capacity(ids.len());
+    for id in ids {
+        match item_repository::find_by_id(&conn, id) {
+            Ok(item) => {
+                found.push((item.id, item.item_type.as_str().to_string(), item.target));
+            }
+            Err(AppError::NotFound(_)) => {
+                // fail-soft: DB に無い id は結果から省く (caller が古い id を持つ可能性に備える)
+            }
+            Err(e) => {
+                // それ以外の DB error (lock 失敗 / SQL error 等) は伝播させて隠蔽しない
+                drop(conn);
+                return Err(e);
+            }
+        }
+    }
+    drop(conn);
+
+    let result = found
+        .into_iter()
+        .map(|(id, item_type, target)| (id, metadata_from_item_type(&item_type, &target)))
+        .collect();
+    Ok(result)
+}
+
+fn metadata_from_item_type(item_type: &str, target: &str) -> ItemMetadata {
+    match item_type {
+        "folder" => folder_metadata(target).unwrap_or_default(),
+        "file" | "text" | "exe" | "script" => file_metadata(target).unwrap_or_default(),
+        "url" => url_metadata(target),
         _ => ItemMetadata::default(),
-    })
+    }
 }
 
 fn file_metadata(path_str: &str) -> Option<ItemMetadata> {
@@ -273,5 +315,87 @@ mod tests {
         let r = read_image_dimensions(&tmp, "txt");
         std::fs::remove_file(&tmp).ok();
         assert_eq!(r, None);
+    }
+
+    mod batch {
+        use super::*;
+        use crate::db::initialize_in_memory;
+        use crate::models::item::{Item, ItemType};
+        use crate::repositories::item_repository;
+
+        fn make_url_item(id: &str, target: &str) -> Item {
+            Item {
+                id: id.to_string(),
+                item_type: ItemType::Url,
+                label: format!("label-{id}"),
+                target: target.to_string(),
+                args: None,
+                working_dir: None,
+                icon_path: None,
+                icon_type: None,
+                aliases: vec![],
+                sort_order: 0,
+                is_enabled: true,
+                is_tracked: false,
+                default_app: None,
+                card_override_json: None,
+                created_at: "2026-05-04T00:00:00Z".to_string(),
+                updated_at: "2026-05-04T00:00:00Z".to_string(),
+            }
+        }
+
+        #[test]
+        fn empty_ids_returns_empty() {
+            let db = initialize_in_memory();
+            let result = get_items_metadata_batch(&db, &[]).unwrap();
+            assert!(result.is_empty());
+        }
+
+        #[test]
+        fn returns_metadata_for_existing_ids() {
+            let db = initialize_in_memory();
+            {
+                let conn = db.0.lock().unwrap();
+                item_repository::insert(&conn, &make_url_item("a", "https://example.com")).unwrap();
+                item_repository::insert(&conn, &make_url_item("b", "https://www.foo.test/x"))
+                    .unwrap();
+            }
+            let result = get_items_metadata_batch(&db, &["a".into(), "b".into()]).unwrap();
+            assert_eq!(result.len(), 2);
+            assert_eq!(result[0].0, "a");
+            assert_eq!(result[0].1.url_domain.as_deref(), Some("example.com"));
+            assert_eq!(result[1].0, "b");
+            assert_eq!(result[1].1.url_domain.as_deref(), Some("foo.test"));
+        }
+
+        #[test]
+        fn missing_ids_are_skipped_fail_soft() {
+            let db = initialize_in_memory();
+            {
+                let conn = db.0.lock().unwrap();
+                item_repository::insert(&conn, &make_url_item("a", "https://example.com")).unwrap();
+            }
+            let result =
+                get_items_metadata_batch(&db, &["a".into(), "missing".into(), "ghost".into()])
+                    .unwrap();
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].0, "a");
+        }
+
+        #[test]
+        fn duplicate_ids_each_yield_an_entry() {
+            let db = initialize_in_memory();
+            {
+                let conn = db.0.lock().unwrap();
+                item_repository::insert(&conn, &make_url_item("a", "https://example.com")).unwrap();
+            }
+            let result =
+                get_items_metadata_batch(&db, &["a".into(), "a".into(), "a".into()]).unwrap();
+            assert_eq!(result.len(), 3);
+            for row in &result {
+                assert_eq!(row.0, "a");
+                assert_eq!(row.1.url_domain.as_deref(), Some("example.com"));
+            }
+        }
     }
 }

@@ -17,6 +17,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { metadataStore } from '$lib/state/metadata.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
@@ -61,11 +62,18 @@ async function handleBulkStar() {
 		const ids = Array.from(selectedIds);
 		const count = await bulkAddTag(ids, 'sys-starred');
 		toastStore.add(`${count} 件をお気に入りに追加しました`, 'success');
-		await itemStore.loadItems();
-		exitSelectionMode();
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括お気に入り追加' }, e), 'error');
+		return;
 	}
+	// mutation 成功後の post-refresh は best-effort (allSettled)。失敗で selection を抜けないと
+	// confused UX (mutation 済んでるのに選択モード残る) になるため finally 相当で必ず exit。
+	await Promise.allSettled([
+		itemStore.loadItems(),
+		itemStore.loadLibraryStats(),
+		itemStore.loadTagWithCounts(),
+	]);
+	exitSelectionMode();
 }
 
 async function handleBulkDelete() {
@@ -75,11 +83,16 @@ async function handleBulkDelete() {
 		const ids = Array.from(selectedIds);
 		const count = await bulkDeleteItems(ids);
 		toastStore.add(`${count} 件を削除しました`, 'success');
-		await itemStore.loadItems();
-		exitSelectionMode();
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括削除' }, e), 'error');
+		return;
 	}
+	await Promise.allSettled([
+		itemStore.loadItems(),
+		itemStore.loadLibraryStats(),
+		itemStore.loadTagWithCounts(),
+	]);
+	exitSelectionMode();
 }
 
 // 150ms デバウンス: キーストロークごとの IPC を抑制
@@ -135,6 +148,15 @@ let filteredItems = $derived.by(() => {
 		return itemStore.items.filter((item) => item.label.toLowerCase().includes(q));
 	}
 	return itemStore.items;
+});
+
+// I3 fix: per-card $effect 並列呼び出しを排除し、visible items を 1 batch で warm up。
+// LibraryCard は metadataStore.getMetadata(id) で cache を読むだけ。
+// S size / list view では LibraryCard が metadata 表示しないので fetch 不要。
+$effect(() => {
+	if (viewMode !== 'grid' || configStore.itemSize === 'S') return;
+	const ids = filteredItems.map((i) => i.id);
+	void metadataStore.loadMetadataForItems(ids);
 });
 </script>
 

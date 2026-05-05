@@ -615,6 +615,25 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 - CI: `Label audit (UX 一貫性)` step で全コードベースを検証、違反で PR fail
 - セルフテスト: `scripts/test-audit-labels.sh` で fixture（pass / fail）を流して exit code を検証
 
+### 起動経路と launch_log の整合 (Library overhaul L1)
+
+- **Library に登録済アイテムは `launchItem(id)` 経由で起動**する。`cmd_open_path` で path 直起動すると launch_log に記録されず Recent / Frequent / 統計が壊れる
+- ExeFolderWatchWidget / FileSearchWidget など path-based widget は **target で itemStore lookup → 見つかれば launchItem、未登録のみ cmd_open_path に fallback** が default pattern
+- 新しい起動経路を作る時は「これは launch_log に乗せるべきか?」を必ず判定し、yes なら launchItem 経路、no なら cmd_open_path
+
+### 一覧表示の metadata 取得は store batch 経由 (Library overhaul L1)
+
+- LibraryCard 系 list で per-card $effect から個別 IPC 呼ばない (69+ 並列で UI 固まり)
+- parent (LibraryMainArea / LibraryItemPicker) で `metadataStore.loadMetadataForItems(visibleIds)` を 1 回呼んで warm up、card は `metadataStore.getMetadata(id)` で synchronous read
+- TTL 60s memory cache + mutation 時 `invalidate(id)` で整合維持
+- 重い OS 呼び出し (PowerShell icon 抽出等) は `tauri::async_runtime::spawn_blocking` で main thread を逃がす
+
+### widget 設定 dialog の 2 step 排除 (Library overhaul L1 / I2)
+
+- widget 空状態 button click → 設定 dialog → 同じ button → ようやく picker、の 2 step UX は禁止
+- 「アイテム紐付け」のような **空状態の主目的が 1 つだけの場合** は、widget が picker を直接マウントして 1 step で完結させる
+- 設定 dialog は **>= 1 件のとき** の 2 次操作 (sort / view mode 切替 / 紐付け追加) 用に分離
+
 ---
 
 ## 13. Workspace Canvas 編集 UX 規約 (PH-issue-002 / 029 / 034 / 040 で確立)

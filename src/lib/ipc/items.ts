@@ -48,6 +48,16 @@ export async function getItemMetadata(itemId: string): Promise<ItemMetadata> {
 	return invoke<ItemMetadata>('cmd_get_item_metadata', { itemId });
 }
 
+/**
+ * 複数 item_id の metadata を一括取得 (LibraryCard 一覧表示で per-card IPC 並列を回避)。
+ * - DB lookup は単一 lock + 複数 find_by_id、id が無い分は結果に含まれない (fail-soft)
+ * - filesystem stat 失敗は空 ItemMetadata で埋まる
+ */
+export async function getItemsMetadataBatch(ids: string[]): Promise<Array<[string, ItemMetadata]>> {
+	if (ids.length === 0) return [];
+	return invoke<Array<[string, ItemMetadata]>>('cmd_get_items_metadata_batch', { ids });
+}
+
 export async function extractItemIcon(exePath: string): Promise<string> {
 	return invoke<string>('cmd_extract_item_icon', { exePath });
 }

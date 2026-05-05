@@ -2,6 +2,7 @@ import * as itemsIpc from '$lib/ipc/items';
 import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
 import type { CreateTagInput, Tag, TagWithCount } from '$lib/types/tag';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { metadataStore } from './metadata.svelte';
 
 let items = $state<Item[]>([]);
 let tags = $state<Tag[]>([]);
@@ -23,12 +24,29 @@ async function loadItems(): Promise<void> {
 	}
 }
 
+// C6: 単発 mutation 後の sidebar 件数 (libraryStats / tagWithCounts) を一括 refresh する内部 helper。
+// 各呼出側で refresh を漏らすと「削除しても件数が減らない」「タグ count がずれる」原因になる。
+// best-effort: refresh 失敗は silent (前回値を維持)。
+async function refreshSidebarStats(): Promise<void> {
+	await Promise.all([
+		itemsIpc.getLibraryStats().then((s) => {
+			libraryStats = s;
+		}),
+		itemsIpc.getTagWithCounts().then((c) => {
+			tagWithCounts = c;
+		}),
+	]).catch(() => {
+		// 既存値を維持
+	});
+}
+
 async function createItem(input: CreateItemInput): Promise<void> {
 	loading = true;
 	error = null;
 	try {
 		const created = await itemsIpc.createItem(input);
 		items = [...items, created];
+		await refreshSidebarStats();
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -42,6 +60,10 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
 	try {
 		const updated = await itemsIpc.updateItem(id, input);
 		items = items.map((item) => (item.id === id ? updated : item));
+		// target / item_type 変更で metadata が古くなる可能性 → cache 無効化
+		metadataStore.invalidate(id);
+		// tag_ids 変更で tagWithCounts が変動する
+		await refreshSidebarStats();
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -53,6 +75,8 @@ async function toggleStar(id: string, starred: boolean): Promise<void> {
 	try {
 		const updated = await itemsIpc.toggleStar(id, starred);
 		items = items.map((item) => (item.id === id ? updated : item));
+		// sys-starred の count が変動するので tagWithCounts を refresh
+		await refreshSidebarStats();
 	} catch (e) {
 		error = getErrorMessage(e);
 	}
@@ -64,6 +88,8 @@ async function deleteItem(id: string): Promise<void> {
 	try {
 		await itemsIpc.deleteItem(id);
 		items = items.filter((item) => item.id !== id);
+		metadataStore.invalidate(id);
+		await refreshSidebarStats();
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -125,6 +151,7 @@ async function createTag(input: CreateTagInput): Promise<void> {
 	try {
 		const created = await itemsIpc.createTag(input);
 		tags = [...tags, created];
+		await refreshSidebarStats();
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {

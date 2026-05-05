@@ -30,7 +30,7 @@ use commands::kill_switch_commands::cmd_check_kill_switch;
 use commands::launch_commands::{
     cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
 };
-use commands::metadata_commands::cmd_get_item_metadata;
+use commands::metadata_commands::{cmd_get_item_metadata, cmd_get_items_metadata_batch};
 use commands::opener_commands::{
     cmd_delete_opener, cmd_launch_with_opener, cmd_list_openers, cmd_save_opener,
 };
@@ -270,6 +270,7 @@ pub fn run() {
             cmd_register_exe_items_bulk,
             cmd_get_item_stats,
             cmd_get_item_metadata,
+            cmd_get_items_metadata_batch,
             cmd_scan_exe_folders,
             cmd_list_files,
             cmd_cancel_file_search,

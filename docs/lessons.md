@@ -141,6 +141,43 @@ CDP 接続 / 入力キャプチャ / D&D の罠は多数。詳細は `docs/archi
 
 ---
 
+## <severity>high</severity> per-card $effect IPC 並列の罠 (2026-05-04 / Library overhaul L1)
+
+### 観測
+
+- LibraryCard が item ごとに自分の $effect 内で `cmd_get_item_metadata` を呼ぶ実装
+- 69 cards 並ぶと 69 並列 invoke + Tauri 側 `Mutex<Connection>` 競合 + filesystem stat per call で UI が固まる
+- `cmd_extract_item_icon` も同期 IPC で 100-500ms blocking、PowerShell 起動含む
+- `drop-shadow-lg` を全 card に適用 → GPU compositing で paint cost 上昇
+
+### 再発防止
+
+- **list 表示する component で per-row $effect から IPC 呼ばない**。store / parent で 1 回 batch fetch + cache + reactive read に分離する pattern を default にする
+- IPC 設計時に「N 個 visible なら N 回呼ぶか? 1 回で済むか?」を必ず確認
+- 重い OS 呼び出し (PowerShell / Shell API / 大画像 decode) は `tauri::async_runtime::spawn_blocking` で逃がす (sync IPC で main thread 占有させない)
+- TTL 付き memory cache + invalidation hook (mutation 時) は LibraryCard 系 store の標準形
+
+参照: `docs/l1_requirements/library-overhaul/known-issues.md` §3.3 / `src/lib/state/metadata.svelte.ts`
+
+---
+
+## <severity>medium</severity> mutation 後の sidebar 件数 stale (2026-05-04 / Library overhaul L1)
+
+### 観測
+
+- `itemStore.deleteItem(id)` が `items` 配列だけ更新し `libraryStats` / `tagWithCounts` を refresh しなかった → sidebar の総件数 / 各タグ件数が削除後 stale
+- 各 caller で refresh を漏らすと UI と DB がズレる、横展開で同じバグが何ヶ所にも散る
+
+### 再発防止
+
+- mutation 系 store function は **内部で関連 state を一括 refresh** する責務まで持たせる (caller が refresh を覚える設計は破綻する)
+- bulk 操作のように store 経由しない直 IPC は caller 側で明示 refresh、ただし helper 関数化して漏れを機械検出可能にする
+- 「caller が忘れたら壊れる」設計は store API design として失敗。store 内に閉じ込める
+
+参照: `src/lib/state/items.svelte.ts` の `refreshSidebarStats`
+
+---
+
 ## <severity>reference</severity> よく踏む細かい罠（archive 参照）
 
 具体パターンは `docs/archive/lessons-historical.md` を on-demand で grep:
