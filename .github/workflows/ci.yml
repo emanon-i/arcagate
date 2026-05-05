@@ -90,6 +90,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-aria-icon-only-buttons.sh
 
+      - name: A11y keyboard reach audit (R8-4 G1)
+        shell: bash
+        run: bash scripts/audit-keyboard-traps.sh
+
       - name: i18n hardcode baseline (R7-4、informational only)
         shell: bash
         run: bash scripts/audit-i18n-hardcode.sh

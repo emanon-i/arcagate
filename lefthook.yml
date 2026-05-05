@@ -35,6 +35,10 @@ pre-commit:
     aria-icon-only:
       glob: "src/lib/**/*.svelte"
       run: bash scripts/audit-aria-icon-only-buttons.sh
+    keyboard-traps:
+      # R8-4 G1: <div|span onclick> で role/tabindex なし、<a> で href/role/onclick なし → keyboard 到達不能
+      glob: "src/lib/**/*.svelte"
+      run: bash scripts/audit-keyboard-traps.sh
     handle-style:
       glob: "src/**/*.{svelte,ts,tsx}"
       run: bash scripts/audit-handle-style.sh
