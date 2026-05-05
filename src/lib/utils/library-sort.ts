@@ -22,6 +22,15 @@ export interface SortSpec {
 
 const collator = new Intl.Collator('ja', { numeric: true, sensitivity: 'base' });
 
+/**
+ * timestamp 文字列を epoch ms に変換 (Codex L2-C #3)。
+ * 不正値は 0 として fallback (= 最古に積む、UI で気付ける)。
+ */
+function toEpoch(s: string): number {
+	const t = Date.parse(s);
+	return Number.isFinite(t) ? t : 0;
+}
+
 export function sortItems(items: Item[], spec: SortSpec): Item[] {
 	const sign = spec.order === 'asc' ? 1 : -1;
 	const sorted = [...items];
@@ -30,10 +39,10 @@ export function sortItems(items: Item[], spec: SortSpec): Item[] {
 			sorted.sort((a, b) => sign * collator.compare(a.label, b.label));
 			break;
 		case 'created':
-			sorted.sort((a, b) => sign * a.created_at.localeCompare(b.created_at));
+			sorted.sort((a, b) => sign * (toEpoch(a.created_at) - toEpoch(b.created_at)));
 			break;
 		case 'updated':
-			sorted.sort((a, b) => sign * a.updated_at.localeCompare(b.updated_at));
+			sorted.sort((a, b) => sign * (toEpoch(a.updated_at) - toEpoch(b.updated_at)));
 			break;
 	}
 	return sorted;

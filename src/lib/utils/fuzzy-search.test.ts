@@ -22,10 +22,10 @@ describe('fuzzyScore', () => {
 		expect(fuzzyScore('lo wo', 'hello world')).toBe(0.85);
 	});
 
-	it('subsequence (飛び飛び) は 0.5-0.84', () => {
+	it('subsequence (飛び飛び) は 0.1-0.83 で includes より下', () => {
 		const s = fuzzyScore('hwd', 'hello world');
 		expect(s).toBeGreaterThan(0);
-		expect(s).toBeLessThanOrEqual(0.84);
+		expect(s).toBeLessThan(0.85);
 	});
 
 	it('一致なし (順序違反) は 0', () => {
@@ -34,6 +34,16 @@ describe('fuzzyScore', () => {
 
 	it('長すぎる needle は 0', () => {
 		expect(fuzzyScore('helloworld', 'hi')).toBe(0);
+	});
+
+	it('subsequence < includes < startsWith < exact が階層分離されている', () => {
+		const sub = fuzzyScore('hwd', 'hello world'); // subsequence
+		const inc = fuzzyScore('lo wo', 'hello world'); // includes
+		const sw = fuzzyScore('hello', 'hello world'); // startsWith
+		const exact = fuzzyScore('hello', 'hello'); // exact
+		expect(sub).toBeLessThan(inc);
+		expect(inc).toBeLessThan(sw);
+		expect(sw).toBeLessThan(exact);
 	});
 
 	it('startsWith は subsequence より高 score', () => {
@@ -78,5 +88,16 @@ describe('fuzzyFilter', () => {
 	it('case-insensitive', () => {
 		const r = fuzzyFilter(items, 'CHROME', scoreOf);
 		expect(r[0].id).toBe('3');
+	});
+
+	it('tie: 同 score の item は原 index 順を維持 (Codex L2-C #1 deterministic ordering)', () => {
+		// "ab" を 3 つの label にすべて完全一致させる
+		const tied = [
+			{ id: 'first', label: 'ab', target: 'x', aliases: [] as string[] },
+			{ id: 'second', label: 'ab', target: 'y', aliases: [] as string[] },
+			{ id: 'third', label: 'ab', target: 'z', aliases: [] as string[] },
+		];
+		const r = fuzzyFilter(tied, 'ab', (i) => [i.label, i.target, ...i.aliases]);
+		expect(r.map((i) => i.id)).toEqual(['first', 'second', 'third']);
 	});
 });

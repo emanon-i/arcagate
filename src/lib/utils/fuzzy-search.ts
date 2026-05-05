@@ -38,10 +38,13 @@ export function fuzzyScore(needle: string, haystack: string): number {
 	}
 	if (i < n.length) return 0; // 残り needle が存在 = 一致なし
 
-	// 全文字 subsequence マッチ。base 0.5 + 短さ bonus (n/h ratio) + bonus
-	const lengthRatio = n.length / h.length;
-	const score = 0.5 + 0.3 * lengthRatio + Math.min(0.2, bonusSum);
-	return Math.min(0.84, score); // includes より上にならないよう上限 0.84
+	// Codex L2-C #2: subsequence は base 0.1 ~ 0.83 のレンジで分布させる
+	// (includes=0.85 / startsWith=0.95 / exact=1 の bucket と明確に階層分離)。
+	// 旧 0.5+0.3*ratio+bonus[0.84 cap] は cap で score 飽和し ordering 質が悪かった。
+	const lengthRatio = n.length / h.length; // 0..1
+	const bonusN = Math.min(1, bonusSum); // normalize bonus
+	const score = 0.1 + 0.4 * lengthRatio + 0.33 * bonusN; // 上限 ≈0.83
+	return score;
 }
 
 /**
@@ -53,17 +56,19 @@ export function fuzzyScore(needle: string, haystack: string): number {
 export function fuzzyFilter<T>(items: T[], query: string, scoreOf: (item: T) => string[]): T[] {
 	const q = query.trim();
 	if (q.length === 0) return items;
-	type Scored = { item: T; score: number };
+	type Scored = { item: T; score: number; idx: number };
 	const scored: Scored[] = [];
-	for (const item of items) {
+	for (let idx = 0; idx < items.length; idx++) {
+		const item = items[idx];
 		const fields = scoreOf(item);
 		let max = 0;
 		for (const f of fields) {
 			const s = fuzzyScore(q, f);
 			if (s > max) max = s;
 		}
-		if (max > 0) scored.push({ item, score: max });
+		if (max > 0) scored.push({ item, score: max, idx });
 	}
-	scored.sort((a, b) => b.score - a.score);
+	// Codex L2-C #1: tie-break で原 index を fallback にし engine 依存の不安定 sort を排除
+	scored.sort((a, b) => b.score - a.score || a.idx - b.idx);
 	return scored.map((s) => s.item);
 }
