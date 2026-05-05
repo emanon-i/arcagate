@@ -58,4 +58,4 @@ Personal launcher consolidating PC-wide entry points. Tauri v2 + SvelteKit + Sve
 - それ以外は **kebab-case 統一** (snake_case / 大文字 禁止)
 - 200 行 / file 制約 (大型 reference doc は section 単位で `-part-N-{slug}.md` or `-extras.md` 分割)
 
-詳細: 本 reorg 経緯: `docs/l1_requirements/docs-reorg/` (D1-D5 reorg plan、PR merge 後は `l3_phases/_archive/docs-reorg/` へ archive)
+詳細: 本 reorg 経緯: `docs/l3_phases/_archive/docs-reorg/` (D1-D5 reorg plan、archive 済)

@@ -20,4 +20,4 @@ LLM agent は [`llms.txt`](./llms.txt) を一発取得して全体 navigation。
 
 ## doc system 詳細
 
-R10+ 以降の整理結果。詳細は [`l1_requirements/docs-reorg/`](./l1_requirements/docs-reorg/) (D1-D5 の reorg 設計、PR merge 後 archive へ)。
+R10+ 以降の整理結果。詳細は [`l3_phases/_archive/docs-reorg/`](./l3_phases/_archive/docs-reorg/) (D1-D5 の reorg 設計、archive 済)。
