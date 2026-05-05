@@ -95,6 +95,7 @@ let gridClass = $derived.by(() => {
 			onSelectItem={(id: string | null) => (selectedItemId = id)}
 			{onAddItem}
 			{onEditItem}
+			onClearTag={() => (activeTag = null)}
 		/>
 	</div>
 	{#if selectedItemId}

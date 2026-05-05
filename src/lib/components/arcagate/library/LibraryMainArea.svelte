@@ -39,9 +39,11 @@ interface Props {
 	onAddItem?: () => void;
 	/** L2-B B2: F3 で focus 中 item の編集 dialog を開く。 */
 	onEditItem?: (id: string) => void;
+	/** L2-D D2: 「フィルターを解除」 で sidebar の activeTag を clear。 */
+	onClearTag?: () => void;
 }
 
-let { activeTag, onSelectItem, onAddItem, onEditItem }: Props = $props();
+let { activeTag, onSelectItem, onAddItem, onEditItem, onClearTag }: Props = $props();
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
@@ -497,13 +499,24 @@ function handleGridKeydown(e: KeyboardEvent) {
 						testId="library-empty-state"
 					/>
 				{:else}
-					<div class="py-12 text-center text-sm text-[var(--ag-text-muted)]">
-						{searchQuery
+					<!-- L2-D D2: filter / search 結果 0 件で「フィルター解除」 button 付き empty。 -->
+					<EmptyState
+						icon={XIcon}
+						title={searchQuery
 							? `「${searchQuery}」に一致するアイテムはありません`
 							: activeTag
 								? 'このタグにアイテムがありません'
 								: 'アイテムがまだありません'}
-					</div>
+						description="検索 / タグ絞り込みを解除して全件を表示できます"
+						action={{
+							label: 'フィルターを解除',
+							onClick: () => {
+								searchQuery = '';
+								if (activeTag) onClearTag?.();
+							},
+						}}
+						testId="library-filter-empty-state"
+					/>
 				{/if}
 			{/if}
 		</div>
@@ -544,12 +557,24 @@ function handleGridKeydown(e: KeyboardEvent) {
 						/>
 					</div>
 				{:else}
-					<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">
-						{searchQuery
-							? `「${searchQuery}」に一致するアイテムはありません`
-							: activeTag
-								? 'このタグにアイテムがありません'
-								: 'アイテムがまだありません'}
+					<div class="col-span-full">
+						<EmptyState
+							icon={XIcon}
+							title={searchQuery
+								? `「${searchQuery}」に一致するアイテムはありません`
+								: activeTag
+									? 'このタグにアイテムがありません'
+									: 'アイテムがまだありません'}
+							description="検索 / タグ絞り込みを解除して全件を表示できます"
+							action={{
+								label: 'フィルターを解除',
+								onClick: () => {
+									searchQuery = '';
+									if (activeTag) onClearTag?.();
+								},
+							}}
+							testId="library-filter-empty-state-grid"
+						/>
 					</div>
 				{/if}
 			{/if}
