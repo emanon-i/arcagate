@@ -82,6 +82,14 @@ export async function getRecentItems(limit: number): Promise<Item[]> {
 	return invoke<Item[]>('cmd_get_recent_items', { limit });
 }
 
+/**
+ * R9-A: frecency (frequency × recency) ranking。
+ * Mozilla-inspired bucketed weight、palette empty-state で merged recent+frequent の代替。
+ */
+export async function getFrecencyItems(limit: number): Promise<Item[]> {
+	return invoke<Item[]>('cmd_get_frecency_items', { limit });
+}
+
 export async function getFolderItems(): Promise<Item[]> {
 	return invoke<Item[]>('cmd_get_folder_items');
 }

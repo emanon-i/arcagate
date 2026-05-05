@@ -105,6 +105,12 @@ pub fn cmd_get_recent_items(db: State<DbState>, limit: i64) -> Result<Vec<Item>,
     workspace_service::get_recent_items(&db, limit)
 }
 
+/// R9-A: frecency (frequency × recency) ranking。Palette empty-state で merged recent+frequent の代替。
+#[tauri::command]
+pub fn cmd_get_frecency_items(db: State<DbState>, limit: i64) -> Result<Vec<Item>, AppError> {
+    workspace_service::get_frecency_items(&db, limit)
+}
+
 #[tauri::command]
 pub fn cmd_get_folder_items(db: State<DbState>) -> Result<Vec<Item>, AppError> {
     workspace_service::get_folder_items(&db)
