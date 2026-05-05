@@ -5,6 +5,8 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { launchItem } from '$lib/ipc/launch';
+import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorCode, getErrorMessage } from '$lib/utils/format-error';
@@ -129,7 +131,14 @@ let filtered = $derived.by(() => {
 
 async function openEntry(entry: FileEntry) {
 	try {
-		await invoke('cmd_open_path', { path: entry.path });
+		// Library 登録済の exe (target 一致) は launchItem 経由で launch_log 記録。
+		// 未登録 / フォルダ / 非 exe ファイルは raw OS 起動 (cmd_open_path)。
+		const item = !entry.isDir ? itemStore.items.find((i) => i.target === entry.path) : undefined;
+		if (item) {
+			await launchItem(item.id);
+		} else {
+			await invoke('cmd_open_path', { path: entry.path });
+		}
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: 'ファイルを開く処理' }, e), 'error');
 	}

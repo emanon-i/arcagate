@@ -12,6 +12,7 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { registerExeItemsBulk } from '$lib/ipc/items';
+import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -234,10 +235,18 @@ async function launchEntry(entry: ExeFolderEntry) {
 		toastStore.add(`${entry.folderName}: 起動可能な exe が見つかりません`, 'error');
 		return;
 	}
-	// path 直起動: DB 経由しない（cmd_open_path で OS デフォルト起動）
-	void invoke('cmd_open_path', { path: exePath })
-		.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
-		.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
+	// Library 自動登録済の exe は launchItem 経由で launch_log 記録 (Recent widget に出る)。
+	// 未登録 (auto-register 前 / scan 中の race) は fallback で raw OS 起動。
+	const item = itemStore.items.find((i) => i.target === exePath);
+	if (item) {
+		void launchItem(item.id)
+			.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
+			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
+	} else {
+		void invoke('cmd_open_path', { path: exePath })
+			.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
+			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
+	}
 }
 
 // 5/03 user 検収: 旧 registerEntryToLibrary / registerAllEntriesToLibrary 手動 button は撤廃。
