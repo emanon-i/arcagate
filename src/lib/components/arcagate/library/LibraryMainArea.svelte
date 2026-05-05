@@ -325,7 +325,9 @@ function handleGridKeydown(e: KeyboardEvent) {
 	}}
 />
 
-<main class="min-h-full">
+<!-- R10-B G3 axe Phase 2: 外側 +page.svelte 側に <main> がある (nested main は axe critical)。
+     ここは <section aria-label="ライブラリ"> に変更して landmark を保持する (section + aria-label で region role 付与)。 -->
+<section aria-label="ライブラリ" class="min-h-full">
 	<div
 		class="min-h-full p-5"
 		role="presentation"
@@ -576,6 +578,6 @@ function handleGridKeydown(e: KeyboardEvent) {
 		</div>
 	{/if}
 	</div>
-</main>
+</section>
 
 <LibraryUndoSnackbar />
