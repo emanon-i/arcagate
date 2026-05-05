@@ -494,6 +494,8 @@ async function undo(): Promise<void> {
 	const entry = workspaceHistory.popUndo();
 	if (!entry || !activeWorkspaceId) return;
 	error = null;
+	// R8-3: undo が走った時点で削除 snackbar は役割終了 (Ctrl+Z でも snackbar click でも同じ経路)
+	workspaceHistory.dismiss();
 	try {
 		switch (entry.kind) {
 			case 'add': {
