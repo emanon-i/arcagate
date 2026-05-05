@@ -86,6 +86,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-widget-shell.sh
 
+      - name: A11y icon-only button aria-label audit (R7-2)
+        shell: bash
+        run: bash scripts/audit-aria-icon-only-buttons.sh
+
       - name: Release blocker files audit (R4-B)
         shell: bash
         run: bash scripts/release-checks/check-blocker-files.sh
