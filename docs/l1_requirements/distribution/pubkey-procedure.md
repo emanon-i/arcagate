@@ -1,7 +1,10 @@
-# Tauri Updater 公開鍵 / 秘密鍵 手順書
+# Tauri Updater 公開鍵 / 秘密鍵 手順書 (Tier 1)
 
 **Status**: 2026-05-05 user-action-required (audit B-1 / F3 + F10 root cause)
-**Scope**: arcagate (Tauri v2 + GH Releases auto-update) の updater 鍵運用
+**Scope**: arcagate (Tauri v2 + GH Releases auto-update) の updater 鍵運用 = **Tier 1 (auto-update 経路の完全性)**
+
+**関連**: 配布元 attestation (**Tier 2**) は [cosign-verification.md](./cosign-verification.md) 参照。
+Tier 2 は agent が CI に統合済 (R10-X PR)、user 作業 0 で運用中。本 Tier 1 と独立した信頼レイヤー。
 
 ---
 
