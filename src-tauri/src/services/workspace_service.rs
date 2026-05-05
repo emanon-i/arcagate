@@ -217,6 +217,14 @@ pub fn get_recent_items(db: &DbState, limit: i64) -> Result<Vec<Item>, AppError>
     workspace_repository::list_recent_items(&conn, limit)
 }
 
+/// R9-A: frecency 順 (frequency × recency) で item を返す。
+/// palette empty-state で merged recent+frequent の代わりに使う。
+pub fn get_frecency_items(db: &DbState, limit: i64) -> Result<Vec<Item>, AppError> {
+    let limit = limit.clamp(1, 500);
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    workspace_repository::list_frecency_items(&conn, limit)
+}
+
 pub fn get_folder_items(db: &DbState) -> Result<Vec<Item>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::list_folder_items(&conn)

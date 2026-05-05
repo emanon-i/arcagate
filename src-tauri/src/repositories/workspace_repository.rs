@@ -386,6 +386,43 @@ pub fn list_recent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, App
     Ok(items)
 }
 
+/// R9-A: frecency (frequency × recency) ranking。
+///
+/// Mozilla-inspired bucketed weight (vision.md L3-C 持ち越し):
+///   - 起動 1 day 以内: weight 4.0
+///   - 7 days 以内:    weight 2.0
+///   - 30 days 以内:   weight 1.0
+///   - 90 days 以内:   weight 0.5
+///   - それ以前:       weight 0.25
+///
+/// final score = launch_count × weight、score DESC、tie-break last_launched_at DESC。
+/// is_enabled = 1 かつ起動歴あり (item_stats に row 存在) のみ。
+/// 起動歴 0 件の item は素朴な list_frequent_items / list_recent_items と同じく除外。
+pub fn list_frecency_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, AppError> {
+    let mut stmt = conn.prepare(
+        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
+                i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
+                i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+         FROM items i
+         INNER JOIN item_stats s ON s.item_id = i.id
+         WHERE i.is_enabled = 1 AND s.last_launched_at IS NOT NULL
+         ORDER BY (s.launch_count * (
+             CASE
+                 WHEN julianday('now') - julianday(s.last_launched_at) <= 1 THEN 4.0
+                 WHEN julianday('now') - julianday(s.last_launched_at) <= 7 THEN 2.0
+                 WHEN julianday('now') - julianday(s.last_launched_at) <= 30 THEN 1.0
+                 WHEN julianday('now') - julianday(s.last_launched_at) <= 90 THEN 0.5
+                 ELSE 0.25
+             END
+         )) DESC, s.last_launched_at DESC
+         LIMIT ?1",
+    )?;
+    let items = stmt
+        .query_map(params![limit], row_to_item)?
+        .collect::<rusqlite::Result<Vec<Item>>>()?;
+    Ok(items)
+}
+
 pub fn list_folder_items(conn: &Connection) -> Result<Vec<Item>, AppError> {
     let mut stmt = conn.prepare(
         "SELECT id, item_type, label, target, args, working_dir,
@@ -691,6 +728,93 @@ mod tests {
 
         let items = list_recent_items(&conn, 10).unwrap();
         assert_eq!(items.len(), 1); // deduplicated
+    }
+
+    #[test]
+    fn test_list_frecency_items_orders_by_combined_score() {
+        // R9-A: 古くて多回起動 vs 新しくて少回起動 で recency weight が支配的になることを検証。
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let old_heavy = make_item("id-old", "Old Heavy", ItemType::Exe);
+        let new_light = make_item("id-new", "New Light", ItemType::Exe);
+        let new_heavy = make_item("id-new-heavy", "New Heavy", ItemType::Exe);
+        item_repository::insert(&conn, &old_heavy).unwrap();
+        item_repository::insert(&conn, &new_light).unwrap();
+        item_repository::insert(&conn, &new_heavy).unwrap();
+
+        // Old Heavy: 100 起動 / 100 日前 → 100 × 0.25 = 25
+        // New Light: 5 起動 / 0 日前 (今日) → 5 × 4.0 = 20
+        // New Heavy: 10 起動 / 0 日前 → 10 × 4.0 = 40 → 1 位
+        // 期待 ranking: New Heavy > Old Heavy > New Light
+        conn.execute(
+            "INSERT INTO item_stats (item_id, launch_count, last_launched_at)
+             VALUES (?1, ?2, datetime('now', '-100 days'))",
+            params!["id-old", 100],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO item_stats (item_id, launch_count, last_launched_at)
+             VALUES (?1, ?2, datetime('now'))",
+            params!["id-new", 5],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO item_stats (item_id, launch_count, last_launched_at)
+             VALUES (?1, ?2, datetime('now'))",
+            params!["id-new-heavy", 10],
+        )
+        .unwrap();
+
+        let items = list_frecency_items(&conn, 10).unwrap();
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].label, "New Heavy", "score 40 should be first");
+        assert_eq!(items[1].label, "Old Heavy", "score 25 should be second");
+        assert_eq!(items[2].label, "New Light", "score 20 should be third");
+    }
+
+    #[test]
+    fn test_list_frecency_items_excludes_no_history() {
+        // 起動歴なし item は除外される (item_stats に row 無し or last_launched_at NULL)。
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let with_history = make_item("id-1", "With History", ItemType::Exe);
+        let without_history = make_item("id-2", "No History", ItemType::Exe);
+        item_repository::insert(&conn, &with_history).unwrap();
+        item_repository::insert(&conn, &without_history).unwrap();
+
+        conn.execute(
+            "INSERT INTO item_stats (item_id, launch_count, last_launched_at)
+             VALUES (?1, 1, datetime('now'))",
+            params!["id-1"],
+        )
+        .unwrap();
+
+        let items = list_frecency_items(&conn, 10).unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].label, "With History");
+    }
+
+    #[test]
+    fn test_list_frecency_items_respects_is_enabled() {
+        // is_enabled = 0 の item は除外される。
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let mut disabled = make_item("id-disabled", "Disabled App", ItemType::Exe);
+        disabled.is_enabled = false;
+        item_repository::insert(&conn, &disabled).unwrap();
+
+        conn.execute(
+            "INSERT INTO item_stats (item_id, launch_count, last_launched_at)
+             VALUES (?1, 100, datetime('now'))",
+            params!["id-disabled"],
+        )
+        .unwrap();
+
+        let items = list_frecency_items(&conn, 10).unwrap();
+        assert_eq!(items.len(), 0);
     }
 
     #[test]
