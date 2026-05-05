@@ -94,11 +94,15 @@
 
 ## J. テスト
 
-### J1. unit test カバレッジ
+### J1. unit test カバレッジ (R5-1 実測ベース)
 
-- **Verification**: `pnpm vitest run --coverage` で coverage report 生成
-- **Pass criteria**: src/lib/utils 系で line coverage ≥ 80%、src/lib/state で ≥ 60%、全体 ≥ 50%
-- **Tooling**: `pnpm vitest run --coverage`、出力 % を audit.md に記載
+- **Verification**: `pnpm vitest run --coverage --coverage.reporter=text --coverage.include='src/lib/utils/**' --coverage.include='src/lib/state/**'` で scoped coverage 生成
+- **Pass criteria**:
+  1. `src/lib/utils/**` 全体 Lines ≥ 80%
+  2. 「business-critical state stores」 (mutation + IPC + cache 含む) のうち **5 stores 以上で Lines ≥ 80%**
+     - 候補: metadata / library-history / error-monitor / items / workspace / library-sort / help
+- **理由**: DOM-coupled state (workspace / theme / zoom / palette / pointer-drag) は unit test 不適、e2e 担保が現実的。当面は **test-friendly stores の厚み** を評価対象に
+- **Tooling**: `pnpm vitest run --coverage` 出力を `measurements/vitest-coverage.md` に記録。CI gate 化は R6 で `vitest.config.ts` に threshold 組込み検討
 
 ### J2. Rust unit test カバレッジ
 

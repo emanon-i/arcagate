@@ -76,10 +76,13 @@
 
 ## J. テスト
 
-### J1. unit test (vitest) カバレッジ — **部分的**
+### J1. unit test (vitest) カバレッジ — **部分的** (R5-1 実測)
 
-- **根拠**: `pnpm vitest run` 306 tests pass / 31 test files。`src/lib/utils/` (zoom-math / grid-keyboard / fuzzy-search / library-sort / format-meta etc) は test 厚い。
-- **gap**: `pnpm vitest run --coverage` で % は未取得。L1-L3 で大量 test 追加したため線量は上がっているはずだが numerical 取得が必要。
+- **根拠**: 313 tests pass / 32 test files。`pnpm vitest run --coverage --coverage.include='src/lib/utils/**' --coverage.include='src/lib/state/**'` で実測:
+  - `src/lib/utils/**` 全体 Lines = **82.46%** ✅ (criteria ≥ 80%)
+  - state ≥ 80% の store: metadata (97) / library-history (93) / error-monitor (88) / help (83) → **4 store** (criteria ≥ 5、1 不足)
+- **gap**: state 5 個目 (criteria 達成) のため `items.svelte.ts` (現 14.94%) の load/create/update/toggleStar/deleteItem unit test 追加が必要 — R5+ で対応
+- **measurements**: [measurements/vitest-coverage.md](./measurements/vitest-coverage.md)
 
 ### J2. Rust unit test カバレッジ — **部分的**
 

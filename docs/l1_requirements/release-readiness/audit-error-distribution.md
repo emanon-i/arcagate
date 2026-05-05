@@ -58,10 +58,10 @@
 
 - **根拠**: `cmd_check_kill_switch` (`src-tauri/src/commands/kill_switch_commands.rs` 経由)、`cmd_get_telemetry_opt_in` / `cmd_set_telemetry_opt_in` / `cmd_get_crash_report_opt_in` / `cmd_set_crash_report_opt_in` 全て `lib.rs` で register。`PrivacySettings.svelte` で UI 切替実装、both default OFF (`onMount` で initial false)。
 
-### F6. privacy / license / EULA — **部分的**
+### F6. privacy / license / EULA — **PASS** (R5-1 訂正)
 
-- **根拠**: `AboutSection.svelte` で `License` 表示 (本 commit でも未読詳細だが grep で確認)。`PrivacySettings.svelte` で telemetry / crash opt-in 切替。`README.md` の MIT badge。
-- **gap**: 「プライバシー」テキスト or link が settings に **無い** (`grep "プライバシー" src/lib/components/arcagate/settings/` 0 件)。EULA / privacy policy doc が doc 化されていない。
+- **根拠**: `AboutSection.svelte` で `License` 表示。`PrivacySettings.svelte:49` に `<a href=".../PRIVACY.md">PRIVACY.md</a>` link 既存、telemetry / crash opt-in 切替実装。`README.md` の MIT badge + プライバシー 節 + (R4-A) サポート 節。`PRIVACY.md` 既存 (root)。
+- **R2 audit 訂正**: 旧記述「link 無し」は誤り (grep path 誤り、`src/lib/components/arcagate/settings/` ではなく実際は `src/lib/components/settings/`)。S-7 (gap-list) 不要、本軸 PASS で完結。
 
 ### F7. installer 実行で AV / SmartScreen 警告 — **未検証 (user 手動)**
 
