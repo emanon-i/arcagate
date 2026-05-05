@@ -1,5 +1,43 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/tauri.js';
-import { createItem, deleteItem, invoke } from '../helpers/ipc.js';
+import { createItem, deleteItem } from '../helpers/ipc.js';
+
+// AppError は `{ code, message }` の構造体で投げられる。helper `invoke()` 経由で
+// catch するとPlaywright が page.evaluate の throw 値を `[object Object]` 化して
+// 元の code / message が取れない。本 helper は evaluate 内側で捕捉して
+// `{ ok: true, value }` または `{ ok: false, code, message }` を返す。
+async function invokeForError(
+	page: Page,
+	cmd: string,
+	args: Record<string, unknown>,
+): Promise<{ ok: true; value: unknown } | { ok: false; code: string | null; message: string }> {
+	return page.evaluate(
+		async ([command, arguments_]) => {
+			const tauri = (
+				window as unknown as {
+					__TAURI_INTERNALS__: { invoke: (cmd: string, args?: unknown) => Promise<unknown> };
+				}
+			).__TAURI_INTERNALS__;
+			try {
+				const value = await tauri.invoke(command, arguments_);
+				return { ok: true, value };
+			} catch (e: unknown) {
+				const code =
+					typeof e === 'object' && e !== null && 'code' in e
+						? String((e as { code: unknown }).code)
+						: null;
+				const message =
+					typeof e === 'object' && e !== null && 'message' in e
+						? String((e as { message: unknown }).message)
+						: typeof e === 'string'
+							? e
+							: JSON.stringify(e);
+				return { ok: false as const, code, message };
+			}
+		},
+		[cmd, args] as [string, Record<string, unknown>],
+	);
+}
 
 test.describe('launch エラー診断 (Nielsen H9 / PH-417 + PH-422)', () => {
 	test('存在しない exe path → 「ファイルが見つかりません」 toast', async ({ page }) => {
@@ -11,22 +49,17 @@ test.describe('launch エラー診断 (Nielsen H9 / PH-417 + PH-422)', () => {
 		});
 
 		try {
-			// パレットを開いて item を検索 → 起動 (Library から起動でも良いが、Library 検索は ItemStore 同期待ちが必要)
-			// Direct invoke で launch を試みる
-			let errorCaught = false;
-			let errorMsg = '';
-			try {
-				await invoke<void>(page, 'cmd_launch_item', {
-					itemId: item.id,
-					source: 'palette',
-				});
-			} catch (e: unknown) {
-				errorCaught = true;
-				errorMsg = String(e);
+			const result = await invokeForError(page, 'cmd_launch_item', {
+				itemId: item.id,
+				source: 'palette',
+			});
+			expect(result.ok).toBe(false);
+			if (!result.ok) {
+				// AppError::LaunchFileNotFound を期待 (PH-429 structured error)
+				expect(
+					result.code === 'launch.file_not_found' || result.message.includes('File not found'),
+				).toBe(true);
 			}
-			expect(errorCaught).toBe(true);
-			// "File not found:" が含まれること (Rust 側 AppError::LaunchFileNotFound)
-			expect(errorMsg).toContain('File not found');
 		} finally {
 			await deleteItem(page, item.id);
 		}
@@ -45,26 +78,17 @@ test.describe('launch エラー診断 (Nielsen H9 / PH-417 + PH-422)', () => {
 		});
 
 		try {
-			let errorCaught = false;
-			let errorCode: string | null = null;
-			let errorMsg = '';
-			try {
-				await invoke<void>(page, 'cmd_launch_item', {
-					itemId: item.id,
-					source: 'palette',
-				});
-			} catch (e: unknown) {
-				errorCaught = true;
-				if (typeof e === 'object' && e !== null && 'code' in e) {
-					errorCode = (e as { code: string }).code;
-				}
-				errorMsg = String(e);
+			const result = await invokeForError(page, 'cmd_launch_item', {
+				itemId: item.id,
+				source: 'palette',
+			});
+			expect(result.ok).toBe(false);
+			if (!result.ok) {
+				// AppError::LaunchNotExecutable を期待
+				expect(
+					result.code === 'launch.not_executable' || result.message.includes('Not executable'),
+				).toBe(true);
 			}
-			expect(errorCaught).toBe(true);
-			// AppError::LaunchNotExecutable を期待
-			// errorCode 経由 (PH-429 構造化) or message contains
-			const matched = errorCode === 'launch.not_executable' || errorMsg.includes('Not executable');
-			expect(matched).toBe(true);
 		} finally {
 			await deleteItem(page, item.id);
 		}

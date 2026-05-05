@@ -18,16 +18,27 @@ use crate::utils::error::AppError;
 ///
 /// `modified_at_unix` は UNIX_EPOCH からの秒数（外部 datetime crate に依存せず、
 /// フロント側 Date で整形する）。
+// `skip_serializing_if = "Option::is_none"` で None フィールドを JSON から除外。
+// TypeScript 側 `ItemMetadata` (optional `?: T`) と整合し、test も `toBeUndefined()` を満たす。
+// 旧仕様 (None → null 出力) は wire format mismatch で test 期待値とずれていた。
 #[derive(Serialize, Default, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemMetadata {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub size_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub modified_at_unix: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub child_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub folder_total_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub url_domain: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub image_width: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub image_height: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub image_format: Option<String>,
 }
 

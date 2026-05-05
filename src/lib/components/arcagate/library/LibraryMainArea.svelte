@@ -354,6 +354,18 @@ function handleGridKeydown(e: KeyboardEvent) {
 				autocomplete="off"
 				bind:value={searchQuery}
 				bind:this={searchInputEl}
+				onkeydown={(e) => {
+					if (e.key === 'Escape') {
+						// 1 段目 ESC: 値があればクリア、無ければ blur (search bar からフォーカス外す)。
+						// e2e G1 keyboard-dynamic で検証 (ESC で blur or clear のいずれか)。
+						e.stopPropagation();
+						if (searchQuery !== '') {
+							searchQuery = '';
+						} else {
+							(e.currentTarget as HTMLInputElement).blur();
+						}
+					}
+				}}
 			/>
 			{#if searchQuery}
 				<button
