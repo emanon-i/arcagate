@@ -61,3 +61,25 @@ jobs:
           name: test-results-nightly
           path: test-results/
           retention-days: 3
+
+      # R7-5: release build + 自動 perf 計測 (D1 cold / D2 warm startup P95)
+      - name: Build Tauri release (for perf measurement)
+        run: pnpm tauri build
+
+      - name: Measure cold startup P95 (D1)
+        shell: pwsh
+        continue-on-error: true
+        run: pwsh scripts/release-checks/measure-startup.ps1 -Iterations 5 -Cold -OutFile docs/l1_requirements/release-readiness/measurements/startup-cold-nightly.json
+
+      - name: Measure warm startup P95 (D2)
+        shell: pwsh
+        continue-on-error: true
+        run: pwsh scripts/release-checks/measure-startup.ps1 -Iterations 5 -OutFile docs/l1_requirements/release-readiness/measurements/startup-warm-nightly.json
+
+      - name: Upload startup measurements
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-measurements-nightly
+          path: docs/l1_requirements/release-readiness/measurements/startup-*.json
+          retention-days: 30
