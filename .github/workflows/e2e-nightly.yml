@@ -41,10 +41,27 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
 
-      - name: Run full E2E suite (S + A rank)
+      - name: Run full E2E suite (S + A rank、@perf-nightly 除外)
         run: pnpm test:e2e
         env:
           WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
+
+      # R8-1: D7 (1000 item Library) / D8 (100 widget Workspace) fixture-based perf 計測。
+      # 失敗しても以降の release build / startup 計測を続行するため continue-on-error。
+      - name: Run perf E2E suite (D7 / D8)
+        continue-on-error: true
+        run: pnpm test:e2e:perf
+        env:
+          WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
+
+      - name: Upload perf measurements (D7 / D8)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-measurements-nightly
+          path: docs/l1_requirements/release-readiness/measurements/d*.json
+          retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
