@@ -12,6 +12,7 @@ import { countItemReferences, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
 import { formatLaunchError } from '$lib/utils/launch-error';
@@ -106,7 +107,11 @@ async function handleDelete() {
 		kind: 'warning',
 	});
 	if (confirmed) {
-		void itemStore.deleteItem(selectedItem.id);
+		// L2-B B4: snapshot を取って libraryHistory に積む → 5 秒以内なら undo 可能
+		const snapshot = selectedItem;
+		const tagIds = itemTags.map((t) => t.id);
+		await itemStore.deleteItem(snapshot.id);
+		libraryHistory.recordDelete(snapshot, tagIds);
 	}
 }
 

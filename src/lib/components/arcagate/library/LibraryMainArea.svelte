@@ -23,6 +23,7 @@ import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import LibraryCard from './LibraryCard.svelte';
+import LibraryUndoSnackbar from './LibraryUndoSnackbar.svelte';
 
 interface Props {
 	activeTag: string | null;
@@ -459,3 +460,5 @@ function handleGridKeydown(e: KeyboardEvent) {
 	{/if}
 	</div>
 </main>
+
+<LibraryUndoSnackbar />
