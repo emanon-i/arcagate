@@ -62,7 +62,12 @@ async function handleBulkStar() {
 		const ids = Array.from(selectedIds);
 		const count = await bulkAddTag(ids, 'sys-starred');
 		toastStore.add(`${count} 件をお気に入りに追加しました`, 'success');
-		await itemStore.loadItems();
+		// C6: items + sidebar (libraryStats / tagWithCounts) 一括 refresh で件数ズレ防止
+		await Promise.all([
+			itemStore.loadItems(),
+			itemStore.loadLibraryStats(),
+			itemStore.loadTagWithCounts(),
+		]);
 		exitSelectionMode();
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括お気に入り追加' }, e), 'error');
@@ -76,7 +81,12 @@ async function handleBulkDelete() {
 		const ids = Array.from(selectedIds);
 		const count = await bulkDeleteItems(ids);
 		toastStore.add(`${count} 件を削除しました`, 'success');
-		await itemStore.loadItems();
+		// C6: 削除で「すべて」 / 各タグ count / お気に入り count が変動するので 3 系統 refresh
+		await Promise.all([
+			itemStore.loadItems(),
+			itemStore.loadLibraryStats(),
+			itemStore.loadTagWithCounts(),
+		]);
 		exitSelectionMode();
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括削除' }, e), 'error');
