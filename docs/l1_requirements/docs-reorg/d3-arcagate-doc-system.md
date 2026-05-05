@@ -1,158 +1,167 @@
-# D3: Arcagate doc system 設計
+# D3': Arcagate doc system 設計 (Tri-SSD contract 準拠版)
 
-**Status**: 2026-05-06 D2 後、D4 plan / D5 実行のインプット
-**Method**: D1 痛み + D2 ベストプラクティス → Arcagate 1 person + agent 規模で **実装可能な具体形** を決定
+**Status**: 2026-05-06 D3 完全書き直し (前回 D3 は l0-l3 を破壊する設計、`d3-tri-sdd-contract.md` で revert 必須と判明)
+**前提**: `d3-tri-sdd-contract.md` の 9 必須項目を **絶対に守る**
 
-## 1. 設計原則 (Arcagate 固有)
+→ 旧 D3 (vision/spec/guide/adr/plans 5 type) は **破棄**。本書が D3' final。
 
-| 原則                                    | 由来                                                                                |
-| --------------------------------------- | ----------------------------------------------------------------------------------- |
-| **1 person + agent 規模**               | RFC pattern の committee / FCP 文化は不要、ADR + Diátaxis + 独自 plan folder で十分 |
-| **agent が読み書き / 検索しやすい**     | LLM-friendly: kebab-case / flat-ish / canonical signaling / frontmatter ≤ 8 fields  |
-| **200 行 / file 制約**                  | user 指示、CLAUDE.md context auto-load 上限への配慮                                 |
-| **CLAUDE.md は薄い index**              | 200 行制約、頻繁更新する live spec は外に逃がして link                              |
-| **short-life : long-life = 7:3**        | D1 観測、短命 doc 専用 folder (`plans/`) を first-class 化                          |
-| **archive は明示移動 + git 履歴で代替** | "古いものは消して OK、git に残るから" (user 指示)                                   |
+## 1. 設計原則 (再確認)
 
-## 2. doc type の正式定義 (5 種)
+| 原則                         | 由来                                                                                                                                                |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tri-SSD contract 厳守**    | l0_ideas/ / l1_requirements/ / l2_foundation/ / l3_phases/ の 4 dir + canonical files (vision.md / foundation.md / PH-*.md) は **絶対に動かさない** |
+| **agent context 節約最優先** | 1 file 200-400 行推奨 (tri-ssd 推奨と整合)、CLAUDE.md は薄く / 詳細は on-demand                                                                     |
+| **kebab-case 統一**          | snake_case / 大文字 / 日付 prefix を排除 (l0-l3 prefix は除外、それだけは contract)                                                                 |
+| **重複 / outdated 排除**     | agent 混乱の元、削除 (git history で復元) or archive                                                                                                |
+| **broken link 禁止**         | active 領域 (live doc) からの dead link は agent navigation を破壊                                                                                  |
 
-| type                              | 寿命  | 場所           | 例                                                                                           |
-| --------------------------------- | ----- | -------------- | -------------------------------------------------------------------------------------------- |
-| **vision** (Diátaxis Explanation) | long  | `docs/vision/` | プロダクト方針 / 哲学 / 設計原則                                                             |
-| **spec** (Diátaxis Reference)     | long  | `docs/spec/`   | UI 標準 / token / API / criteria / ファイル仕様                                              |
-| **guide** (Diátaxis How-to)       | long  | `docs/guide/`  | user / dev 向け手順書 (pubkey / cosign / MS Store / etc.)                                    |
-| **adr** (decision)                | long  | `docs/adr/`    | 採用決定 + 経緯 (1 file 1 decision、append-only)                                             |
-| **plan** (短命)                   | short | `docs/plans/`  | audit / investigation / phase plan / dispatch、status:active が live、status:done で archive |
-
-Diátaxis "Tutorials" (learning) は Arcagate 範囲外 (tutorial を書く対象 user が居ない、guide で十分)。
-
-## 3. ディレクトリ階層 (flat-ish 2 階層)
+## 2. 階層構造 (Tri-SSD 4 階層 を **保ったまま整理**)
 
 ```
 docs/
-├── llms.txt                    ← root index (canonical doc list、agent が一発取得)
-├── README.md                   ← human reader 用 entrypoint
-├── vision/
-│   ├── product.md              ← 旧 vision.md
-│   ├── engineering-principles.md ← 旧 l0_ideas/arcagate-engineering-principles.md
-│   ├── visual-language.md      ← 旧 l0_ideas/arcagate-visual-language.md
-│   └── concept.md              ← 旧 l0_ideas/arcagate-concept.md
-├── spec/
-│   ├── ux-standards.md         ← 旧 l1_requirements/ux_standards.md (要分割、879 行)
-│   ├── design-system.md        ← 旧 l1_requirements/design_system_architecture.md
-│   ├── industrial-yellow.md    ← 旧 l1_requirements/design/industrial-yellow-spec.md
-│   ├── desktop-ui-rules.md     ← 旧 desktop_ui_ux_agent_rules.md (要分割、537 行)
-│   ├── release-criteria.md     ← 旧 release-readiness/criteria*.md 4 件統合
-│   └── widget-add-checklist.md ← 旧 widget-add-checklist.md
-├── guide/
-│   ├── pubkey-procedure.md     ← 旧 distribution/pubkey-procedure.md
-│   ├── cosign-verification.md  ← 旧 distribution/cosign-verification.md
-│   ├── microsoft-store.md      ← 旧 distribution/microsoft-store.md
-│   ├── distribution-rollback.md ← 旧 distribution-rollback-sop.md
-│   ├── dispatch-rules.md       ← 旧 dispatch-operation.md
-│   └── support.md              ← 旧 SUPPORT.md
-├── adr/
-│   ├── 0001-tauri-v2-svelte5.md          ← 既存決定の retro ADR 化
-│   ├── 0002-mutex-connection-no-pool.md  ← 既存決定 retro
-│   ├── 0003-no-orm-rusqlite.md           ← 既存決定 retro
-│   ├── 0004-forward-only-migrations.md   ← 既存決定 retro
-│   ├── 0005-tier1-tier2-signing.md       ← R10 で確定 (minisign + cosign)
-│   └── (NNNN-name.md、kebab-case、append-only)
-├── plans/
-│   ├── active/
-│   │   └── docs-reorg/         ← D1〜D5 (本 phase、完了で archive へ)
-│   ├── archive/                ← status:done plan の最終置き場 (旧 l3_phases/archive/ + docs/archive/ 統合)
-│   └── README.md               ← active/archive の運用ルール
-├── lessons.md                  ← live、git 履歴で歴史追える、archive 不要
-└── memory/                     ← 既存 (CLAUDE.md auto-load 用 user メモリ、本 reorg 範囲外)
+├── README.md                       ← 新規: human entrypoint
+├── llms.txt                        ← 新規: agent 一発取得 index
+├── lessons.md                      ← live (top-level、plugin 範囲外)
+│
+├── l0_ideas/                       ← Tri-SSD canonical、変更禁止
+│   ├── concept.md                  ← 旧 arcagate-concept.md
+│   ├── engineering-principles.md   ← 旧 arcagate-engineering-principles.md
+│   ├── visual-language.md          ← 旧 arcagate-visual-language.md
+│   ├── ux-design.md                ← 旧 ../l1_requirements/ux_design_vision.md (vision 系は l0 へ寄せる)
+│   └── mockups/                    ← 旧 mock PNG / JSX (binary は dir 整理)
+│       ├── overlay-palette.png
+│       ├── window-library.png
+│       ├── window-workspace.png
+│       └── board.jsx
+│
+├── l1_requirements/                ← Tri-SSD canonical
+│   ├── vision.md                   ← Tri-SSD canonical L1、移動禁止 (旧 vision.md 保持)
+│   ├── use-cases.md                ← 旧 use-cases.md (l1 直下)
+│   ├── ux-standards.md             ← 旧 ux_standards.md (rename only、内容は分割対応 spec/ へ)
+│   ├── design-system.md            ← 旧 design_system_architecture.md (rename only)
+│   ├── industrial-yellow.md        ← 旧 design/industrial-yellow-spec.md (rename + parent dir 解消)
+│   ├── desktop-ui-rules.md         ← 旧 ../desktop_ui_ux_agent_rules.md (top-level → l1 spec 化)
+│   ├── widget-add-checklist.md     ← 旧 ../widget-add-checklist.md (top-level → l1 spec)
+│   ├── release-criteria.md         ← 旧 release-readiness/criteria*.md 4 件統合
+│   ├── distribution/               ← guide 群 (sub-dir、plugin 範囲外なので自由)
+│   │   ├── pubkey-procedure.md     ← R10-X
+│   │   ├── cosign-verification.md  ← R10-X
+│   │   ├── microsoft-store.md      ← R10-Y
+│   │   ├── distribution-rollback.md ← 旧 ../distribution-rollback-sop.md
+│   │   ├── support.md              ← 旧 ../SUPPORT.md
+│   │   ├── dispatch-rules.md       ← 旧 ../dispatch-operation.md
+│   │   └── user-action-needed.md   ← 旧 release-readiness/user-action-needed.md
+│   └── docs-reorg/                 ← 本 reorg phase (PR merge 後 archive へ)
+│
+├── l2_foundation/                  ← Tri-SSD canonical
+│   └── foundation.md               ← Tri-SSD canonical L2、移動禁止 (旧 foundation.md 保持)
+│
+├── l2_architecture/                ← plugin 範囲外、live spec として残す
+│   ├── folder-map.md               ← live
+│   ├── frontend-backend-split.md   ← live
+│   └── _archive/                   ← snapshot 系 (baseline / metrics / use-case-friction-v2)
+│
+└── l3_phases/                      ← Tri-SSD canonical
+    ├── _template/
+    │   └── use-case-audit.md
+    └── _archive/                   ← Tri-SSD contract: archive/ ではなく _archive/ に rename
+        ├── PH-NNNN_*.md (legacy 503 件)
+        ├── library-overhaul/       ← 旧 ../l1_requirements/library-overhaul/ 全件
+        ├── workspace-canvas-rewrite/  ← 旧 ../l1_requirements/workspace-canvas-rewrite/ 全件
+        ├── release-readiness/      ← 旧 ../l1_requirements/release-readiness/ の audit-final-rN 等
+        └── docs-reorg/             ← 本 reorg PR merge 後の最終置き場
 ```
 
-**廃止する旧階層**:
+**重要**: `l3_phases/archive/` は現状 underscore なし。Tri-SSD contract に合わせ `_archive/` に rename する。
 
-- `l0_ideas/` → `vision/`
-- `l1_requirements/` (sub-dir 全部) → `spec/` / `guide/` / `plans/`
-- `l2_architecture/` / `l2_foundation/` → `spec/` (live のみ) + `plans/archive/` (snapshot 系)
-- `l3_phases/` → `plans/`
-- `archive/` (top-level) → `plans/archive/`
-- `release-readiness/` → `spec/release-criteria.md` (live) + `plans/archive/release-readiness-rN/` (audit-final-rN history)
+## 3. 命名規則
 
-## 4. 命名規則
+| 種別                 | pattern                 | 例                                                                     | 既存からの変更              |
+| -------------------- | ----------------------- | ---------------------------------------------------------------------- | --------------------------- |
+| canonical files      | path 固定               | `l1_requirements/vision.md`                                            | 維持                        |
+| Tri-SSD ID 連番      | `PH-NNNN_kebab-case.md` | `PH-0001_mvp.md`                                                       | 維持                        |
+| 通常 doc (内部)      | kebab-case              | `pubkey-procedure.md`                                                  | snake_case → kebab          |
+| 大文字 file          | kebab-case              | `support.md`                                                           | `SUPPORT.md` → `support.md` |
+| 旧式 docs/ 直下 misc | l1 / l2 sub に移動      | `desktop_ui_ux_agent_rules.md` → `l1_requirements/desktop-ui-rules.md` | 移動 + rename               |
 
-| 種別           | pattern                                                        | 例                                                     |
-| -------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
-| **通常 doc**   | kebab-case 名詞 / 動詞句                                       | `pubkey-procedure.md` / `engineering-principles.md`    |
-| **ADR**        | `NNNN-kebab-case-decision.md` (4 桁、issue 番号と紐付かず連番) | `0001-tauri-v2-svelte5.md`                             |
-| **plans**      | `<phase>-<topic>.md` or kebab-case                             | `docs-reorg/d1-current-state.md` (本書)                |
-| **archive 内** | 元 path + ファイル名保持 (探索性優先)                          | `plans/archive/release-readiness-r6/audit-final-r6.md` |
+**禁止**: snake_case (`ux_standards.md` → `ux-standards.md`)、大文字 (`SUPPORT.md` → `support.md`)、`docs/distribution-readiness.md` 等の中身重複 path
 
-**禁止**:
+**例外**: `l0_ideas/` `l1_requirements/` `l2_foundation/` `l3_phases/` の **4 dir 名は snake_case で固定** (Tri-SSD contract)、変更禁止。`_archive/` `_template/` の underscore prefix も同様。
 
-- snake_case (`ux_standards.md` → `ux-standards.md`)
-- 大文字混在 (`SUPPORT.md` → `support.md`)
-- 日付 prefix (`PH-20260226-001_*.md` 形式)、retain-by-content の妨げ
-- ファイル名 abbrev (`fsv.md` 等、agent が topic から推測不能)
+## 4. agent navigation (CLAUDE.md + llms.txt)
 
-## 5. Frontmatter schema (≤ 8 fields)
-
-```yaml
----
-type: vision | spec | guide | adr | plan
-status: live | active | done | superseded | deprecated  # 任意 (vision/spec は省略可、adr/plan は必須)
-created: 2026-05-06
-updated: 2026-05-06  # 任意
-supersedes: 0003-old-decision  # 任意 (ADR で前 decision を上書きする場合)
-superseded-by: 0005-new-decision  # 任意 (古い ADR が新しい ADR で置換された場合)
----
-```
-
-**vision / spec / guide / lessons は frontmatter 省略可** (頻繁書き換えしない / type は path で自明)。
-**ADR と plan は frontmatter 必須**。
-
-## 6. Lifecycle / status 遷移
-
-### ADR
-
-```
-(write new file)
-→ status: active
-→ ┬→ status: superseded (新 ADR が supersedes で参照)
-   └→ status: deprecated (撤回、新 ADR なし)
-```
-
-ADR 自体は **削除しない** (append-only、git 履歴ではなく live ファイルとして残す、過去 decision は agent context として価値あり)。
-
-### plans
-
-```
-docs/plans/active/<topic>/*.md   ← 着手中
-       ↓ 完了
-docs/plans/archive/<topic>/*.md  ← status: done に変更 + 移動
-       ↓ 価値消失
-(削除)                            ← 不要なら git 履歴に逃がして削除
-```
-
-判断基準:
-
-- **archive 移動**: phase / cycle が完了し、reference 価値が残る (例: `release-readiness-r6/audit-final-r6.md`)
-- **削除**: 完全に superseded され reference 価値ゼロ (例: 中間草案 / 重複 doc)
-
-## 7. CLAUDE.md との接続
-
-CLAUDE.md は **薄い index に保つ** (200 行制約、context auto-load 配慮)。新構造での CLAUDE.md 「いつ何を読むか」 table:
+### CLAUDE.md (薄く保つ、context auto-load 制約)
 
 ```markdown
-| 状況                      | 読む doc                                                    |
-| ------------------------- | ----------------------------------------------------------- |
-| プロダクト方針            | docs/vision/product.md                                      |
-| 設計判断 / FE-BE 分担     | docs/vision/engineering-principles.md                       |
-| UI / 視覚 / レイアウト    | docs/spec/ux-standards.md / docs/spec/desktop-ui-rules.md   |
-| テーマ / トークン         | docs/spec/design-system.md / docs/spec/industrial-yellow.md |
-| バッチ / 進行ルール       | docs/guide/dispatch-rules.md                                |
-| 過去の失敗                | docs/lessons.md                                             |
-| 過去の重要決定            | docs/adr/ (連番)                                            |
-| 着手中 plan               | docs/plans/active/                                          |
-| 完了 plan / audit history | docs/plans/archive/                                         |
-| 全体 index (LLM 用)       | docs/llms.txt                                               |
+| 状況                      | 読む doc                                                     |
+| ------------------------- | ------------------------------------------------------------ |
+| 全体 index (LLM 一発取得) | docs/llms.txt                                                |
+| プロダクト方針 / 哲学     | docs/l0_ideas/concept.md / engineering-principles.md         |
+| 要件 (Tri-SSD L1)         | docs/l1_requirements/vision.md                               |
+| システム構成 (Tri-SSD L2) | docs/l2_foundation/foundation.md                             |
+| UI / 視覚 / レイアウト    | docs/l1_requirements/ux-standards.md / desktop-ui-rules.md   |
+| テーマ / トークン         | docs/l1_requirements/design-system.md / industrial-yellow.md |
+| Release criteria          | docs/l1_requirements/release-criteria.md                     |
+| Distribution 手順         | docs/l1_requirements/distribution/                           |
+| 過去の失敗                | docs/lessons.md                                              |
+| 古い retrospective        | docs/l3_phases/_archive/ (Tri-SSD canonical archive)         |
+| 着手中 plan               | docs/l1_requirements/<topic>/ (sub-dir で active 保持)       |
 ```
 
-→ §8-12 (llms.txt / 200 行対応 / 削除運用 / 検証 / D4 引継ぎ) は [d3-implementation-details.md](./d3-implementation-details.md) を参照 (200 行制約のため分割)。
+### llms.txt (root index)
+
+agent が一発取得して全 doc を navigate するための flat list。各 entry に 1 行説明 + path。Tri-SSD canonical (vision.md / foundation.md / l3_phases) を最優先で示す。
+
+## 5. lifecycle
+
+### Tri-SSD canonical (vision.md / foundation.md)
+
+- **append-only に近い update**、live で更新、削除 / 移動禁止
+
+### l3_phases/PH-NNNN_*.md
+
+- 実装中 = `l3_phases/PH-NNNN_*.md` で live
+- 実装完了 = `/archive-l3` で `l3_phases/_archive/` へ移動 (plugin が自動)
+
+### sub-dir plan (例: `l1_requirements/library-overhaul/`)
+
+- 着手中 = `l1_requirements/<topic>/` で live
+- 完了 = `l3_phases/_archive/<topic>/` へ手動移動 (Tri-SSD canonical archive を活用)
+- 不要 = 削除 (git history で復元)
+
+## 6. 200 行制約への対応 (Tri-SSD 推奨と整合)
+
+```
+ux-standards.md (879) → l1_requirements/ux-standards.md (200) + ux-standards-part-2.md...part-6.md
+desktop-ui-rules.md (537) → main + part-2..part-4
+foundation.md (834) ← canonical なので分割注意:
+  → 200 行版を l2_foundation/foundation.md に置く (overview)
+  → 詳細は l2_foundation/foundation-architecture.md / foundation-schema.md / etc. に逃がす
+  → main の頭に link (agent が必要時 follow)
+```
+
+`foundation.md` の **path 自体は変えない** (canonical)、内容は overview に絞り、詳細は同 dir 内の partner file に逃がす。
+
+## 7. D1 痛み 8 件 への対応 (l0-l3 維持版)
+
+| 痛み                | 解決                                                                                    |
+| ------------------- | --------------------------------------------------------------------------------------- |
+| 1 命名 3 種並走     | l0-l3 prefix のみ snake (固定)、内部 file は kebab 統一                                 |
+| 2 階層乖離          | Tri-SSD contract に厳格に従う = canonical 維持。逸脱 sub-dir は plugin 範囲外として整理 |
+| 3 archive 暗黙      | `_archive/` (Tri-SSD canonical) を archive 先と明文化                                   |
+| 4 同トピック散在    | distribution / lessons / dispatch を 1 path に統合                                      |
+| 5 200+ 行 doc       | 分割 or trim、canonical (vision/foundation) は overview に絞り link                     |
+| 6 古い rN 残置      | release-readiness/ → l3_phases/_archive/release-readiness/                              |
+| 7 重複 doc          | distribution-readiness vs distribution/microsoft-store 等を統合                         |
+| 8 PNG/JSX docs 直下 | l0_ideas/mockups/ に集約                                                                |
+
+## 8. D4' へ持ち込む
+
+- 全 active doc の新 path mapping (l0/l1/l2/l3 維持版)
+- 削除リスト (重複 / snapshot / outdated)
+- 200 行 split 対象 + 分割粒度
+- l3_phases/archive → l3_phases/_archive rename
+- broken link gate を最終 commit で集約
+- CLAUDE.md / lessons.md / scripts / yml の link 一括 patch
+
+D3' 完了。Step 4 で D4' を再設計する。

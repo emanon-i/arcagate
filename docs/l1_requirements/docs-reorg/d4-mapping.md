@@ -1,179 +1,160 @@
-# D4: 既存 doc → 新階層 mapping 表
+# D4': 既存 doc → 新 path mapping (Tri-SSD contract 準拠版)
 
-**Status**: 2026-05-06 D3 設計を既存 ~94 active + ~506 archive に適用
-**Method**: D1 inventory を D3 階層 (vision/spec/guide/adr/plans) に振り分け
+**Status**: 2026-05-06 D3' 設計を既存 ~94 active に適用
+**Method**: l0-l3 維持、`_archive/` rename、内部 sub-dir 整理
 
-→ 削除対象は [d4-deletes.md](./d4-deletes.md)、実行手順は [d4-execution.md](./d4-execution.md) 参照。
+→ 削除は [d4-deletes.md](./d4-deletes.md)、実行は [d4-execution.md](./d4-execution.md) 参照。
 
-## A. Top-level (`docs/*.md`、9 件)
+## A. Top-level (`docs/*.md`、9 件) → l1 / 削除
 
-| 既存 path                           | 新 path                                        | action                                |
-| ----------------------------------- | ---------------------------------------------- | ------------------------------------- |
-| `docs/SUPPORT.md`                   | `docs/guide/support.md`                        | 移動 + 命名 (大文字 → kebab)          |
-| `docs/desktop_ui_ux_agent_rules.md` | `docs/spec/desktop-ui-rules.md`                | 移動 + 命名 + **要分割 (537 → ≤200)** |
-| `docs/dispatch-log.md`              | (削除)                                         | 3628 行、live 不要、git 履歴に逃がす  |
-| `docs/dispatch-operation.md`        | `docs/guide/dispatch-rules.md`                 | 移動 + 命名                           |
-| `docs/dispatch-queue.md`            | (削除)                                         | 45 行、操作中 queue は実装で表現済    |
-| `docs/distribution-readiness.md`    | (削除、内容は guide/microsoft-store.md と重複) | D1 痛み 3                             |
-| `docs/distribution-rollback-sop.md` | `docs/guide/distribution-rollback.md`          | 移動 + 命名                           |
-| `docs/lessons.md`                   | `docs/lessons.md`                              | そのまま (live、git 履歴で歴史追える) |
-| `docs/widget-add-checklist.md`      | `docs/spec/widget-add-checklist.md`            | 移動のみ                              |
+| 既存 path                           | 新 path                                                      | action                                             |
+| ----------------------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
+| `docs/SUPPORT.md`                   | `docs/l1_requirements/distribution/support.md`               | 移動 + kebab 化                                    |
+| `docs/desktop_ui_ux_agent_rules.md` | `docs/l1_requirements/desktop-ui-rules.md`                   | 移動 + kebab + 分割 (537 → ≤200 × 4 part)          |
+| `docs/dispatch-log.md`              | (削除)                                                       | 3628 行、git log で代替                            |
+| `docs/dispatch-operation.md`        | `docs/l1_requirements/distribution/dispatch-rules.md`        | 移動 + kebab                                       |
+| `docs/dispatch-queue.md`            | (削除)                                                       | TodoWrite で代替                                   |
+| `docs/distribution-readiness.md`    | (削除)                                                       | distribution/microsoft-store と重複                |
+| `docs/distribution-rollback-sop.md` | `docs/l1_requirements/distribution/distribution-rollback.md` | 移動 + kebab                                       |
+| `docs/lessons.md`                   | `docs/lessons.md`                                            | そのまま (top-level live、plugin 範囲外、変更なし) |
+| `docs/widget-add-checklist.md`      | `docs/l1_requirements/widget-add-checklist.md`               | 移動                                               |
 
-## B. `docs/l0_ideas/` (md 4 + binary 4、計 8 件)
+## B. `docs/l0_ideas/` (md 4 + binary 4) → l0 内整理
 
-| 既存 path                            | 新 path                                 | action                                  |
-| ------------------------------------ | --------------------------------------- | --------------------------------------- |
-| `arcagate-concept.md`                | `docs/vision/concept.md`                | 移動 + 命名                             |
-| `arcagate-engineering-principles.md` | `docs/vision/engineering-principles.md` | 移動 + 命名                             |
-| `arcagate-visual-language.md`        | `docs/vision/visual-language.md`        | 移動 + 命名                             |
-| `arcagate_mockup_board.jsx`          | `assets/mockups/board.jsx`              | 移動 (docs 範囲外、`vision/` から link) |
-| `overlay-palette-mock.png`           | `assets/mockups/overlay-palette.png`    | 移動                                    |
-| `window-library-mock.png`            | `assets/mockups/window-library.png`     | 移動                                    |
-| `window-workspace-mock.png`          | `assets/mockups/window-workspace.png`   | 移動                                    |
-| `.gitkeep`                           | (削除)                                  | 不要                                    |
+| 既存 path                                  | 新 path                                      | action                                              |
+| ------------------------------------------ | -------------------------------------------- | --------------------------------------------------- |
+| `arcagate-concept.md` (314)                | `docs/l0_ideas/concept.md`                   | rename (kebab、prefix 排除) + 分割 (314 → ≤200 × 2) |
+| `arcagate-engineering-principles.md` (226) | `docs/l0_ideas/engineering-principles.md`    | rename + trim (226 → ≤200)                          |
+| `arcagate-visual-language.md` (198)        | `docs/l0_ideas/visual-language.md`           | rename                                              |
+| `arcagate_mockup_board.jsx`                | `docs/l0_ideas/mockups/board.jsx`            | mockups/ sub-dir に集約                             |
+| `overlay-palette-mock.png`                 | `docs/l0_ideas/mockups/overlay-palette.png`  | 移動                                                |
+| `window-library-mock.png`                  | `docs/l0_ideas/mockups/window-library.png`   | 移動                                                |
+| `window-workspace-mock.png`                | `docs/l0_ideas/mockups/window-workspace.png` | 移動                                                |
+| `.gitkeep`                                 | (削除)                                       | 不要                                                |
 
-## C. `docs/l1_requirements/` 直下 (6 件)
+`l0_ideas/` 中身は plugin 範囲外なので自由整理。`arcagate-` prefix は冗長 (dir 名で明白) → 排除。
 
-| 既存 path                       | 新 path                      | action                                |
-| ------------------------------- | ---------------------------- | ------------------------------------- |
-| `vision.md`                     | `docs/vision/product.md`     | 移動 + 命名 (vision 領域を l0 と統合) |
-| `use-cases.md`                  | `docs/vision/use-cases.md`   | 移動                                  |
-| `ux_design_vision.md`           | `docs/vision/ux-design.md`   | 移動 + 命名                           |
-| `ux_standards.md`               | `docs/spec/ux-standards.md`  | 移動 + **要分割 (879 → ≤200 × 数本)** |
-| `design_system_architecture.md` | `docs/spec/design-system.md` | 移動 + 命名                           |
-| `.gitkeep`                      | (削除)                       | 不要                                  |
+## C. `docs/l1_requirements/` 直下 (6 件) → kebab 統一
 
-## D. `docs/l1_requirements/design/` (1 件)
+| 既存 path                             | 新 path                                 | action                                                         |
+| ------------------------------------- | --------------------------------------- | -------------------------------------------------------------- |
+| `vision.md`                           | `docs/l1_requirements/vision.md`        | **canonical L1**、変更なし                                     |
+| `use-cases.md`                        | `docs/l1_requirements/use-cases.md`     | そのまま (既に kebab)                                          |
+| `ux_design_vision.md`                 | `docs/l0_ideas/ux-design.md`            | l0 へ寄せる (vision 系として) + rename + 分割 (242 → ≤200 × 2) |
+| `ux_standards.md` (879)               | `docs/l1_requirements/ux-standards.md`  | rename + 分割 (≤200 × 6 part)                                  |
+| `design_system_architecture.md` (283) | `docs/l1_requirements/design-system.md` | rename + 分割 (≤200 × 2)                                       |
+| `.gitkeep`                            | (削除)                                  | 不要                                                           |
 
-| 既存 path                   | 新 path                          | action                           |
-| --------------------------- | -------------------------------- | -------------------------------- |
-| `industrial-yellow-spec.md` | `docs/spec/industrial-yellow.md` | 移動 + 命名 (要分割: 229 → ≤200) |
+## D. `docs/l1_requirements/design/` (1 件) → l1 直下
 
-## E. `docs/l1_requirements/distribution/` (2 件、R10 で作成)
+| 既存 path                         | 新 path                                     | action                                          |
+| --------------------------------- | ------------------------------------------- | ----------------------------------------------- |
+| `industrial-yellow-spec.md` (229) | `docs/l1_requirements/industrial-yellow.md` | 1 file dir 解消 + suffix 排除 + 分割 (≤200 × 2) |
 
-| 既存 path                                         | 新 path                             | action                    |
-| ------------------------------------------------- | ----------------------------------- | ------------------------- |
-| `pubkey-procedure.md`                             | `docs/guide/pubkey-procedure.md`    | 移動 (要分割: 207 → ≤200) |
-| `cosign-verification.md`                          | `docs/guide/cosign-verification.md` | 移動                      |
-| `microsoft-store.md` (R10-Y で作成、まだ未 merge) | `docs/guide/microsoft-store.md`     | 移動                      |
+## E. `docs/l1_requirements/distribution/` (R10) → そのまま、guide 系も統合
 
-## F. `docs/l1_requirements/library-overhaul/` (12 件)
+| 既存 path                              | 新 path                                                    | action                      |
+| -------------------------------------- | ---------------------------------------------------------- | --------------------------- |
+| `pubkey-procedure.md` (207)            | `docs/l1_requirements/distribution/pubkey-procedure.md`    | trim (207 → ≤200)           |
+| `cosign-verification.md`               | `docs/l1_requirements/distribution/cosign-verification.md` | そのまま                    |
+| `microsoft-store.md` (R10-Y、未 merge) | `docs/l1_requirements/distribution/microsoft-store.md`     | そのまま (PR #332 merge 後) |
 
-phase L1〜L3 完了済の overhaul plan、archive 行き候補。
+R10 で作った `distribution/` を維持、top-level `docs/` から SUPPORT/dispatch/distribution-rollback も合流。
 
-| 既存 path                                                                      | 新 path                                                      | action                                                    |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------ | --------------------------------------------------------- |
-| `decisions.md` (153 行、L3 で更新)                                             | `docs/adr/0010-library-overhaul-decisions.md`                | 移動 + ADR 化                                             |
-| `design-direction.md`                                                          | `docs/plans/archive/library-overhaul/design-direction.md`    | archive 移動                                              |
-| `industry-comparison.md`                                                       | `docs/plans/archive/library-overhaul/industry-comparison.md` | archive 移動                                              |
-| `inventory-1-files.md` / `inventory-2-data-flow.md`                            | `docs/plans/archive/library-overhaul/`                       | archive 移動                                              |
-| `investigation.md`                                                             | `docs/plans/archive/library-overhaul/investigation.md`       | archive 移動                                              |
-| `known-issues.md` (158 行)                                                     | (削除)                                                       | lessons.md と重複領域、live で必要なら lessons へ取り込み |
-| `phase-l1-plan.md` / `phase-l2-plan.md` / `phase-l3-plan.md` / `phase-plan.md` | `docs/plans/archive/library-overhaul/`                       | archive 移動                                              |
-| `ux-gaps.md`                                                                   | `docs/plans/archive/library-overhaul/ux-gaps.md`             | archive 移動                                              |
+## F. `docs/l1_requirements/library-overhaul/` (12) → l3_phases/_archive/
 
-## G. `docs/l1_requirements/release-readiness/` (16 + sub 7 = 23 件)
+L1-L3 完了済の overhaul、Tri-SSD canonical archive へ移動。
 
-R10 で完了 audit cycle、live は最新 1 件のみ、過去 rN は archive。
+| 既存 path                      | 新 path                                                 | action                        |
+| ------------------------------ | ------------------------------------------------------- | ----------------------------- |
+| `decisions.md` (153)           | `docs/l3_phases/_archive/library-overhaul/decisions.md` | archive 移動                  |
+| `design-direction.md` 他 11 件 | `docs/l3_phases/_archive/library-overhaul/*`            | archive 移動 (元 file 名保持) |
+| `known-issues.md` (158)        | (削除)                                                  | lessons.md と重複領域         |
 
-| 既存 path                                                                                               | 新 path                                                                | action                               |
-| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------ |
-| `criteria.md` + `criteria-error-distribution.md` + `criteria-quality.md` + `criteria-stability-perf.md` | `docs/spec/release-criteria.md` (統合、要分割 if 200 超え)             | 統合                                 |
-| `audit-final-r10.md` (162 行)                                                                           | `docs/plans/archive/release-readiness/audit-final-r10.md`              | archive 移動 (R10 で完了、live 不要) |
-| `audit-final-r6.md` / `r7.md` / `r8.md` / `audit-final.md`                                              | `docs/plans/archive/release-readiness/`                                | archive 移動                         |
-| `audit-error-distribution.md` / `audit-quality.md` / `audit-stability-perf.md` / `audit.md`             | `docs/plans/archive/release-readiness/`                                | archive 移動                         |
-| `gap-list.md`                                                                                           | `docs/plans/archive/release-readiness/gap-list.md`                     | archive 移動                         |
-| `lessons-test-cross-reference.md`                                                                       | `docs/plans/archive/release-readiness/lessons-test-cross-reference.md` | archive 移動                         |
-| `user-action-needed.md`                                                                                 | `docs/guide/user-action-needed.md`                                     | 移動 (live、minisign/MSStore 待ち)   |
-| `auto-checks/README.md`                                                                                 | (削除)                                                                 | 58 行、内容は CI yml と重複          |
-| `measurements/*.md` (6 件)                                                                              | `docs/plans/archive/release-readiness/measurements/`                   | archive 移動 (snapshot 系)           |
+## G. `docs/l1_requirements/release-readiness/` (16 + sub 7 = 23) → 統合 + archive
 
-## H. `docs/l1_requirements/ux-research/` (8 件)
+| 既存 path                                                                                               | 新 path                                                                       | action                                               |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `criteria.md` + `criteria-error-distribution.md` + `criteria-quality.md` + `criteria-stability-perf.md` | `docs/l1_requirements/release-criteria.md` (+ -error / -quality / -stability) | 統合 (l1 直下、各 ≤200)                              |
+| `audit-final-r6.md` 〜 `audit-final-r10.md` 等 9 件                                                     | `docs/l3_phases/_archive/release-readiness/*`                                 | archive 移動                                         |
+| `gap-list.md` / `lessons-test-cross-reference.md`                                                       | `docs/l3_phases/_archive/release-readiness/*`                                 | archive                                              |
+| `user-action-needed.md` (110)                                                                           | `docs/l1_requirements/distribution/user-action-needed.md`                     | distribution/ 配下へ (live、minisign / MSStore 待ち) |
+| `auto-checks/README.md`                                                                                 | (削除)                                                                        | CI yml と重複                                        |
+| `measurements/*.md` (6 件)                                                                              | `docs/l3_phases/_archive/release-readiness/measurements/*`                    | archive                                              |
 
-外部 research / codex review snapshot、archive 行き。
+## H. `docs/l1_requirements/ux-research/` (8) → l3_phases/_archive/
 
-| 既存 path                        | 新 path                                                  | action                                       |
-| -------------------------------- | -------------------------------------------------------- | -------------------------------------------- |
-| `cedec-papers.md`                | `docs/plans/archive/ux-research/cedec-papers.md`         | archive 移動                                 |
-| `claude-skills-survey.md`        | `docs/plans/archive/ux-research/claude-skills-survey.md` | archive 移動                                 |
-| `codex-review-batch-*.md` (4 件) | (削除)                                                   | batch ごとの review snapshot、git 履歴で代替 |
-| `codex-review.md`                | `docs/plans/archive/ux-research/codex-review.md`         | archive 移動 (concat 版)                     |
-| `industry-standards.md`          | `docs/spec/industry-standards.md`                        | live spec 化                                 |
+| 既存 path                                                                                   | 新 path                                 | action                                                                          |
+| ------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------- |
+| `cedec-papers.md` / `claude-skills-survey.md` / `industry-standards.md` / `codex-review.md` | `docs/l3_phases/_archive/ux-research/*` | archive (industry-standards のみ live で残す案あるが、参照頻度低なので archive) |
+| `codex-review-batch-92/95/101/106.md` (4 件)                                                | (削除)                                  | snapshot、git log で代替                                                        |
 
-## I. `docs/l1_requirements/workspace-canvas-rewrite/` (14 件)
+## I. `docs/l1_requirements/workspace-canvas-rewrite/` (14) → l3_phases/_archive/
 
-完了済 phase 1 / 1.1、全件 archive。
+phase1 完了済、全件 archive。
 
-| 既存 path                                                    | 新 path                                        | action       |
-| ------------------------------------------------------------ | ---------------------------------------------- | ------------ |
-| `phase1-investigation*.md` (7 件)                            | `docs/plans/archive/workspace-canvas-rewrite/` | archive 移動 |
-| `phase1-plan*.md` (5 件)                                     | `docs/plans/archive/workspace-canvas-rewrite/` | archive 移動 |
-| `phase1.1-plan.md` / `phase1.1-zoom-anchor-investigation.md` | `docs/plans/archive/workspace-canvas-rewrite/` | archive 移動 |
+| 既存 path                                                                       | 新 path                                              | action       |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------ |
+| `phase1-investigation*.md` 7 件 / `phase1-plan*.md` 5 件 / `phase1.1-*.md` 2 件 | `docs/l3_phases/_archive/workspace-canvas-rewrite/*` | archive 移動 |
 
-## J. `docs/l2_architecture/` (15 件)
+## J. `docs/l2_architecture/` (15) → l2_architecture/_archive/ + 一部 live
 
-snapshot / metrics 系、live と archive 混在を整理。
+`l2_architecture/` dir 自体は plugin 範囲外で残せる。snapshot 系は内部 archive、live は残す。
 
-| 既存 path                                                                         | 新 path                                                                                    | action                                 |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------- |
-| `bundle-baseline.md` / `complexity-baseline.md` / `performance-baseline.md` (369) | `docs/plans/archive/baselines/`                                                            | archive (baseline は時点 snapshot)     |
-| `cleanup-candidates.md` (28 行)                                                   | (削除)                                                                                     | 28 行、内容は plans/active で持つ      |
-| `codex-review-2026-04-25.md`                                                      | (削除)                                                                                     | snapshot、git 履歴で代替               |
-| `component-graph.md` / `module-graph.md` / `dependency-quality.md`                | `docs/plans/archive/architecture-analysis/`                                                | archive                                |
-| `folder-map.md` (156 行)                                                          | `docs/spec/folder-map.md`                                                                  | live 化 (構造 reference)               |
-| `frontend-backend-split.md`                                                       | `docs/spec/frontend-backend-split.md`                                                      | live 化 (architecture reference)       |
-| `metrics-report.md`                                                               | `docs/plans/archive/baselines/metrics-report.md`                                           | archive                                |
-| `polish-era-progress.md`                                                          | (削除)                                                                                     | 58 行、R10 完了後 stale                |
-| `refactoring-opportunities.md` (215 行)                                           | (削除)                                                                                     | live spec とせず、phase 着手時に再生成 |
-| `use-case-friction.md` / `use-case-friction-v2.md` (500)                          | `docs/plans/archive/architecture-analysis/use-case-friction-v2.md` のみ archive、v1 は削除 | v1 を削除し v2 のみ archive            |
+| 既存 path                                                                                                          | 新 path                                                 | action                   |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------ |
+| `folder-map.md` (156)                                                                                              | `docs/l2_architecture/folder-map.md`                    | live、そのまま           |
+| `frontend-backend-split.md`                                                                                        | `docs/l2_architecture/frontend-backend-split.md`        | live                     |
+| `bundle-baseline.md` / `complexity-baseline.md` / `performance-baseline.md` (369) / `metrics-report.md`            | `docs/l2_architecture/_archive/baselines/*`             | snapshot archive         |
+| `component-graph.md` / `module-graph.md` / `dependency-quality.md`                                                 | `docs/l2_architecture/_archive/*`                       | archive                  |
+| `use-case-friction-v2.md` (500)                                                                                    | `docs/l2_architecture/_archive/use-case-friction-v2.md` | archive                  |
+| `use-case-friction.md` (v1)                                                                                        | (削除)                                                  | v2 で superseded         |
+| `cleanup-candidates.md` / `codex-review-2026-04-25.md` / `polish-era-progress.md` / `refactoring-opportunities.md` | (削除)                                                  | snapshot、git log で代替 |
 
-## K. `docs/l2_foundation/` (1 件)
+## K. `docs/l2_foundation/` → そのまま
 
-`foundation.md` (834 行、巨大) → 内容調査して spec / adr に解体。
+| 既存 path             | 新 path                            | action                                                                                                                                            |
+| --------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foundation.md` (834) | `docs/l2_foundation/foundation.md` | **canonical L2**、path 維持。内容を overview (≤200) に絞り、詳細は `foundation-architecture.md` / `foundation-schema.md` 等 partner file に逃がす |
+| `.gitkeep`            | (削除)                             | 不要                                                                                                                                              |
 
-| 既存 path       | 新 path         | action                                                                             |
-| --------------- | --------------- | ---------------------------------------------------------------------------------- |
-| `foundation.md` | (D5 で内容精査) | 解体 → `docs/spec/` 数本 + 重要決定は `docs/adr/` 化、reference 価値ない部分は削除 |
+## L. `docs/l3_phases/` → archive を _archive にrename
 
-## L. `docs/l3_phases/` (template + archive 503 件)
+| 既存 path                     | 新 path                                      | action                                                    |
+| ----------------------------- | -------------------------------------------- | --------------------------------------------------------- |
+| `_template/use-case-audit.md` | `docs/l3_phases/_template/use-case-audit.md` | そのまま                                                  |
+| `archive/` (503 件)           | `docs/l3_phases/_archive/`                   | **dir rename** (Tri-SSD contract: `_archive/` underscore) |
+| 内部 PH-* 命名                | 維持                                         | Tri-SSD glob 互換                                         |
 
-| 既存 path                     | 新 path                             | action                                    |
-| ----------------------------- | ----------------------------------- | ----------------------------------------- |
-| `_template/use-case-audit.md` | `docs/plans/_template.md`           | 移動 (template として保持)                |
-| `archive/*` (503 件)          | `docs/plans/archive/legacy-phases/` | 全件 移動 (PH-NNN 命名は保持で grep 互換) |
+## M. `docs/archive/` (3) → 削除
 
-## M. `docs/archive/` (3 件)
+| 既存 path                                       | action             |
+| ----------------------------------------------- | ------------------ |
+| `arcagate-engineering-principles-historical.md` | 削除 (live で十分) |
+| `dispatch-operation-historical.md`              | 削除               |
+| `lessons-historical.md`                         | 削除               |
 
-| 既存 path                                       | 新 path | action                                                           |
-| ----------------------------------------------- | ------- | ---------------------------------------------------------------- |
-| `arcagate-engineering-principles-historical.md` | (削除)  | live `vision/engineering-principles.md` で十分、git で履歴追える |
-| `dispatch-operation-historical.md`              | (削除)  | 同上                                                             |
-| `lessons-historical.md`                         | (削除)  | 同上                                                             |
+`docs/archive/` dir 自体も削除。
 
-## N. 新規作成 (D5 で生成)
+## N. 新規作成
 
-| 新 path                                     | 内容                                             |
-| ------------------------------------------- | ------------------------------------------------ |
-| `docs/llms.txt`                             | root index、agent navigation                     |
-| `docs/README.md`                            | human entrypoint、5 type 説明 + llms.txt link    |
-| `docs/adr/README.md`                        | ADR運用ルール (連番 / append-only / status enum) |
-| `docs/adr/0001-tauri-v2-svelte5.md`         | retro ADR                                        |
-| `docs/adr/0002-mutex-connection-no-pool.md` | retro ADR                                        |
-| `docs/adr/0003-no-orm-rusqlite.md`          | retro ADR                                        |
-| `docs/adr/0004-forward-only-migrations.md`  | retro ADR                                        |
-| `docs/adr/0005-tier1-tier2-signing.md`      | R10 で確定した minisign + cosign 戦略            |
-| `docs/plans/README.md`                      | active / archive 運用ルール                      |
+| 新 path                    | 内容                                                        |
+| -------------------------- | ----------------------------------------------------------- |
+| `docs/llms.txt`            | root index、agent navigation (Tri-SSD canonical を最優先で) |
+| `docs/README.md`           | human entrypoint、5 分割 (l0/l1/l2/l3/lessons)              |
+| `docs/l3_phases/README.md` | Tri-SSD lifecycle ガイド                                    |
 
 ## サマリ
 
-| action                          | 件数                                      |
-| ------------------------------- | ----------------------------------------- |
-| 移動のみ (path 変更)            | ~30                                       |
-| 移動 + 命名修正                 | ~20                                       |
-| 移動 + **要分割 (200 行 超え)** | 5                                         |
-| 統合 (複数 → 1)                 | 4 (criteria 4 → 1)                        |
-| archive 移動                    | ~70 (live → plans/archive)                |
-| **削除**                        | ~15 (重複 / snapshot / stale、git で代替) |
-| 新規作成                        | 9 (llms.txt / README × 3 / ADR × 5)       |
+| action                                                              | 件数                                                                                                       |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| canonical 維持 (vision.md / foundation.md)                          | 2                                                                                                          |
+| 移動のみ (kebab 化 + path 整理)                                     | ~30                                                                                                        |
+| 移動 + 分割 (200 行超え対応)                                        | 7 (ux-standards / desktop-ui-rules / concept / design-system / industrial-yellow / ux-design / foundation) |
+| 統合                                                                | 1 (criteria 4 件 → release-criteria + 派生)                                                                |
+| archive 移動 (`l3_phases/_archive/` か `l2_architecture/_archive/`) | ~70                                                                                                        |
+| **削除**                                                            | ~16 (重複 / snapshot / outdated)                                                                           |
+| 新規                                                                | 3 (llms.txt / README × 2)                                                                                  |
+| dir rename                                                          | 1 (`l3_phases/archive/` → `l3_phases/_archive/`)                                                           |
 
-D5 の commit 単位は section 順 (A → N) で 14 commit 程度を想定。
+D4' 完了。D4-deletes / D4-execution は本書を前提に書き直す。
