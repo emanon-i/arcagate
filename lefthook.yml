@@ -32,6 +32,9 @@ pre-commit:
     design-tokens:
       glob: "src/**/*.{svelte,css}"
       run: bash scripts/audit-design-tokens.sh
+    aria-icon-only:
+      glob: "src/lib/**/*.svelte"
+      run: bash scripts/audit-aria-icon-only-buttons.sh
     handle-style:
       glob: "src/**/*.{svelte,ts,tsx}"
       run: bash scripts/audit-handle-style.sh
