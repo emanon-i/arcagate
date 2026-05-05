@@ -1,8 +1,8 @@
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 use crate::db::DbState;
-use crate::services::config_service;
+use crate::services::{config_service, crash_monitor_service};
 use crate::utils::error::AppError;
 
 #[tauri::command]
@@ -86,4 +86,16 @@ pub fn cmd_get_crash_report_opt_in(db: State<DbState>) -> Result<bool, AppError>
 #[tauri::command]
 pub fn cmd_set_crash_report_opt_in(db: State<DbState>, enabled: bool) -> Result<(), AppError> {
     config_service::set_crash_report_opt_in(&db, enabled)
+}
+
+/// R10-D E1: 直前 panic 情報を APPDATA/last-panic.json から read + 削除する。
+/// 起動直後に frontend から呼び、未読の panic を user に提示する (toast)。
+/// panic 無し → null、有り → JSON 文字列。
+#[tauri::command]
+pub fn cmd_consume_last_panic(app: AppHandle) -> Result<Option<String>, AppError> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
+    Ok(crash_monitor_service::consume_last_panic(&app_data_dir))
 }
