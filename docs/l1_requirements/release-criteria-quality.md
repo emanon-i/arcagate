@@ -83,7 +83,7 @@
 ### I4. known issues / support 経路
 
 - **Verification**: 既知 issue 一覧 + バグ報告先 (GitHub Issues / Discord / email) が doc 化
-- **Pass criteria**: README or `docs/SUPPORT.md` に support 経路、`docs/lessons.md` 既知 bug の summary
+- **Pass criteria**: README or `docs/l1_requirements/distribution/support.md` に support 経路、`docs/lessons.md` 既知 bug の summary
 - **Tooling**: `grep -rn "Support\|Issue\|サポート" README.md docs/`
 
 ### I5. dev / contribute ガイド
@@ -120,7 +120,7 @@
 
 ### J5. 手動検証 checklist
 
-- **Verification**: `docs/release-checklist.md` (新規作成) に release 前手動検証 checklist
+- **Verification**: `docs/l1_requirements/release-criteria.md` (新規作成) に release 前手動検証 checklist
 - **Pass criteria**: 全主要 flow + a11y + i18n + perf の手動 checklist が doc 化、release ごとに ✅ チェック
 - **Tooling**: 新規 doc 作成、本 release-readiness audit 結果から逆引き
 

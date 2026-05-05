@@ -68,7 +68,7 @@ git push origin v0.2.1  # → release.yml 自動発火
 - 原因特定 (どの commit / PR / Plan が混入経路)
 - 再発防止策 (e2e 追加 / lint rule / Plan 受け入れ条件強化)
 - `docs/lessons.md` に追記
-- 大規模なら `docs/l1_requirements/_post-mortem-YYYY-MM-DD.md` 新設
+- 大規模なら `docs/l1_requirements/_post-mortem-YYYY-MM-DD.md` (新規作成) 新設
 
 ## 6. kill-switch (将来、batch-104 以降)
 

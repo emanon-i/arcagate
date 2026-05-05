@@ -198,5 +198,3 @@ Library のグリッド表示で使用するサイズプリセット。Settings 
 - widget 空状態 button click → 設定 dialog → 同じ button → ようやく picker、の 2 step UX は禁止
 - 「アイテム紐付け」のような **空状態の主目的が 1 つだけの場合** は、widget が picker を直接マウントして 1 step で完結させる
 - 設定 dialog は **>= 1 件のとき** の 2 次操作 (sort / view mode 切替 / 紐付け追加) 用に分離
-
----

@@ -2,7 +2,7 @@
 
 **Status**: spec / 実装着手 OK (L2-A の前提)
 **Date**: 2026-05-04
-**Predecessor**: [design-direction.md](../../l3_phases/_archive/library-overhaul/design-direction.md) §0.2 / [design_system_architecture.md](./design-system.md) / [ux_standards.md](./ux-standards.md) §3 (色 / コントラスト)
+**Predecessor**: [design-direction.md](../l3_phases/_archive/library-overhaul/design-direction.md) §0.2 / [design_system_architecture.md](./design-system.md) / [ux_standards.md](./ux-standards.md) §3 (色 / コントラスト)
 
 ## 1. 目的 / 適用範囲
 

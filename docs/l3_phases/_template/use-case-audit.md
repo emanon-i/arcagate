@@ -82,7 +82,7 @@ severity 凡例（Nielsen 標準）:
 | Spotlight    |                                 |                   |
 | <ジャンル別> | <例: Steam Library / Playnite>  |                   |
 
-参照: `docs/l1_requirements/ux-research/industry-standards.md`
+参照: `docs/l3_phases/_archive/ux-research/industry-standards.md`
 
 ## 数値計測（実機計測時のみ）
 
