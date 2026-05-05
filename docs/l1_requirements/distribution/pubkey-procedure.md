@@ -198,10 +198,3 @@ Tauri doc (Runtime Configuration §Public key) より:
 
 - Tauri v2 updater plugin: https://v2.tauri.app/plugin/updater/
 - Tauri v2 CLI signer reference: https://v2.tauri.app/reference/cli/#signer-generate
-- minisign GitHub: https://github.com/jedisct1/minisign
-- minisign 公式: https://jedisct1.github.io/minisign/
-- GitHub Actions secrets: https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions
-- Microsoft Windows Credential Manager: https://learn.microsoft.com/en-us/windows/win32/api/wincred/ (「per-user, decrypts under user logon credentials」, UAC 不要)
-- OWASP Secrets Management Cheat Sheet (rotation/revocation lifecycle §2.7)
-
-doc 作成時に web research した記録は `docs/lessons.md` 別途要約予定 (本 doc が source of truth)。
