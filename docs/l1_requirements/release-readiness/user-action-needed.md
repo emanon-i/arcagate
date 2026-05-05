@@ -46,6 +46,29 @@ release tag push 時 (`IS_RELEASE_TAG=1`) に exit 1 になるよう gate 化済
 
 ---
 
+## F-MSStore. Microsoft Store 提出 (deferred、$0、user 4 step)
+
+### 状態
+
+R10-Y で agent 配置完了:
+
+- `src-tauri/tauri.microsoftstore.conf.json` overlay (`webviewInstallMode: offlineInstaller`)
+- `.github/workflows/release-msstore.yml` (manual trigger build + cosign signing)
+- `docs/l1_requirements/distribution/microsoft-store.md` 手順書
+
+残りは user 4 step (agent 代行不可、すべて Microsoft 側 GUI):
+
+1. MSA 作成 / 利用 (https://account.microsoft.com/)
+2. https://storedeveloper.microsoft.com/ で free Partner Center 個人開発者登録 ($0、政府 ID + selfie)
+3. App name 予約 → Publisher CN 取得 → agent が `bundle.publisher` 反映 PR 起票
+4. Store 提出 GUI (artifact upload + metadata)、review 1-3 営業日
+
+### 詳細
+
+→ [`docs/l1_requirements/distribution/microsoft-store.md`](../distribution/microsoft-store.md)
+
+---
+
 ## F2. Authenticode code signing (deferred)
 
 ### 現状

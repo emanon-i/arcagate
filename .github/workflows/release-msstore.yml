@@ -1,0 +1,81 @@
+# Microsoft Store 提出用 build (R10-Y、独立 workflow)
+#
+# 通常 release.yml と別、manual trigger のみで動かす:
+# - tauri.microsoftstore.conf.json overlay (offlineInstaller 強制)
+# - cosign keyless signing (Tier 2、release.yml と同じ)
+# - artifact は GH Releases ではなく Actions artifacts 経由で user が download
+#   → Partner Center に user 自身が GUI で upload (agent 代行不可)
+#
+# 実 release tag push の都度走らせる必要はない (Store review 通過後の差分 release のみ)。
+# 必要時に Actions tab の workflow_dispatch から実行。
+
+name: Release (MS Store overlay)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build for Store submission (e.g. v0.2.0)"
+        required: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # cosign keyless signing 用
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install pnpm deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Tauri build (Microsoft Store overlay)
+        env:
+          # Tauri updater 鍵は通常 release.yml と同じ secret 使用 (Store distribution でも updater 継続)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm tauri build --config src-tauri/tauri.microsoftstore.conf.json
+
+      # cosign keyless attestation (Store submission 時も Tier 2 検証可能にする)
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.1
+
+      - name: Cosign sign-blob (Store MSI / NSIS)
+        shell: bash
+        run: |
+          msi=$(ls src-tauri/target/release/bundle/msi/*.msi | head -1)
+          nsis=$(ls src-tauri/target/release/bundle/nsis/*.exe | head -1)
+          for f in "$msi" "$nsis"; do
+            base=$(basename "$f")
+            cosign sign-blob --yes --bundle "${base}.sigstore.json" "$f"
+            echo "signed: $f → ${base}.sigstore.json"
+          done
+
+      - name: Upload Store artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: msstore-${{ inputs.tag }}
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+            *.sigstore.json
+          retention-days: 30
