@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: perf-measurements-nightly
-          path: docs/l1_requirements/release-readiness/measurements/d*.json
+          path: docs/l3_phases/_archive/release-readiness/measurements/d*.json
           retention-days: 30
           if-no-files-found: ignore
 
@@ -86,19 +86,19 @@ jobs:
       - name: Measure cold startup P95 (D1)
         shell: pwsh
         continue-on-error: true
-        run: pwsh scripts/release-checks/measure-startup.ps1 -Iterations 5 -Cold -OutFile docs/l1_requirements/release-readiness/measurements/startup-cold-nightly.json
+        run: pwsh scripts/release-checks/measure-startup.ps1 -Iterations 5 -Cold -OutFile docs/l3_phases/_archive/release-readiness/measurements/startup-cold-nightly.json
 
       - name: Measure warm startup P95 (D2)
         shell: pwsh
         continue-on-error: true
-        run: pwsh scripts/release-checks/measure-startup.ps1 -Iterations 5 -OutFile docs/l1_requirements/release-readiness/measurements/startup-warm-nightly.json
+        run: pwsh scripts/release-checks/measure-startup.ps1 -Iterations 5 -OutFile docs/l3_phases/_archive/release-readiness/measurements/startup-warm-nightly.json
 
       - name: Upload startup measurements
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: startup-measurements-nightly
-          path: docs/l1_requirements/release-readiness/measurements/startup-*.json
+          path: docs/l3_phases/_archive/release-readiness/measurements/startup-*.json
           retention-days: 30
 
       # R9-D: C2 idle memory soak (5min idle、threshold +5MB)。
@@ -107,14 +107,14 @@ jobs:
       - name: Measure idle memory soak (C2 short)
         shell: pwsh
         continue-on-error: true
-        run: pwsh scripts/release-checks/measure-memory-soak.ps1 -Minutes 5 -SampleEverySec 60 -ThresholdMB 5 -OutFile docs/l1_requirements/release-readiness/measurements/memory-idle-soak-nightly.json
+        run: pwsh scripts/release-checks/measure-memory-soak.ps1 -Minutes 5 -SampleEverySec 60 -ThresholdMB 5 -OutFile docs/l3_phases/_archive/release-readiness/measurements/memory-idle-soak-nightly.json
 
       - name: Upload memory soak measurements
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: memory-soak-measurements-nightly
-          path: docs/l1_requirements/release-readiness/measurements/memory-idle-soak-nightly.json
+          path: docs/l3_phases/_archive/release-readiness/measurements/memory-idle-soak-nightly.json
           retention-days: 30
           if-no-files-found: ignore
 
@@ -125,6 +125,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: axe-violations-nightly
-          path: docs/l1_requirements/release-readiness/measurements/axe-violations.json
+          path: docs/l3_phases/_archive/release-readiness/measurements/axe-violations.json
           retention-days: 30
           if-no-files-found: ignore

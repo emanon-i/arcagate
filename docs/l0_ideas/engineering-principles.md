@@ -1,6 +1,6 @@
 # Arcagate エンジニアリング原則
 
-判断のベース。詳細表 / 過去の計測値 / 全 cmd_* 列挙等は `docs/archive/arcagate-engineering-principles-historical.md`。
+判断のベース。詳細表 / 過去の計測値 / 全 cmd_* 列挙等は `削除済 (git log)`。
 
 ---
 

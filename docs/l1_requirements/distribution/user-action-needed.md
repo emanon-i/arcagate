@@ -27,7 +27,7 @@ agent 側は本 doc を更新し、scope の境界を明示する。
 
 ### user 作業手順書
 
-**→ [`docs/l1_requirements/distribution/pubkey-procedure.md`](../distribution/pubkey-procedure.md)**
+**→ [`docs/l1_requirements/distribution/pubkey-procedure.md`](./pubkey-procedure.md)**
 
 そこに以下を網羅した手順書 + security 分析:
 
@@ -60,14 +60,14 @@ release tag push 時 (`IS_RELEASE_TAG=1`) に exit 1 になるよう gate 化済
 
 ### release notes での扱い
 
-README.md / docs/SUPPORT.md に SmartScreen 警告対処を記載済 (R4-A)。
+README.md / docs/l1_requirements/distribution/support.md に SmartScreen 警告対処を記載済 (R4-A)。
 
 ---
 
 ## C2 / C3 / D1-D9 perf 計測 (agent 自動可能、user 確認不要)
 
 agent dev 環境で `pnpm tauri build` 後に `scripts/release-checks/measure-startup.ps1` /
-`measure-memory-soak.ps1` を run、結果を `docs/l1_requirements/release-readiness/measurements/`
+`measure-memory-soak.ps1` を run、結果を `docs/l3_phases/_archive/release-readiness/measurements/`
 に commit。R4-D で実施。
 
 **user 操作不要**、agent が完結する。

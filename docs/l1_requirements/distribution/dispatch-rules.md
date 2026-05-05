@@ -1,6 +1,6 @@
 # Dispatch Operation
 
-ディスパッチ運用の **判断ルール** だけを集約。コマンド例 / フローチャート列挙 等の事実は除去（git log / gh pr / lefthook で自明）。詳細歴史は `docs/archive/dispatch-operation-historical.md`。
+ディスパッチ運用の **判断ルール** だけを集約。コマンド例 / フローチャート列挙 等の事実は除去（git log / gh pr / lefthook で自明）。詳細歴史は 削除済 (git log で参照可能)。
 
 ---
 
@@ -135,7 +135,7 @@ gh pr checks <#>                                    # 1 回確認
 
 - `status: done` の L1 / L2 doc は書き換え禁止
 - 規約系（ux_standards / engineering-principles）は plan 着手前に user 確認が望ましい
-- 古い retrospective / 達成済 plan は `docs/l3_phases/archive/` または `docs/archive/`
+- 古い retrospective / 達成済 plan は `docs/l3_phases/_archive/` または 削除済 (git log)
 - dispatch-log は append-only
 
 ---

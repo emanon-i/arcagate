@@ -2,7 +2,7 @@
 
 過去の失敗から抽出した「**再発したら大事故**」のメタ教訓のみ残す。
 個別 bug の workaround は audit script / コード内コメント / git blame で辿れるので除去。
-詳細な歴史は `docs/archive/lessons-historical.md`。
+詳細な歴史は 削除済 (git log で参照可能)。
 
 ---
 
@@ -23,7 +23,7 @@
 - 不確かなら不確かと書く。「動くはず」「たぶん」の表現は禁止
 </critical-rule>
 
-参照: `docs/archive/lessons-historical.md` の「2026-04-28 / 2026-04-29 retrospective」
+参照: 削除済 (git log で参照可能) の「2026-04-28 / 2026-04-29 retrospective」
 
 ---
 
@@ -69,7 +69,7 @@
 
 ### 再発防止
 
-`docs/dispatch-operation.md §11 user-redo depth-first` 必読。
+`docs/l1_requirements/distribution/dispatch-rules.md §11 user-redo depth-first` 必読。
 1 issue 完了 → user 検収 → 次 issue。speed より確実性。
 
 ---
@@ -129,7 +129,7 @@ dark theme で native `<select>` の trigger は themeable でも、**popup opti
 
 ## <severity>medium</severity> Playwright × Tauri WebView2 の落とし穴
 
-CDP 接続 / 入力キャプチャ / D&D の罠は多数。詳細は `docs/archive/lessons-historical.md`。
+CDP 接続 / 入力キャプチャ / D&D の罠は多数。詳細は 削除済 (git log で参照可能)。
 特に `page.mouse.up()` を `afterEach` で必ず呼ぶ（テスト失敗時にマウスボタンが OS レベルで押下状態のまま残る事故あり）。
 
 ---
@@ -157,7 +157,7 @@ CDP 接続 / 入力キャプチャ / D&D の罠は多数。詳細は `docs/archi
 - 重い OS 呼び出し (PowerShell / Shell API / 大画像 decode) は `tauri::async_runtime::spawn_blocking` で逃がす (sync IPC で main thread 占有させない)
 - TTL 付き memory cache + invalidation hook (mutation 時) は LibraryCard 系 store の標準形
 
-参照: `docs/l1_requirements/library-overhaul/known-issues.md` §3.3 / `src/lib/state/metadata.svelte.ts`
+参照: `削除済 (git log で参照可能、内容は lessons.md 統合済)` §3.3 / `src/lib/state/metadata.svelte.ts`
 
 ---
 
@@ -180,7 +180,7 @@ CDP 接続 / 入力キャプチャ / D&D の罠は多数。詳細は `docs/archi
 
 ## <severity>reference</severity> よく踏む細かい罠（archive 参照）
 
-具体パターンは `docs/archive/lessons-historical.md` を on-demand で grep:
+具体パターンは 削除済 (git log で参照可能) を on-demand で grep:
 
 - shadcn-svelte CLI の `import type` バグ（テンプレ側でランタイム値として使う）
 - biome 2.x の override で linter.enabled: false が効かない

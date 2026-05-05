@@ -187,7 +187,7 @@ Frosted プリセット: 透過感 + 壁紙ブラー（将来）
 
 ## セッション間での参照方法
 
-このドキュメントは `docs/l0_ideas/arcagate-visual-language.md` に永続保管。
+このドキュメントは `docs/l0_ideas/visual-language.md` に永続保管。
 デザインの方向性で迷ったら必ずここを確認する。
 
 **重要な制約（MUST）:**

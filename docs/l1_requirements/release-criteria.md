@@ -6,12 +6,12 @@
 
 ## 0. 構成
 
-| file                                                               | 範囲                              |
-| ------------------------------------------------------------------ | --------------------------------- |
-| **criteria.md** (本 file)                                          | A 機能完成度 / B UI 一貫性        |
-| [criteria-stability-perf.md](./criteria-stability-perf.md)         | C 安定性 / D パフォーマンス       |
-| [criteria-error-distribution.md](./criteria-error-distribution.md) | E エラー処理 / F 配布要件         |
-| [criteria-quality.md](./criteria-quality.md)                       | G a11y / H i18n / I docs / J test |
+| file                                                          | 範囲                              |
+| ------------------------------------------------------------- | --------------------------------- |
+| **criteria.md** (本 file)                                     | A 機能完成度 / B UI 一貫性        |
+| [criteria-stability-perf.md](./release-criteria-stability.md) | C 安定性 / D パフォーマンス       |
+| [criteria-error-distribution.md](./release-criteria-error.md) | E エラー処理 / F 配布要件         |
+| [criteria-quality.md](./release-criteria-quality.md)          | G a11y / H i18n / I docs / J test |
 
 ## 0.1 判定区分
 
@@ -65,7 +65,7 @@
 
 ### A6. 既知 bug 許容範囲
 
-- **Verification**: `docs/l1_requirements/library-overhaul/known-issues.md` + `docs/lessons.md` で挙がっている既知 bug を全件確認、 release-blocker / blocker でない を仕分け
+- **Verification**: `docs/l3_phases/_archive/library-overhaul/` + `docs/lessons.md` で挙がっている既知 bug を全件確認、 release-blocker / blocker でない を仕分け
 - **Pass criteria**: blocker = 0、blocker でない既知 bug は changelog に明記
 - **Tooling**: doc grep + 手動仕分け、release notes 草案
 
@@ -73,7 +73,7 @@
 
 ### B1. Industrial Yellow design 全画面適用率
 
-- **Verification**: `docs/l1_requirements/design/industrial-yellow-spec.md` §2-5 (配色 / shape / state / empty-loading-error) を **対象全画面** (Library / Workspace / Settings / Palette / Onboarding / Item form) で screenshot 取得 → checklist 4 軸で照合
+- **Verification**: `docs/l1_requirements/industrial-yellow.md` §2-5 (配色 / shape / state / empty-loading-error) を **対象全画面** (Library / Workspace / Settings / Palette / Onboarding / Item form) で screenshot 取得 → checklist 4 軸で照合
 - **Pass criteria**: 全 6 画面で「配色 4 色採用 + 角丸 ≤ 10px (chip 例外) + ピル型 button + L 字 bracket / ハーフトーン / 斜線ハッチ何れか + focus-visible 蛍光イエロー ring」が観測される
 - **Tooling**: CDP screenshot + 目視評価 (Read で screenshot を読み返す、CLAUDE.md ops 規律)、Codex は機械検出のみで判定根拠にしない
 

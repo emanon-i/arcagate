@@ -23,10 +23,10 @@
 
 ## 参照
 
-- `docs/l1_requirements/ux_design_vision.md` — UX ビジョン・ゲーム UI 原則
-- `docs/l1_requirements/design_system_architecture.md` — トークン階層・技術設計
-- `docs/l0_ideas/arcagate-visual-language.md` — ムードボード・視覚方向性
-- `docs/desktop_ui_ux_agent_rules.md` — エージェント向け UX 実装原則
+- `docs/l0_ideas/ux-design.md` — UX ビジョン・ゲーム UI 原則
+- `docs/l1_requirements/design-system.md` — トークン階層・技術設計
+- `docs/l0_ideas/visual-language.md` — ムードボード・視覚方向性
+- `docs/l1_requirements/desktop-ui-rules.md` — エージェント向け UX 実装原則
 
 ---
 

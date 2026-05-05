@@ -97,5 +97,5 @@ Plan の受け入れ条件にタグ（例: `[Function, User]`）。
 ## 参照
 
 - 製品: `docs/l1_requirements/vision.md`
-- UX: `docs/l1_requirements/ux_standards.md` / `docs/desktop_ui_ux_agent_rules.md`
-- 過去: `docs/archive/arcagate-engineering-principles-historical.md`
+- UX: `docs/l1_requirements/ux-standards.md` / `docs/l1_requirements/desktop-ui-rules.md`
+- 過去: `削除済 (git log)`

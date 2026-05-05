@@ -72,5 +72,5 @@
 ## 参考
 
 - `docs/lessons.md` 「ウィジェット追加 4 箇所同期必須」
-- `docs/l1_requirements/ux_standards.md` §11 (Widget UX)
+- `docs/l1_requirements/ux-standards.md` §11 (Widget UX)
 - `CLAUDE.md` 哲学節 「同じ機能 = 同じ icon + 同じラベル」

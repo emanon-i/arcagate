@@ -198,7 +198,7 @@ cosign verify-blob \\
 
 ## 配布形態
 
-- Authenticode 未署名 (SmartScreen 警告は仕様、[SUPPORT.md](https://github.com/${{ github.repository }}/blob/main/docs/SUPPORT.md) 参照)
+- Authenticode 未署名 (SmartScreen 警告は仕様、[SUPPORT.md](https://github.com/${{ github.repository }}/blob/main/docs/l1_requirements/distribution/support.md) 参照)
 - minisign updater pubkey (Tier 1) は当面 deferred (manual install のみ、auto-update は無効化扱い)
 - **Cosign keyless (Tier 2)** は本 release から自動有効化、配布元 attestation を提供
 - Windows 11 64-bit のみサポート

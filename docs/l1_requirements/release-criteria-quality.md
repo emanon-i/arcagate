@@ -1,6 +1,6 @@
 # Release Readiness Criteria — G a11y + H i18n + I docs + J test
 
-**Predecessor**: [criteria.md](./criteria.md)
+**Predecessor**: [criteria.md](./release-criteria.md)
 
 ## G. アクセシビリティ
 

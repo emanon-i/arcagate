@@ -1,6 +1,6 @@
 # Release Readiness Criteria — E エラー処理 + F 配布要件
 
-**Predecessor**: [criteria.md](./criteria.md)
+**Predecessor**: [criteria.md](./release-criteria.md)
 
 ## E. エラー処理
 

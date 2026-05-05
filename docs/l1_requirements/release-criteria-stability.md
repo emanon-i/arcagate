@@ -1,6 +1,6 @@
 # Release Readiness Criteria — C 安定性 + D パフォーマンス
 
-**Predecessor**: [criteria.md](./criteria.md)
+**Predecessor**: [criteria.md](./release-criteria.md)
 
 ## C. 安定性
 
