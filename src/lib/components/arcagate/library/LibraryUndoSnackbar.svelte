@@ -9,6 +9,7 @@
  */
 import { Undo2, X } from '@lucide/svelte';
 import { fade, fly } from 'svelte/transition';
+import { messages } from '$lib/i18n/messages-ja';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 
@@ -74,12 +75,12 @@ async function handleUndo() {
 				onclick={() => void handleUndo()}
 			>
 				<Undo2 class="h-3.5 w-3.5" />
-				元に戻す
+				{messages.actions.undo}
 			</button>
 			<button
 				type="button"
 				class="rounded-full p-0.5 text-[var(--ag-text-muted)] transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)]"
-				aria-label="snackbar を閉じる"
+				aria-label={messages.workspace.undo_snackbar_close}
 				onclick={() => libraryHistory.dismiss()}
 			>
 				<X class="h-3.5 w-3.5" />

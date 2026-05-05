@@ -18,18 +18,21 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-# R9-C budget: 現状 299 件 (R7-4 baseline 295 + R8 4 件追加) で freeze、新規追加を fail させる。
-# 段階的に L4 で減らす。減らすときは PR でこの数値を下げる。
-# baseline 推移: R7-4 = 295 → R9-C 計測 = 299
-MAX_HARDCODE=299
+# budget 推移: R7-4 = 295 → R9-C = 299 → R10-C = 297 (catalog 集約 + i18n/ exclusion)
+# R10-C で src/lib/i18n/messages-ja.ts を導入、4 strings を catalog 経由参照に migrate、
+# audit 対象から src/lib/i18n/ を除外して net -2 で 297。
+# L4 framework 着手時に更に下げる。
+MAX_HARDCODE=297
 
 # 日本語文字 (ひらがな + カタカナ + CJK Unified Ideographs) を含む文字列リテラル
 ja_pattern='[ぁ-んァ-ヴー一-龯]'
 
 # scope: src/lib (route 直下も含む src/routes)、test 除外、bindings 除外
+# R10-C: src/lib/i18n/ も除外 (catalog module は集約先、user-facing 文字列の単一発生源として正)
 src_targets=$(find src \( -name "*.svelte" -o -name "*.ts" \) \
 	! -path "src/lib/components/ui/*" \
 	! -path "src/lib/bindings/*" \
+	! -path "src/lib/i18n/*" \
 	! -path "*.test.ts" \
 	2>/dev/null || true)
 
