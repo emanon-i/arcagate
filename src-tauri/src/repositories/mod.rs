@@ -1,5 +1,6 @@
 // Data access layer (rusqlite)
 pub mod config_repository;
+pub mod icon_cache_repository;
 pub mod item_repository;
 pub mod launch_repository;
 pub mod opener_repository;
