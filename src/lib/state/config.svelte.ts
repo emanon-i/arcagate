@@ -1,5 +1,11 @@
 import * as configIpc from '$lib/ipc/config';
 import { getErrorMessage } from '$lib/utils/format-error';
+import {
+	isValidSortField,
+	isValidSortOrder,
+	type SortField,
+	type SortOrder,
+} from '$lib/utils/library-sort';
 import { loadJSON, loadNumber, saveJSON, saveNumber } from '$lib/utils/local-storage';
 
 export type ItemSize = 'S' | 'M' | 'L';
@@ -67,6 +73,24 @@ let error = $state<string | null>(null);
 let itemSize = $state<ItemSize>('M');
 
 let libraryCard = $state<LibraryCardConfig>(loadLibraryCardFromStorage());
+
+// L2-C C1: Library sort spec 永続化 (localStorage、IPC 経由しない軽量設定)。
+const LIBRARY_SORT_STORAGE_KEY = 'arcagate-library-sort';
+function loadLibrarySortFromStorage(): { field: SortField; order: SortOrder } {
+	const raw = loadJSON<{ field?: string; order?: string }>(LIBRARY_SORT_STORAGE_KEY, {});
+	const field: SortField =
+		raw.field && isValidSortField(raw.field) ? (raw.field as SortField) : 'name';
+	const order: SortOrder =
+		raw.order && isValidSortOrder(raw.order) ? (raw.order as SortOrder) : 'asc';
+	return { field, order };
+}
+let librarySort = $state<{ field: SortField; order: SortOrder }>(loadLibrarySortFromStorage());
+
+function setLibrarySort(field: SortField, order: SortOrder): void {
+	if (librarySort.field === field && librarySort.order === order) return;
+	librarySort = { field, order };
+	saveJSON(LIBRARY_SORT_STORAGE_KEY, librarySort);
+}
 
 function persistLibraryCard(): void {
 	saveJSON(LIBRARY_CARD_STORAGE_KEY, libraryCard);
@@ -204,6 +228,9 @@ export const configStore = {
 	get libraryCard() {
 		return libraryCard;
 	},
+	get librarySort() {
+		return librarySort;
+	},
 	loadConfig,
 	saveHotkey,
 	saveAutostart,
@@ -212,4 +239,5 @@ export const configStore = {
 	saveItemSize,
 	setLibraryCardBackground,
 	setLibraryCardStyle,
+	setLibrarySort,
 };

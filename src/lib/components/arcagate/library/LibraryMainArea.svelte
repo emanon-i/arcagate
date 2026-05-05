@@ -12,24 +12,36 @@ import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { Button } from '$lib/components/ui/button';
-import { bulkAddTag, bulkDeleteItems, searchItemsInTag } from '$lib/ipc/items';
+import { bulkAddTag, bulkDeleteItems, getItemTags, searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { libraryHistory } from '$lib/state/library-history.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { fuzzyFilter } from '$lib/utils/fuzzy-search';
+import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/grid-keyboard';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
+import {
+	SORT_FIELD_LABELS,
+	type SortField,
+	type SortOrder,
+	sortItems,
+} from '$lib/utils/library-sort';
 import LibraryCard from './LibraryCard.svelte';
+import LibraryUndoSnackbar from './LibraryUndoSnackbar.svelte';
 
 interface Props {
 	activeTag: string | null;
 	onSelectItem?: (id: string | null) => void;
 	onAddItem?: () => void;
+	/** L2-B B2: F3 で focus 中 item の編集 dialog を開く。 */
+	onEditItem?: (id: string) => void;
 }
 
-let { activeTag, onSelectItem, onAddItem }: Props = $props();
+let { activeTag, onSelectItem, onAddItem, onEditItem }: Props = $props();
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
@@ -139,15 +151,15 @@ $effect(() => {
 		});
 });
 
+// L2-C C1+C4+C6: source = activeTag 中なら tagItems、そうでなければ全 items。
+// debouncedQuery で fuzzy filter (label / target / aliases 横断、score 降順)。
+// query 無しなら configStore.librarySort で並べ替え。
 let filteredItems = $derived.by(() => {
-	if (activeTag) {
-		return localTagItems;
+	const source = activeTag ? localTagItems : itemStore.items;
+	if (debouncedQuery.trim().length > 0) {
+		return fuzzyFilter(source, debouncedQuery, (i) => [i.label, i.target, ...i.aliases]);
 	}
-	if (searchQuery) {
-		const q = searchQuery.toLowerCase();
-		return itemStore.items.filter((item) => item.label.toLowerCase().includes(q));
-	}
-	return itemStore.items;
+	return sortItems(source, configStore.librarySort);
 });
 
 // I3 fix: per-card $effect 並列呼び出しを排除し、visible items を 1 batch で warm up。
@@ -158,10 +170,138 @@ $effect(() => {
 	const ids = filteredItems.map((i) => i.id);
 	void metadataStore.loadMetadataForItems(ids);
 });
+
+// L2-B B1: keyboard nav (grid 矢印 / Enter / Esc / Space)。
+// 純関数 gridKeyboardNav に delegate、focus 反映は data-testid で DOM lookup。
+let activeCardIndex = $state(-1);
+let gridContainerEl = $state<HTMLDivElement | null>(null);
+
+// filteredItems が変わったら focus index を範囲内に補正 (delete / filter で範囲縮小時)。
+// Codex L2-B #4: clamp 後に DOM focus も再適用しないと「削除された card に focus 残り
+// keyboard nav が動作不能」になる。空になった場合は activeCardIndex=-1 にして fall-through。
+$effect(() => {
+	if (filteredItems.length === 0) {
+		activeCardIndex = -1;
+		return;
+	}
+	if (activeCardIndex >= filteredItems.length) {
+		const next = filteredItems.length - 1;
+		activeCardIndex = next;
+		// DOM 反映後に focus 移動 (microtask タイミング)
+		queueMicrotask(() => focusCardAt(next));
+	}
+});
+
+function focusCardAt(index: number) {
+	if (index < 0 || index >= filteredItems.length) return;
+	activeCardIndex = index;
+	const id = filteredItems[index].id;
+	const el = gridContainerEl?.querySelector<HTMLElement>(`[data-testid="library-card-${id}"]`);
+	el?.focus();
+}
+
+async function deleteWithUndo(item: import('$lib/types/item').Item) {
+	// Codex L2-B #1: tag 完全復元のため、削除前に tag id を取得して libraryHistory に記録する。
+	// best-effort: tag 取得失敗でも本体削除は実施 (tag は失われるが UI は壊さない)。
+	let tagIds: string[] = [];
+	try {
+		const tags = await getItemTags(item.id);
+		tagIds = tags.map((t) => t.id);
+	} catch {
+		// tag 取得 IPC 失敗時は空で続行
+	}
+	await itemStore.deleteItem(item.id);
+	libraryHistory.recordDelete(item, tagIds);
+}
+
+function applyKeyAction(action: GridKeyAction) {
+	switch (action.type) {
+		case 'focus':
+			focusCardAt(action.index);
+			break;
+		case 'launch': {
+			const item = filteredItems[action.index];
+			if (!item) return;
+			void launchItem(item.id)
+				.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+				.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
+			break;
+		}
+		case 'toggleSelect': {
+			const item = filteredItems[action.index];
+			if (item) toggleSelection(item.id);
+			break;
+		}
+		case 'edit': {
+			const item = filteredItems[action.index];
+			if (item) onEditItem?.(item.id);
+			break;
+		}
+		case 'delete': {
+			const item = filteredItems[action.index];
+			if (item) void deleteWithUndo(item);
+			break;
+		}
+		case 'selectAll':
+			selectionMode = true;
+			selectedIds = new Set(filteredItems.map((i) => i.id));
+			break;
+		case 'dismiss':
+			activeCardIndex = -1;
+			onSelectItem?.(null);
+			(document.activeElement as HTMLElement | null)?.blur();
+			break;
+		case 'noop':
+			break;
+	}
+}
+
+function handleGridKeydown(e: KeyboardEvent) {
+	if (e.isComposing) return;
+	// IME / 入力 element 内では keyboard nav を奪わない
+	const target = e.target as HTMLElement | null;
+	if (
+		target &&
+		(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+	) {
+		return;
+	}
+	const cols = viewMode === 'grid' ? detectGridCols(gridContainerEl) : 1;
+	const action = gridKeyboardNav({
+		key: e.key,
+		currentIndex: activeCardIndex,
+		total: filteredItems.length,
+		cols,
+		selectionMode,
+		mod: e.ctrlKey || e.metaKey,
+	});
+	if (action.type !== 'noop') {
+		e.preventDefault();
+		applyKeyAction(action);
+		return;
+	}
+	// L2-B B3: type-to-jump — gridKeyboardNav が拾わなかった単 printable は
+	// 先頭一致 (case-insensitive、locale-aware) で item を jump。
+	// modifier 付きや長キー名 (ArrowUp 等) は除外。
+	if (e.ctrlKey || e.metaKey || e.altKey) return;
+	if (e.key.length !== 1) return;
+	const prefix = e.key.toLowerCase();
+	const idx = filteredItems.findIndex((i) => i.label.toLowerCase().startsWith(prefix));
+	if (idx < 0) return;
+	e.preventDefault();
+	focusCardAt(idx);
+}
 </script>
 
 <svelte:window
 	onkeydown={(e) => {
+		// L2-B B3: Ctrl/Cmd+F で search input にフォーカス (browser default の Find は dev tool 経由で代替)
+		if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+			e.preventDefault();
+			searchInputEl?.focus();
+			searchInputEl?.select();
+			return;
+		}
 		if (e.key === '/') {
 			const target = e.target as HTMLElement;
 			if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
@@ -212,6 +352,36 @@ $effect(() => {
 			{/if}
 		</div>
 		<div class="flex items-center gap-2">
+			<!-- L2-C C1: sort dropdown (field + asc/desc)。debouncedQuery 入力中は fuzzy score 順が
+			     優先されるため見た目上 disable 状態に。 -->
+			<select
+				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:opacity-60"
+				aria-label="並び順を選ぶ"
+				data-testid="library-sort-field"
+				disabled={debouncedQuery.trim().length > 0}
+				value={configStore.librarySort.field}
+				onchange={(e) => {
+					const v = (e.currentTarget as HTMLSelectElement).value as SortField;
+					configStore.setLibrarySort(v, configStore.librarySort.order);
+				}}
+			>
+				<option value="name">{SORT_FIELD_LABELS.name}</option>
+				<option value="created">{SORT_FIELD_LABELS.created}</option>
+				<option value="updated">{SORT_FIELD_LABELS.updated}</option>
+			</select>
+			<button
+				type="button"
+				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] disabled:opacity-60"
+				aria-label={configStore.librarySort.order === 'asc' ? '昇順' : '降順'}
+				data-testid="library-sort-order"
+				disabled={debouncedQuery.trim().length > 0}
+				onclick={() => {
+					const next: SortOrder = configStore.librarySort.order === 'asc' ? 'desc' : 'asc';
+					configStore.setLibrarySort(configStore.librarySort.field, next);
+				}}
+			>
+				{configStore.librarySort.order === 'asc' ? '↑' : '↓'}
+			</button>
 			<button
 				type="button"
 				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {viewMode === 'grid' ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]' : 'bg-[var(--ag-surface-3)]'}"
@@ -285,7 +455,12 @@ $effect(() => {
 	{#if itemStore.loading && itemStore.items.length === 0}
 		<LoadingState description="ライブラリを読み込み中..." testId="library-loading" />
 	{:else if viewMode === 'list'}
-		<div class="overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] divide-y divide-[var(--ag-border)]">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] divide-y divide-[var(--ag-border)]"
+			bind:this={gridContainerEl}
+			onkeydown={handleGridKeydown}
+		>
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
 					{item}
@@ -333,9 +508,12 @@ $effect(() => {
 			{/if}
 		</div>
 	{:else}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="library-grid grid"
 			style="grid-template-columns: repeat(auto-fill, var(--ag-card-w)); gap: var(--ag-card-gap); justify-content: center; --ag-card-w: var(--ag-card-w-{configStore.itemSize.toLowerCase()});"
+			bind:this={gridContainerEl}
+			onkeydown={handleGridKeydown}
 		>
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
@@ -379,3 +557,5 @@ $effect(() => {
 	{/if}
 	</div>
 </main>
+
+<LibraryUndoSnackbar />
