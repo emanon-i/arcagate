@@ -18,6 +18,7 @@
 import { Grid3x3, LayoutList, Package, Plus } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
+import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { updateWidgetConfig } from '$lib/ipc/workspace';
@@ -36,6 +37,7 @@ interface Props {
 let { widget, onItemContext }: Props = $props();
 
 let settingsOpen = $state(false);
+let pickerOpen = $state(false);
 
 interface ItemWidgetConfig {
 	item_id?: string | null;
@@ -93,6 +95,42 @@ async function handleLaunch(item: Item) {
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
 }
 
+// I2 fix: 空状態から「設定 dialog → 同じ button もう 1 回 → picker」 の 2 step UX を排除し、
+// 空状態 click で picker を直接開いて 1 step で紐付けできるようにする。
+async function pickerSelectMany(items: Item[]) {
+	pickerOpen = false;
+	if (items.length === 0 || !widget) return;
+	const existing = new Set(itemIds);
+	const next = [...itemIds];
+	for (const it of items) if (!existing.has(it.id)) next.push(it.id);
+	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next, item_id: null };
+	try {
+		await updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
+		const added = items.length;
+		toastStore.add(`${added} 件のアイテムを紐付けました`, 'success');
+	} catch (e: unknown) {
+		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
+	}
+}
+
+async function pickerSelectSingle(item: Item) {
+	pickerOpen = false;
+	if (!widget) return;
+	const existing = new Set(itemIds);
+	if (existing.has(item.id)) return;
+	const nextConfig: ItemWidgetConfig = {
+		...config,
+		item_ids: [...itemIds, item.id],
+		item_id: null,
+	};
+	try {
+		await updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
+		toastStore.add(`${item.label} を紐付けました`, 'success');
+	} catch (e: unknown) {
+		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
+	}
+}
+
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 let title = $derived(
@@ -102,12 +140,12 @@ let title = $derived(
 
 <WidgetShell {title} icon={Package} {menuItems}>
 	{#if pinnedItems.length === 0}
-		<!-- 空状態: 設定 dialog で picker 起動 (他 widget と統一)。 -->
+		<!-- I2 fix: 空状態 click で picker を直接開く (旧: settings dialog → 同 button → picker の 2 step UX を排除)。 -->
 		<button
 			type="button"
 			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
 			aria-label="このウィジェットにアイテムを紐付け"
-			onclick={() => (settingsOpen = true)}
+			onclick={() => (pickerOpen = true)}
 		>
 			<Plus class="h-6 w-6" />
 			<span class="text-xs">アイテムを紐付け</span>
@@ -221,4 +259,13 @@ let title = $derived(
 
 {#if widget}
 	<WidgetSettingsDialog {widget} open={settingsOpen} onClose={() => (settingsOpen = false)} />
+{/if}
+
+{#if pickerOpen}
+	<LibraryItemPicker
+		multi={true}
+		onSelect={pickerSelectSingle}
+		onSelectMany={pickerSelectMany}
+		onClose={() => (pickerOpen = false)}
+	/>
 {/if}
