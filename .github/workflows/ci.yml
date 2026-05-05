@@ -90,6 +90,10 @@ jobs:
         shell: bash
         run: bash scripts/audit-aria-icon-only-buttons.sh
 
+      - name: i18n hardcode baseline (R7-4、informational only)
+        shell: bash
+        run: bash scripts/audit-i18n-hardcode.sh
+
       - name: Release blocker files audit (R4-B)
         shell: bash
         run: bash scripts/release-checks/check-blocker-files.sh
