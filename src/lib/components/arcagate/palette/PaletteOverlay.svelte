@@ -82,7 +82,15 @@ function handleKeydown(e: KeyboardEvent) {
 </script>
 
 {#if open}
-	<div class="fixed inset-0 z-50" role="dialog" aria-modal="true" tabindex="-1" onkeydown={handleKeydown}>
+	<!-- R6-4: Palette を Industrial Yellow scope に。 -->
+	<div
+		class="il-zone fixed inset-0 z-50"
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+		data-il-zone
+		onkeydown={handleKeydown}
+	>
 		{#if mode === 'inline'}
 			<!-- Backdrop (inline only) -->
 			<button
@@ -171,3 +179,15 @@ function handleKeydown(e: KeyboardEvent) {
 		</div>
 	</div>
 {/if}
+
+<style>
+/* R6-4: Industrial Yellow scope (R6-1/2 と同じ pattern)。 */
+.il-zone {
+	--ag-accent: var(--ag-il-yellow);
+	--ag-accent-text: var(--ag-il-on-yellow);
+	--ag-accent-bg: color-mix(in srgb, var(--ag-il-yellow) 12%, transparent);
+	--ag-accent-border: color-mix(in srgb, var(--ag-il-yellow) 40%, transparent);
+	--ag-accent-active-bg: color-mix(in srgb, var(--ag-il-yellow) 18%, transparent);
+	--ag-accent-active-border: color-mix(in srgb, var(--ag-il-yellow) 50%, transparent);
+}
+</style>
