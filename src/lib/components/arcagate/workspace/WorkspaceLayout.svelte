@@ -433,7 +433,10 @@ let canvasH = $derived(
 	></div>
 {/if}
 
-<div class="relative flex h-full">
+<!-- R6-2: Workspace 全体を Industrial Yellow scope に。
+     focus-visible ring / selected state / accent-bg / active-bg を yellow に re-bind。
+     widget focus 経路もすべて Industrial 化される。 -->
+<div class="il-zone relative flex h-full" data-il-zone>
 	<WorkspaceHintBar editMode={true} {selectedWidgetId} />
 
 	{#if sidebarOpen}
@@ -645,3 +648,15 @@ let canvasH = $derived(
 	workspace={workspaceStore.activeWorkspace}
 	onClose={() => (wallpaperOpen = false)}
 />
+
+<style>
+/* R6-2: Industrial Yellow scope。Settings / Onboarding と同じ token re-bind。 */
+.il-zone {
+	--ag-accent: var(--ag-il-yellow);
+	--ag-accent-text: var(--ag-il-on-yellow);
+	--ag-accent-bg: color-mix(in srgb, var(--ag-il-yellow) 12%, transparent);
+	--ag-accent-border: color-mix(in srgb, var(--ag-il-yellow) 40%, transparent);
+	--ag-accent-active-bg: color-mix(in srgb, var(--ag-il-yellow) 18%, transparent);
+	--ag-accent-active-border: color-mix(in srgb, var(--ag-il-yellow) 50%, transparent);
+}
+</style>
