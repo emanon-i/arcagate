@@ -1,0 +1,61 @@
+# Arcagate
+
+Personal launcher consolidating PC-wide entry points. Tauri v2 + SvelteKit + Svelte 5 runes + Rust + SQLite. Single-user desktop app, distribution-ready. Tri-SSD plugin (`/init-tri-ssd` `/gen-l1..l3` `/gen-code` `/archive-l3` `/split-l3` `/merge-l3`) でドキュメント駆動開発。
+
+## Tri-SSD canonical (絶対 path 固定)
+
+- [vision.md](l1_requirements/vision.md): L1 要件本体 (REQ-NNNN inline)
+- [foundation.md](l2_foundation/foundation.md): L2 システム構成 (overview、partner: foundation-stack/-architecture/-dirs/-architecture-service/-architecture-state/-non-functional/-schema/-cicd/-glossary)
+- [l3_phases/](l3_phases/): PH-NNNN_*.md (実装単位)、`_archive/` (完了 phase の最終置き場)
+
+## L0 ideas (アイデア / 哲学 / 視覚)
+
+- [concept.md](l0_ideas/concept.md) (+ concept-extras): プロダクトコンセプト + マイルストーン
+- [engineering-principles.md](l0_ideas/engineering-principles.md) (+ extras): 階層 / IPC / エラー / ログ / テスト方針
+- [visual-language.md](l0_ideas/visual-language.md): 視覚言語 (ムードボード)
+- [ux-design.md](l0_ideas/ux-design.md) (+ extras): モーション 3 原則 / ゲーム UX 原則
+- [mockups/](l0_ideas/mockups/): board.jsx + 3 PNG mock
+
+## L1 spec (技術 reference)
+
+- [ux-standards.md](l1_requirements/ux-standards.md) (+ part-2 spacing / part-3 components / part-4 checklists / part-5 workspace / part-6 research): UX 検証可能基準
+- [design-system.md](l1_requirements/design-system.md) (+ extras): theme / token 階層
+- [industrial-yellow.md](l1_requirements/industrial-yellow.md) (+ extras): brand color / scope tokens
+- [desktop-ui-rules.md](l1_requirements/desktop-ui-rules.md) (+ part-2 context / part-3 content / part-4 checklist): P1-P12 不変ルール
+- [release-criteria.md](l1_requirements/release-criteria.md) (+ -error / -quality / -stability): 配布 audit 基準
+- [widget-add-checklist.md](l1_requirements/widget-add-checklist.md): 新 widget 追加手順
+- [use-cases.md](l1_requirements/use-cases.md): persona-driven scenarios
+
+## L1 distribution (guide / 手順書)
+
+- [pubkey-procedure.md](l1_requirements/distribution/pubkey-procedure.md): updater minisign Tier 1 (user 4 step)
+- [cosign-verification.md](l1_requirements/distribution/cosign-verification.md): distribution attestation Tier 2 (CI 自動)
+- [microsoft-store.md](l1_requirements/distribution/microsoft-store.md): Store 提出 path ($0)
+- [distribution-rollback.md](l1_requirements/distribution/distribution-rollback.md): release SOP
+- [dispatch-rules.md](l1_requirements/distribution/dispatch-rules.md): batch operation
+- [support.md](l1_requirements/distribution/support.md): user FAQ / SmartScreen
+- [user-action-needed.md](l1_requirements/distribution/user-action-needed.md): user 物理タスク一覧
+
+## L2 architecture (plugin 範囲外、live)
+
+- [folder-map.md](l2_architecture/folder-map.md): repo 構造 reference
+- [frontend-backend-split.md](l2_architecture/frontend-backend-split.md): IPC layer 境界
+- [`_archive/`](l2_architecture/_archive/): baselines / module-graph / use-case-friction-v2 (snapshot)
+
+## L3 archive (完了 phase 履歴、reference 価値あり)
+
+- [`_archive/`](l3_phases/_archive/): 503 legacy + library-overhaul / release-readiness (R6-R10) / workspace-canvas-rewrite / ux-research / docs-reorg
+
+## Live single-file
+
+- [lessons.md](lessons.md) — 失敗駆動メモリ、live 更新
+
+## Naming / structure rules
+
+- l0/l1/l2/l3 prefix dir 名は **Tri-SSD plugin contract**、変更禁止
+- canonical files (vision.md / foundation.md / PH-NNNN_*.md) は path 固定
+- `_archive/` (underscore prefix) が plugin recognized archive
+- それ以外は **kebab-case 統一** (snake_case / 大文字 禁止)
+- 200 行 / file 制約 (大型 reference doc は section 単位で `-part-N-{slug}.md` or `-extras.md` 分割)
+
+詳細: 本 reorg 経緯: `docs/l1_requirements/docs-reorg/` (D1-D5 reorg plan、PR merge 後は `l3_phases/_archive/docs-reorg/` へ archive)

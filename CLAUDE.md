@@ -50,16 +50,16 @@ PC 上に散在する起動元を集約する個人用ランチャー。Tauri v2
 
 ## いつ何を読むか（on-demand index）
 
-| 状況                                            | 読む doc                                                                    |
-| ----------------------------------------------- | --------------------------------------------------------------------------- |
-| バッチ着手 / 進行ルール                         | `docs/dispatch-operation.md`                                                |
-| 設計判断 / FE-BE 分担 / エラー方針 / テスト観点 | `docs/l0_ideas/arcagate-engineering-principles.md`                          |
-| UI / 視覚 / レイアウト                          | `docs/l1_requirements/ux_standards.md`、`docs/desktop_ui_ux_agent_rules.md` |
-| テーマ / トークン                               | `docs/l1_requirements/design_system_architecture.md`                        |
-| 製品方針 / マイルストーン                       | `docs/l1_requirements/vision.md`                                            |
-| 過去の失敗 / 再発防止                           | `docs/lessons.md`                                                           |
-| ガイドライン doc 全体地図                       | `memory/design_guidelines_index.md`                                         |
-| 古い retrospective / 達成済 plan                | `docs/l3_phases/archive/`、`docs/archive/`                                  |
+| 状況                                            | 読む doc                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------- |
+| バッチ着手 / 進行ルール                         | `docs/l1_requirements/distribution/dispatch-rules.md`                              |
+| 設計判断 / FE-BE 分担 / エラー方針 / テスト観点 | `docs/l0_ideas/engineering-principles.md`                                          |
+| UI / 視覚 / レイアウト                          | `docs/l1_requirements/ux-standards.md`、`docs/l1_requirements/desktop-ui-rules.md` |
+| テーマ / トークン                               | `docs/l1_requirements/design-system.md`                                            |
+| 製品方針 / マイルストーン                       | `docs/l1_requirements/vision.md`                                                   |
+| 過去の失敗 / 再発防止                           | `docs/lessons.md`                                                                  |
+| ガイドライン doc 全体地図                       | `memory/design_guidelines_index.md`                                                |
+| 古い retrospective / 達成済 plan                | `docs/l3_phases/_archive/`、`(削除済、git history で復元可能)`                     |
 
 ## 開発ルーチン
 
@@ -82,7 +82,7 @@ PC 上に散在する起動元を集約する個人用ランチャー。Tauri v2
 
 ## 進行モード
 
-現運用は **§11 user-redo depth-first**（`docs/dispatch-operation.md §11` 参照）。
+現運用は **§11 user-redo depth-first**（`docs/l1_requirements/distribution/dispatch-rules.md §11` 参照）。
 1 issue ごとに「fact 確認 → guideline 引用 → 横展開 audit → 実装 + screenshot 検証 → 1 PR」を完遂してから次へ。並行 PR 禁止。
 
-`status: done` の plan は `docs/l3_phases/archive/` に移動済（490 件アーカイブ済、active は無し）。
+`status: done` の plan は `docs/l3_phases/_archive/` に移動済（503 件アーカイブ済、active は無し）。

@@ -48,8 +48,8 @@ pnpm test:e2e
 
 詳細は [`docs/`](docs/) を参照:
 
-- [`docs/l0_ideas/arcagate-engineering-principles.md`](docs/l0_ideas/arcagate-engineering-principles.md) — 技術判断基準
-- [`docs/dispatch-operation.md`](docs/dispatch-operation.md) — 開発フロー
+- [`docs/l0_ideas/engineering-principles.md`](docs/l0_ideas/engineering-principles.md) — 技術判断基準
+- [`docs/l1_requirements/distribution/dispatch-rules.md`](docs/l1_requirements/distribution/dispatch-rules.md) — 開発フロー
 - [`docs/lessons.md`](docs/lessons.md) — 過去の落とし穴と教訓
 
 ## アーキテクチャ
@@ -89,9 +89,9 @@ pwsh scripts/sign-windows.ps1
 
 ## サポート / バグ報告
 
-- 報告 / 質問: [docs/SUPPORT.md](docs/SUPPORT.md) — GitHub Issues / Discussions の経路、log file の場所、SmartScreen 警告の対処を記載
+- 報告 / 質問: [docs/l1_requirements/distribution/support.md](docs/l1_requirements/distribution/support.md) — GitHub Issues / Discussions の経路、log file の場所、SmartScreen 警告の対処を記載
 - Changelog: [CHANGELOG.md](CHANGELOG.md) — release ごとの差分 (Keep a Changelog 形式)
-- 既知 issue: [docs/l1_requirements/library-overhaul/known-issues.md](docs/l1_requirements/library-overhaul/known-issues.md) + [docs/lessons.md](docs/lessons.md)
+- 既知 issue: [docs/l3_phases/_archive/library-overhaul/](docs/l3_phases/_archive/library-overhaul/) + [docs/lessons.md](docs/lessons.md)
 
 ## ライセンス
 
