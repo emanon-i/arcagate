@@ -4,7 +4,8 @@ use crate::db::DbState;
 use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
 use crate::models::tag::{self, CreateTagInput, Tag, TagWithCount};
 use crate::repositories::{
-    item_repository, tag_repository, widget_item_settings_repository, workspace_repository,
+    icon_cache_repository, item_repository, tag_repository, widget_item_settings_repository,
+    workspace_repository,
 };
 use crate::utils::error::AppError;
 use crate::utils::icon;
@@ -416,6 +417,8 @@ pub fn ensure_system_tags(db: &DbState) -> Result<(), AppError> {
     tag_repository::upsert_system_tag(&conn, &starred)
 }
 
+/// 旧 path-only API: cache を経由せずに常に PowerShell 抽出する。
+/// 既存呼出 (test 等) との互換のため残置。新規呼出は `extract_item_icon_cached` を使う。
 pub fn extract_item_icon(
     app_data_dir: &std::path::Path,
     exe_path: &str,
@@ -424,6 +427,44 @@ pub fn extract_item_icon(
     std::fs::create_dir_all(&icons_dir)?;
     let output_path = icon::build_icon_output_path(&icons_dir);
     icon::extract_icon_from_exe(exe_path, &output_path)
+}
+
+/// R9-B: icon_cache 経由の icon 抽出 (Lessons.md C-2 派生対処)。
+///
+/// canonicalize 後の exe_path をキーに icon_cache を lookup:
+///   - hit + 既存 PNG ファイル健在 → cached icon_path をそのまま返す (PowerShell 起動不要)
+///   - miss / cached PNG 消失 → 抽出 → cache を upsert → 新 icon_path を返す
+///
+/// 同じ exe を別 item で登録する 2 件目以降は cache hit となり ~0ms。
+/// canonicalize 失敗 (権限不足 / リンク切れ) 時は cache を経由せず素朴抽出にフォールバック。
+pub fn extract_item_icon_cached(
+    db: &DbState,
+    app_data_dir: &std::path::Path,
+    exe_path: &str,
+) -> Result<String, AppError> {
+    let cache_key = std::fs::canonicalize(exe_path)
+        .ok()
+        .and_then(|p| p.to_str().map(|s| s.to_string()))
+        .unwrap_or_else(|| exe_path.to_string());
+
+    {
+        let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+        if let Some(cached) = icon_cache_repository::find_by_exe_path(&conn, &cache_key)? {
+            // PNG ファイル健在チェック (削除されていれば再抽出)
+            if std::path::Path::new(&cached).exists() {
+                return Ok(cached);
+            }
+            // 削除済 → cache から drop して再抽出 fallthrough
+            icon_cache_repository::delete(&conn, &cache_key)?;
+        }
+    }
+
+    let new_path = extract_item_icon(app_data_dir, exe_path)?;
+    {
+        let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+        icon_cache_repository::upsert(&conn, &cache_key, &new_path)?;
+    }
+    Ok(new_path)
 }
 
 #[cfg(test)]

@@ -171,14 +171,17 @@ pub fn cmd_check_is_directory(path: String) -> bool {
 
 #[tauri::command]
 pub async fn cmd_extract_item_icon(app: AppHandle, exe_path: String) -> Result<String, AppError> {
+    // R9-B: icon_cache 経由で同 exe の重複 PowerShell 起動を回避。
     // PowerShell 経由の icon 抽出は 100-200ms blocking。Tauri runtime の worker thread を
     // 占有しないよう spawn_blocking で逃がす (drop-shadow + per-card 並列で UI 固まり対策、I3)。
     let app_data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
+    let app_for_state = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        item_service::extract_item_icon(&app_data_dir, &exe_path)
+        let db = app_for_state.state::<DbState>();
+        item_service::extract_item_icon_cached(&db, &app_data_dir, &exe_path)
     })
     .await
     .map_err(|e| AppError::Io(std::io::Error::other(format!("spawn_blocking failed: {e}"))))?
