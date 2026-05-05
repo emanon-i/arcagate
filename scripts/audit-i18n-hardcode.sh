@@ -2,11 +2,12 @@
 # audit-i18n-hardcode.sh
 #
 # 多言語化準備 (i18n readiness) 用 audit。日本語 hard-code 文字列の数を計測、
-# baseline 記録 + 増加検出。
+# baseline 記録 + 増加検出 (R9-C で budget gate 化)。
 #
-# 現 phase は **日本語固定** で意図的、release blocker でない。
-# 本 audit は CI で WARN 表示するだけで exit 0 (gate ではない)。
-# 多言語化を始めるとき (L4) に **新規追加分のみ** を i18n key 化する gate に転換可能。
+# Phase 1 (R7-4): informational のみ
+# Phase 2 (R9-C 本 PR): **budget gate** — 現 baseline ≤ MAX_HARDCODE で regression 防止
+# Phase 3 (L4): 段階的に MAX_HARDCODE を下げる (実 strings を i18n key へ migrate)
+# Phase 4 (L4 完了): hardcoded 0、t() 経由のみ
 #
 # 計測対象:
 #   - svelte / ts のうち user-facing 文字列に該当する行
@@ -16,6 +17,11 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
+
+# R9-C budget: 現状 299 件 (R7-4 baseline 295 + R8 4 件追加) で freeze、新規追加を fail させる。
+# 段階的に L4 で減らす。減らすときは PR でこの数値を下げる。
+# baseline 推移: R7-4 = 295 → R9-C 計測 = 299
+MAX_HARDCODE=299
 
 # 日本語文字 (ひらがな + カタカナ + CJK Unified Ideographs) を含む文字列リテラル
 ja_pattern='[ぁ-んァ-ヴー一-龯]'
@@ -41,15 +47,24 @@ visibleCount=$(printf '%s\n' $src_targets | xargs -r grep -cE ">[^<>]*$ja_patter
 
 total=$((ariaCount + titleCount + placeholderCount + visibleCount))
 
-echo "i18n hardcode baseline (日本語固定 phase、informational のみ):"
+echo "i18n hardcode count (R9-C budget gate phase 2):"
 echo "  aria-label:    $ariaCount"
 echo "  title:         $titleCount"
 echo "  placeholder:   $placeholderCount"
 echo "  text content:  $visibleCount"
-echo "  total:         $total"
+echo "  total:         $total / MAX_HARDCODE=$MAX_HARDCODE"
 echo ""
-echo "現 phase は日本語固定で意図的、本 audit は計測のみ (gate ではない)。"
-echo "L4 多言語化フェーズで i18n key 集約を始めるとき、本 audit を gate 化:"
-echo "  - 既存数を baseline に記録 (docs/l1_requirements/release-readiness/measurements/i18n-baseline.md)"
-echo "  - 新規 PR で増加検出 → 新規分は i18n key 経由を強制"
+
+if [ "$total" -gt "$MAX_HARDCODE" ]; then
+	echo "ERROR: i18n hardcode budget exceeded ($total > $MAX_HARDCODE)"
+	echo ""
+	echo "新規 hardcoded 日本語文字列が追加されました。次のいずれかの対応を:"
+	echo "  1. 既存 hardcoded 文字列を共通 module に集約 (i18n key 化)、MAX_HARDCODE を下げる"
+	echo "  2. やむを得ず新規追加する場合は scripts/audit-i18n-hardcode.sh の MAX_HARDCODE を更新"
+	echo ""
+	echo "L4 多言語化フェーズの目標: MAX_HARDCODE = 0、全文字列を t() 経由に置換"
+	exit 1
+fi
+
+echo "✓ audit-i18n-hardcode: budget OK ($total ≤ $MAX_HARDCODE)"
 exit 0
