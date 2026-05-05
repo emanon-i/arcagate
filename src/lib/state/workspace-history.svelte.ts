@@ -13,7 +13,7 @@
  * - undo 後に新 mutation すると redo stack を破棄 (linear history)
  */
 
-import type { WidgetType } from '$lib/types/workspace';
+import { WIDGET_LABELS, type WidgetType } from '$lib/types/workspace';
 
 export type WidgetRect = { x: number; y: number; w: number; h: number };
 
@@ -43,10 +43,55 @@ const MAX_HISTORY = 50;
 const undoStack = $state<HistoryEntry[]>([]);
 const redoStack = $state<HistoryEntry[]>([]);
 
+/**
+ * R8-3: widget delete 後 5 秒間表示する snackbar 用 pending 状態。
+ * libraryHistory.pendingUndo と同型 (UX 一貫性)。
+ *
+ * 'remove' エントリを `record` した時のみ立つ。move/resize/config では立たない
+ * (ユーザが「削除」を意識した瞬間のみ可視 feedback を出すのが目的)。
+ */
+const UNDO_TTL_MS = 5_000;
+
+interface PendingDelete {
+	widgetType: WidgetType;
+	widgetLabel: string;
+	expiresAt: number;
+	seq: number;
+}
+
+let pendingDelete = $state<PendingDelete | null>(null);
+let dismissTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSeq = 0;
+
+function clearPending() {
+	pendingDelete = null;
+	if (dismissTimer) {
+		clearTimeout(dismissTimer);
+		dismissTimer = null;
+	}
+}
+
+function setPendingDelete(widgetType: WidgetType) {
+	if (dismissTimer) clearTimeout(dismissTimer);
+	pendingDelete = {
+		widgetType,
+		widgetLabel: WIDGET_LABELS[widgetType] ?? widgetType,
+		expiresAt: Date.now() + UNDO_TTL_MS,
+		seq: ++pendingSeq,
+	};
+	dismissTimer = setTimeout(() => {
+		pendingDelete = null;
+		dismissTimer = null;
+	}, UNDO_TTL_MS);
+}
+
 function record(entry: HistoryEntry) {
 	undoStack.push(entry);
 	if (undoStack.length > MAX_HISTORY) undoStack.shift();
 	redoStack.length = 0;
+	if (entry.kind === 'remove') {
+		setPendingDelete(entry.widgetType);
+	}
 }
 
 function popUndo(): HistoryEntry | null {
@@ -64,6 +109,11 @@ function popRedo(): HistoryEntry | null {
 function clear() {
 	undoStack.length = 0;
 	redoStack.length = 0;
+	clearPending();
+}
+
+function dismiss(): void {
+	clearPending();
 }
 
 export const workspaceHistory = {
@@ -79,8 +129,12 @@ export const workspaceHistory = {
 	get redoSize() {
 		return redoStack.length;
 	},
+	get pendingUndo() {
+		return pendingDelete;
+	},
 	record,
 	popUndo,
 	popRedo,
 	clear,
+	dismiss,
 };

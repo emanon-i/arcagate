@@ -24,6 +24,7 @@ import PageTabBar from './PageTabBar.svelte';
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
 import WorkspaceSidebar from './WorkspaceSidebar.svelte';
+import WorkspaceUndoSnackbar from './WorkspaceUndoSnackbar.svelte';
 import WorkspaceWallpaperDialog from './WorkspaceWallpaperDialog.svelte';
 import WorkspaceWidgetGrid from './WorkspaceWidgetGrid.svelte';
 
@@ -648,6 +649,9 @@ let canvasH = $derived(
 	workspace={workspaceStore.activeWorkspace}
 	onClose={() => (wallpaperOpen = false)}
 />
+
+<!-- R8-3: widget delete 直後 5 秒間「元に戻す」snackbar (Library と同型 UX) -->
+<WorkspaceUndoSnackbar />
 
 <style>
 /* R6-2: Industrial Yellow scope。Settings / Onboarding と同じ token re-bind。 */
