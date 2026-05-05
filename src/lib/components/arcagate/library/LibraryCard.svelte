@@ -170,3 +170,17 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 		</div>
 	</button>
 {/if}
+
+<style>
+/* L3-A: CSS-native virtualization。
+   200+ item の grid で off-screen card の paint / layout を browser に任せ、
+   @tanstack/virtual 等の重い JS lib なしで frame drop を解消する。
+   Tauri は WebView2 (Chromium) なので content-visibility: auto は確実に動く。
+   contain-intrinsic-size は viewport 外の card の予約サイズ (aspect 4:3 想定)、
+   browser がこれを使って scrollbar / scroll position 計算を維持する。
+   focus / a11y / drag-drop は通常 DOM のため壊れない (full virtualizer の退行 risk 高 を回避)。 */
+.library-card {
+	content-visibility: auto;
+	contain-intrinsic-size: auto var(--ag-card-w);
+}
+</style>
