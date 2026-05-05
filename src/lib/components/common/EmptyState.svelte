@@ -27,11 +27,18 @@ let resolvedActions = $derived<Action[]>(
 );
 </script>
 
+<!-- R5-4 polish: icon container を Industrial Yellow ring + tint で軽い雰囲気付け。
+     dark / light どちらでも accent yellow が浮いて見えるよう、--ag-il-yellow を 12% alpha で塗る。
+     full Industrial 化 (paper / hatching) は bigger empty pages (Library 0 件) で適用検討、
+     widget 内 small empty は現状の small layout を維持。 -->
 <div
 	class="flex h-full w-full flex-col items-center justify-center gap-3 px-6 py-8 text-center"
 	data-testid={testId}
 >
-	<div class="rounded-full bg-[var(--ag-surface-2)] p-4 text-[var(--ag-text-muted)]">
+	<div
+		class="rounded-full p-4 text-[var(--ag-il-yellow,var(--ag-text-muted))]"
+		style="background: color-mix(in srgb, var(--ag-il-yellow, var(--ag-accent)) 12%, transparent);"
+	>
 		<Icon class="h-8 w-8" />
 	</div>
 	<div class="space-y-1">
