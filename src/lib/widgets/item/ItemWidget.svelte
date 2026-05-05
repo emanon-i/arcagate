@@ -103,10 +103,11 @@ async function pickerSelectMany(items: Item[]) {
 	const existing = new Set(itemIds);
 	const next = [...itemIds];
 	for (const it of items) if (!existing.has(it.id)) next.push(it.id);
+	const added = next.length - itemIds.length;
+	if (added === 0) return; // 全件 既存と重複 → 永続化不要
 	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next, item_id: null };
 	try {
 		await updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
-		const added = items.length;
 		toastStore.add(`${added} 件のアイテムを紐付けました`, 'success');
 	} catch (e: unknown) {
 		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');

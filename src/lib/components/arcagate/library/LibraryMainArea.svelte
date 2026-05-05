@@ -62,16 +62,18 @@ async function handleBulkStar() {
 		const ids = Array.from(selectedIds);
 		const count = await bulkAddTag(ids, 'sys-starred');
 		toastStore.add(`${count} 件をお気に入りに追加しました`, 'success');
-		// C6: items + sidebar (libraryStats / tagWithCounts) 一括 refresh で件数ズレ防止
-		await Promise.all([
-			itemStore.loadItems(),
-			itemStore.loadLibraryStats(),
-			itemStore.loadTagWithCounts(),
-		]);
-		exitSelectionMode();
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括お気に入り追加' }, e), 'error');
+		return;
 	}
+	// mutation 成功後の post-refresh は best-effort (allSettled)。失敗で selection を抜けないと
+	// confused UX (mutation 済んでるのに選択モード残る) になるため finally 相当で必ず exit。
+	await Promise.allSettled([
+		itemStore.loadItems(),
+		itemStore.loadLibraryStats(),
+		itemStore.loadTagWithCounts(),
+	]);
+	exitSelectionMode();
 }
 
 async function handleBulkDelete() {
@@ -81,16 +83,16 @@ async function handleBulkDelete() {
 		const ids = Array.from(selectedIds);
 		const count = await bulkDeleteItems(ids);
 		toastStore.add(`${count} 件を削除しました`, 'success');
-		// C6: 削除で「すべて」 / 各タグ count / お気に入り count が変動するので 3 系統 refresh
-		await Promise.all([
-			itemStore.loadItems(),
-			itemStore.loadLibraryStats(),
-			itemStore.loadTagWithCounts(),
-		]);
-		exitSelectionMode();
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括削除' }, e), 'error');
+		return;
 	}
+	await Promise.allSettled([
+		itemStore.loadItems(),
+		itemStore.loadLibraryStats(),
+		itemStore.loadTagWithCounts(),
+	]);
+	exitSelectionMode();
 }
 
 // 150ms デバウンス: キーストロークごとの IPC を抑制

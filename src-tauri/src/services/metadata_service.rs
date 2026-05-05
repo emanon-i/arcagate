@@ -58,8 +58,18 @@ pub fn get_items_metadata_batch(
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let mut found: Vec<(String, String, String)> = Vec::with_capacity(ids.len());
     for id in ids {
-        if let Ok(item) = item_repository::find_by_id(&conn, id) {
-            found.push((item.id, item.item_type.as_str().to_string(), item.target));
+        match item_repository::find_by_id(&conn, id) {
+            Ok(item) => {
+                found.push((item.id, item.item_type.as_str().to_string(), item.target));
+            }
+            Err(AppError::NotFound(_)) => {
+                // fail-soft: DB に無い id は結果から省く (caller が古い id を持つ可能性に備える)
+            }
+            Err(e) => {
+                // それ以外の DB error (lock 失敗 / SQL error 等) は伝播させて隠蔽しない
+                drop(conn);
+                return Err(e);
+            }
         }
     }
     drop(conn);
