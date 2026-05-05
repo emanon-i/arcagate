@@ -100,3 +100,14 @@ jobs:
           name: startup-measurements-nightly
           path: docs/l1_requirements/release-readiness/measurements/startup-*.json
           retention-days: 30
+
+      # R8-2: G3 WCAG axe-core measurement (a11y-axe.spec.ts が生成する JSON)。
+      # nightly で 30 日保持し、violation 件数の推移を追跡する。
+      - name: Upload axe violations artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: axe-violations-nightly
+          path: docs/l1_requirements/release-readiness/measurements/axe-violations.json
+          retention-days: 30
+          if-no-files-found: ignore
