@@ -2,6 +2,7 @@ import * as itemsIpc from '$lib/ipc/items';
 import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
 import type { CreateTagInput, Tag, TagWithCount } from '$lib/types/tag';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { metadataStore } from './metadata.svelte';
 
 let items = $state<Item[]>([]);
 let tags = $state<Tag[]>([]);
@@ -42,6 +43,8 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
 	try {
 		const updated = await itemsIpc.updateItem(id, input);
 		items = items.map((item) => (item.id === id ? updated : item));
+		// target / item_type 変更で metadata が古くなる可能性 → cache 無効化
+		metadataStore.invalidate(id);
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -64,6 +67,7 @@ async function deleteItem(id: string): Promise<void> {
 	try {
 		await itemsIpc.deleteItem(id);
 		items = items.filter((item) => item.id !== id);
+		metadataStore.invalidate(id);
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {

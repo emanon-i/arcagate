@@ -3,7 +3,9 @@ import { Search } from '@lucide/svelte';
 import { cubicOut } from 'svelte/easing';
 import { fade, scale } from 'svelte/transition';
 import LibraryCard from '$lib/components/arcagate/library/LibraryCard.svelte';
+import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item } from '$lib/types/item';
 
 /**
@@ -78,6 +80,14 @@ let starredIds = $derived(
 );
 // items の既存メタには star 情報がないため、Library と同じく getItemTags 経由が必要。
 // 本 PR では絞らず、LibraryCard の isStarred を全 false で渡す (見た目の整合は維持、お気に入り表示は Library 専用)。
+
+// I3 fix: visible items の metadata を 1 batch で warm up。
+// LibraryCard 自身は cache 読みのみ (per-card 並列 IPC 排除)。
+$effect(() => {
+	if (configStore.itemSize === 'S') return;
+	const ids = filteredItems.map((i) => i.id);
+	void metadataStore.loadMetadataForItems(ids);
+});
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

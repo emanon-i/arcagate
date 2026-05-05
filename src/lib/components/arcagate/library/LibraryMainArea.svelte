@@ -17,6 +17,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { metadataStore } from '$lib/state/metadata.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
@@ -135,6 +136,15 @@ let filteredItems = $derived.by(() => {
 		return itemStore.items.filter((item) => item.label.toLowerCase().includes(q));
 	}
 	return itemStore.items;
+});
+
+// I3 fix: per-card $effect 並列呼び出しを排除し、visible items を 1 batch で warm up。
+// LibraryCard は metadataStore.getMetadata(id) で cache を読むだけ。
+// S size / list view では LibraryCard が metadata 表示しないので fetch 不要。
+$effect(() => {
+	if (viewMode !== 'grid' || configStore.itemSize === 'S') return;
+	const ids = filteredItems.map((i) => i.id);
+	void metadataStore.loadMetadataForItems(ids);
 });
 </script>
 

@@ -2,10 +2,9 @@
 import { Star } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
-import { getItemMetadata } from '$lib/ipc/items';
 import { configStore } from '$lib/state/config.svelte';
+import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item } from '$lib/types/item';
-import type { ItemMetadata } from '$lib/types/item-metadata';
 import { formatItemMeta } from '$lib/utils/format-meta';
 
 interface Props {
@@ -18,22 +17,12 @@ interface Props {
 
 let { item, isStarred = false, viewMode = 'grid', onclick, ondblclick }: Props = $props();
 
-let metadata = $state<ItemMetadata | null>(null);
-
-// Lazy fetch: item ごとに 1 回だけ。S サイズでは表示しないので IPC も省略。
-// item.id 切替時 / fetch 失敗時に古い値を残さないため、開始時と catch 時に null へ reset。
-$effect(() => {
-	if (viewMode !== 'grid' || configStore.itemSize === 'S') return;
-	const id = item.id;
-	metadata = null;
-	void getItemMetadata(id)
-		.then((m) => {
-			if (id === item.id) metadata = m;
-		})
-		.catch(() => {
-			if (id === item.id) metadata = null;
-		});
-});
+// metadataStore は親 (LibraryMainArea / LibraryItemPicker) が
+// loadMetadataForItems(visibleIds) で warm up する。card は cache を読むだけ。
+// 旧実装の per-card cmd_get_item_metadata 並列呼び出し (I3 root cause) を排除。
+let metadata = $derived(
+	viewMode === 'grid' && configStore.itemSize !== 'S' ? metadataStore.getMetadata(item.id) : null,
+);
 
 let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
 
