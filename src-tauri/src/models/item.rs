@@ -119,6 +119,18 @@ mod tests {
     }
 }
 
+/// `Option<Option<T>>` に対する double-option deserializer。
+/// JSON 既定の serde では `null` → outer `None`、field 不在 → outer `None` で区別不能。
+/// 本 helper で field 不在 → `None` (= 変更なし)、`null` → `Some(None)` (= 明示クリア)、
+/// 値あり → `Some(Some(v))` (= 値設定) を区別する。`#[serde(default)]` と併用必須。
+fn deserialize_double_option<'de, T, D>(d: D) -> Result<Option<Option<T>>, D::Error>
+where
+    T: serde::Deserialize<'de>,
+    D: serde::Deserializer<'de>,
+{
+    Option::<T>::deserialize(d).map(Some)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateItemInput {
     pub label: Option<String>,
@@ -131,7 +143,10 @@ pub struct UpdateItemInput {
     pub is_tracked: Option<bool>,
     pub default_app: Option<String>,
     pub tag_ids: Option<Vec<String>>,
-    /// PH-290: per-card override JSON (null 渡しで明示的に解除)
+    /// PH-290: per-card override JSON (`null` 渡しで明示的に解除)。
+    /// `Option<Option<String>>` を JSON 上で field 不在 / null / 値 と 3 通りに区別するため
+    /// double_option deserializer を使う (serde 既定では null と field 不在を区別できない)。
+    #[serde(default, deserialize_with = "deserialize_double_option")]
     pub card_override_json: Option<Option<String>>,
 }
 

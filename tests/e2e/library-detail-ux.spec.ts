@@ -100,6 +100,8 @@ test.describe('Library 詳細パネル UX（PH-291 / 290 / 292）', () => {
 		await expect(resetBtn).toContainText('グローバル設定に戻す');
 
 		await resetBtn.click();
+		// batch-84 PH-377: reset 操作は ConfirmDialog 経由 (誤操作防止)
+		await page.getByRole('button', { name: '解除する' }).click();
 		await expect(resetBtn).not.toBeVisible({ timeout: 5000 });
 	});
 

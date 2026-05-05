@@ -324,14 +324,14 @@ test.describe('ライブラリ詳細パネル', () => {
 			const detailPanel = page.getByTestId('library-detail-panel');
 			await expect(detailPanel).toBeVisible();
 
-			// 初期状態: スターを付けるボタン
-			const starBtn = detailPanel.getByRole('button', { name: 'スターを付ける' });
+			// 初期状態: お気に入りに追加ボタン (CLAUDE.md label rule: 機能 / 状態 / アクション)
+			const starBtn = detailPanel.getByRole('button', { name: 'お気に入りに追加' });
 			await expect(starBtn).toBeVisible();
 
 			await starBtn.click();
 
-			// スターを外すボタンに変わる
-			await expect(detailPanel.getByRole('button', { name: 'スターを外す' })).toBeVisible();
+			// お気に入りを解除ボタンに変わる
+			await expect(detailPanel.getByRole('button', { name: 'お気に入りを解除' })).toBeVisible();
 		} finally {
 			await deleteItem(page, item.id);
 		}
@@ -357,14 +357,14 @@ test.describe('ライブラリ詳細パネル', () => {
 			await page.getByTestId(`library-card-${item.id}`).click();
 			const detailPanel = page.getByTestId('library-detail-panel');
 
-			// 初期状態: スター付き
-			const starBtn = detailPanel.getByRole('button', { name: 'スターを外す' });
+			// 初期状態: お気に入り済み (お気に入りを解除ボタン表示)
+			const starBtn = detailPanel.getByRole('button', { name: 'お気に入りを解除' });
 			await expect(starBtn).toBeVisible();
 
 			await starBtn.click();
 
-			// スターを付けるボタンに戻る
-			await expect(detailPanel.getByRole('button', { name: 'スターを付ける' })).toBeVisible();
+			// お気に入りに追加ボタンに戻る
+			await expect(detailPanel.getByRole('button', { name: 'お気に入りに追加' })).toBeVisible();
 		} finally {
 			await deleteItem(page, item.id);
 		}
