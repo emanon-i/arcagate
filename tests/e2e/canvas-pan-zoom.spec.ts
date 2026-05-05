@@ -106,9 +106,11 @@ test.describe('Workspace Canvas (PH-issue-002)', () => {
 		await page.evaluate(() => localStorage.removeItem('widget-zoom'));
 		await page.keyboard.press('Control+0');
 		// zoom 50% に下げて scroll を端に動かす
+		// deltaY: 120 = mouse wheel 1 click 標準値 (DOM_DELTA_PIXEL)、wheel-normalize.ts で
+		// magnitude = round(120/12) = 10 → 1 event 10% step。5 event で -50% = 50%。
 		await container.hover();
 		for (let i = 0; i < 5; i++) {
-			await container.dispatchEvent('wheel', { deltaY: 100, ctrlKey: true });
+			await container.dispatchEvent('wheel', { deltaY: 120, ctrlKey: true });
 		}
 		await expect(container).toHaveAttribute('data-zoom', '50');
 		// pan で適当に scroll
@@ -133,10 +135,13 @@ test.describe('Workspace Canvas (PH-issue-002)', () => {
 		await page.getByRole('button', { name: 'Workspace' }).click();
 		await waitForAppReady(page);
 		// 既存 widget が無くても toolbar 操作で zoom 200% にしてから Fit → 100% に戻る (空 path 保証)
+		// deltaY: -120 = mouse wheel up 標準値、magnitude 10 → 1 event +10% step。
+		// 12 event 発火 (clamp で 200% 上限) で event drop に対する cushion を確保。
+		// (Playwright dispatchEvent + Svelte rune reactivity の race で稀に 1 event 損失する保険)
 		const container = page.locator('[data-zoom]').first();
 		await container.hover();
-		for (let i = 0; i < 10; i++) {
-			await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
+		for (let i = 0; i < 12; i++) {
+			await container.dispatchEvent('wheel', { deltaY: -120, ctrlKey: true });
 		}
 		await expect(container).toHaveAttribute('data-zoom', '200');
 		await page.keyboard.press('Control+Shift+1');
@@ -154,8 +159,9 @@ test.describe('Workspace Canvas (PH-issue-002)', () => {
 		await page.keyboard.press('Control+0');
 		await expect(container).toHaveAttribute('data-zoom', '100');
 		// container 中央付近に cursor を置いて wheel up
+		// deltaY: -120 = mouse wheel up 標準値、magnitude 10 → 1 event +10% step → 110%
 		await container.hover({ position: { x: 100, y: 100 } });
-		await container.dispatchEvent('wheel', { deltaY: -100, ctrlKey: true });
+		await container.dispatchEvent('wheel', { deltaY: -120, ctrlKey: true });
 		// zoom 110% に上昇
 		await expect(container).toHaveAttribute('data-zoom', '110');
 		// cursor anchor の数値検証は zoom-math-anchor.test.ts (unit) で確認済、
