@@ -20,9 +20,16 @@ import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { fuzzyFilter } from '$lib/utils/fuzzy-search';
 import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/grid-keyboard';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
+import {
+	SORT_FIELD_LABELS,
+	type SortField,
+	type SortOrder,
+	sortItems,
+} from '$lib/utils/library-sort';
 import LibraryCard from './LibraryCard.svelte';
 import LibraryUndoSnackbar from './LibraryUndoSnackbar.svelte';
 
@@ -144,15 +151,15 @@ $effect(() => {
 		});
 });
 
+// L2-C C1+C4+C6: source = activeTag 中なら tagItems、そうでなければ全 items。
+// debouncedQuery で fuzzy filter (label / target / aliases 横断、score 降順)。
+// query 無しなら configStore.librarySort で並べ替え。
 let filteredItems = $derived.by(() => {
-	if (activeTag) {
-		return localTagItems;
+	const source = activeTag ? localTagItems : itemStore.items;
+	if (debouncedQuery.trim().length > 0) {
+		return fuzzyFilter(source, debouncedQuery, (i) => [i.label, i.target, ...i.aliases]);
 	}
-	if (searchQuery) {
-		const q = searchQuery.toLowerCase();
-		return itemStore.items.filter((item) => item.label.toLowerCase().includes(q));
-	}
-	return itemStore.items;
+	return sortItems(source, configStore.librarySort);
 });
 
 // I3 fix: per-card $effect 並列呼び出しを排除し、visible items を 1 batch で warm up。
@@ -345,6 +352,36 @@ function handleGridKeydown(e: KeyboardEvent) {
 			{/if}
 		</div>
 		<div class="flex items-center gap-2">
+			<!-- L2-C C1: sort dropdown (field + asc/desc)。debouncedQuery 入力中は fuzzy score 順が
+			     優先されるため見た目上 disable 状態に。 -->
+			<select
+				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:opacity-60"
+				aria-label="並び順を選ぶ"
+				data-testid="library-sort-field"
+				disabled={debouncedQuery.trim().length > 0}
+				value={configStore.librarySort.field}
+				onchange={(e) => {
+					const v = (e.currentTarget as HTMLSelectElement).value as SortField;
+					configStore.setLibrarySort(v, configStore.librarySort.order);
+				}}
+			>
+				<option value="name">{SORT_FIELD_LABELS.name}</option>
+				<option value="created">{SORT_FIELD_LABELS.created}</option>
+				<option value="updated">{SORT_FIELD_LABELS.updated}</option>
+			</select>
+			<button
+				type="button"
+				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] disabled:opacity-60"
+				aria-label={configStore.librarySort.order === 'asc' ? '昇順' : '降順'}
+				data-testid="library-sort-order"
+				disabled={debouncedQuery.trim().length > 0}
+				onclick={() => {
+					const next: SortOrder = configStore.librarySort.order === 'asc' ? 'desc' : 'asc';
+					configStore.setLibrarySort(configStore.librarySort.field, next);
+				}}
+			>
+				{configStore.librarySort.order === 'asc' ? '↑' : '↓'}
+			</button>
 			<button
 				type="button"
 				class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {viewMode === 'grid' ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]' : 'bg-[var(--ag-surface-3)]'}"
