@@ -51,8 +51,9 @@ Library overhaul L2 以降で **default の visual language**。Workspace / pale
 --ag-il-on-yellow:     var(--prim-il-ink-500);  /* yellow bg 上のテキスト */
 
 /* Attention / error */
---ag-il-orange:       var(--prim-il-orange-500);
---ag-il-orange-hover: var(--prim-il-orange-300);
+--ag-il-orange:          var(--prim-il-orange-500);
+--ag-il-orange-hover:    var(--prim-il-orange-300);
+--ag-il-orange-bg-hover: rgba(255, 122, 0, 0.08);  /* danger button hover bg */
 
 /* Border / outline */
 --ag-il-border:       rgba(5, 6, 5, 0.12);
@@ -180,10 +181,13 @@ panel / card 角に inset で L 字を描画。corner SVG または `::before` /
 
 ## 6. Light / Dark mode
 
-L1 までの dark theme override はそのまま維持。Industrial Yellow は **dark/light 両方で同じ token 値**を使う (蛍光イエローは暗背景でも明背景でも視認性 OK)。例外:
+L1 までの dark theme override はそのまま維持。Industrial Yellow は **基本同じ token 値**を使うが、paper / ink 系は dark mode で flip:
 
-- `--ag-il-paper` は light=`#F1F1EB` / dark=`#1A1B1A` に分岐
-- `--ag-il-border` の rgba alpha は dark で 0.18 程度に上げる
+- `--ag-il-paper` は light=`#F1F1EB` / dark=`#1A1B1A`
+- `--ag-il-ink` は **paper 上で読める text color として semantic flip** (light=`#050605` / dark=`#F1F1EB`)。component で `text-[var(--ag-il-ink)]` を default にすれば両 mode で読める
+- `--ag-il-on-yellow` は **yellow が両 mode で同じ明るさのため不変** (#050605)
+- `--ag-il-border` は ink 基準 rgba (light=`rgba(5,6,5,0.12)` / dark=`rgba(255,255,255,0.18)`)
+- `--ag-il-bracket` は dark で yellow に切替 (dark paper 上での視認性確保)
 
 Light mode は L2 以降の polish で扱う。L2-A は **dark default** (現行 user 環境) のみ verify。
 

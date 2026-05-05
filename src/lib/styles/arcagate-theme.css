@@ -214,11 +214,15 @@
 	--ag-text-faint: rgba(255, 255, 255, 0.35);
 
 	/* === Industrial Yellow dark overrides ===
-	   spec §6: paper を dark 系、border alpha を上げ、yellow / ink は同値維持。 */
+	   spec §6: paper を dark 系に。--ag-il-ink は paper 上で読める text color として
+	   semantic flip させる (light=黒 / dark=白っぽい paper-50)、--ag-il-on-yellow は
+	   yellow が両 mode で同じ明るさのため不変。border alpha は ink 基準で上げ、
+	   bracket は dark 環境での視認性確保のため yellow に切替。 */
 	--ag-il-paper: var(--prim-il-ink-300);
 	--ag-il-paper-dim: var(--prim-il-ink-50);
-	--ag-il-border: rgba(255, 230, 0, 0.18);
-	--ag-il-border-hover: rgba(255, 230, 0, 0.32);
+	--ag-il-ink: var(--prim-il-paper);
+	--ag-il-border: rgba(255, 255, 255, 0.18);
+	--ag-il-border-hover: rgba(255, 255, 255, 0.32);
 	--ag-il-bracket: var(--prim-il-yellow-500);
 }
 

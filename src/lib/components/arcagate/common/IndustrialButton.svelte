@@ -44,6 +44,8 @@ let {
 }: Props = $props();
 
 let sizeClass = $derived(size === 'sm' ? 'h-7 px-3 text-xs' : 'h-9 px-4 text-sm');
+// primary は yellow fill 上に focus ring を出すと色が被って見えにくい → ink ring
+let focusRingVar = $derived(variant === 'primary' ? 'var(--ag-il-ink)' : 'var(--ag-il-focus-ring)');
 </script>
 
 <button
@@ -51,9 +53,9 @@ let sizeClass = $derived(size === 'sm' ? 'h-7 px-3 text-xs' : 'h-9 px-4 text-sm'
 	{disabled}
 	{title}
 	aria-label={ariaLabel}
-	class="il-button inline-flex items-center justify-center gap-1.5 font-medium transition-[background-color,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-il-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-il-paper)] disabled:cursor-not-allowed disabled:opacity-[var(--ag-il-disabled-opacity)] {sizeClass} {extraClass}"
+	class="il-button inline-flex items-center justify-center gap-1.5 font-medium transition-[background-color,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--il-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-il-paper)] disabled:cursor-not-allowed disabled:opacity-[var(--ag-il-disabled-opacity)] {sizeClass} {extraClass}"
 	data-variant={variant}
-	style="border-radius: var(--ag-il-radius-button);"
+	style="border-radius: var(--ag-il-radius-button); --il-focus-ring: {focusRingVar};"
 	{onclick}
 >
 	{@render children?.()}
