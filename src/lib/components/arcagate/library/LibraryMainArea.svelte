@@ -19,6 +19,7 @@ import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/grid-keyboard';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import LibraryCard from './LibraryCard.svelte';
@@ -158,6 +159,77 @@ $effect(() => {
 	const ids = filteredItems.map((i) => i.id);
 	void metadataStore.loadMetadataForItems(ids);
 });
+
+// L2-B B1: keyboard nav (grid 矢印 / Enter / Esc / Space)。
+// 純関数 gridKeyboardNav に delegate、focus 反映は data-testid で DOM lookup。
+let activeCardIndex = $state(-1);
+let gridContainerEl = $state<HTMLDivElement | null>(null);
+
+// filteredItems が変わったら focus index を範囲内に補正 (delete / filter で範囲縮小時)
+$effect(() => {
+	if (activeCardIndex >= filteredItems.length) {
+		activeCardIndex = filteredItems.length - 1;
+	}
+});
+
+function focusCardAt(index: number) {
+	if (index < 0 || index >= filteredItems.length) return;
+	activeCardIndex = index;
+	const id = filteredItems[index].id;
+	const el = gridContainerEl?.querySelector<HTMLElement>(`[data-testid="library-card-${id}"]`);
+	el?.focus();
+}
+
+function applyKeyAction(action: GridKeyAction) {
+	switch (action.type) {
+		case 'focus':
+			focusCardAt(action.index);
+			break;
+		case 'launch': {
+			const item = filteredItems[action.index];
+			if (!item) return;
+			void launchItem(item.id)
+				.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+				.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
+			break;
+		}
+		case 'toggleSelect': {
+			const item = filteredItems[action.index];
+			if (item) toggleSelection(item.id);
+			break;
+		}
+		case 'dismiss':
+			activeCardIndex = -1;
+			onSelectItem?.(null);
+			(document.activeElement as HTMLElement | null)?.blur();
+			break;
+		case 'noop':
+			break;
+	}
+}
+
+function handleGridKeydown(e: KeyboardEvent) {
+	if (e.isComposing) return;
+	// IME / 入力 element 内では keyboard nav を奪わない
+	const target = e.target as HTMLElement | null;
+	if (
+		target &&
+		(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+	) {
+		return;
+	}
+	const cols = viewMode === 'grid' ? detectGridCols(gridContainerEl) : 1;
+	const action = gridKeyboardNav({
+		key: e.key,
+		currentIndex: activeCardIndex,
+		total: filteredItems.length,
+		cols,
+		selectionMode,
+	});
+	if (action.type === 'noop') return;
+	e.preventDefault();
+	applyKeyAction(action);
+}
 </script>
 
 <svelte:window
@@ -285,7 +357,12 @@ $effect(() => {
 	{#if itemStore.loading && itemStore.items.length === 0}
 		<LoadingState description="ライブラリを読み込み中..." testId="library-loading" />
 	{:else if viewMode === 'list'}
-		<div class="overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] divide-y divide-[var(--ag-border)]">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] divide-y divide-[var(--ag-border)]"
+			bind:this={gridContainerEl}
+			onkeydown={handleGridKeydown}
+		>
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
 					{item}
@@ -333,9 +410,12 @@ $effect(() => {
 			{/if}
 		</div>
 	{:else}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="library-grid grid"
 			style="grid-template-columns: repeat(auto-fill, var(--ag-card-w)); gap: var(--ag-card-gap); justify-content: center; --ag-card-w: var(--ag-card-w-{configStore.itemSize.toLowerCase()});"
+			bind:this={gridContainerEl}
+			onkeydown={handleGridKeydown}
 		>
 			{#each filteredItems as item (item.id)}
 				<LibraryCard
