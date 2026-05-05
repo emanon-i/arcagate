@@ -1,4 +1,4 @@
-# axe-core a11y baseline (R8-2 G3 WCAG numeric)
+# axe-core a11y baseline (R8-2 G3 WCAG numeric、R10-B で Phase 2 gate ON)
 
 `audit-final-r7.md` で **G3 WCAG numeric** が部分的だった件を、Playwright + `@axe-core/playwright` で
 nightly 自動計測する仕組みを R8-2 で確立。
@@ -19,15 +19,17 @@ target Level = **WCAG 2.1 Level AA** (G3 criteria 上の Level)。
 
 ## Gate 戦略 (段階的 squeeze)
 
-| Phase           | gate 条件                                    | 切替                                                            |
-| --------------- | -------------------------------------------- | --------------------------------------------------------------- |
-| **1 (本 PR)**   | informational のみ (warning log + JSON 出力) | 既定 OFF                                                        |
-| **2**           | critical = 0                                 | `ARCAGATE_AXE_GATE=1` で opt-in、PR ごとに違反 fix → CI 既定 ON |
-| **3**           | critical + serious = 0                       | Phase 2 安定後、threshold を tightening                         |
-| **4 (G3 PASS)** | critical + serious = 0 が CI 既定            | audit-final で G3 PASS 化                                       |
+| Phase            | gate 条件                                    | 状態                                                             |
+| ---------------- | -------------------------------------------- | ---------------------------------------------------------------- |
+| **1 (R8-2)**     | informational のみ (warning log + JSON 出力) | 完了                                                             |
+| **2 (R10-B 本)** | **critical = 0 hard gate** (default ON)      | **本 PR で切替**                                                 |
+| **3 (将来)**     | critical + serious = 0                       | `ARCAGATE_AXE_GATE_STRICT=1` で opt-in、CI 既定化で Phase 3 完了 |
+| **4 (G3 PASS)**  | moderate/minor も threshold                  | audit-final で G3 PASS 化                                        |
 
-> 「Phase 1 で baseline を取らずに即 hard gate にする」は、shadcn-svelte (`src/lib/components/ui/`) の
-> 既存違反で全 PR が blockage する risk を伴うため避ける (R7-4 i18n baseline と同じ pattern)。
+R10-B Phase 2 移行のため事前 fix:
+
+- `app.html` lang `en` → `ja` (UI が JP 固定なので valid-lang)
+- `LibraryMainArea.svelte` `<main>` → `<section role="region" aria-label="ライブラリ">` (外側 +page.svelte に既に main があり nested main は axe critical)
 
 ## 実行方法
 

@@ -5,14 +5,14 @@ import { waitForAppReady } from '../helpers/app-ready.js';
 import { type AxeSummary, isPass, runAxe } from '../helpers/axe-audit.js';
 
 /**
- * R8-2 G3 WCAG axe-core measurement: 主要 4 画面 (Library / Workspace / Settings / Palette)
- * を axe-core で audit。
+ * G3 WCAG axe-core gate: 主要 4 画面 (Library / Workspace / Settings / Palette) を audit。
  *
- * Phase 1 (本 PR): baseline 記録のみ。critical / serious 件数を JSON artifact + log。
- *   ARCAGATE_AXE_GATE=1 が設定されている時のみ critical+serious=0 を assert する。
- * Phase 2 (後続 PR): baseline の violations を fix → ARCAGATE_AXE_GATE=1 を CI 既定化 → 真の gate 化。
+ * Phase 1 (R8-2 PR #314): baseline 記録のみ
+ * Phase 2 (R10-B 本 PR): **critical = 0 hard gate**、ARCAGATE_AXE_GATE_STRICT=1 で serious 0 opt-in
+ * Phase 3 (将来): ARCAGATE_AXE_GATE_STRICT=1 を CI 既定化、serious=0 hard gate
+ * Phase 4 (将来): moderate/minor も削減着手
  *
- * Tag: @a11y — 通常 e2e と一緒に走る (PR で baseline 記録)、CI build を肥大化させない程度の重さ。
+ * Tag: @a11y — 通常 e2e と一緒に走る、CI build を肥大化させない程度の重さ。
  */
 test.describe('G3 WCAG axe audit', () => {
 	test.setTimeout(120_000);
@@ -92,14 +92,15 @@ test.describe('G3 WCAG axe audit', () => {
 			}
 			console.log(`[axe] TOTAL critical=${totals.critical} serious=${totals.serious}`);
 
-			// Gate (opt-in): ARCAGATE_AXE_GATE=1 の時のみ critical+serious=0 を assert。
-			// 既定は baseline 記録のみで pass、CI gate 化は後続 PR で違反 fix 後に切替。
-			if (process.env.ARCAGATE_AXE_GATE === '1') {
-				expect(totals.critical, 'WCAG critical violations must be 0').toBe(0);
-				expect(totals.serious, 'WCAG serious violations must be 0').toBe(0);
-			} else if (totals.critical > 0 || totals.serious > 0) {
+			// R10-B G3 axe Phase 2: critical = 0 を hard gate (default ON)。
+			// serious = 0 は ARCAGATE_AXE_GATE_STRICT=1 で opt-in (Phase 3 への移行準備)。
+			// moderate / minor は warning のみ (Phase 4 で削減開始)。
+			expect(totals.critical, 'WCAG critical violations must be 0 (R10-B Phase 2 gate)').toBe(0);
+			if (process.env.ARCAGATE_AXE_GATE_STRICT === '1') {
+				expect(totals.serious, 'WCAG serious violations must be 0 (Phase 3 strict)').toBe(0);
+			} else if (totals.serious > 0) {
 				console.warn(
-					`[axe] baseline contains critical=${totals.critical} serious=${totals.serious} — gate disabled (set ARCAGATE_AXE_GATE=1 to enforce)`,
+					`[axe] serious=${totals.serious} (Phase 2 では warning のみ、ARCAGATE_AXE_GATE_STRICT=1 で gate 化)`,
 				);
 			}
 		},
