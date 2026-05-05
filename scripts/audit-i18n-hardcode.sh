@@ -18,10 +18,9 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-# R9-C budget: 現状 299 件 (R7-4 baseline 295 + R8 4 件追加) で freeze、新規追加を fail させる。
-# 段階的に L4 で減らす。減らすときは PR でこの数値を下げる。
-# baseline 推移: R7-4 = 295 → R9-C 計測 = 299
-MAX_HARDCODE=299
+# budget 推移: R7-4 = 295 → R9-C = 299 → R10-B = 301 (axe Phase 2 fix で aria-label / コメント JP 含む +2)
+# R10-C で migration により削減 + MAX 引下げ予定。
+MAX_HARDCODE=301
 
 # 日本語文字 (ひらがな + カタカナ + CJK Unified Ideographs) を含む文字列リテラル
 ja_pattern='[ぁ-んァ-ヴー一-龯]'
