@@ -7,11 +7,13 @@ agent 側は本 doc を更新し、scope の境界を明示する。
 
 ### 現状
 
-`src-tauri/tauri.conf.json` の `bundle.updater.pubkey` が:
+`src-tauri/tauri.conf.json` の `plugins.updater.pubkey` が:
 
 ```
 "PLACEHOLDER_REGENERATE_WITH_TAURI_SIGNER"
 ```
+
+(以前の本 doc は `bundle.updater.pubkey` と記載していたが、Tauri v2 では `plugins.updater.pubkey` が正、修正済)
 
 ### 影響
 
@@ -23,14 +25,19 @@ agent 側は本 doc を更新し、scope の境界を明示する。
 
 **配布形式 = GH Releases (manual install) のみ** で当面 OK (auto-memory `project_arcagate_distribution.md` 準拠)。`tauri.conf.json` の `dialog: false` + `endpoints` は設定済だが、updater の実動作は無効化扱い。
 
-### user が行う作業 (release で auto-update を有効化したくなったら)
+### user 作業手順書
 
-1. `tauri signer generate -w arcagate.key` で keypair 生成
-2. 出力された **public key** (untrusted comment + base64) を `tauri.conf.json` の `bundle.updater.pubkey` に commit
-3. 出力された **private key** を GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` に設定 (パスフレーズあれば `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` も)
-4. private key file 自体は **絶対に repo にコミットしない**、安全な場所に backup
-5. `release.yml` の `tauri signer sign` step が動作することを test build で確認
-6. release tag push 時に CI が `IS_RELEASE_TAG=1` で `check-pubkey.sh` を強制 fail させる仕組みを有効化 (本 doc / `check-pubkey.sh` で言及済)
+**→ [`docs/l1_requirements/distribution/pubkey-procedure.md`](../distribution/pubkey-procedure.md)**
+
+そこに以下を網羅した手順書 + security 分析:
+
+- なぜ要るのか (threat model)
+- 鍵の役割 (公開鍵 = 公開可 / 秘密鍵 = 絶対秘匿)
+- セキュリティ要件 (置き場所 NG / 推奨)
+- agent (Claude Code 含む) を触らせない理由 + concrete threat
+- 手順 A-E (鍵生成 / 公開鍵 commit / GH Actions secret / signing 確認 / 動作検証)
+- 漏洩時のリカバリ (rotation 手順、revocation の限界)
+- agent 代行可能 / user 必須 作業の一覧表
 
 ### deferred ステータス確認方法
 
