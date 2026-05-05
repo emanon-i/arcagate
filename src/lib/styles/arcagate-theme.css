@@ -132,6 +132,7 @@
 
 	--ag-il-orange: var(--prim-il-orange-500);
 	--ag-il-orange-hover: var(--prim-il-orange-300);
+	--ag-il-orange-bg-hover: rgba(255, 122, 0, 0.08);
 
 	--ag-il-border: rgba(5, 6, 5, 0.12);
 	--ag-il-border-hover: rgba(5, 6, 5, 0.24);
