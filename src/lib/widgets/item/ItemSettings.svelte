@@ -11,7 +11,7 @@
  *   - 「アイテムを追加」 button は常時 visible だが、empty 時は CTA 兼ねる
  *
  * 5/03 仕様維持:
- *   - `item_ids[]` collection、legacy `item_id` 後方互換
+ *   - `item_ids[]` collection (legacy `item_id` 単一形式は migration 023 で削除済、A3 PR-H)
  *   - manual sort で ↑↓ ボタン表示、name 順では非表示
  *   - 全解除 button (1 件以上)
  */
@@ -24,7 +24,6 @@ import type { Item } from '$lib/types/item';
 
 interface Props {
 	config: {
-		item_id?: string | null;
 		item_ids?: string[];
 		view_mode?: 'grid' | 'list';
 		sort_field?: 'manual' | 'name' | 'recent';
@@ -35,12 +34,7 @@ let { config = $bindable() }: Props = $props();
 
 let pickerOpen = $state(false);
 
-// legacy item_id → [item_id] 後方互換 + 編集中の collection 配列。
-let itemIds = $derived.by<string[]>(() => {
-	if (config.item_ids && config.item_ids.length > 0) return config.item_ids;
-	if (config.item_id) return [config.item_id];
-	return [];
-});
+let itemIds = $derived.by<string[]>(() => config.item_ids ?? []);
 
 let sortField = $derived<'manual' | 'name' | 'recent'>(config.sort_field ?? 'manual');
 
@@ -53,44 +47,44 @@ let pinnedItems = $derived.by<Item[]>(() =>
 function selectMany(items: Item[]) {
 	pickerOpen = false;
 	if (items.length === 0) return;
-	// 既存 item_ids に追加 (重複は除外)、legacy item_id は item_ids に統合。
+	// 既存 item_ids に追加 (重複は除外)。
 	const existing = new Set(itemIds);
 	const next = [...itemIds];
 	for (const it of items) {
 		if (!existing.has(it.id)) next.push(it.id);
 	}
-	config = { ...config, item_ids: next, item_id: null };
+	config = { ...config, item_ids: next };
 }
 
 function selectSingle(item: Item) {
 	pickerOpen = false;
 	const existing = new Set(itemIds);
 	if (existing.has(item.id)) return;
-	config = { ...config, item_ids: [...itemIds, item.id], item_id: null };
+	config = { ...config, item_ids: [...itemIds, item.id] };
 }
 
 function removeAt(index: number) {
 	const next = [...itemIds];
 	next.splice(index, 1);
-	config = { ...config, item_ids: next, item_id: null };
+	config = { ...config, item_ids: next };
 }
 
 function moveUp(index: number) {
 	if (index <= 0) return;
 	const next = [...itemIds];
 	[next[index - 1], next[index]] = [next[index], next[index - 1]];
-	config = { ...config, item_ids: next, item_id: null };
+	config = { ...config, item_ids: next };
 }
 
 function moveDown(index: number) {
 	if (index >= itemIds.length - 1) return;
 	const next = [...itemIds];
 	[next[index], next[index + 1]] = [next[index + 1], next[index]];
-	config = { ...config, item_ids: next, item_id: null };
+	config = { ...config, item_ids: next };
 }
 
 function clearAll() {
-	config = { ...config, item_ids: [], item_id: null };
+	config = { ...config, item_ids: [] };
 }
 
 function setSort(value: 'manual' | 'name' | 'recent') {

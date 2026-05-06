@@ -23,6 +23,7 @@ const MIGRATION_019: &str = include_str!("../../migrations/019_widget_item_setti
 const MIGRATION_020: &str = include_str!("../../migrations/020_openers.sql");
 const MIGRATION_021: &str = include_str!("../../migrations/021_remove_clock_widget.sql");
 const MIGRATION_022: &str = include_str!("../../migrations/022_icon_cache.sql");
+const MIGRATION_023: &str = include_str!("../../migrations/023_drop_legacy_item_id.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -48,6 +49,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_020),
         M::up(MIGRATION_021),
         M::up(MIGRATION_022),
+        M::up(MIGRATION_023),
     ])
 }
 
