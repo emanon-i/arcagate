@@ -3,21 +3,6 @@ use rusqlite::{params, Connection};
 use crate::models::tag::{Tag, TagWithCount};
 use crate::utils::error::AppError;
 
-fn row_to_tag(row: &rusqlite::Row) -> rusqlite::Result<Tag> {
-    let is_hidden_int: i64 = row.get(2)?;
-    let is_system_int: i64 = row.get(3)?;
-    Ok(Tag {
-        id: row.get(0)?,
-        name: row.get(1)?,
-        is_hidden: is_hidden_int != 0,
-        is_system: is_system_int != 0,
-        prefix: row.get(4)?,
-        icon: row.get(5)?,
-        sort_order: row.get(6)?,
-        created_at: row.get(7)?,
-    })
-}
-
 pub fn insert(conn: &Connection, tag: &Tag) -> Result<(), AppError> {
     conn.execute(
         "INSERT INTO tags (id, name, is_hidden, is_system, prefix, icon, sort_order)
@@ -40,7 +25,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Tag, AppError> {
         "SELECT id, name, is_hidden, is_system, prefix, icon, sort_order, created_at
          FROM tags WHERE id = ?1",
         params![id],
-        row_to_tag,
+        Tag::from_row,
     );
     match result {
         Ok(tag) => Ok(tag),
@@ -55,7 +40,7 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Tag>, AppError> {
          FROM tags ORDER BY sort_order, name",
     )?;
     let tags = stmt
-        .query_map([], row_to_tag)?
+        .query_map([], Tag::from_row)?
         .collect::<rusqlite::Result<Vec<Tag>>>()?;
     Ok(tags)
 }
@@ -95,7 +80,7 @@ pub fn find_by_item_id(conn: &Connection, item_id: &str) -> Result<Vec<Tag>, App
          ORDER BY t.sort_order, t.name",
     )?;
     let tags = stmt
-        .query_map(params![item_id], row_to_tag)?
+        .query_map(params![item_id], Tag::from_row)?
         .collect::<rusqlite::Result<Vec<Tag>>>()?;
     Ok(tags)
 }
@@ -107,7 +92,7 @@ pub fn find_system_tags(conn: &Connection) -> Result<Vec<Tag>, AppError> {
          FROM tags WHERE is_system = 1 ORDER BY sort_order, name",
     )?;
     let tags = stmt
-        .query_map([], row_to_tag)?
+        .query_map([], Tag::from_row)?
         .collect::<rusqlite::Result<Vec<Tag>>>()?;
     Ok(tags)
 }

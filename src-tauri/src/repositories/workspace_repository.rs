@@ -1,39 +1,8 @@
 use rusqlite::{params, Connection};
 
 use crate::models::item::Item;
-use crate::models::workspace::{UpdateWidgetPositionInput, WidgetType, Workspace, WorkspaceWidget};
-use crate::repositories::item_repository::row_to_item;
+use crate::models::workspace::{UpdateWidgetPositionInput, Workspace, WorkspaceWidget};
 use crate::utils::error::AppError;
-
-fn row_to_workspace(row: &rusqlite::Row) -> rusqlite::Result<Workspace> {
-    Ok(Workspace {
-        id: row.get(0)?,
-        name: row.get(1)?,
-        sort_order: row.get(2)?,
-        wallpaper_path: row.get(3)?,
-        wallpaper_opacity: row.get(4)?,
-        wallpaper_blur: row.get(5)?,
-        created_at: row.get(6)?,
-        updated_at: row.get(7)?,
-    })
-}
-
-fn row_to_widget(row: &rusqlite::Row) -> rusqlite::Result<WorkspaceWidget> {
-    let widget_type_str: String = row.get(2)?;
-    let widget_type = WidgetType::from_str(&widget_type_str).unwrap_or(WidgetType::Favorites);
-    Ok(WorkspaceWidget {
-        id: row.get(0)?,
-        workspace_id: row.get(1)?,
-        widget_type,
-        position_x: row.get(3)?,
-        position_y: row.get(4)?,
-        width: row.get(5)?,
-        height: row.get(6)?,
-        config: row.get(7)?,
-        created_at: row.get(8)?,
-        updated_at: row.get(9)?,
-    })
-}
 
 // --- Workspace CRUD ---
 
@@ -49,7 +18,7 @@ pub fn find_workspace_by_id(conn: &Connection, id: &str) -> Result<Workspace, Ap
     let result = conn.query_row(
         "SELECT id, name, sort_order, wallpaper_path, wallpaper_opacity, wallpaper_blur, created_at, updated_at FROM workspaces WHERE id = ?1",
         params![id],
-        row_to_workspace,
+        Workspace::from_row,
     );
     match result {
         Ok(ws) => Ok(ws),
@@ -63,7 +32,7 @@ pub fn find_all_workspaces(conn: &Connection) -> Result<Vec<Workspace>, AppError
         "SELECT id, name, sort_order, wallpaper_path, wallpaper_opacity, wallpaper_blur, created_at, updated_at FROM workspaces ORDER BY sort_order, name",
     )?;
     let workspaces = stmt
-        .query_map([], row_to_workspace)?
+        .query_map([], Workspace::from_row)?
         .collect::<rusqlite::Result<Vec<Workspace>>>()?;
     Ok(workspaces)
 }
@@ -130,7 +99,7 @@ pub fn find_widget_by_id(conn: &Connection, id: &str) -> Result<WorkspaceWidget,
         "SELECT id, workspace_id, widget_type, position_x, position_y, width, height, config, created_at, updated_at
          FROM workspace_widgets WHERE id = ?1",
         params![id],
-        row_to_widget,
+        WorkspaceWidget::from_row,
     );
     match result {
         Ok(w) => Ok(w),
@@ -149,7 +118,7 @@ pub fn find_widgets_by_workspace(
          ORDER BY position_y, position_x",
     )?;
     let widgets = stmt
-        .query_map(params![workspace_id], row_to_widget)?
+        .query_map(params![workspace_id], WorkspaceWidget::from_row)?
         .collect::<rusqlite::Result<Vec<WorkspaceWidget>>>()?;
     Ok(widgets)
 }
@@ -361,7 +330,7 @@ pub fn list_frequent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, A
          LIMIT ?1",
     )?;
     let items = stmt
-        .query_map(params![limit], row_to_item)?
+        .query_map(params![limit], Item::from_row)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -381,7 +350,7 @@ pub fn list_recent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, App
          LIMIT ?1",
     )?;
     let items = stmt
-        .query_map(params![limit], row_to_item)?
+        .query_map(params![limit], Item::from_row)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -418,7 +387,7 @@ pub fn list_frecency_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, A
          LIMIT ?1",
     )?;
     let items = stmt
-        .query_map(params![limit], row_to_item)?
+        .query_map(params![limit], Item::from_row)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -433,7 +402,7 @@ pub fn list_folder_items(conn: &Connection) -> Result<Vec<Item>, AppError> {
          ORDER BY sort_order, label",
     )?;
     let items = stmt
-        .query_map([], row_to_item)?
+        .query_map([], Item::from_row)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -443,6 +412,7 @@ mod tests {
     use super::*;
     use crate::db::initialize_in_memory;
     use crate::models::item::{Item, ItemType};
+    use crate::models::workspace::WidgetType;
     use crate::repositories::item_repository;
 
     fn make_workspace(id: &str, name: &str, sort_order: i64) -> Workspace {
