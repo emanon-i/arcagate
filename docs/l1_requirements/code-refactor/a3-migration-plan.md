@@ -131,16 +131,33 @@ A4 で user judgment、Option B が安全。
 
 ## 番外: refactor 完了後
 
-### PR-Z: refactor/restore-tests
+### PR-Z: test 全削除 + skip 機構解除 + 再構築 plan (mechanical、本 sequence の closing PR)
 
-- **branch**: `refactor/restore-tests`
-- **scope**:
-  - test 再構築 (新 architecture 上で必要十分な test を design)
-  - `.github/workflows/{e2e,ci}.yml` の `if:` 条件削除 (skip 機構解除)
-  - `lefthook.yml` の cargo-test 復活 (現状維持済、確認のみ)
-  - `CLAUDE.md` の Branch convention を「過去形」化、または削除
-- **依存**: PR-A1〜PR-H の **全完了後**
-- **退行 risk**: 高 (test 再構築自体が 1 phase の work)、別 design phase 扱い
+- **branch**: `refactor/test-rebuild`
+- **scope** (確定、user 判断で旧 scope の「test 再構築」は PR-Z2 以降の incremental phase に分離):
+  - frontend test 全削除 (`tests/` 43 file + `src/**/*.test.ts` 35 file)
+  - `vitest.config.ts` / `playwright.config.ts` 削除
+  - `package.json` から test scripts (`test` / `test:coverage` / `test:e2e*`) + dev deps (`vitest` / `@playwright/test` / `@vitest/coverage-v8` / `@axe-core/playwright` / `@testing-library/svelte` / `jsdom`) 削除
+  - `.github/workflows/e2e.yml` / `e2e-nightly.yml` 削除
+  - `.github/workflows/ci.yml` の Vitest step 削除 + refactor branch test gate skip 解除
+  - `lefthook.yml` の cargo-test 維持 (frontend test は元々 pre-push 不在)
+  - `CLAUDE.md` Branch convention を「過去形化」(refactor 期間終了 mark)
+  - **新 plan doc** `docs/l1_requirements/test-rebuild/index.md` (T1-T4 phase) 作成
+  - Rust inline test (`#[cfg(test)]`、39 file) は **維持** (migration safety / build correctness)
+- **依存**: PR-A1〜PR-H + PR-workspace-race-fix の全完了後
+- **退行 risk**: 低 (mechanical 削除、Rust 側は touch せず)
+- **検証**: svelte-check / biome / cargo clippy / cargo test (migration 含む) / build 全 pass
+
+### PR-Z2 以降: T1-T4 incremental 実装
+
+詳細: `docs/l1_requirements/test-rebuild/index.md`
+
+- T1 smoke (5-10 件、playwright)
+- T2 critical path (10-15 件、playwright + vitest)
+- T3 real bug regression (5-10 件、lessons.md 起点)
+- T4 core IPC / state / utility (10-15 件、vitest)
+
+合計 30-50 test、CI 完走 8-10 min 想定。各 PR 5-15 件ずつ追加。
 
 ---
 

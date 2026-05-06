@@ -123,16 +123,11 @@ jobs:
       - name: Svelte check
         run: pnpm check
 
-      # test (lint と同 setup を再利用)
-      # refactor/* branch では test を skip (CLAUDE.md 「Branch convention」参照)。
+      # PR-Z: refactor 期間終了で test gate skip 解除済。frontend test は全削除 (T1-T4 plan で再構築予定)、
+      # Rust inline test (#[cfg(test)]) は migration safety / build correctness のため維持。
       - name: Cargo test
-        if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
         working-directory: src-tauri
         run: cargo test
-
-      - name: Vitest (unit tests)
-        if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
-        run: pnpm test
 
   # changes: detect whether src code changed (skip build for docs-only PRs)
   changes:

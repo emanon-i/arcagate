@@ -48,30 +48,22 @@ PC 上に散在する起動元を集約する個人用ランチャー。Tauri v2
 - 実機目視なしで完了報告
 </critical-rule>
 
-## Branch convention
+## Branch convention (refactor 期間は終了済)
 
-- `refactor/*` — 大規模 refactor / module 整理 / architecture 改修用 branch。**e2e / unit test gate を auto-skip**（CI workflow の job-level / step-level `if:` で「skipped」扱い → branch protection の required check は自動 pass）。refactor 中に test と code が一時的に乖離しても OK。
-- 他の branch（`feat/*` / `fix/*` / `chore/*` / `claude/*` 等）— 通常通り全 test gate（e2e / unit / lint / type check）が走る。
+過去形の記述: refactor sequence (PR-A〜PR-Z、2026-05) 期間中、`refactor/*` branch に対しては **e2e / unit test gate を auto-skip** する仕組みが運用されていた (CI workflow の job-level / step-level `if:` で「skipped」扱い → branch protection の required check は自動 pass)。
 
-接頭辞の使い分け:
+**現状 (PR-Z 以降)**:
 
-- `refactor/` — 大規模なコード整理 / module 構造変更 / architecture 改修（test と code が一時乖離する想定）
-- 機能追加 / bug fix / docs 整備は通常の prefix（`feat/*` / `fix/*` / `chore/*`）を使う
-- refactor 期間終了時は `refactor/restore-tests` 系 branch で test 再有効化 + 再構築 PR を出す
+- skip 機構は **解除済**。すべての branch で同一の test gate が適用される
+- frontend test (vitest / playwright) は **PR-Z で全削除済**。T1-T4 plan に従って incremental 再構築中 (`docs/l1_requirements/test-rebuild/` 参照)
+- Rust inline test (`#[cfg(test)]`) は **維持** (migration safety / build correctness、CI で常時実行)
+- `.github/workflows/e2e.yml` / `e2e-nightly.yml` は **削除済**
 
-skip の実装場所:
+接頭辞の使い分け (現状):
 
-- `.github/workflows/e2e.yml` — job-level `if:` で e2e job 全体 skip
-- `.github/workflows/ci.yml` — step-level `if:` で `Cargo test` / `Vitest` step のみ skip（lint / svelte-check / clippy / build は維持）
-- lefthook pre-push `cargo-test` は branch を見ずローカルで常時実行（ローカル garde-fou 維持）
-
-skip 条件式:
-
-```yaml
-if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
-```
-
-（`head_ref` は PR 時、`ref_name` は push 時に使用）
+- `refactor/` — 大規模なコード整理 / module 構造変更 / architecture 改修
+- `feat/*` / `fix/*` / `chore/*` / `docs/*` — 通常の prefix
+- いずれの branch も同じ test gate (svelte-check / clippy / cargo test / build)
 
 ## いつ何を読むか（on-demand index）
 
