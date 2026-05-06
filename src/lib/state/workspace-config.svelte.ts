@@ -17,6 +17,7 @@
  */
 
 import * as workspaceIpc from '$lib/ipc/workspace';
+import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { workspaceWidgets } from '$lib/state/workspace-widgets.svelte';
 import type { Workspace } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
@@ -108,7 +109,14 @@ class WorkspaceConfig {
 	}
 
 	async selectWorkspace(id: string): Promise<void> {
+		// 同 id の早期 return: 不要な loadWidgets / history clear を避ける。
+		if (this.activeWorkspaceId === id) return;
 		this.activeWorkspaceId = id;
+		// PR-D Codex must-fix #2: cross-workspace undo/redo 混入を防ぐため、workspace 切替時に
+		// history を clear する。HistoryEntry は元 workspace に紐づくため新 workspace で undo すると
+		// 別 workspace の widget を変更する不整合が起きる。entry に workspaceId フィルタを入れるより、
+		// 切替時 clear が単純で確実。
+		workspaceHistory.clear();
 		await workspaceWidgets.loadWidgets(id);
 	}
 

@@ -62,21 +62,33 @@ class WorkspaceWidgets {
 	loading = $state(false);
 	error = $state<string | null>(null);
 
+	// PR-D Codex must-fix #1: workspace switching race protection。
+	// 高速 selectWorkspace で古い loadWidgets レスポンスが新 workspace の widgets を上書きする
+	// risk を防ぐため、request token で stale レスポンスを破棄する。
+	private loadRequestId = 0;
+
 	/** workspace-config から widgets 配列を直接差し替えるための internal setter (undo/redo 不要)。 */
 	setWidgets(list: WorkspaceWidget[]): void {
 		this.widgets = list;
 	}
 
 	async loadWidgets(workspaceId: string): Promise<void> {
+		const myId = ++this.loadRequestId;
 		this.loading = true;
 		this.error = null;
 		try {
-			this.widgets = await workspaceIpc.listWidgets(workspaceId);
+			const list = await workspaceIpc.listWidgets(workspaceId);
+			if (myId !== this.loadRequestId) return; // stale: より新しい load が走ったので破棄
+			this.widgets = list;
 			// 検収 #3: 新規 / 空 workspace は空のまま。default widget seed は撤廃 (user 自身が並べる)。
 		} catch (e) {
-			this.error = getErrorMessage(e);
+			if (myId === this.loadRequestId) {
+				this.error = getErrorMessage(e);
+			}
 		} finally {
-			this.loading = false;
+			if (myId === this.loadRequestId) {
+				this.loading = false;
+			}
 		}
 	}
 
@@ -361,10 +373,15 @@ class WorkspaceWidgets {
 			}
 		} catch (e) {
 			this.error = getErrorMessage(e);
-			// Rollback
-			this.widgets = this.widgets.map((w) =>
-				w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
-			);
+			// PR-D Codex must-fix #3: rollback で別 mutation の最新値を上書きしない (lost-update 防止)。
+			// IPC await 中に同 widget 対する別 moveWidget が完了している場合、その値を保持する。
+			// optimistic 値 (x, y) と一致する場合のみ rollback、変化していたら skip。
+			const current = this.widgets.find((w) => w.id === id);
+			if (current && current.position_x === x && current.position_y === y) {
+				this.widgets = this.widgets.map((w) =>
+					w.id === id ? { ...w, position_x: target.position_x, position_y: target.position_y } : w,
+				);
+			}
 		}
 	}
 
