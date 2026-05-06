@@ -1,13 +1,15 @@
 <script lang="ts">
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import OpenerSettings from './OpenerSettings.svelte';
+import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
 /**
- * Settings のライブラリカテゴリ pane (LibraryCardSettings + OpenerSettings)。
+ * Settings のライブラリカテゴリ pane (LibraryCardSettings + WatchedFoldersSettings + OpenerSettings)。
  *
- * B-8 #16: WatchedFoldersSettings は削除 (Workspace の Folder Watcher Widget で同機能あり、
- * 重複 UI 排除)。component file は keep (widget 内 settings 等で再利用可能性あり)、
- * Settings pane からの mount のみ削除。
+ * C-12 #12 audit 結論で B-8 削除を revert: WatchedFoldersSettings は **ファイル変更追跡機能の
+ * 唯一の UI 入り口** (cmd_add_watched_path 経由で recursive watcher 登録)。Workspace の Folder
+ * Watcher Widget は別機能 (project listing、watched_paths とは独立)。user の「重複」認識は誤りで
+ * 削除すると追跡 UI が完全に消える。
  */
 </script>
 
@@ -21,6 +23,9 @@ import OpenerSettings from './OpenerSettings.svelte';
 		ライブラリ
 	</h3>
 	<LibraryCardSettings />
+	<div class="border-t border-[var(--ag-border)] pt-5">
+		<WatchedFoldersSettings />
+	</div>
 	<div class="border-t border-[var(--ag-border)] pt-5">
 		<OpenerSettings />
 	</div>

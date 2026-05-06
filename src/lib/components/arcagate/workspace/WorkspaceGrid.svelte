@@ -102,15 +102,30 @@ function computeInitialScroll(el: HTMLElement): { left: number; top: number } {
 
 // active workspace 切替で pan を別 workspace の最後位置に復元 (新規は中央起点)。
 let lastInitializedWorkspaceId = $state<string | null>(null);
+let lastWidgetCount = $state(0);
 $effect(() => {
 	const wsId = workspaceStore.activeWorkspaceId;
 	const widgets = workspaceStore.widgets;
 	if (!container || !infiniteCanvas || !wsId) return;
 	if (workspaceStore.loading) return;
-	if (lastInitializedWorkspaceId === wsId) return;
+
+	// C-11 #3 fix: 0 → 1 への遷移 (空 workspace に最初の widget 追加) で saved pan が
+	// canvas 中央 (空時) のまま残り、widget (canvas 0,0) が画面外に飛ぶ問題を解消。
+	// widget count が 0→N (N>=1) で変化したら saved pan を破棄し、widget 位置に scroll を合わせる。
+	const wsChanged = lastInitializedWorkspaceId !== wsId;
+	const becameNonEmpty = lastWidgetCount === 0 && widgets.length > 0;
+	if (!wsChanged && !becameNonEmpty) return;
+
 	lastInitializedWorkspaceId = wsId;
+	lastWidgetCount = widgets.length;
 	queueMicrotask(() => {
 		if (!container) return;
+		// 0→1 への遷移時は saved pan を無視して widget 位置に scroll (空時の中央 pan は無効化)。
+		if (becameNonEmpty) {
+			const init = computeInitialScroll(container);
+			container.scrollTo({ left: init.left, top: init.top, behavior: 'instant' });
+			return;
+		}
 		const saved = loadJSON<{ left?: number; top?: number }>(panKey(wsId), {});
 		if (typeof saved.left === 'number' && typeof saved.top === 'number') {
 			container.scrollTo({ left: saved.left, top: saved.top, behavior: 'instant' });
