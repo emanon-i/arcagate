@@ -76,6 +76,24 @@ pub struct Workspace {
     pub updated_at: String,
 }
 
+impl Workspace {
+    /// rusqlite::Row → Workspace への変換 (V2 解消、A3 PR-B)。
+    /// 列順序: id, name, sort_order, wallpaper_path, wallpaper_opacity,
+    /// wallpaper_blur, created_at, updated_at。
+    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        Ok(Workspace {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            sort_order: row.get(2)?,
+            wallpaper_path: row.get(3)?,
+            wallpaper_opacity: row.get(4)?,
+            wallpaper_blur: row.get(5)?,
+            created_at: row.get(6)?,
+            updated_at: row.get(7)?,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateWorkspaceWallpaperInput {
     pub workspace_id: String,
@@ -96,6 +114,28 @@ pub struct WorkspaceWidget {
     pub config: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+impl WorkspaceWidget {
+    /// rusqlite::Row → WorkspaceWidget への変換 (V2 解消、A3 PR-B)。
+    /// 列順序: id, workspace_id, widget_type, position_x, position_y, width,
+    /// height, config, created_at, updated_at。
+    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        let widget_type_str: String = row.get(2)?;
+        let widget_type = WidgetType::from_str(&widget_type_str).unwrap_or(WidgetType::Favorites);
+        Ok(WorkspaceWidget {
+            id: row.get(0)?,
+            workspace_id: row.get(1)?,
+            widget_type,
+            position_x: row.get(3)?,
+            position_y: row.get(4)?,
+            width: row.get(5)?,
+            height: row.get(6)?,
+            config: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -6,17 +6,6 @@ use rusqlite::{params, Connection};
 use crate::models::opener::Opener;
 use crate::utils::error::AppError;
 
-fn row_to_opener(row: &rusqlite::Row) -> rusqlite::Result<Opener> {
-    Ok(Opener {
-        id: row.get(0)?,
-        name: row.get(1)?,
-        command_template: row.get(2)?,
-        icon_path: row.get(3)?,
-        sort_order: row.get(4)?,
-        is_builtin: false,
-    })
-}
-
 pub fn list(conn: &Connection) -> Result<Vec<Opener>, AppError> {
     let mut stmt = conn.prepare(
         "SELECT id, name, command_template, icon_path, sort_order
@@ -24,7 +13,7 @@ pub fn list(conn: &Connection) -> Result<Vec<Opener>, AppError> {
          ORDER BY sort_order ASC, name ASC",
     )?;
     let rows = stmt
-        .query_map([], row_to_opener)?
+        .query_map([], Opener::from_row)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(rows)
 }
@@ -34,7 +23,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Option<Opener>, AppErro
         "SELECT id, name, command_template, icon_path, sort_order
          FROM openers WHERE id = ?1",
         params![id],
-        row_to_opener,
+        Opener::from_row,
     );
     match result {
         Ok(o) => Ok(Some(o)),

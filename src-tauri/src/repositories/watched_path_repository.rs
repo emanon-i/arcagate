@@ -3,18 +3,6 @@ use rusqlite::{params, Connection};
 use crate::models::watched_path::WatchedPath;
 use crate::utils::error::AppError;
 
-fn row_to_watched_path(row: &rusqlite::Row) -> rusqlite::Result<WatchedPath> {
-    let is_active_int: i64 = row.get(3)?;
-    Ok(WatchedPath {
-        id: row.get(0)?,
-        path: row.get(1)?,
-        label: row.get(2)?,
-        is_active: is_active_int != 0,
-        created_at: row.get(4)?,
-        updated_at: row.get(5)?,
-    })
-}
-
 pub fn insert(conn: &Connection, wp: &WatchedPath) -> Result<(), AppError> {
     conn.execute(
         "INSERT INTO watched_paths (id, path, label, is_active)
@@ -29,7 +17,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<WatchedPath, AppError> 
         "SELECT id, path, label, is_active, created_at, updated_at
          FROM watched_paths WHERE id = ?1",
         params![id],
-        row_to_watched_path,
+        WatchedPath::from_row,
     );
     match result {
         Ok(wp) => Ok(wp),
@@ -44,7 +32,7 @@ pub fn find_all(conn: &Connection) -> Result<Vec<WatchedPath>, AppError> {
          FROM watched_paths ORDER BY created_at",
     )?;
     let rows = stmt
-        .query_map([], row_to_watched_path)?
+        .query_map([], WatchedPath::from_row)?
         .collect::<rusqlite::Result<Vec<WatchedPath>>>()?;
     Ok(rows)
 }
@@ -55,7 +43,7 @@ pub fn find_active(conn: &Connection) -> Result<Vec<WatchedPath>, AppError> {
          FROM watched_paths WHERE is_active = 1 ORDER BY created_at",
     )?;
     let rows = stmt
-        .query_map([], row_to_watched_path)?
+        .query_map([], WatchedPath::from_row)?
         .collect::<rusqlite::Result<Vec<WatchedPath>>>()?;
     Ok(rows)
 }

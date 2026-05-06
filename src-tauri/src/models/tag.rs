@@ -23,6 +23,24 @@ pub struct Tag {
     pub created_at: String,
 }
 
+impl Tag {
+    /// rusqlite::Row → Tag への変換 (V2 解消、A3 PR-B)。
+    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        let is_hidden_int: i64 = row.get(2)?;
+        let is_system_int: i64 = row.get(3)?;
+        Ok(Tag {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            is_hidden: is_hidden_int != 0,
+            is_system: is_system_int != 0,
+            prefix: row.get(4)?,
+            icon: row.get(5)?,
+            sort_order: row.get(6)?,
+            created_at: row.get(7)?,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTagInput {
     pub name: String,

@@ -1,37 +1,7 @@
 use rusqlite::{params, Connection};
 
-use crate::models::item::{Item, ItemType, LibraryStats, UpdateItemInput};
+use crate::models::item::{Item, LibraryStats, UpdateItemInput};
 use crate::utils::error::AppError;
-
-pub(crate) fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<Item> {
-    let item_type_str: String = row.get(1)?;
-    let item_type = ItemType::from_str(&item_type_str).unwrap_or(ItemType::Command);
-    let aliases_json: Option<String> = row.get(8)?;
-    let aliases: Vec<String> = aliases_json
-        .as_deref()
-        .and_then(|s| serde_json::from_str(s).ok())
-        .unwrap_or_default();
-    let is_enabled_int: i64 = row.get(10)?;
-    let is_tracked_int: i64 = row.get(11)?;
-    Ok(Item {
-        id: row.get(0)?,
-        item_type,
-        label: row.get(2)?,
-        target: row.get(3)?,
-        args: row.get(4)?,
-        working_dir: row.get(5)?,
-        icon_path: row.get(6)?,
-        icon_type: row.get(7)?,
-        aliases,
-        sort_order: row.get(9)?,
-        is_enabled: is_enabled_int != 0,
-        is_tracked: is_tracked_int != 0,
-        default_app: row.get(12)?,
-        card_override_json: row.get(13)?,
-        created_at: row.get(14)?,
-        updated_at: row.get(15)?,
-    })
-}
 
 pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
     let aliases_json = serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
@@ -62,7 +32,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
         "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items WHERE id = ?1",
         params![id],
-        row_to_item,
+        Item::from_row,
     );
     match result {
         Ok(item) => Ok(item),
@@ -77,7 +47,7 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {
          FROM items ORDER BY sort_order, label",
     )?;
     let items = stmt
-        .query_map([], row_to_item)?
+        .query_map([], Item::from_row)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -91,7 +61,7 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
          ORDER BY sort_order, label",
     )?;
     let items = stmt
-        .query_map(params![pattern], row_to_item)?
+        .query_map(params![pattern], Item::from_row)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -108,7 +78,7 @@ pub fn search_in_tag(conn: &Connection, tag_id: &str, query: &str) -> Result<Vec
          ORDER BY i.sort_order, i.label",
     )?;
     let items = stmt
-        .query_map(params![tag_id, pattern], row_to_item)?
+        .query_map(params![tag_id, pattern], Item::from_row)?
         .collect::<rusqlite::Result<Vec<Item>>>()?;
     Ok(items)
 }
@@ -220,7 +190,7 @@ pub fn find_by_target(conn: &Connection, target: &str) -> Result<Option<Item>, A
         "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items WHERE target = ?1",
         params![target],
-        row_to_item,
+        Item::from_row,
     );
     match result {
         Ok(item) => Ok(Some(item)),

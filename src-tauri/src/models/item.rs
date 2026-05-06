@@ -55,6 +55,42 @@ pub struct Item {
     pub updated_at: String,
 }
 
+impl Item {
+    /// rusqlite::Row → Item への変換 (V2 解消、A3 PR-B)。
+    /// 列順序は repository 側 SELECT の順序 (id, item_type, label, target, args,
+    /// working_dir, icon_path, icon_type, aliases, sort_order, is_enabled,
+    /// is_tracked, default_app, card_override_json, created_at, updated_at) と一致。
+    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        let item_type_str: String = row.get(1)?;
+        let item_type = ItemType::from_str(&item_type_str).unwrap_or(ItemType::Command);
+        let aliases_json: Option<String> = row.get(8)?;
+        let aliases: Vec<String> = aliases_json
+            .as_deref()
+            .and_then(|s| serde_json::from_str(s).ok())
+            .unwrap_or_default();
+        let is_enabled_int: i64 = row.get(10)?;
+        let is_tracked_int: i64 = row.get(11)?;
+        Ok(Item {
+            id: row.get(0)?,
+            item_type,
+            label: row.get(2)?,
+            target: row.get(3)?,
+            args: row.get(4)?,
+            working_dir: row.get(5)?,
+            icon_path: row.get(6)?,
+            icon_type: row.get(7)?,
+            aliases,
+            sort_order: row.get(9)?,
+            is_enabled: is_enabled_int != 0,
+            is_tracked: is_tracked_int != 0,
+            default_app: row.get(12)?,
+            card_override_json: row.get(13)?,
+            created_at: row.get(14)?,
+            updated_at: row.get(15)?,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateItemInput {
     pub item_type: ItemType,

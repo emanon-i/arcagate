@@ -3,18 +3,6 @@ use rusqlite::{params, Connection};
 use crate::models::theme::{Theme, UpdateThemeInput};
 use crate::utils::error::AppError;
 
-fn row_to_theme(row: &rusqlite::Row) -> rusqlite::Result<Theme> {
-    Ok(Theme {
-        id: row.get(0)?,
-        name: row.get(1)?,
-        base_theme: row.get(2)?,
-        css_vars: row.get(3)?,
-        is_builtin: row.get::<_, i64>(4)? != 0,
-        created_at: row.get(5)?,
-        updated_at: row.get(6)?,
-    })
-}
-
 pub fn insert(conn: &Connection, theme: &Theme) -> Result<(), AppError> {
     conn.execute(
         "INSERT INTO themes (id, name, base_theme, css_vars, is_builtin) VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -33,7 +21,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Theme, AppError> {
     let result = conn.query_row(
         "SELECT id, name, base_theme, css_vars, is_builtin, created_at, updated_at FROM themes WHERE id = ?1",
         params![id],
-        row_to_theme,
+        Theme::from_row,
     );
     match result {
         Ok(theme) => Ok(theme),
@@ -47,7 +35,7 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Theme>, AppError> {
         "SELECT id, name, base_theme, css_vars, is_builtin, created_at, updated_at FROM themes ORDER BY is_builtin DESC, name",
     )?;
     let themes = stmt
-        .query_map([], row_to_theme)?
+        .query_map([], Theme::from_row)?
         .collect::<rusqlite::Result<Vec<Theme>>>()?;
     Ok(themes)
 }

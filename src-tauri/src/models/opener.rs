@@ -14,6 +14,21 @@ pub struct Opener {
     pub is_builtin: bool,
 }
 
+impl Opener {
+    /// rusqlite::Row → Opener (custom) への変換 (V2 解消、A3 PR-B)。
+    /// repository が扱うのは custom (DB 上) のみで、is_builtin は常に false。
+    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        Ok(Opener {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            command_template: row.get(2)?,
+            icon_path: row.get(3)?,
+            sort_order: row.get(4)?,
+            is_builtin: false,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveOpenerInput {
     pub id: Option<String>, // None = 新規 (UUID 採番)、Some = 既存 update
