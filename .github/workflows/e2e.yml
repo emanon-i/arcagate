@@ -1,10 +1,10 @@
 name: E2E
 
+# refactor 期間中、e2e は **manual trigger only** (workflow_dispatch)。
+# 自動 push / PR trigger を解除し、CI required check から外す。
+# branch protection 側でも `e2e` を required から外すこと (PR description 参照)。
+# refactor 完了後、test 再構築 phase で trigger を復活させる。
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 env:
