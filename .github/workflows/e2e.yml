@@ -45,7 +45,8 @@ jobs:
         run: cargo build
 
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install chromium --with-deps
+        # Codex P1: --with-deps は Linux 用 (apt-get install)。Windows runner では不要。
+        run: pnpm exec playwright install chromium
 
       - name: Run E2E (T1 smoke 5 件)
         run: pnpm test:e2e
