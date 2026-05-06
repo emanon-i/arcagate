@@ -841,3 +841,123 @@ mod tests {
         assert_eq!(count, 0);
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+pub struct ItemService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl ItemService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn create_item(&self, input: CreateItemInput) -> Result<Item, AppError> {
+        create_item(&self.db, input)
+    }
+
+    pub fn list_items(&self) -> Result<Vec<Item>, AppError> {
+        list_items(&self.db)
+    }
+
+    pub fn search_items(&self, query: &str) -> Result<Vec<Item>, AppError> {
+        search_items(&self.db, query)
+    }
+
+    pub fn update_item(&self, id: &str, input: UpdateItemInput) -> Result<Item, AppError> {
+        update_item(&self.db, id, input)
+    }
+
+    pub fn delete_item(&self, id: &str) -> Result<(), AppError> {
+        delete_item(&self.db, id)
+    }
+
+    pub fn count_item_references(&self, id: &str) -> Result<usize, AppError> {
+        count_item_references(&self.db, id)
+    }
+
+    pub fn get_tags(&self) -> Result<Vec<Tag>, AppError> {
+        get_tags(&self.db)
+    }
+
+    pub fn create_tag(&self, input: CreateTagInput) -> Result<Tag, AppError> {
+        create_tag(&self.db, input)
+    }
+
+    pub fn update_tag(&self, id: &str, name: &str, is_hidden: bool) -> Result<(), AppError> {
+        update_tag(&self.db, id, name, is_hidden)
+    }
+
+    pub fn update_tag_prefix(&self, id: &str, prefix: Option<&str>) -> Result<(), AppError> {
+        update_tag_prefix(&self.db, id, prefix)
+    }
+
+    pub fn delete_tag(&self, id: &str) -> Result<(), AppError> {
+        delete_tag(&self.db, id)
+    }
+
+    pub fn get_library_stats(&self) -> Result<LibraryStats, AppError> {
+        get_library_stats(&self.db)
+    }
+
+    pub fn get_tag_counts(&self) -> Result<Vec<TagWithCount>, AppError> {
+        get_tag_counts(&self.db)
+    }
+
+    pub fn bulk_add_tag(&self, item_ids: Vec<String>, tag_id: String) -> Result<usize, AppError> {
+        bulk_add_tag(&self.db, item_ids, tag_id)
+    }
+
+    pub fn bulk_remove_tag(
+        &self,
+        item_ids: Vec<String>,
+        tag_id: String,
+    ) -> Result<usize, AppError> {
+        bulk_remove_tag(&self.db, item_ids, tag_id)
+    }
+
+    pub fn bulk_delete_items(&self, item_ids: Vec<String>) -> Result<usize, AppError> {
+        bulk_delete_items(&self.db, item_ids)
+    }
+
+    pub fn get_item_tags(&self, item_id: &str) -> Result<Vec<Tag>, AppError> {
+        get_item_tags(&self.db, item_id)
+    }
+
+    pub fn search_items_in_tag(&self, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
+        search_items_in_tag(&self.db, tag_id, query)
+    }
+
+    pub fn count_hidden_items(&self) -> Result<i64, AppError> {
+        count_hidden_items(&self.db)
+    }
+
+    pub fn auto_register_folder_items(&self, root_path: &str) -> Result<Vec<Item>, AppError> {
+        auto_register_folder_items(&self.db, root_path)
+    }
+
+    pub fn register_exe_item(&self, path: &str, label: Option<String>) -> Result<Item, AppError> {
+        register_exe_item(&self.db, path, label)
+    }
+
+    pub fn register_exe_items_bulk(&self, paths: Vec<String>) -> Result<Vec<Item>, AppError> {
+        register_exe_items_bulk(&self.db, paths)
+    }
+
+    pub fn toggle_star(&self, item_id: &str, starred: bool) -> Result<Item, AppError> {
+        toggle_star(&self.db, item_id, starred)
+    }
+
+    pub fn ensure_system_tags(&self) -> Result<(), AppError> {
+        ensure_system_tags(&self.db)
+    }
+
+    pub fn extract_item_icon_cached(
+        &self,
+        app_data_dir: &std::path::Path,
+        exe_path: &str,
+    ) -> Result<String, AppError> {
+        extract_item_icon_cached(&self.db, app_data_dir, exe_path)
+    }
+}

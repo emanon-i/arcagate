@@ -382,3 +382,51 @@ mod tests {
         assert!(result.is_err());
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+pub struct ThemeService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl ThemeService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn list_themes(&self) -> Result<Vec<Theme>, AppError> {
+        list_themes(&self.db)
+    }
+
+    pub fn get_theme(&self, id: &str) -> Result<Theme, AppError> {
+        get_theme(&self.db, id)
+    }
+
+    pub fn create_theme(&self, input: CreateThemeInput) -> Result<Theme, AppError> {
+        create_theme(&self.db, input)
+    }
+
+    pub fn update_theme(&self, id: &str, input: UpdateThemeInput) -> Result<Theme, AppError> {
+        update_theme(&self.db, id, input)
+    }
+
+    pub fn delete_theme(&self, id: &str) -> Result<(), AppError> {
+        delete_theme(&self.db, id)
+    }
+
+    pub fn get_active_theme_mode(&self) -> Result<String, AppError> {
+        get_active_theme_mode(&self.db)
+    }
+
+    pub fn set_active_theme_mode(&self, mode: &str) -> Result<(), AppError> {
+        set_active_theme_mode(&self.db, mode)
+    }
+
+    pub fn export_theme_json(&self, id: &str) -> Result<String, AppError> {
+        export_theme_json(&self.db, id)
+    }
+
+    pub fn import_theme_json(&self, json: &str) -> Result<Theme, AppError> {
+        import_theme_json(&self.db, json)
+    }
+}

@@ -181,3 +181,33 @@ mod tests {
         );
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+/// 注: WatcherState は db と同等の "external dependency" として method 引数で受ける
+/// (AppServices struct には WatcherState を保持しない方針)。
+pub struct WatchedPathService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl WatchedPathService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn add_watched_path(
+        &self,
+        watcher: &WatcherState,
+        input: CreateWatchedPathInput,
+    ) -> Result<WatchedPath, AppError> {
+        add_watched_path(&self.db, watcher, input)
+    }
+
+    pub fn get_watched_paths(&self) -> Result<Vec<WatchedPath>, AppError> {
+        get_watched_paths(&self.db)
+    }
+
+    pub fn remove_watched_path(&self, watcher: &WatcherState, id: &str) -> Result<(), AppError> {
+        remove_watched_path(&self.db, watcher, id)
+    }
+}

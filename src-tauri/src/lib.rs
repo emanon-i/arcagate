@@ -131,12 +131,13 @@ pub fn run() {
                     .expect("database path contains non-UTF-8 characters"),
             )
             .expect("failed to initialize database");
-            app.manage(db_state);
+            let db_arc = std::sync::Arc::new(db_state);
+            app.manage(services::AppServices::new(db_arc.clone()));
 
             // sys:starred など必須システムタグの初期化（べき等）
             {
-                let db_state = app.state::<db::DbState>();
-                let _ = services::item_service::ensure_system_tags(&db_state);
+                let services = app.state::<services::AppServices>();
+                let _ = services.item.ensure_system_tags();
             }
 
             // ファイルシステム監視 (DB manage 後に起動)
@@ -148,8 +149,10 @@ pub fn run() {
 
             // グローバルショートカット登録
             let hotkey_str = {
-                let db_state = app.state::<db::DbState>();
-                services::config_service::get_hotkey(&db_state)
+                let services = app.state::<services::AppServices>();
+                services
+                    .config
+                    .get_hotkey()
                     .unwrap_or_else(|_| models::config::DEFAULT_HOTKEY.to_string())
             };
             app.global_shortcut().register(hotkey_str.as_str())?;

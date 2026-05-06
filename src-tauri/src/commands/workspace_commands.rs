@@ -1,76 +1,78 @@
 use tauri::{AppHandle, Manager, State};
 
-use crate::db::DbState;
 use crate::models::git::GitStatus;
 use crate::models::item::Item;
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
     UpdateWorkspaceWallpaperInput, Workspace, WorkspaceWidget,
 };
-use crate::services::{wallpaper_service, workspace_service};
+use crate::services::{wallpaper_service, workspace_service, AppServices};
 use crate::utils::error::AppError;
 
 #[tauri::command]
-pub fn cmd_create_workspace(db: State<DbState>, name: String) -> Result<Workspace, AppError> {
-    workspace_service::create_workspace(&db, CreateWorkspaceInput { name })
+pub fn cmd_create_workspace(
+    services: State<AppServices>,
+    name: String,
+) -> Result<Workspace, AppError> {
+    services
+        .workspace
+        .create_workspace(CreateWorkspaceInput { name })
 }
 
 #[tauri::command]
-pub fn cmd_list_workspaces(db: State<DbState>) -> Result<Vec<Workspace>, AppError> {
-    workspace_service::list_workspaces(&db)
+pub fn cmd_list_workspaces(services: State<AppServices>) -> Result<Vec<Workspace>, AppError> {
+    services.workspace.list_workspaces()
 }
 
 #[tauri::command]
 pub fn cmd_update_workspace(
-    db: State<DbState>,
+    services: State<AppServices>,
     id: String,
     name: Option<String>,
 ) -> Result<Workspace, AppError> {
-    workspace_service::update_workspace(&db, &id, UpdateWorkspaceInput { name })
+    services
+        .workspace
+        .update_workspace(&id, UpdateWorkspaceInput { name })
 }
 
 #[tauri::command]
-pub fn cmd_delete_workspace(db: State<DbState>, id: String) -> Result<(), AppError> {
-    workspace_service::delete_workspace(&db, &id)
+pub fn cmd_delete_workspace(services: State<AppServices>, id: String) -> Result<(), AppError> {
+    services.workspace.delete_workspace(&id)
 }
 
 #[tauri::command]
 pub fn cmd_add_widget(
-    db: State<DbState>,
+    services: State<AppServices>,
     workspace_id: String,
     widget_type: String,
 ) -> Result<WorkspaceWidget, AppError> {
     use crate::models::workspace::WidgetType;
     let wt = WidgetType::from_str(&widget_type)
         .ok_or_else(|| AppError::InvalidInput(format!("unknown widget_type: {}", widget_type)))?;
-    workspace_service::add_widget(
-        &db,
-        AddWidgetInput {
-            workspace_id,
-            widget_type: wt,
-        },
-    )
+    services.workspace.add_widget(AddWidgetInput {
+        workspace_id,
+        widget_type: wt,
+    })
 }
 
 #[tauri::command]
 pub fn cmd_list_widgets(
-    db: State<DbState>,
+    services: State<AppServices>,
     workspace_id: String,
 ) -> Result<Vec<WorkspaceWidget>, AppError> {
-    workspace_service::list_widgets(&db, &workspace_id)
+    services.workspace.list_widgets(&workspace_id)
 }
 
 #[tauri::command]
 pub fn cmd_update_widget_position(
-    db: State<DbState>,
+    services: State<AppServices>,
     id: String,
     position_x: i64,
     position_y: i64,
     width: i64,
     height: i64,
 ) -> Result<WorkspaceWidget, AppError> {
-    workspace_service::update_widget_position(
-        &db,
+    services.workspace.update_widget_position(
         &id,
         UpdateWidgetPositionInput {
             position_x,
@@ -83,37 +85,48 @@ pub fn cmd_update_widget_position(
 
 #[tauri::command]
 pub fn cmd_update_widget_config(
-    db: State<DbState>,
+    services: State<AppServices>,
     id: String,
     config: Option<String>,
 ) -> Result<WorkspaceWidget, AppError> {
-    workspace_service::update_widget_config(&db, &id, config.as_deref())
+    services
+        .workspace
+        .update_widget_config(&id, config.as_deref())
 }
 
 #[tauri::command]
-pub fn cmd_remove_widget(db: State<DbState>, id: String) -> Result<(), AppError> {
-    workspace_service::remove_widget(&db, &id)
+pub fn cmd_remove_widget(services: State<AppServices>, id: String) -> Result<(), AppError> {
+    services.workspace.remove_widget(&id)
 }
 
 #[tauri::command]
-pub fn cmd_get_frequent_items(db: State<DbState>, limit: i64) -> Result<Vec<Item>, AppError> {
-    workspace_service::get_frequent_items(&db, limit)
+pub fn cmd_get_frequent_items(
+    services: State<AppServices>,
+    limit: i64,
+) -> Result<Vec<Item>, AppError> {
+    services.workspace.get_frequent_items(limit)
 }
 
 #[tauri::command]
-pub fn cmd_get_recent_items(db: State<DbState>, limit: i64) -> Result<Vec<Item>, AppError> {
-    workspace_service::get_recent_items(&db, limit)
+pub fn cmd_get_recent_items(
+    services: State<AppServices>,
+    limit: i64,
+) -> Result<Vec<Item>, AppError> {
+    services.workspace.get_recent_items(limit)
 }
 
 /// R9-A: frecency (frequency × recency) ranking。Palette empty-state で merged recent+frequent の代替。
 #[tauri::command]
-pub fn cmd_get_frecency_items(db: State<DbState>, limit: i64) -> Result<Vec<Item>, AppError> {
-    workspace_service::get_frecency_items(&db, limit)
+pub fn cmd_get_frecency_items(
+    services: State<AppServices>,
+    limit: i64,
+) -> Result<Vec<Item>, AppError> {
+    services.workspace.get_frecency_items(limit)
 }
 
 #[tauri::command]
-pub fn cmd_get_folder_items(db: State<DbState>) -> Result<Vec<Item>, AppError> {
-    workspace_service::get_folder_items(&db)
+pub fn cmd_get_folder_items(services: State<AppServices>) -> Result<Vec<Item>, AppError> {
+    services.workspace.get_folder_items()
 }
 
 #[tauri::command]
@@ -137,8 +150,8 @@ pub fn cmd_save_wallpaper_file(app: AppHandle, source_path: String) -> Result<St
 /// `path = None` で壁紙クリア。opacity / blur は service 側で clamp。
 #[tauri::command]
 pub fn cmd_set_workspace_wallpaper(
-    db: State<DbState>,
+    services: State<AppServices>,
     input: UpdateWorkspaceWallpaperInput,
 ) -> Result<Workspace, AppError> {
-    wallpaper_service::set_workspace_wallpaper(&db, input)
+    wallpaper_service::set_workspace_wallpaper(&services.db, input)
 }

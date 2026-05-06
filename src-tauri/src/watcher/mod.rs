@@ -5,8 +5,8 @@ use std::sync::Mutex;
 use notify::Watcher;
 use tauri::{Emitter, Manager};
 
-use crate::db::DbState;
 use crate::repositories::{item_repository, watched_path_repository};
+use crate::services::AppServices;
 
 pub struct WatcherState(pub Mutex<notify::RecommendedWatcher>);
 
@@ -29,10 +29,13 @@ pub fn start_watcher(app: &tauri::AppHandle) -> WatcherState {
     .expect("failed to create watcher");
 
     // DB に登録済みのアクティブパスを先に収集してから監視開始
-    // (State<DbState> の lifetime を watch loop より先に終わらせる)
+    // (State<AppServices> の lifetime を watch loop より先に終わらせる)
     let active_paths: Vec<String> = {
-        let db = app.state::<DbState>();
-        db.0.lock()
+        let services = app.state::<AppServices>();
+        services
+            .db
+            .0
+            .lock()
             .ok()
             .map(|conn| {
                 watched_path_repository::find_active(&conn)
@@ -75,8 +78,8 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
         Modify(ModifyKind::Name(RenameMode::Both)) if event.paths.len() == 2 => {
             let old = &event.paths[0];
             let new = &event.paths[1];
-            let db = app.state::<DbState>();
-            if let Ok(conn) = db.0.lock() {
+            let services = app.state::<AppServices>();
+            if let Ok(conn) = services.db.0.lock() {
                 match item_repository::update_target_by_path(&conn, old, new) {
                     Ok(n) if n > 0 => {
                         log::info!("auto-tracked: {:?} → {:?}", old, new);
@@ -91,8 +94,8 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
             // event 化される。フォルダ削除で 100s ファイルが連続削除イベントを生むため、
             // **DB に登録されている tracked item の target と一致する場合のみ emit** する
             // (toast 嵐 防止)。一致しないファイルは debug log のみ。
-            let db = app.state::<DbState>();
-            let conn = match db.0.lock() {
+            let services = app.state::<AppServices>();
+            let conn = match services.db.0.lock() {
                 Ok(c) => c,
                 Err(_) => return,
             };

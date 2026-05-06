@@ -1,32 +1,34 @@
 use tauri::State;
 
-use crate::db::DbState;
 use crate::models::launch::{ItemStats, LaunchLog};
-use crate::services::launch_service;
+use crate::services::AppServices;
 use crate::utils::error::AppError;
 
 #[tauri::command]
-pub fn cmd_launch_item(db: State<DbState>, item_id: String) -> Result<(), AppError> {
-    launch_service::launch_item(&db, &item_id, "palette")
+pub fn cmd_launch_item(services: State<AppServices>, item_id: String) -> Result<(), AppError> {
+    services.launch.launch_item(&item_id, "palette")
 }
 
 #[tauri::command]
 pub fn cmd_get_item_stats(
-    db: State<DbState>,
+    services: State<AppServices>,
     item_id: String,
 ) -> Result<Option<ItemStats>, AppError> {
-    launch_service::get_item_stats(&db, &item_id)
+    services.launch.get_item_stats(&item_id)
 }
 
 #[tauri::command]
-pub fn cmd_list_recent(db: State<DbState>, limit: Option<i64>) -> Result<Vec<LaunchLog>, AppError> {
-    launch_service::list_recent(&db, limit.unwrap_or(20))
+pub fn cmd_list_recent(
+    services: State<AppServices>,
+    limit: Option<i64>,
+) -> Result<Vec<LaunchLog>, AppError> {
+    services.launch.list_recent(limit.unwrap_or(20))
 }
 
 #[tauri::command]
 pub fn cmd_list_frequent(
-    db: State<DbState>,
+    services: State<AppServices>,
     limit: Option<i64>,
 ) -> Result<Vec<ItemStats>, AppError> {
-    launch_service::list_frequent(&db, limit.unwrap_or(20))
+    services.launch.list_frequent(limit.unwrap_or(20))
 }

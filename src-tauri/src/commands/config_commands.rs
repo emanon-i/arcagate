@@ -1,36 +1,42 @@
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-use crate::db::DbState;
-use crate::services::{config_service, crash_monitor_service};
+use crate::services::{crash_monitor_service, AppServices};
 use crate::utils::error::AppError;
 
 #[tauri::command]
-pub fn cmd_get_config(db: State<DbState>, key: String) -> Result<Option<String>, AppError> {
-    config_service::get_config(&db, &key)
+pub fn cmd_get_config(
+    services: State<AppServices>,
+    key: String,
+) -> Result<Option<String>, AppError> {
+    services.config.get_config(&key)
 }
 
 #[tauri::command]
-pub fn cmd_set_config(db: State<DbState>, key: String, value: String) -> Result<(), AppError> {
-    config_service::set_config(&db, &key, &value)
+pub fn cmd_set_config(
+    services: State<AppServices>,
+    key: String,
+    value: String,
+) -> Result<(), AppError> {
+    services.config.set_config(&key, &value)
 }
 
 #[tauri::command]
-pub fn cmd_get_hotkey(db: State<DbState>) -> Result<String, AppError> {
-    config_service::get_hotkey(&db)
+pub fn cmd_get_hotkey(services: State<AppServices>) -> Result<String, AppError> {
+    services.config.get_hotkey()
 }
 
 #[tauri::command]
 pub fn cmd_set_hotkey(
     app: tauri::AppHandle,
-    db: State<DbState>,
+    services: State<AppServices>,
     hotkey: String,
 ) -> Result<(), AppError> {
     // Unregister old hotkey before saving (ignore failure — may not be registered)
-    if let Ok(old) = config_service::get_hotkey(&db) {
+    if let Ok(old) = services.config.get_hotkey() {
         let _ = app.global_shortcut().unregister(old.as_str());
     }
-    config_service::set_hotkey(&db, &hotkey)?;
+    services.config.set_hotkey(&hotkey)?;
     app.global_shortcut()
         .register(hotkey.as_str())
         .map_err(|e| AppError::InvalidInput(e.to_string()))?;
@@ -38,54 +44,60 @@ pub fn cmd_set_hotkey(
 }
 
 #[tauri::command]
-pub fn cmd_get_autostart(db: State<DbState>) -> Result<bool, AppError> {
-    config_service::get_autostart(&db)
+pub fn cmd_get_autostart(services: State<AppServices>) -> Result<bool, AppError> {
+    services.config.get_autostart()
 }
 
 #[tauri::command]
-pub fn cmd_set_autostart(db: State<DbState>, enabled: bool) -> Result<(), AppError> {
-    config_service::set_autostart(&db, enabled)
+pub fn cmd_set_autostart(services: State<AppServices>, enabled: bool) -> Result<(), AppError> {
+    services.config.set_autostart(enabled)
 }
 
 #[tauri::command]
-pub fn cmd_is_setup_complete(db: State<DbState>) -> Result<bool, AppError> {
-    config_service::is_setup_complete(&db)
+pub fn cmd_is_setup_complete(services: State<AppServices>) -> Result<bool, AppError> {
+    services.config.is_setup_complete()
 }
 
 #[tauri::command]
-pub fn cmd_mark_setup_complete(db: State<DbState>) -> Result<(), AppError> {
-    config_service::mark_setup_complete(&db)
+pub fn cmd_mark_setup_complete(services: State<AppServices>) -> Result<(), AppError> {
+    services.config.mark_setup_complete()
 }
 
 #[tauri::command]
-pub fn cmd_is_onboarding_complete(db: State<DbState>) -> Result<bool, AppError> {
-    config_service::is_onboarding_complete(&db)
+pub fn cmd_is_onboarding_complete(services: State<AppServices>) -> Result<bool, AppError> {
+    services.config.is_onboarding_complete()
 }
 
 #[tauri::command]
-pub fn cmd_mark_onboarding_complete(db: State<DbState>) -> Result<(), AppError> {
-    config_service::mark_onboarding_complete(&db)
+pub fn cmd_mark_onboarding_complete(services: State<AppServices>) -> Result<(), AppError> {
+    services.config.mark_onboarding_complete()
 }
 
 // PH-465 / PH-466 batch-106: Telemetry / Crash 監視 Opt-in
 #[tauri::command]
-pub fn cmd_get_telemetry_opt_in(db: State<DbState>) -> Result<bool, AppError> {
-    config_service::get_telemetry_opt_in(&db)
+pub fn cmd_get_telemetry_opt_in(services: State<AppServices>) -> Result<bool, AppError> {
+    services.config.get_telemetry_opt_in()
 }
 
 #[tauri::command]
-pub fn cmd_set_telemetry_opt_in(db: State<DbState>, enabled: bool) -> Result<(), AppError> {
-    config_service::set_telemetry_opt_in(&db, enabled)
+pub fn cmd_set_telemetry_opt_in(
+    services: State<AppServices>,
+    enabled: bool,
+) -> Result<(), AppError> {
+    services.config.set_telemetry_opt_in(enabled)
 }
 
 #[tauri::command]
-pub fn cmd_get_crash_report_opt_in(db: State<DbState>) -> Result<bool, AppError> {
-    config_service::get_crash_report_opt_in(&db)
+pub fn cmd_get_crash_report_opt_in(services: State<AppServices>) -> Result<bool, AppError> {
+    services.config.get_crash_report_opt_in()
 }
 
 #[tauri::command]
-pub fn cmd_set_crash_report_opt_in(db: State<DbState>, enabled: bool) -> Result<(), AppError> {
-    config_service::set_crash_report_opt_in(&db, enabled)
+pub fn cmd_set_crash_report_opt_in(
+    services: State<AppServices>,
+    enabled: bool,
+) -> Result<(), AppError> {
+    services.config.set_crash_report_opt_in(enabled)
 }
 
 /// R10-D E1: 直前 panic 情報を APPDATA/last-panic.json から read + 削除する。

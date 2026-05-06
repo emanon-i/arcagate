@@ -513,3 +513,80 @@ mod tests {
         assert_eq!(widgets.len(), 0);
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+/// 注: `git_status` (db 不要) と `sync_workspace_item_tags` (内部 helper) は struct method 化しない。
+pub struct WorkspaceService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl WorkspaceService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn create_workspace(&self, input: CreateWorkspaceInput) -> Result<Workspace, AppError> {
+        create_workspace(&self.db, input)
+    }
+
+    pub fn list_workspaces(&self) -> Result<Vec<Workspace>, AppError> {
+        list_workspaces(&self.db)
+    }
+
+    pub fn update_workspace(
+        &self,
+        id: &str,
+        input: UpdateWorkspaceInput,
+    ) -> Result<Workspace, AppError> {
+        update_workspace(&self.db, id, input)
+    }
+
+    pub fn delete_workspace(&self, id: &str) -> Result<(), AppError> {
+        delete_workspace(&self.db, id)
+    }
+
+    pub fn add_widget(&self, input: AddWidgetInput) -> Result<WorkspaceWidget, AppError> {
+        add_widget(&self.db, input)
+    }
+
+    pub fn list_widgets(&self, workspace_id: &str) -> Result<Vec<WorkspaceWidget>, AppError> {
+        list_widgets(&self.db, workspace_id)
+    }
+
+    pub fn update_widget_position(
+        &self,
+        id: &str,
+        input: UpdateWidgetPositionInput,
+    ) -> Result<WorkspaceWidget, AppError> {
+        update_widget_position(&self.db, id, input)
+    }
+
+    pub fn update_widget_config(
+        &self,
+        id: &str,
+        config: Option<&str>,
+    ) -> Result<WorkspaceWidget, AppError> {
+        update_widget_config(&self.db, id, config)
+    }
+
+    pub fn remove_widget(&self, id: &str) -> Result<(), AppError> {
+        remove_widget(&self.db, id)
+    }
+
+    pub fn get_frequent_items(&self, limit: i64) -> Result<Vec<Item>, AppError> {
+        get_frequent_items(&self.db, limit)
+    }
+
+    pub fn get_recent_items(&self, limit: i64) -> Result<Vec<Item>, AppError> {
+        get_recent_items(&self.db, limit)
+    }
+
+    pub fn get_frecency_items(&self, limit: i64) -> Result<Vec<Item>, AppError> {
+        get_frecency_items(&self.db, limit)
+    }
+
+    pub fn get_folder_items(&self) -> Result<Vec<Item>, AppError> {
+        get_folder_items(&self.db)
+    }
+}

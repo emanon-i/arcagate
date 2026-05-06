@@ -172,3 +172,31 @@ mod tests {
         assert!(matches!(err, AppError::LaunchNotExecutable(_)));
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+pub struct LaunchService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl LaunchService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn launch_item(&self, item_id: &str, source: &str) -> Result<(), AppError> {
+        launch_item(&self.db, item_id, source)
+    }
+
+    pub fn get_item_stats(&self, item_id: &str) -> Result<Option<ItemStats>, AppError> {
+        get_item_stats(&self.db, item_id)
+    }
+
+    pub fn list_recent(&self, limit: i64) -> Result<Vec<LaunchLog>, AppError> {
+        list_recent(&self.db, limit)
+    }
+
+    pub fn list_frequent(&self, limit: i64) -> Result<Vec<ItemStats>, AppError> {
+        list_frequent(&self.db, limit)
+    }
+}

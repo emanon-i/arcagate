@@ -178,3 +178,23 @@ mod tests {
         let _ = fs::remove_file(&path);
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+pub struct ExportService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl ExportService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn export_json(&self, output_path: &str) -> Result<(), AppError> {
+        export_json(&self.db, output_path)
+    }
+
+    pub fn import_json(&self, input_path: &str) -> Result<(), AppError> {
+        import_json(&self.db, input_path)
+    }
+}
