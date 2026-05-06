@@ -1,13 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, computeBoundingBox, computeOrigin, MAX_ZOOM, MIN_ZOOM } from './zoom-math';
+import {
+	BASE_H,
+	BASE_W,
+	cellStrideX,
+	cellStrideY,
+	clampZoom,
+	computeBoundingBox,
+	computeFitZoom,
+	computeOrigin,
+	GRID_GAP,
+	MAX_ZOOM,
+	MIN_ZOOM,
+} from './zoom-math';
 
 /**
- * T4-1 (PR-Z2): zoom-math pure function test。
+ * T4-1 (PR-Z2): zoom-math pure function test (clampZoom + computeBoundingBox + computeOrigin)。
+ * T4-2 (PR-Z3): cellStrideX / cellStrideY + computeFitZoom test 追加。
  *
  * 引用元: docs/l1_requirements/test-rebuild/index.md (T4 phase、useWidgetZoom 抜本書き直し系)
  *
- * scope: clampZoom が MIN/MAX 範囲内に丸めること、computeBoundingBox / computeOrigin が
- * widget 配列から正しい BB / 重心セル座標を返すこと。
+ * scope: zoom 制御 + cell stride 計算 + Fit zoom (BB が viewport に収まる zoom%)。
  */
 describe('clampZoom', () => {
 	it('範囲内はそのまま (整数)', () => {
@@ -65,5 +77,46 @@ describe('computeOrigin', () => {
 		const origin = computeOrigin({ minX: 2, minY: 3, maxX: 6, maxY: 5 });
 		expect(origin.cellX).toBe(4);
 		expect(origin.cellY).toBe(4);
+	});
+});
+
+describe('cellStrideX / cellStrideY', () => {
+	it('100% zoom は BASE + GRID_GAP', () => {
+		expect(cellStrideX(100)).toBe(BASE_W + GRID_GAP);
+		expect(cellStrideY(100)).toBe(BASE_H + GRID_GAP);
+	});
+
+	it('50% zoom は半分 + gap', () => {
+		expect(cellStrideX(50)).toBe(Math.round(BASE_W * 0.5) + GRID_GAP);
+		expect(cellStrideY(50)).toBe(Math.round(BASE_H * 0.5) + GRID_GAP);
+	});
+
+	it('200% zoom は 2倍 + gap', () => {
+		expect(cellStrideX(200)).toBe(BASE_W * 2 + GRID_GAP);
+		expect(cellStrideY(200)).toBe(BASE_H * 2 + GRID_GAP);
+	});
+});
+
+describe('computeFitZoom', () => {
+	it('BB が viewport より小さければ 100% (RESET) を超えない値を返す', () => {
+		const bb = { minX: 0, minY: 0, maxX: 2, maxY: 2 };
+		// BB 100% pixel: 2*240 + 16 = 496W, 2*135 + 16 = 286H
+		// viewport (1920x1080) で十分収まる → 100% 以上だが clampZoom で 200 max
+		const z = computeFitZoom(bb, { clientWidth: 1920, clientHeight: 1080 });
+		expect(z).toBeGreaterThanOrEqual(MIN_ZOOM);
+		expect(z).toBeLessThanOrEqual(MAX_ZOOM);
+	});
+
+	it('BB が viewport より大きければ縮小 (< 100%)', () => {
+		// BB 100x100 cells、viewport 800x600 → fit zoom は 100% 未満
+		const bb = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+		const z = computeFitZoom(bb, { clientWidth: 800, clientHeight: 600 });
+		expect(z).toBeLessThan(100);
+		expect(z).toBeGreaterThanOrEqual(MIN_ZOOM);
+	});
+
+	it('BB が 0 サイズなら RESET (100)', () => {
+		const bb = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+		expect(computeFitZoom(bb, { clientWidth: 1920, clientHeight: 1080 })).toBe(100);
 	});
 });

@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { findFreePosition, type Rect, wouldOverlapAt } from './widget-grid';
+import {
+	clampWidget,
+	findFreePosition,
+	findFreePositionNear,
+	type Rect,
+	wouldOverlapAt,
+} from './widget-grid';
 
 /**
- * T4-1 (PR-Z2): widget-grid pure function test。
+ * T4-1 (PR-Z2): widget-grid pure function test (wouldOverlapAt + findFreePosition)。
+ * T4-2 (PR-Z3): clampWidget + findFreePositionNear test 追加。
  *
  * 引用元: docs/l1_requirements/test-rebuild/index.md (T4 phase、PH-issue-003)
  *
- * scope: wouldOverlapAt の overlap 判定 + findFreePosition の空きセル探索が
- * grid bound と既存 widget を考慮した正しい結果を返すこと。
+ * scope: overlap 判定 + 空きセル探索 + grid bound clamp + spiral 探索 (near 起点)。
  */
 describe('wouldOverlapAt', () => {
 	const others: Rect[] = [
@@ -66,5 +72,49 @@ describe('findFreePosition', () => {
 	it('cols より大きい widget は null', () => {
 		// cols=4 で 5x1 widget は配置不可
 		expect(findFreePosition(5, 1, [], 4, 10)).toBeNull();
+	});
+});
+
+describe('clampWidget', () => {
+	it('範囲内はそのまま', () => {
+		expect(clampWidget({ position_x: 1, width: 2 }, 4)).toEqual({ x: 1, span: 2 });
+	});
+
+	it('position_x が cols 超過は cols-1 に clamp + span 1', () => {
+		expect(clampWidget({ position_x: 10, width: 2 }, 4)).toEqual({ x: 3, span: 1 });
+	});
+
+	it('width が cols 超過は span を残り cell に clamp', () => {
+		expect(clampWidget({ position_x: 0, width: 10 }, 4)).toEqual({ x: 0, span: 4 });
+	});
+
+	it('width 0 は最低 1 に clamp', () => {
+		expect(clampWidget({ position_x: 0, width: 0 }, 4)).toEqual({ x: 0, span: 1 });
+	});
+});
+
+describe('findFreePositionNear', () => {
+	it('seed 位置が空きならそこを返す', () => {
+		expect(findFreePositionNear(2, 3, 1, 1, [], 10, 10)).toEqual({ x: 2, y: 3 });
+	});
+
+	it('seed 位置が埋まってたら spiral 近隣を返す', () => {
+		const others: Rect[] = [{ x: 2, y: 3, w: 1, h: 1 }];
+		const r = findFreePositionNear(2, 3, 1, 1, others, 10, 10);
+		expect(r).not.toBeNull();
+		// 隣接 cell (chebyshev=1) のいずれか
+		const dx = Math.abs(r!.x - 2);
+		const dy = Math.abs(r!.y - 3);
+		expect(Math.max(dx, dy)).toBe(1);
+	});
+
+	it('cols/maxRow を widget が超過する場合 null', () => {
+		expect(findFreePositionNear(0, 0, 5, 1, [], 4, 10)).toBeNull();
+		expect(findFreePositionNear(0, 0, 1, 100, [], 10, 10)).toBeNull();
+	});
+
+	it('seed が範囲外なら範囲内に clamp して探索', () => {
+		// seed (-5, -5) は範囲内 (0, 0) に clamp、空 grid なので (0, 0)
+		expect(findFreePositionNear(-5, -5, 1, 1, [], 4, 4)).toEqual({ x: 0, y: 0 });
 	});
 });
