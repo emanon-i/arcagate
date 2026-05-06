@@ -1,8 +1,7 @@
 name: E2E
 
-# PR-Z: E2E suite は test rebuild plan の T1-T3 phase で再構築予定。
-# 当面は no-op stub として残す (branch protection の required check `e2e` を満たすため)。
-# T1 完成時に playwright を再導入し、本 stub を実 e2e job に置き換える。
+# T1 phase: smoke 5 件を全 PR で実行 (refactor 期間の skip 機構は PR-Z で解除済)。
+# T2 / T3 で increment、phase 別 tag 化は規模が増えてから検討。
 # 詳細: docs/l1_requirements/test-rebuild/index.md
 
 on:
@@ -12,12 +11,60 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
-      - name: E2E placeholder (T1 phase で再構築予定)
-        run: |
-          echo "E2E suite was removed in PR-Z (#353)."
-          echo "Will be rebuilt in T1 phase per docs/l1_requirements/test-rebuild/index.md"
-          echo "This stub satisfies branch protection required check."
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build Tauri debug binary
+        working-directory: src-tauri
+        run: cargo build
+
+      - name: Install Playwright Chromium
+        # Codex P1: --with-deps は Linux 用 (apt-get install)。Windows runner では不要。
+        run: pnpm exec playwright install chromium
+
+      - name: Run E2E (T1 smoke 5 件)
+        run: pnpm test:e2e
+        env:
+          WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tmp/playwright-report/
+          retention-days: 30
+
+      - name: Upload test results (traces, videos, failure screenshots)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
