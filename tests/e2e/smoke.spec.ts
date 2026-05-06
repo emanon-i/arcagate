@@ -13,9 +13,9 @@ import { listWorkspaces } from '../helpers/ipc.js';
  * top nav は library / workspace の 2 タブ (TitleTab、英語 label)。
  * settings は TitleAction (左上、aria-label='Settings') から modal で開く。
  */
-test('app startup: data-il-zone renders', async ({ page }) => {
-	// fixture で data-il-zone visible 待機済 → 既に visible
-	await expect(page.locator('[data-il-zone]').first()).toBeVisible();
+test('app startup: main element renders', async ({ page }) => {
+	// fixture で <main> visible 待機済 → 既に visible
+	await expect(page.locator('main').first()).toBeVisible();
 });
 
 test('library view: default で表示 + search bar renders', async ({ page }) => {

@@ -31,10 +31,10 @@ export const test = base.extend<{ page: Page }, { sharedBrowser: Browser }>({
 			pages.find((p) => /\/(\?|$)/.test(p.url())) ?? pages[0] ?? (await ctx.waitForEvent('page'));
 		await mainPage.waitForURL(/^http:\/\/localhost:\d+\/?(\?.*)?$/, { timeout: 30_000 });
 		await mainPage.waitForLoadState('domcontentloaded');
-		// PR-Z5 fix forward: SetupWizard / Onboarding overlay が消えて main app (data-il-zone)
-		// が描画されるまで待機。globalSetup で skip + reload 済だが SvelteKit hydration が
-		// 完了するまで body は hidden になることがある。
-		await mainPage.locator('[data-il-zone]').first().waitFor({ state: 'visible', timeout: 30_000 });
+		// PR-Z5 fix #2: data-il-zone は workspace/settings/palette のみで library に
+		// 存在せず default 画面 (library) で永久 timeout。<main> タグは root layout
+		// (src/routes/+page.svelte) で常時 render される、SvelteKit hydration 完了の signal。
+		await mainPage.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
 		await use(mainPage);
 	},
 });
