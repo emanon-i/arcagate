@@ -1,0 +1,120 @@
+<script lang="ts">
+import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
+import { artMap, typeLabel } from '$lib/constants/item-type';
+import { itemStore } from '$lib/state/items.svelte';
+import type { Item } from '$lib/types/item';
+
+/**
+ * Library detail panel メタデータセクション (gradient preview + DetailRows + visibility + card override)。
+ *
+ * 引用元 guideline:
+ *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、metadata 抽出)
+ *
+ * - is_enabled toggle は itemStore.updateItem を直接呼ぶ (mutation 系 IPC)
+ * - card override の enable / reset は親に callback で通知 (reset は ConfirmDialog 経由)
+ */
+interface Props {
+	item: Item;
+	onCardOverrideEnable: () => void;
+	onCardOverrideResetRequest: () => void;
+}
+
+let { item, onCardOverrideEnable, onCardOverrideResetRequest }: Props = $props();
+</script>
+
+<!-- Gradient preview -->
+<div
+	class="flex h-40 items-center justify-center rounded-[var(--ag-radius-widget)] bg-gradient-to-br {artMap[
+		item.item_type
+	]}"
+>
+	<ItemIcon
+		iconPath={item.icon_path}
+		itemType={item.item_type}
+		alt="{item.label} icon"
+		class="h-20 w-20 object-cover drop-shadow-lg"
+	/>
+</div>
+
+<!-- Detail rows -->
+<div class="mt-4 space-y-2 text-sm">
+	<DetailRow label="種別" value={typeLabel[item.item_type]} />
+	<DetailRow label="ターゲット" value={item.target} />
+	{#if item.aliases.length > 0}
+		<DetailRow label="別名" value={item.aliases.join(', ')} />
+	{/if}
+	{#if item.args}
+		<DetailRow label="引数" value={item.args} />
+	{/if}
+</div>
+
+<!-- Visibility toggle (PH-291) -->
+<label class="mt-4 flex items-start gap-2 text-sm text-[var(--ag-text-secondary)]">
+	<input
+		type="checkbox"
+		class="mt-0.5 h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+		data-testid="visibility-toggle"
+		checked={!item.is_enabled}
+		onchange={(e) =>
+			void itemStore.updateItem(item.id, {
+				is_enabled: !(e.currentTarget as HTMLInputElement).checked,
+			})}
+	/>
+	<span class="flex-1">
+		<span class="block">ライブラリで非表示</span>
+		<span class="mt-0.5 block text-xs text-[var(--ag-text-muted)]">
+			非表示にすると <strong>検索（パレット / Library 一覧）</strong> と <strong>ウィジェット</strong> から外れます。データは残るため、再度表示に戻すことも可能です。
+		</span>
+	</span>
+</label>
+
+<!-- PH-290 + PH-297 + PH-340: per-card 設定 -->
+<div class="mt-4 space-y-2 border-t border-[var(--ag-border)] pt-4">
+	<div class="flex items-start justify-between gap-3">
+		<div class="min-w-0 flex-1">
+			<div class="flex items-center gap-2">
+				<p class="text-sm font-medium text-[var(--ag-text-primary)]">カード表示</p>
+				{#if item.card_override_json}
+					<span
+						class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-xs font-medium text-[var(--ag-accent-text)]"
+						data-testid="card-override-badge"
+					>
+						個別調整中
+					</span>
+				{/if}
+			</div>
+			<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
+				{item.card_override_json
+					? 'このカードのみグローバル設定とは独立した表示が適用されています。'
+					: 'Settings > Library のグローバル設定が適用されています。'}
+			</p>
+		</div>
+		{#if item.card_override_json}
+			<button
+				type="button"
+				data-testid="card-override-reset"
+				class="shrink-0 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
+				aria-label="個別調整を解除してグローバル設定に戻す"
+				onclick={() => onCardOverrideResetRequest()}
+			>
+				グローバル設定に戻す
+			</button>
+		{:else}
+			<button
+				type="button"
+				data-testid="card-override-enable"
+				class="shrink-0 rounded-lg border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-accent-active-bg)]"
+				aria-label="このカードだけ個別調整を有効化"
+				onclick={() => onCardOverrideEnable()}
+			>
+				このカードだけ個別調整
+			</button>
+		{/if}
+	</div>
+	{#if item.card_override_json}
+		<p class="text-xs text-[var(--ag-text-muted)]">
+			詳細編集 UI は Settings > Library に統合予定。当面はリセット → 再有効化で global の最新値を取り込めます。
+		</p>
+	{/if}
+</div>
