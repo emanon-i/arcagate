@@ -38,12 +38,10 @@ export const test = base.extend<{ page: Page }, { sharedBrowser: Browser }>({
 		await mainPage.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
 		// T3-1 safe net: 前 spec で deleteWorkspace 等で setup-complete state が破壊された
 		// 場合に SetupWizard が復活するため、各 spec 開始時に markSetupComplete を呼んで
-		// 確実に skip 状態にする。既に setup-complete なら no-op。
-		try {
-			await markSetupComplete(mainPage);
-		} catch {
-			// IPC 失敗時は spec 内で fail させる
-		}
+		// 確実に skip 状態にする。既に setup-complete なら backend 側で no-op、IPC 自体が
+		// 失敗した場合 (Tauri bridge 不通 / cmd 削除 / transient invoke 失敗) は fail-fast
+		// させて誤診断を避ける (Codex P2 review)。
+		await markSetupComplete(mainPage);
 		await use(mainPage);
 	},
 });
