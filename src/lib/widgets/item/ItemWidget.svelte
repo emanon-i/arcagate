@@ -5,14 +5,14 @@
  * 旧実装: `item_id` (単一) のみ、icon 1 個だけの大きな card → user fb「アイコン一つだけ出てなんなの？」
  *         「幅デカすぎ」「サイズ変えたら見切れる」「複数追加できるようにして」「縦に並べるのもいる」「並び替えもいる」。
  * 新実装:
- * - config に `item_ids: string[]` を追加 (collection)。legacy `item_id` も読んで [item_id] に変換、後方互換。
+ * - config に `item_ids: string[]` (collection)。legacy `item_id` 単一形式は migration 023 で削除済 (A3 PR-H)。
  * - view_mode: 'grid' | 'list' で切替 (toolbar の icon button)。
  * - sort_field: 'manual' | 'name' | 'recent' (settings dialog で選択)。
  * - container query で widget 幅に応じて grid 列数 / icon サイズ / 余白を自動調整 (見切れ解消)。
  *
  * 引用元 guideline:
- * - docs/desktop_ui_ux_agent_rules.md P3 主要 vs 補助 / P4 一貫性 / P9 画面密度
- * - docs/l1_requirements/ux_standards.md §6-1 Widget fluid sizing / §11 アイテムカード
+ * - docs/desktop-ui-rules.md P3 主要 vs 補助 / P4 一貫性 / P9 画面密度
+ * - docs/l1_requirements/ux-standards.md §6-1 Widget fluid sizing / §11 アイテムカード
  * - CLAUDE.md「同じ機能 = 同じ icon + 同じラベル」
  */
 import { Grid3x3, LayoutList, Package, Plus } from '@lucide/svelte';
@@ -40,7 +40,6 @@ let settingsOpen = $state(false);
 let pickerOpen = $state(false);
 
 interface ItemWidgetConfig {
-	item_id?: string | null;
 	item_ids?: string[];
 	view_mode?: 'grid' | 'list';
 	sort_field?: 'manual' | 'name' | 'recent';
@@ -55,12 +54,7 @@ let config = $derived.by<ItemWidgetConfig>(() => {
 	}
 });
 
-// legacy item_id → [item_id] 後方互換。新 collection は item_ids を優先、無ければ item_id 1 個。
-let itemIds = $derived.by<string[]>(() => {
-	if (config.item_ids && config.item_ids.length > 0) return config.item_ids;
-	if (config.item_id) return [config.item_id];
-	return [];
-});
+let itemIds = $derived.by<string[]>(() => config.item_ids ?? []);
 
 let viewMode = $derived<'grid' | 'list'>(config.view_mode ?? 'grid');
 let sortField = $derived<'manual' | 'name' | 'recent'>(config.sort_field ?? 'manual');
@@ -105,7 +99,7 @@ async function pickerSelectMany(items: Item[]) {
 	for (const it of items) if (!existing.has(it.id)) next.push(it.id);
 	const added = next.length - itemIds.length;
 	if (added === 0) return; // 全件 既存と重複 → 永続化不要
-	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next, item_id: null };
+	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next };
 	try {
 		await updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
 		toastStore.add(`${added} 件のアイテムを紐付けました`, 'success');
@@ -122,7 +116,6 @@ async function pickerSelectSingle(item: Item) {
 	const nextConfig: ItemWidgetConfig = {
 		...config,
 		item_ids: [...itemIds, item.id],
-		item_id: null,
 	};
 	try {
 		await updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
