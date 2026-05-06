@@ -45,7 +45,7 @@ function handleBackdropClick(e: MouseEvent) {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-	if (e.key === 'Escape') {
+	if (open && e.key === 'Escape') {
 		onClose();
 	}
 }
@@ -56,8 +56,14 @@ const dFast = rm ? 0 : 120;
 const dNormal = rm ? 0 : 200;
 </script>
 
+<!-- Escape: window listener で root-cause fix。modal div の onkeydown は trigger
+     button から focus が移動しないため発火しない (refactor/escape-key-fix)。
+     `<svelte:window>` は {#if} 外配置必須、open guard は handleKeydown 内。 -->
+<svelte:window onkeydown={handleKeydown} />
+
 {#if open}
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		class="il-zone fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		data-il-zone
@@ -66,7 +72,6 @@ const dNormal = rm ? 0 : 200;
 		tabindex="-1"
 		transition:fade={{ duration: dFast }}
 		onclick={handleBackdropClick}
-		onkeydown={handleKeydown}
 	>
 		<div
 			class="w-full max-w-lg rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
