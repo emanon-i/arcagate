@@ -75,9 +75,9 @@ PR-Z で frontend test 全削除後、新 architecture (PR-A〜PR-H 完了状態
 
 **含めないもの**: 細かい UX (透明度 / hover state 等は T3 でのみ拾う)
 
-### T3: real bug regression (5-10 件)
+### T3: real bug regression + state store (5-12 件)
 
-**目的**: 過去に user 検収で発見された **既知 bug** の再発防止。`docs/lessons.md` を起点に選定。
+**目的**: 過去に user 検収で発見された **既知 bug** の再発防止 + state store の race / cache integrity 保証。
 
 **選定基準**:
 
@@ -85,23 +85,39 @@ PR-Z で frontend test 全削除後、新 architecture (PR-A〜PR-H 完了状態
 - 例: PR-D race condition (workspace 切替で widgets stale)、PR-E2 selection actionbar sticky、widget delete 後の sidebar 件数 stale
 - 該当 bug を再現する **最小限の e2e or vitest scenario**
 
-### T4: core IPC / state / utility (10-15 件)
+**T4 から移管された state store test (T4 closing 判断)**:
 
-**目的**: frontend の中核ロジック (store / utility) が unit level で正しく動くことを保証。
+- `workspace-widgets.loadWidgets` request token race protection (PR-D Codex must-fix #1) — e2e で workspace 高速切替シナリオ
+- `workspace-config.selectWorkspace` history clear (PR-D Codex must-fix #2) — e2e で workspace 切替後の undo 不整合シナリオ
+- `workspace-widgets.moveWidget` rollback の lost-update 防止 (PR-D Codex must-fix #3) — e2e で network throttling 経由
+- `metadataStore` cache invalidation (V6) — e2e で item 編集後の sidebar metadata 即時反映
 
-**含めるもの**:
+### T4: core utility (utility のみ、6 file / 63 件) ✅ 完了
 
-- **state store**:
-  - `workspace-widgets.loadWidgets` request token race protection (PR-D Codex must-fix #1)
-  - `workspace-config.selectWorkspace` history clear (PR-D Codex must-fix #2)
-  - `workspace-widgets.moveWidget` rollback の lost-update 防止 (PR-D Codex must-fix #3)
-  - `metadataStore` cache invalidation (V6)
-- **utility**:
-  - `fuzzy-search`, `library-sort`, `widget-grid` (overlap / findFreePosition)
-  - `format-error`, `format-target`
-  - `zoom-math` (pure function、computeFitScroll / computeOrigin / computeBoundingBox)
+**目的**: frontend の中核 pure utility が unit level で正しく動くことを保証。
 
-**含めないもの**: component 単体 test (T1/T2 の e2e でカバー、コスト/価値が低い)
+**実装済 (PR-Z2 #354 + PR-Z3 #355)**:
+
+- `fuzzy-search.test.ts` (12 case): fuzzyScore + fuzzyFilter
+- `library-sort.test.ts` (7 case): sortItems × {name/created/updated} × {asc/desc} + type guard
+- `widget-grid.test.ts` (18 case): wouldOverlapAt + findFreePosition + clampWidget + findFreePositionNear
+- `zoom-math.test.ts` (14 case): clampZoom + computeBoundingBox + computeOrigin + cellStrideX/Y + computeFitZoom
+- `format-error.test.ts` (6 case): getErrorMessage + getErrorCode
+- `format-target.test.ts` (6 case): URL hostname / Windows / Unix path / 末尾 separator
+
+CI 完走時間: vitest **379ms** (8-10 min 想定の負荷ほぼゼロ)。
+
+**scope 修正 (T4 着手時の agent judgment)**:
+
+旧 plan は state store も T4 に含めていたが、以下の理由で **T3 regression に移管**:
+
+- state store test は **mock (workspaceIpc / itemsIpc / toastStore) + jsdom** が必要、minimal essential 原則に反する複雑度
+- workspace-widgets race-fix (PR-D Codex must-fix #1-3) / metadataStore invalidation 等は **過去 bug の re-introduction 防止** = T3 regression test 領域
+- e2e (T1/T2) で実機操作経由でカバーする方が user 体験に近く本筋
+
+**T4 残 (低優先、必要時に追加)**: clampAnchor / computeZoomAnchorScroll / computeFitScroll は使用箇所限定、後続必要時に追加。
+
+**含めないもの**: component 単体 test (T1/T2 の e2e でカバー、コスト/価値が低い)、state store mock test (T3 regression に移管)
 
 ## 進行ルール
 
