@@ -121,8 +121,14 @@ async function clearWallpaper() {
 }
 </script>
 
+<!-- Escape: window listener で root-cause fix。modal div の onkeydown は trigger
+     button から focus が移動しないため発火しない (refactor/escape-key-fix)。
+     `<svelte:window>` は {#if} 外配置必須、open guard を inline 化。 -->
+<svelte:window onkeydown={(e) => { if (open && e.key === 'Escape') onClose(); }} />
+
 {#if open && workspace}
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
@@ -132,9 +138,6 @@ async function clearWallpaper() {
 		transition:fade={{ duration: dFast }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) onClose();
-		}}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') onClose();
 		}}
 	>
 		<div

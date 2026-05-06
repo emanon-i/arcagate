@@ -123,6 +123,13 @@ onDestroy(() => {
 
 // グローバルキーボードハンドラ: `?` でヘルプ開閉 (input フォーカス中は無視)
 function handleGlobalKey(e: KeyboardEvent) {
+	// Escape: Settings dialog を閉じる (refactor/escape-key-fix で統合)。
+	// modal div の onkeydown は trigger button から focus が移動しないため発火しない
+	// → window listener で root-cause fix。
+	if (e.key === 'Escape' && showSettings) {
+		showSettings = false;
+		return;
+	}
 	if (e.key !== '?') return;
 	const target = e.target as HTMLElement | null;
 	if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) {
@@ -178,14 +185,15 @@ function handleFormClose() {
 
 <!-- Settings ダイアログ -->
 {#if showSettings}
+	<!-- Escape: 上記 handleGlobalKey で root-cause fix (refactor/escape-key-fix)。 -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
 		onclick={(e) => { if (e.target === e.currentTarget) showSettings = false; }}
-		onkeydown={(e) => { if (e.key === 'Escape') showSettings = false; }}
 	>
 		<div class="relative flex h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
 			<div class="flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">

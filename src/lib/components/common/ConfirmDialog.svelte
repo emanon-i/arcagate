@@ -31,8 +31,20 @@ const dFast = rm ? 0 : 120;
 const dNormal = rm ? 0 : 200;
 </script>
 
+<!-- Escape / Enter: window listener で root-cause fix。modal div の onkeydown は
+     trigger button から focus が移動しないため発火しない (refactor/escape-key-fix)。
+     `<svelte:window>` は {#if} 外配置必須、open guard を inline 化。 -->
+<svelte:window
+	onkeydown={(e) => {
+		if (!open) return;
+		if (e.key === 'Escape') onCancel();
+		if (e.key === 'Enter') onConfirm();
+	}}
+/>
+
 {#if open}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
@@ -43,10 +55,6 @@ const dNormal = rm ? 0 : 200;
 		transition:fade={{ duration: dFast }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) onCancel();
-		}}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') onCancel();
-			if (e.key === 'Enter') onConfirm();
 		}}
 	>
 		<div
