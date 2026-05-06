@@ -70,8 +70,8 @@ test('T2-3: workspace 別 widgets ownership (PR-D race-fix、Codex P2 #2)', asyn
 	const ws1 = await createWorkspace(page, 'T2 ws1');
 	const ws2 = await createWorkspace(page, 'T2 ws2');
 
-	// ws1 に widget 追加 (clock 等の minimal widget type)
-	const widget1 = await addWidget(page, ws1.id, 'clock');
+	// ws1 に widget 追加 (recent 等の minimal widget type、'clock' は migration 021 で廃止済)
+	const widget1 = await addWidget(page, ws1.id, 'recent');
 	expect(widget1.workspace_id).toBe(ws1.id);
 
 	// ws1 listWidgets: 1 件、id 一致
