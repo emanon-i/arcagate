@@ -169,3 +169,34 @@ export async function bulkAddTag(page: Page, itemIds: string[], tagId: string): 
 export async function searchItemsInTag(page: Page, tagId: string, query: string): Promise<Item[]> {
 	return invoke<Item[]>(page, 'cmd_search_items_in_tag', { tagId, query });
 }
+
+// T3-2 で追加した helper
+
+export async function toggleStar(page: Page, itemId: string, starred: boolean): Promise<Item> {
+	return invoke<Item>(page, 'cmd_toggle_star', { itemId, starred });
+}
+
+export interface CreateTagInput {
+	name: string;
+	is_hidden: boolean;
+}
+
+export async function createTag(page: Page, input: CreateTagInput): Promise<Tag> {
+	return invoke<Tag>(page, 'cmd_create_tag', { input });
+}
+
+export async function deleteTag(page: Page, id: string): Promise<void> {
+	return invoke<void>(page, 'cmd_delete_tag', { id });
+}
+
+export async function updateWorkspace(page: Page, id: string, name: string): Promise<Workspace> {
+	return invoke<Workspace>(page, 'cmd_update_workspace', { id, name });
+}
+
+export async function bulkRemoveTag(page: Page, itemIds: string[], tagId: string): Promise<number> {
+	return invoke<number>(page, 'cmd_bulk_remove_tag', { itemIds, tagId });
+}
+
+export async function getItemTags(page: Page, itemId: string): Promise<Tag[]> {
+	return invoke<Tag[]>(page, 'cmd_get_item_tags', { itemId });
+}
