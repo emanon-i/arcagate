@@ -106,3 +106,11 @@ export async function listWidgets(page: Page, workspaceId: string): Promise<Widg
 export async function launchItem(page: Page, itemId: string): Promise<void> {
 	return invoke<void>(page, 'cmd_launch_item', { itemId });
 }
+
+export async function addWidget(
+	page: Page,
+	workspaceId: string,
+	widgetType: string,
+): Promise<Widget> {
+	return invoke<Widget>(page, 'cmd_add_widget', { workspaceId, widgetType });
+}

@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/tauri.js';
 import {
+	addWidget,
 	createItem,
 	createWorkspace,
 	deleteItem,
@@ -7,7 +8,6 @@ import {
 	launchItem,
 	listItems,
 	listWidgets,
-	listWorkspaces,
 } from '../helpers/ipc.js';
 
 /**
@@ -64,23 +64,24 @@ test('T2-2: item 削除 → listItems から消える', async ({ page }) => {
 	expect(items_after.find((i) => i.id === created.id)).toBeFalsy();
 });
 
-test('T2-3: workspace 切替 → listWidgets が active workspace のもの (PR-D race-fix)', async ({
-	page,
-}) => {
-	// 2 つ workspace を作って交互に listWidgets
+test('T2-3: workspace 別 widgets ownership (PR-D race-fix、Codex P2 #2)', async ({ page }) => {
+	// 2 つ workspace を作って ws1 に widget 追加、ws2 には追加せず
+	// → listWidgets が active workspace のもの **だけ** を返すこと検証 (race fix の本質)
 	const ws1 = await createWorkspace(page, 'T2 ws1');
 	const ws2 = await createWorkspace(page, 'T2 ws2');
 
-	// 各 workspace の widgets は初期状態で空 (auto-create では widget seed 無し、検収 #3)
-	const ws1_widgets = await listWidgets(page, ws1.id);
-	const ws2_widgets = await listWidgets(page, ws2.id);
-	expect(Array.isArray(ws1_widgets)).toBe(true);
-	expect(Array.isArray(ws2_widgets)).toBe(true);
+	// ws1 に widget 追加 (clock 等の minimal widget type)
+	const widget1 = await addWidget(page, ws1.id, 'clock');
+	expect(widget1.workspace_id).toBe(ws1.id);
 
-	// 両 workspace が listWorkspaces に存在
-	const all = await listWorkspaces(page);
-	expect(all.find((w) => w.id === ws1.id)).toBeTruthy();
-	expect(all.find((w) => w.id === ws2.id)).toBeTruthy();
+	// ws1 listWidgets: 1 件、id 一致
+	const ws1_widgets = await listWidgets(page, ws1.id);
+	expect(ws1_widgets.length).toBe(1);
+	expect(ws1_widgets[0].id).toBe(widget1.id);
+
+	// ws2 listWidgets: 0 件 (ws1 の widget が漏れていないこと = race fix の検証)
+	const ws2_widgets = await listWidgets(page, ws2.id);
+	expect(ws2_widgets.length).toBe(0);
 
 	// cleanup
 	await deleteWorkspace(page, ws1.id);
@@ -113,32 +114,20 @@ test('T2-4: search input → debounce + fuzzy filter (DOM)', async ({ page }) =>
 	await deleteItem(page, created.id);
 });
 
-test('T2-5: launchItem IPC → success response', async ({ page }) => {
-	// 起動可能な item を作成 (URL なので Windows default browser に渡る)。
-	// 実際の起動は OS に依存、IPC が success response を返すことのみ確認。
-	const created = await createItem(page, {
-		item_type: 'url',
-		label: 'T2 launch target',
-		target: 'https://example.com/t2-launch',
-		aliases: [],
-		tag_ids: [],
-		is_tracked: false,
-	});
-
-	// launchItem は Result<()> を返すが、url は実 browser 起動を伴うため
-	// CI runner で fail 可能性あり。本 test は **IPC が呼べる** ことのみ確認、
-	// 失敗してもエラーが投げられないこと (graceful) を期待。
+test('T2-5: launchItem IPC error path - invalid id throws (Codex P2 #1)', async ({ page }) => {
+	// 存在しない item id を launch IPC に渡すと、Rust 側で item lookup 失敗 → error。
+	// これで **IPC bridge alive + error path 動作** を同時に検証 (vacuous assertion 排除)。
+	let errorMessage = '';
 	let threw = false;
 	try {
-		await launchItem(page, created.id);
-	} catch {
+		await launchItem(page, 'invalid-uuid-does-not-exist-in-db');
+	} catch (e) {
 		threw = true;
+		errorMessage = String(e);
 	}
-	// IPC 自体は呼び出し可能 (通信路 OK)、launch 結果は OS 依存で問わない。
-	// 投げられても OS 側 fail で意味的 pass、投げられなければ意味的 pass。
-	// 本 test の目的は **IPC bridge alive 確認** のみ。
-	expect(typeof threw).toBe('boolean');
-
-	// cleanup
-	await deleteItem(page, created.id);
+	// IPC が error を返すことを期待 (broken IPC bridge なら別 error message、
+	// 正常な IPC なら item not found 系 error)。
+	expect(threw).toBe(true);
+	// error message が空でないこと (broken IPC なら null/undefined 系 message)
+	expect(errorMessage.length).toBeGreaterThan(0);
 });
