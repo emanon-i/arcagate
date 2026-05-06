@@ -1,9 +1,8 @@
 name: E2E (nightly full suite)
 
 on:
-  # refactor 期間中、nightly schedule は無効化。tests-deferred/ rename で
-  # 自動実行が確実に fail するため、manual trigger のみに制限。
-  # refactor 完了後、test 再構築 phase で `schedule:` を復活させる。
+  schedule:
+    - cron: '0 2 * * *' # 毎朝 02:00 UTC (JST 11:00)
   workflow_dispatch:
 
 env:

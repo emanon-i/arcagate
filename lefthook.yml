@@ -62,13 +62,14 @@ pre-commit:
       glob: "src/lib/widgets/**/*Widget.svelte"
       run: bash scripts/audit-widget-shell.sh
 
-# pre-push: refactor 期間中は cargo-test を一時 disable (CI と同方針)。
-# svelte-check は type safety 担保のため残す。
-# refactor 完了後、test 再構築 phase で cargo-test を復活させる。
+# pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
+# - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行
+# - svelte-check + cargo test を並列実行
+# - refactor/* branch でも pre-push は走る (CI 側で branch skip するので、ローカル garde-fou は維持)
 pre-push:
   parallel: true
   commands:
     svelte-check:
       run: pnpm check
-    # cargo-test:
-    #   run: cargo test --manifest-path src-tauri/Cargo.toml --quiet
+    cargo-test:
+      run: cargo test --manifest-path src-tauri/Cargo.toml --quiet

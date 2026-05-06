@@ -123,18 +123,16 @@ jobs:
       - name: Svelte check
         run: pnpm check
 
-      # refactor 期間中、test gate を一時 disable。
-      # 理由: 大規模 refactor / module 整理を test と並行進行すると、
-      # test 期待値の頻繁な追従が refactor を阻害するため。
-      # refactor 完了後、新 architecture 上で test を再構築して再有効化する。
-      # （test file は tests-deferred/ に rename 済、復活時に参照可能）
-      #
-      # - name: Cargo test
-      #   working-directory: src-tauri
-      #   run: cargo test
-      #
-      # - name: Vitest (unit tests)
-      #   run: pnpm test
+      # test (lint と同 setup を再利用)
+      # refactor/* branch では test を skip (CLAUDE.md 「Branch convention」参照)。
+      - name: Cargo test
+        if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Vitest (unit tests)
+        if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
+        run: pnpm test
 
   # changes: detect whether src code changed (skip build for docs-only PRs)
   changes:
