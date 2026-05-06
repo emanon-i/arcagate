@@ -393,6 +393,7 @@ function handleGridKeydown(e: KeyboardEvent) {
 		<LibraryView
 			{filteredItems}
 			{starredIds}
+			{selectedIds}
 			{viewMode}
 			{selectionMode}
 			{searchQuery}

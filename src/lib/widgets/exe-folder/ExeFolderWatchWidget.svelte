@@ -4,6 +4,7 @@ import {
 	ArrowDown,
 	ArrowUp,
 	FolderOpen,
+	Info,
 	MoreHorizontal,
 	Settings,
 } from '@lucide/svelte';
@@ -265,9 +266,20 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems}>
-	<!-- 検収 #14: Settings の description を widget 上部に表示。空 string なら非表示。 -->
+	<!-- B-7 #9: Settings の description は info icon + hover tooltip に。inline 表示で
+	     widget 領域を圧迫していた問題への root-cause 対応。 -->
 	{#if config.description}
-		<p class="mb-2 truncate text-xs text-[var(--ag-text-muted)]" title={config.description}>{config.description}</p>
+		<div class="mb-2 flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
+			<button
+				type="button"
+				aria-label="説明を表示"
+				class="flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				title={config.description}
+			>
+				<Info class="h-3.5 w-3.5" />
+			</button>
+			<span class="truncate">説明</span>
+		</div>
 	{/if}
 	{#if !config.watch_path}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->

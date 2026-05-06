@@ -1,16 +1,13 @@
 <script lang="ts">
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import OpenerSettings from './OpenerSettings.svelte';
-import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 
 /**
- * Settings のライブラリカテゴリ pane (LibraryCardSettings + WatchedFoldersSettings + OpenerSettings)。
+ * Settings のライブラリカテゴリ pane (LibraryCardSettings + OpenerSettings)。
  *
- * 引用元 guideline:
- *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、library pane 抽出)
- *
- * agent judgment: a3 元提案 "SettingsOpenerPane" は既存 OpenerSettings component で達成済の
- * ため独立 pane を作らず、library category 単位の pane で関連 settings を集約。
+ * B-8 #16: WatchedFoldersSettings は削除 (Workspace の Folder Watcher Widget で同機能あり、
+ * 重複 UI 排除)。component file は keep (widget 内 settings 等で再利用可能性あり)、
+ * Settings pane からの mount のみ削除。
  */
 </script>
 
@@ -24,9 +21,6 @@ import WatchedFoldersSettings from './WatchedFoldersSettings.svelte';
 		ライブラリ
 	</h3>
 	<LibraryCardSettings />
-	<div class="border-t border-[var(--ag-border)] pt-5">
-		<WatchedFoldersSettings />
-	</div>
 	<div class="border-t border-[var(--ag-border)] pt-5">
 		<OpenerSettings />
 	</div>
