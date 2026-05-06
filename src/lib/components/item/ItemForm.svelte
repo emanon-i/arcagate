@@ -1,13 +1,28 @@
 <script lang="ts">
 import { open } from '@tauri-apps/plugin-dialog';
 import { untrack } from 'svelte';
-import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { Button } from '$lib/components/ui/button';
 import { checkIsDirectory, extractItemIcon } from '$lib/ipc/items';
 import type { CreateItemInput, Item, ItemType, UpdateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
 import { detectType } from '$lib/utils/detect-type';
-import DropZone from './DropZone.svelte';
+import ItemFormBasic from './ItemFormBasic.svelte';
+import ItemFormTags from './ItemFormTags.svelte';
+import ItemFormTarget from './ItemFormTarget.svelte';
+
+/**
+ * ItemForm facade。
+ *
+ * 引用元 guideline:
+ *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、347 LOC を facade + 3 sub に分割)
+ *
+ * 子 component:
+ * - ItemFormBasic (label / icon / aliases — 識別系)
+ * - ItemFormTarget (type mode / target / args + DropZone — 実行系)
+ * - ItemFormTags (is_tracked + tags — メタデータ)
+ */
+
+type TypeMode = 'url' | 'local';
 
 let {
 	item,
@@ -26,7 +41,6 @@ let {
 } = $props();
 
 // J-2: URL/ローカル二択
-type TypeMode = 'url' | 'local';
 let typeMode = $state<TypeMode>('local');
 let itemType = $state<ItemType>('exe');
 let label = $state('');
@@ -166,182 +180,43 @@ async function handleSelectIcon() {
 </script>
 
 <form class="space-y-4" onsubmit={handleSubmit}>
-  {#if !item}
-    <DropZone onDrop={handleDrop} />
-  {/if}
+	<ItemFormTarget
+		{typeMode}
+		{itemType}
+		bind:target
+		bind:args
+		isEdit={!!item}
+		onTypeModeChange={handleTypeModeChange}
+		onDrop={handleDrop}
+	/>
 
-  <!-- J-2: タイプ → URL/ローカル二択トグル -->
-  <div class="space-y-1">
-    <span class="text-sm font-medium text-[var(--ag-text-primary)]">タイプ</span>
-    <div class="flex gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-1">
-      <button
-        type="button"
-        class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {typeMode === 'local'
-          ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
-          : 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
-        disabled={!!item}
-        onclick={() => handleTypeModeChange('local')}
-      >
-        ローカル
-      </button>
-      <button
-        type="button"
-        class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {typeMode === 'url'
-          ? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
-          : 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
-        disabled={!!item}
-        onclick={() => handleTypeModeChange('url')}
-      >
-        URL
-      </button>
-    </div>
-    {#if typeMode === 'local' && !item}
-      <p class="text-xs text-[var(--ag-text-muted)]">
-        自動検出: {itemType}
-      </p>
-    {/if}
-  </div>
+	<ItemFormBasic
+		bind:label
+		bind:iconPath
+		bind:aliasesText
+		onSelectIcon={() => void handleSelectIcon()}
+	/>
 
-  <div class="space-y-1">
-    <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-label">ラベル <span class="text-destructive">*</span></label>
-    <!-- svelte-ignore a11y_autofocus -->
-    <input
-      id="item-label"
-      type="text"
-      autocomplete="off"
-      class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
-      bind:value={label}
-      required
-      autofocus
-      placeholder="表示名"
-    />
-  </div>
+	<ItemFormTags
+		{userTags}
+		bind:isTracked
+		{selectedTagIds}
+		onToggleTag={toggleTag}
+	/>
 
-  <!-- J-3: ターゲット readonly 化 -->
-  <div class="space-y-1">
-    <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-target">
-      {typeMode === 'url' ? 'URL' : 'ファイル / フォルダのパス'} <span class="text-destructive">*</span>
-    </label>
-    {#if typeMode === 'url'}
-      <input
-        id="item-target"
-        type="url"
-        autocomplete="off"
-        class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
-        bind:value={target}
-        required
-        placeholder="https://example.com"
-      />
-      <p class="text-xs text-[var(--ag-text-muted)]">ブラウザで開く URL を入力</p>
-    {:else}
-      <input
-        id="item-target"
-        type="text"
-        autocomplete="off"
-        class="w-full cursor-default rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] placeholder:text-[var(--ag-text-muted)]"
-        value={target}
-        readonly
-        required
-        placeholder="ドラッグ＆ドロップ または 下のボタンで選択"
-      />
-      <p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス（直接入力不可）</p>
-    {/if}
-  </div>
-
-  <div class="space-y-1">
-    <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-args">引数</label>
-    <input
-      id="item-args"
-      type="text"
-      autocomplete="off"
-      class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
-      bind:value={args}
-      placeholder="--flag value"
-    />
-  </div>
-
-  <!-- J-6: アイコン画像プレビュー -->
-  <div class="space-y-1">
-    <span class="text-sm font-medium text-[var(--ag-text-primary)]">アイコン</span>
-    <div class="flex items-center gap-3">
-      <div class="flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]">
-        {#if iconPath}
-          <ItemIcon iconPath={iconPath} alt="アイコン" class="h-16 w-16 object-contain" />
-        {:else}
-          <span class="text-xs text-[var(--ag-text-muted)]">なし</span>
-        {/if}
-      </div>
-      <button
-        type="button"
-        class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
-        onclick={handleSelectIcon}
-      >
-        アイコンを選択
-      </button>
-      {#if iconPath}
-        <button
-          type="button"
-          class="text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:text-destructive"
-          onclick={() => { iconPath = ''; }}
-        >
-          削除
-        </button>
-      {/if}
-    </div>
-  </div>
-
-  <div class="space-y-1">
-    <label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-aliases">エイリアス（カンマ区切り）</label>
-    <input
-      id="item-aliases"
-      type="text"
-      autocomplete="off"
-      class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
-      bind:value={aliasesText}
-      placeholder="alias1, alias2"
-    />
-  </div>
-
-  <!-- J-5: ファイル追跡チェックボックス -->
-  <div class="flex items-center gap-2">
-    <input
-      id="item-tracked"
-      type="checkbox"
-      class="h-4 w-4 rounded border-[var(--ag-border)]"
-      bind:checked={isTracked}
-    />
-    <label class="text-sm text-[var(--ag-text-secondary)]" for="item-tracked">
-      ファイル変更を追跡する
-    </label>
-  </div>
-
-  {#if userTags.length > 0}
-    <div class="space-y-2">
-      <p class="text-sm font-medium text-[var(--ag-text-primary)]">タグ</p>
-      <div class="flex flex-wrap gap-2">
-        {#each userTags as tag (tag.id)}
-          <label class="flex cursor-pointer items-center gap-1.5 text-sm text-[var(--ag-text-secondary)]">
-            <input
-              type="checkbox"
-              checked={selectedTagIds.has(tag.id)}
-              onchange={() => toggleTag(tag.id)}
-            />
-            {tag.name}
-          </label>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
-  <div class="flex justify-end gap-2 pt-2">
-    <Button type="button" variant="outline" onclick={onCancel} disabled={submitting}>キャンセル</Button>
-    <Button type="submit" disabled={submitting}>
-      {#if submitting}
-        <span class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-        処理中...
-      {:else}
-        {item ? "更新" : "作成"}
-      {/if}
-    </Button>
-  </div>
+	<div class="flex justify-end gap-2 pt-2">
+		<Button type="button" variant="outline" onclick={onCancel} disabled={submitting}
+			>キャンセル</Button
+		>
+		<Button type="submit" disabled={submitting}>
+			{#if submitting}
+				<span
+					class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+				></span>
+				処理中...
+			{:else}
+				{item ? '更新' : '作成'}
+			{/if}
+		</Button>
+	</div>
 </form>
