@@ -114,3 +114,44 @@ export async function addWidget(
 ): Promise<Widget> {
 	return invoke<Widget>(page, 'cmd_add_widget', { workspaceId, widgetType });
 }
+
+// T2-2 で追加した helper
+
+export interface UpdateItemInput {
+	label?: string | null;
+	target?: string | null;
+	args?: string | null;
+	working_dir?: string | null;
+	icon_path?: string | null;
+	is_tracked?: boolean | null;
+	aliases?: string[] | null;
+	tag_ids?: string[] | null;
+}
+
+export async function updateItem(page: Page, id: string, input: UpdateItemInput): Promise<Item> {
+	return invoke<Item>(page, 'cmd_update_item', { id, input });
+}
+
+export interface LibraryStats {
+	total_items: number;
+	total_tags: number;
+	recent_launch_count: number;
+}
+
+export async function getLibraryStats(page: Page): Promise<LibraryStats> {
+	return invoke<LibraryStats>(page, 'cmd_get_library_stats');
+}
+
+export interface Tag {
+	id: string;
+	name: string;
+	is_system: boolean;
+}
+
+export async function getTags(page: Page): Promise<Tag[]> {
+	return invoke<Tag[]>(page, 'cmd_get_tags');
+}
+
+export async function searchItems(page: Page, query: string): Promise<Item[]> {
+	return invoke<Item[]>(page, 'cmd_search_items', { query });
+}
