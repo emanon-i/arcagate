@@ -81,11 +81,25 @@ CLAUDE.md 明示: 「Repository 間の相互参照禁止」。
 | `ItemForm.svelte`           | 347 | basic / target / tags の 3 segment                                |
 | `ThemeEditor.svelte`        | 332 | preview / category-list / token-editor                            |
 
-### V6. frontend store: itemStore → metadataStore cache invalidation の明示化
+### V6. frontend store: itemStore → metadataStore cache invalidation の明示化 ✅ 先行解消済
 
-**症状**: `itemStore` mutation 系 (create / update / delete) で `metadataStore` cache を invalidate していない。`metadataStore` は TTL 60s で自動 expire するが、UI 反映に 60s 以内のラグが残る。Lessons.md B-class (mutation 後の sidebar stale) の派生 risk。
+**ステータス**: **解消済 (A1 audit 漏れ)** — PR-E sequence 中の確認で発見。`#284 (1e83eab) fix(library): Phase L1 bug fix` で先行対応済。
 
-**対応案**: itemStore mutation 関数内で `metadataStore.invalidate(itemId)` を明示 invoke。または item event bus を導入。
+**現状実装** (`src/lib/state/items.svelte.ts`):
+
+- `updateItem` 内で `metadataStore.invalidate(id)` 呼び出し済 (line 64)
+- `deleteItem` 内で `metadataStore.invalidate(id)` 呼び出し済 (line 91)
+- `createItem` は invalidate 不要 (新規 ID は cache なし、A3 §2.3 と一致)
+
+**audit 時の症状記述** (参考、当時は実装未確認だった):
+
+> `itemStore` mutation 系 (create / update / delete) で `metadataStore` cache を invalidate していない。`metadataStore` は TTL 60s で自動 expire するが、UI 反映に 60s 以内のラグが残る。Lessons.md B-class (mutation 後の sidebar stale) の派生 risk。
+
+**対応案** (実施済):
+
+> itemStore mutation 関数内で `metadataStore.invalidate(itemId)` を明示 invoke。または item event bus を導入。
+
+A3 migration plan の PR-F (V6) は **scope なし**として skip、本注記の doc PR (PR-F) のみ発行。
 
 ## P2: 配置・命名
 
