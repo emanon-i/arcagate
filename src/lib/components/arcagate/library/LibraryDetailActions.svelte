@@ -46,26 +46,27 @@ let { item, isStarred, onLaunch, onEdit, onToggleStar, onDelete, onPickDefaultAp
 <div class="mt-4 grid grid-cols-4 gap-2">
 	<ActionButton icon={Play} label="起動" onclick={onLaunch} />
 	<ActionButton icon={Settings2} label="編集" onclick={onEdit} />
+	<!-- #7/#8 fix: whitespace-nowrap + min-w-0 + truncate で narrow grid 時の label 改行防止。 -->
 	<button
 		type="button"
 		aria-label={isStarred ? 'お気に入りを解除' : 'お気に入りに追加'}
 		data-testid="favorite-button"
-		class="flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97]
+		class="flex min-w-0 items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97]
 			{isStarred
 			? 'border-[var(--ag-accent)]/60 bg-[var(--ag-accent)]/15 text-[var(--ag-accent)] hover:bg-[var(--ag-accent)]/25'
 			: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 		onclick={onToggleStar}
 	>
-		<Star class="h-4 w-4" fill={isStarred ? 'currentColor' : 'none'} />
-		お気に入り
+		<Star class="h-4 w-4 shrink-0" fill={isStarred ? 'currentColor' : 'none'} />
+		<span class="truncate whitespace-nowrap">お気に入り</span>
 	</button>
 	<button
 		type="button"
-		class="flex items-center justify-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm text-destructive transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:bg-destructive/20"
+		class="flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm text-destructive transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:bg-destructive/20"
 		onclick={onDelete}
 		data-testid="delete-item-button"
 	>
-		<Trash2 class="h-4 w-4" />
-		削除
+		<Trash2 class="h-4 w-4 shrink-0" />
+		<span class="truncate whitespace-nowrap">削除</span>
 	</button>
 </div>

@@ -40,7 +40,7 @@ interface ExeFolderEntry {
 	folderName: string;
 	exeCandidates: ExeCandidate[];
 	iconPath?: string;
-	/** PH-issue-038 / 検収項目 #20: バックエンドが返す mtime (ms epoch、無ければ 0)。 */
+	/** バックエンドが返す mtime (ms epoch、無ければ 0)。 */
 	mtimeMs?: number;
 }
 
@@ -51,10 +51,10 @@ interface WidgetConfig {
 	watch_path?: string;
 	scan_depth?: number;
 	title?: string;
-	/** 検収 #14: Settings dialog で入力する説明欄を widget 内に表示する。 */
+	/** Settings dialog で入力する説明欄を widget 内に表示する。 */
 	description?: string;
 	item_overrides?: Record<string, string>;
-	/** PH-issue-038 / 検収項目 #20: 並び替え設定。 */
+	/** 並び替え設定。 */
 	sort_field?: SortField;
 	sort_order?: SortOrder;
 }
@@ -72,7 +72,7 @@ let entries = $state<ExeFolderEntry[]>([]);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
 
-// PH-issue-038 / 検収項目 #20: sort 適用済 entries (元 entries は immutable、表示のみ並べ替え)
+// sort 適用済 entries (元 entries は immutable、表示のみ並べ替え)
 let sortField = $derived<SortField>(config.sort_field ?? 'name');
 let sortOrder = $derived<SortOrder>(config.sort_order ?? 'asc');
 let sortedEntries = $derived.by(() => {
@@ -91,14 +91,11 @@ async function setSort(field: SortField) {
 	const nextOrder: SortOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
 	await persistConfig({ ...config, sort_field: field, sort_order: nextOrder });
 }
-// PH-issue-017: race condition fix — 古い path の async 結果が新 path に
-// 書き戻されないよう request id で stale response を破棄する。
+// 古い path の async 結果が新 path に書き戻されないよう request id で stale response を破棄。
 let scanRequestId = 0;
 
-// 4/30 user 検収: ProjectsWidget と同じ resize-causes-empty bug。
-// optimisticMoveAndResize が widget object を作り直す → config が新オブジェクトに更新 →
-// `entries = []` が毎フレーム実行されて scan 結果が消えていた。前回 path/depth を覚えて
-// 実値が変わった時のみ reset + 再 scan に変更。
+// optimisticMoveAndResize が widget object を作り直して config 新参照 → `entries = []` が
+// 毎フレーム実行され scan 結果が消える bug 対策。前回 path/depth を覚えて実値変化時のみ reset。
 let prevPath: string | undefined;
 let prevDepth: number | undefined;
 
@@ -122,10 +119,7 @@ $effect(() => {
 		.then(async (result) => {
 			if (myId !== scanRequestId) return;
 			entries = result;
-			// 5/03 user 検収: 「Exe 監視なんで library 画面に追加機能なんてつけてんの？」
-			// → ProjectsWidget (`auto_register_folder_items`) と同じく、scan 完了時に
-			// **発見した exe を Library に自動登録** (idempotent: 既存 target は skip)。
-			// 手動 button は撤廃済。
+			// scan 完了時に発見 exe を Library に自動登録 (idempotent: 既存 target は skip)。
 			const paths: string[] = [];
 			for (const entry of result) {
 				const override = config.item_overrides?.[entry.folderPath];
@@ -139,7 +133,7 @@ $effect(() => {
 				await registerExeItemsBulk(paths).catch((e: unknown) => {
 					console.warn('exe auto-register failed', e);
 				});
-				// 5/03 user 検収 (B): Library の「すべて」 / 各タグ count まで完全同期。
+				// Library の「すべて」 / 各タグ count まで完全同期。
 				await itemStore.loadItems();
 				await itemStore.loadLibraryStats();
 				await itemStore.loadTagWithCounts();
@@ -249,8 +243,7 @@ async function launchEntry(entry: ExeFolderEntry) {
 	}
 }
 
-// 5/03 user 検収: 旧 registerEntryToLibrary / registerAllEntriesToLibrary 手動 button は撤廃。
-// scan 完了時に上の $effect で `registerExeItemsBulk` を自動呼び出し → ProjectsWidget と統一。
+// 手動 register button は撤廃。scan 完了時に上の $effect で registerExeItemsBulk 自動呼出。
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
