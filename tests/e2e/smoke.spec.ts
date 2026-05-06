@@ -6,52 +6,44 @@ import { listWorkspaces } from '../helpers/ipc.js';
  *
  * 引用元: docs/l1_requirements/test-rebuild/index.md (T1 phase、5-10 件 smoke)
  *
- * 含めるもの:
- * - アプリ起動 → main page render
- * - workspace / library / settings 画面の主要要素 render
- * - 基本 IPC (listWorkspaces) success
- * - palette open (Ctrl+Shift+Space hotkey)
+ * fixture (page) は data-il-zone visible まで待機する設計のため、各 test 開始時点で
+ * App orchestrator は ready 状態にある。
  *
- * 含めないもの: 詳細機能テスト (T2 critical path に委ねる)
+ * default activeView は 'library' (src/routes/+page.svelte:36)。
+ * top nav は library / workspace の 2 タブ (TitleTab、英語 label)。
+ * settings は TitleAction (左上、aria-label='Settings') から modal で開く。
  */
-test('app startup: main page renders', async ({ page }) => {
-	// SetupWizard / Onboarding は globalSetup で skip 済、main UI が見える
-	await expect(page.locator('body')).toBeVisible();
-	await expect(page.locator('[data-il-zone], main, [role="main"]').first()).toBeVisible({
-		timeout: 15_000,
-	});
+test('app startup: data-il-zone renders', async ({ page }) => {
+	// fixture で data-il-zone visible 待機済 → 既に visible
+	await expect(page.locator('[data-il-zone]').first()).toBeVisible();
 });
 
-test('workspace view: canvas renders', async ({ page }) => {
-	// nav から workspace を開く (default で workspace ?)、canvas-toolbar (Undo/Redo/zoom) が出る
-	await expect(page.getByTestId('canvas-toolbar')).toBeVisible({ timeout: 15_000 });
-});
-
-test('library view: navigate + search bar renders', async ({ page }) => {
-	// library nav button click
-	const libraryNav = page.getByRole('button', { name: 'ライブラリ', exact: true });
-	if (await libraryNav.isVisible({ timeout: 5_000 })) {
-		await libraryNav.click();
-	}
-	// section[aria-label="ライブラリ"] + search input
+test('library view: default で表示 + search bar renders', async ({ page }) => {
+	// default activeView = 'library' なので nav click 不要
 	await expect(page.getByRole('region', { name: 'ライブラリ' })).toBeVisible({ timeout: 15_000 });
 	await expect(page.getByPlaceholder('ライブラリを検索')).toBeVisible();
 });
 
-test('settings view: navigate + category nav renders', async ({ page }) => {
-	const settingsNav = page.getByRole('button', { name: '設定', exact: true });
-	if (await settingsNav.isVisible({ timeout: 5_000 })) {
-		await settingsNav.click();
-	}
-	// settings tablist + general tab
+test('workspace view: nav 切替後 canvas-toolbar renders', async ({ page }) => {
+	// top nav: TitleTab "Workspace" (英語 label) を click
+	await page.getByRole('button', { name: 'Workspace', exact: true }).click();
+	// WorkspaceLayout の右下 canvas-toolbar (Undo/Redo/zoom) が出る
+	await expect(page.getByTestId('canvas-toolbar')).toBeVisible({ timeout: 15_000 });
+});
+
+test('settings modal: 開閉 + category tablist renders', async ({ page }) => {
+	// TitleAction "Settings" (英語 aria-label) を click → modal 開く
+	await page.getByRole('button', { name: 'Settings', exact: true }).click();
+	// SettingsPanel の category tablist
 	await expect(page.getByRole('tablist', { name: '設定カテゴリ' })).toBeVisible({
 		timeout: 15_000,
 	});
 });
 
-test('basic IPC: listWorkspaces returns array', async ({ page }) => {
+test('basic IPC: listWorkspaces returns >= 1 (Home auto-create)', async ({ page }) => {
+	// fixture で data-il-zone visible まで待機済 → workspaceStore.loadWorkspaces 完了済想定
 	const workspaces = await listWorkspaces(page);
 	expect(Array.isArray(workspaces)).toBe(true);
-	// 初回起動 / globalSetup で Home workspace が auto-create されてる想定で 1 件以上
+	// globalSetup で初回起動済、Home workspace auto-create で 1 件以上
 	expect(workspaces.length).toBeGreaterThanOrEqual(1);
 });
