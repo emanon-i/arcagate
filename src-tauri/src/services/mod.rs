@@ -16,6 +16,7 @@ pub mod telemetry_service;
 pub mod theme_service;
 pub mod wallpaper_service;
 pub mod watched_path_service;
+pub mod watcher_service;
 pub mod workspace_service;
 
 pub use app_services::AppServices;
