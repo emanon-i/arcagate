@@ -5,8 +5,7 @@ use std::sync::Mutex;
 use notify::Watcher;
 use tauri::{Emitter, Manager};
 
-use crate::repositories::{item_repository, watched_path_repository};
-use crate::services::AppServices;
+use crate::services::{watcher_service, AppServices};
 
 pub struct WatcherState(pub Mutex<notify::RecommendedWatcher>);
 
@@ -29,22 +28,10 @@ pub fn start_watcher(app: &tauri::AppHandle) -> WatcherState {
     .expect("failed to create watcher");
 
     // DB に登録済みのアクティブパスを先に収集してから監視開始
-    // (State<AppServices> の lifetime を watch loop より先に終わらせる)
+    // (State<AppServices> の lifetime を watch loop より先に終わらせる、V3 解消で service 経由)
     let active_paths: Vec<String> = {
         let services = app.state::<AppServices>();
-        services
-            .db
-            .0
-            .lock()
-            .ok()
-            .map(|conn| {
-                watched_path_repository::find_active(&conn)
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|wp| wp.path)
-                    .collect()
-            })
-            .unwrap_or_default()
+        watcher_service::list_active_paths(&services.db)
     };
     // 検収 #13: ウォッチフォルダのサブフォルダ監視を有効化 (Recursive)。
     // 旧 NonRecursive は「サブフォルダの追加が即時反映されない」問題の原因だった。
@@ -79,15 +66,13 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
             let old = &event.paths[0];
             let new = &event.paths[1];
             let services = app.state::<AppServices>();
-            if let Ok(conn) = services.db.0.lock() {
-                match item_repository::update_target_by_path(&conn, old, new) {
-                    Ok(n) if n > 0 => {
-                        log::info!("auto-tracked: {:?} → {:?}", old, new);
-                    }
-                    Ok(_) => {}
-                    Err(e) => log::warn!("update_target_by_path failed: {}", e),
+            match watcher_service::rename_item_target(&services.db, old, new) {
+                Ok(n) if n > 0 => {
+                    log::info!("auto-tracked: {:?} → {:?}", old, new);
                 }
-            };
+                Ok(_) => {}
+                Err(e) => log::warn!("rename_item_target failed: {}", e),
+            }
         }
         Remove(_) => {
             // Codex High #3: RecursiveMode::Recursive で watch path 配下の **全削除** が
@@ -95,17 +80,9 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
             // **DB に登録されている tracked item の target と一致する場合のみ emit** する
             // (toast 嵐 防止)。一致しないファイルは debug log のみ。
             let services = app.state::<AppServices>();
-            let conn = match services.db.0.lock() {
-                Ok(c) => c,
-                Err(_) => return,
-            };
             for path in &event.paths {
                 let path_str = path.to_string_lossy().to_string();
-                let is_tracked = match item_repository::find_by_target(&conn, &path_str) {
-                    Ok(Some(it)) => it.is_tracked,
-                    _ => false,
-                };
-                if is_tracked {
+                if watcher_service::is_tracked_target(&services.db, &path_str) {
                     app.emit("item://path-not-found", &path_str).ok();
                     log::info!("path-not-found (tracked): {}", path_str);
                 } else {
