@@ -1,13 +1,7 @@
 <script lang="ts">
-import { FolderOpen, Play, Settings2, Star, Trash2, X as XIcon } from '@lucide/svelte';
 import { ask, open } from '@tauri-apps/plugin-dialog';
-import ActionButton from '$lib/components/arcagate/common/ActionButton.svelte';
-import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
-import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
-import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
-import { artMap, typeLabel } from '$lib/constants/item-type';
 import { countItemReferences, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
@@ -16,7 +10,31 @@ import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
 import { formatLaunchError } from '$lib/utils/launch-error';
+import LibraryDetailActions from './LibraryDetailActions.svelte';
+import LibraryDetailHeader from './LibraryDetailHeader.svelte';
+import LibraryDetailMetadata from './LibraryDetailMetadata.svelte';
 
+/**
+ * Library detail panel facade。
+ *
+ * 引用元 guideline:
+ *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、371 LOC を facade + 3 sub に分割)
+ *
+ * 子 component:
+ * - LibraryDetailHeader (title + type badge + MoreMenu + close)
+ * - LibraryDetailMetadata (gradient + DetailRows + visibility + card override)
+ * - LibraryDetailActions (4 buttons + default app picker)
+ * - LibraryItemTagSection (既存、tag 操作)
+ *
+ * agent judgment: a3-frontend-shape.md §3.1 は LibraryDetailTags も提案するが、
+ * 既存 LibraryItemTagSection と責務重複するため新設せず既存を直接利用 (scope 簡素化)。
+ *
+ * 本 facade は state orchestration:
+ * - selectedItem $derived
+ * - itemTags + isStarred + availableTags
+ * - Tag handlers / Action handlers / card override / ConfirmDialog
+ * - svelte:window keyboard (Enter で launch)
+ */
 interface Props {
 	selectedItemId: string | null;
 	onEditItem?: (id: string) => void;
@@ -147,6 +165,19 @@ async function handlePickDefaultApp() {
 	}
 }
 
+function handleCardOverrideEnable() {
+	if (!selectedItem) return;
+	// 現在の global 設定を override にコピー（編集の起点）
+	const current = JSON.stringify({
+		background: configStore.libraryCard.background,
+		style: configStore.libraryCard.style,
+	});
+	void itemStore.updateItem(selectedItem.id, {
+		card_override_json: current,
+	});
+	toastStore.add('このカードだけ個別調整を開始しました', 'success');
+}
+
 let moreMenuItems = $derived.by(() => {
 	if (!selectedItem) return [];
 	return [
@@ -160,58 +191,28 @@ let moreMenuItems = $derived.by(() => {
 	onkeydown={(e) => {
 		if (e.key === 'Enter' && selectedItem) {
 			const target = e.target as HTMLElement;
-			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-			const label = selectedItem.label;
-			void launchItem(selectedItem.id)
-				.then(() => toastStore.add(`${label} を起動しました`, 'success'))
-				.catch((e: unknown) => toastStore.add(formatLaunchError(label, e), 'error'));
+			if (
+				target.tagName === 'INPUT' ||
+				target.tagName === 'TEXTAREA' ||
+				target.isContentEditable
+			)
+				return;
+			handleLaunch();
 		}
 	}}
 />
 
-<aside class="h-full border-l border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-5" data-testid="library-detail-panel">
+<aside
+	class="h-full border-l border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-5"
+	data-testid="library-detail-panel"
+>
 	{#if selectedItem}
-		<!-- Header -->
-		<div class="mb-4 flex items-center justify-between gap-2">
-			<div class="min-w-0 flex-1">
-				<div class="truncate text-lg font-semibold text-[var(--ag-text-primary)]" title={selectedItem.label}>
-					{selectedItem.label}
-				</div>
-			</div>
-			<div class="flex shrink-0 items-center gap-2">
-				<span
-					class="rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-2.5 py-1 text-xs text-[var(--ag-accent-text)]"
-				>
-					{typeLabel[selectedItem.item_type]}
-				</span>
-				<MoreMenu items={moreMenuItems} ariaLabel="アイテム操作メニュー" />
-				<button
-					type="button"
-					class="rounded-lg p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
-					aria-label="パネルを閉じる"
-					onclick={() => onClose?.()}
-				>
-					<XIcon class="h-4 w-4" />
-				</button>
-			</div>
-		</div>
-
-		<!-- Gradient preview -->
-		<div class="flex h-40 items-center justify-center rounded-[var(--ag-radius-widget)] bg-gradient-to-br {artMap[selectedItem.item_type]}">
-			<ItemIcon iconPath={selectedItem.icon_path} itemType={selectedItem.item_type} alt="{selectedItem.label} icon" class="h-20 w-20 object-cover drop-shadow-lg" />
-		</div>
-
-		<!-- Detail rows -->
-		<div class="mt-4 space-y-2 text-sm">
-			<DetailRow label="種別" value={typeLabel[selectedItem.item_type]} />
-			<DetailRow label="ターゲット" value={selectedItem.target} />
-			{#if selectedItem.aliases.length > 0}
-				<DetailRow label="別名" value={selectedItem.aliases.join(', ')} />
-			{/if}
-			{#if selectedItem.args}
-				<DetailRow label="引数" value={selectedItem.args} />
-			{/if}
-		</div>
+		<LibraryDetailHeader item={selectedItem} {moreMenuItems} {onClose} />
+		<LibraryDetailMetadata
+			item={selectedItem}
+			onCardOverrideEnable={handleCardOverrideEnable}
+			onCardOverrideResetRequest={() => (resetConfirmOpen = true)}
+		/>
 
 		<!-- Tags section (S-3-5, S-3-6) -->
 		<LibraryItemTagSection
@@ -222,129 +223,15 @@ let moreMenuItems = $derived.by(() => {
 			onEscapeWhenClosed={() => onClose?.()}
 		/>
 
-		<!-- Default app for folders (S-3-7) -->
-		{#if selectedItem.item_type === 'folder'}
-			<div class="mt-4 space-y-2 text-sm">
-				<DetailRow label="デフォルトアプリ" value={selectedItem.default_app || 'Explorer（既定）'} />
-				<button
-					type="button"
-					class="flex items-center gap-2 rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-					onclick={() => void handlePickDefaultApp()}
-				>
-					<FolderOpen class="h-3.5 w-3.5" />
-					exe を選択
-				</button>
-			</div>
-		{/if}
-
-		<!-- Action buttons -->
-		<div class="mt-4 grid grid-cols-4 gap-2">
-			<ActionButton icon={Play} label="起動" onclick={handleLaunch} />
-			<ActionButton icon={Settings2} label="編集" onclick={() => onEditItem?.(selectedItem!.id)} />
-			<button
-				type="button"
-				aria-label={isStarred ? 'お気に入りを解除' : 'お気に入りに追加'}
-				data-testid="favorite-button"
-				class="flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97]
-					{isStarred
-					? 'border-[var(--ag-accent)]/60 bg-[var(--ag-accent)]/15 text-[var(--ag-accent)] hover:bg-[var(--ag-accent)]/25'
-					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
-				onclick={handleToggleStar}
-			>
-				<Star class="h-4 w-4" fill={isStarred ? 'currentColor' : 'none'} />
-				お気に入り
-			</button>
-			<button
-				type="button"
-				class="flex items-center justify-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm text-destructive transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] hover:bg-destructive/20"
-				onclick={handleDelete}
-				data-testid="delete-item-button"
-			>
-				<Trash2 class="h-4 w-4" />
-				削除
-			</button>
-		</div>
-
-		<!-- Visibility toggle (PH-291) -->
-		<label class="mt-4 flex items-start gap-2 text-sm text-[var(--ag-text-secondary)]">
-			<input
-				type="checkbox"
-				class="mt-0.5 h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
-				data-testid="visibility-toggle"
-				checked={!selectedItem.is_enabled}
-				onchange={(e) =>
-					void itemStore.updateItem(selectedItem!.id, {
-						is_enabled: !(e.currentTarget as HTMLInputElement).checked,
-					})}
-			/>
-			<span class="flex-1">
-				<span class="block">ライブラリで非表示</span>
-				<span class="mt-0.5 block text-xs text-[var(--ag-text-muted)]">
-					非表示にすると <strong>検索（パレット / Library 一覧）</strong> と <strong>ウィジェット</strong> から外れます。データは残るため、再度表示に戻すことも可能です。
-				</span>
-			</span>
-		</label>
-
-		<!-- PH-290 + PH-297 + PH-340: per-card 設定 -->
-		<div class="mt-4 space-y-2 border-t border-[var(--ag-border)] pt-4">
-			<div class="flex items-start justify-between gap-3">
-				<div class="min-w-0 flex-1">
-					<div class="flex items-center gap-2">
-						<p class="text-sm font-medium text-[var(--ag-text-primary)]">カード表示</p>
-						{#if selectedItem.card_override_json}
-							<span
-								class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-xs font-medium text-[var(--ag-accent-text)]"
-								data-testid="card-override-badge"
-							>
-								個別調整中
-							</span>
-						{/if}
-					</div>
-					<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
-						{selectedItem.card_override_json
-							? 'このカードのみグローバル設定とは独立した表示が適用されています。'
-							: 'Settings > Library のグローバル設定が適用されています。'}
-					</p>
-				</div>
-				{#if selectedItem.card_override_json}
-					<button
-						type="button"
-						data-testid="card-override-reset"
-						class="shrink-0 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-						aria-label="個別調整を解除してグローバル設定に戻す"
-						onclick={() => (resetConfirmOpen = true)}
-					>
-						グローバル設定に戻す
-					</button>
-				{:else}
-					<button
-						type="button"
-						data-testid="card-override-enable"
-						class="shrink-0 rounded-lg border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-accent-active-bg)]"
-						aria-label="このカードだけ個別調整を有効化"
-						onclick={() => {
-							// 現在の global 設定を override にコピー（編集の起点）
-							const current = JSON.stringify({
-								background: configStore.libraryCard.background,
-								style: configStore.libraryCard.style,
-							});
-							void itemStore.updateItem(selectedItem!.id, {
-								card_override_json: current,
-							});
-							toastStore.add('このカードだけ個別調整を開始しました', 'success');
-						}}
-					>
-						このカードだけ個別調整
-					</button>
-				{/if}
-			</div>
-			{#if selectedItem.card_override_json}
-				<p class="text-xs text-[var(--ag-text-muted)]">
-					詳細編集 UI は Settings > Library に統合予定。当面はリセット → 再有効化で global の最新値を取り込めます。
-				</p>
-			{/if}
-		</div>
-
+		<LibraryDetailActions
+			item={selectedItem}
+			{isStarred}
+			onLaunch={handleLaunch}
+			onEdit={() => onEditItem?.(selectedItem.id)}
+			onToggleStar={handleToggleStar}
+			onDelete={() => void handleDelete()}
+			onPickDefaultApp={() => void handlePickDefaultApp()}
+		/>
 	{:else}
 		<!-- Placeholder -->
 		<div class="flex h-full items-center justify-center">
@@ -361,7 +248,7 @@ let moreMenuItems = $derived.by(() => {
 		confirmLabel="解除する"
 		confirmVariant="destructive"
 		onConfirm={() => {
-			const id = selectedItem!.id;
+			const id = selectedItem.id;
 			resetConfirmOpen = false;
 			void itemStore.updateItem(id, { card_override_json: null });
 			toastStore.add('個別調整を解除しました', 'success');
