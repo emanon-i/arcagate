@@ -65,6 +65,7 @@ pre-commit:
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行
 # - svelte-check + cargo test を並列実行
+# - refactor/* branch でも pre-push は走る (CI 側で branch skip するので、ローカル garde-fou は維持)
 pre-push:
   parallel: true
   commands:

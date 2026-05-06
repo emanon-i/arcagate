@@ -48,6 +48,31 @@ PC 上に散在する起動元を集約する個人用ランチャー。Tauri v2
 - 実機目視なしで完了報告
 </critical-rule>
 
+## Branch convention
+
+- `refactor/*` — 大規模 refactor / module 整理 / architecture 改修用 branch。**e2e / unit test gate を auto-skip**（CI workflow の job-level / step-level `if:` で「skipped」扱い → branch protection の required check は自動 pass）。refactor 中に test と code が一時的に乖離しても OK。
+- 他の branch（`feat/*` / `fix/*` / `chore/*` / `claude/*` 等）— 通常通り全 test gate（e2e / unit / lint / type check）が走る。
+
+接頭辞の使い分け:
+
+- `refactor/` — 大規模なコード整理 / module 構造変更 / architecture 改修（test と code が一時乖離する想定）
+- 機能追加 / bug fix / docs 整備は通常の prefix（`feat/*` / `fix/*` / `chore/*`）を使う
+- refactor 期間終了時は `refactor/restore-tests` 系 branch で test 再有効化 + 再構築 PR を出す
+
+skip の実装場所:
+
+- `.github/workflows/e2e.yml` — job-level `if:` で e2e job 全体 skip
+- `.github/workflows/ci.yml` — step-level `if:` で `Cargo test` / `Vitest` step のみ skip（lint / svelte-check / clippy / build は維持）
+- lefthook pre-push `cargo-test` は branch を見ずローカルで常時実行（ローカル garde-fou 維持）
+
+skip 条件式:
+
+```yaml
+if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
+```
+
+（`head_ref` は PR 時、`ref_name` は push 時に使用）
+
 ## いつ何を読むか（on-demand index）
 
 | 状況                                            | 読む doc                                                                           |

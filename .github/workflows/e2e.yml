@@ -12,6 +12,9 @@ env:
 
 jobs:
   e2e:
+    # refactor/* branch では e2e を skip (CLAUDE.md 「Branch convention」参照)。
+    # head_ref は pull_request trigger 時のみ、ref_name は push trigger 時に使用。
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

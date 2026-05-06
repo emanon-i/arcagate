@@ -124,11 +124,14 @@ jobs:
         run: pnpm check
 
       # test (lint と同 setup を再利用)
+      # refactor/* branch では test を skip (CLAUDE.md 「Branch convention」参照)。
       - name: Cargo test
+        if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
         working-directory: src-tauri
         run: cargo test
 
       - name: Vitest (unit tests)
+        if: ${{ !startsWith(github.head_ref || github.ref_name, 'refactor/') }}
         run: pnpm test
 
   # changes: detect whether src code changed (skip build for docs-only PRs)
