@@ -1,0 +1,277 @@
+<script lang="ts">
+import { Copy, Plus } from '@lucide/svelte';
+import type { Component } from 'svelte';
+import { themeStore } from '$lib/state/theme.svelte';
+
+/**
+ * Settings の外観カテゴリ pane (theme list + theme editor mount + JSON import)。
+ *
+ * 引用元 guideline:
+ *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、appearance pane 抽出)
+ *
+ * agent judgment: a3 元提案 "SettingsThemePane" は ThemeEditor (既存) と統合された appearance
+ * category 全体を本 pane に集約。ThemeEditor は dynamic import で初回 paint を軽くする (PH-381 維持)。
+ */
+
+// PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
+// biome-ignore lint/suspicious/noExplicitAny: dynamic-imported Svelte component
+let ThemeEditorComponent = $state<Component<any, any, any> | null>(null);
+
+async function ensureThemeEditorLoaded(): Promise<void> {
+	if (ThemeEditorComponent) return;
+	const mod = await import('./ThemeEditor.svelte');
+	ThemeEditorComponent = mod.default;
+}
+
+let editingThemeId = $state<string | null>(null);
+let showImportArea = $state(false);
+let importJson = $state('');
+let importError = $state<string | null>(null);
+let copySuccess = $state(false);
+
+const importPlaceholder =
+	'{"name": "My Theme", "base_theme": "dark", "css_vars": "{}","is_builtin": false,"created_at": "","updated_at": ""}';
+
+async function cloneTheme(sourceId: string) {
+	const source = themeStore.themes.find((t) => t.id === sourceId);
+	const cssVars = source ? source.css_vars : '{}';
+	const baseTheme = source ? source.base_theme : 'dark';
+	const baseName = source ? source.name : 'テーマ';
+	const created = await themeStore.createTheme(`${baseName} のコピー`, baseTheme, cssVars);
+	if (created) {
+		await themeStore.setThemeMode(created.id);
+		editingThemeId = created.id;
+	}
+}
+
+async function cloneCurrentTheme() {
+	const activeId = themeStore.activeMode;
+	// 'dark'/'light'/'system' は DB テーマではないので対応する builtin を探す
+	const builtinFallback = activeId === 'light' ? 'theme-builtin-light' : 'theme-builtin-dark';
+	const sourceId =
+		activeId === 'dark' || activeId === 'light' || activeId === 'system'
+			? builtinFallback
+			: activeId;
+	await cloneTheme(sourceId);
+}
+
+async function handleExport(id: string) {
+	const json = await themeStore.exportTheme(id);
+	if (!json) return;
+	// クリップボードにコピー
+	await navigator.clipboard.writeText(json);
+	copySuccess = true;
+	setTimeout(() => (copySuccess = false), 2000);
+}
+
+function handleExportDownload(id: string) {
+	void themeStore.exportTheme(id).then((json) => {
+		if (!json) return;
+		const theme = themeStore.themes.find((t) => t.id === id);
+		const filename = `${theme?.name ?? 'theme'}.json`;
+		const blob = new Blob([json], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		a.click();
+		URL.revokeObjectURL(url);
+	});
+}
+
+async function handleImport() {
+	importError = null;
+	const theme = await themeStore.importTheme(importJson);
+	if (theme) {
+		importJson = '';
+		showImportArea = false;
+	} else {
+		importError = themeStore.error ?? 'インポートに失敗しました';
+	}
+}
+
+function handleFileImport(e: Event) {
+	const file = (e.currentTarget as HTMLInputElement).files?.[0];
+	if (!file) return;
+	const reader = new FileReader();
+	reader.onload = () => {
+		importJson = reader.result as string;
+		showImportArea = true;
+	};
+	reader.readAsText(file);
+}
+</script>
+
+<div
+	id="settings-panel-appearance"
+	role="tabpanel"
+	aria-labelledby="tab-appearance"
+	class="space-y-4 px-6 py-5"
+>
+	<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">外観</h3>
+	<div>
+		<div class="mb-3 flex items-center justify-between">
+			<p class="text-sm font-medium text-[var(--ag-text-primary)]">テーマ</p>
+			<button
+				type="button"
+				class="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--ag-text-secondary)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+				onclick={cloneCurrentTheme}
+			>
+				<Plus class="h-3.5 w-3.5" />
+				現在のテーマを複製
+			</button>
+		</div>
+		<div class="grid grid-cols-2 gap-2">
+			<!-- フラット Dark / Light -->
+			<button
+				type="button"
+				class="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
+				'dark'
+					? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
+					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+				onclick={() => {
+					void themeStore.setThemeMode('dark');
+					editingThemeId = null;
+				}}
+			>
+				<span class="font-medium">フラット ダーク</span>
+				<span class="text-xs opacity-70">デフォルト</span>
+			</button>
+			<button
+				type="button"
+				class="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
+				'light'
+					? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
+					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+				onclick={() => {
+					void themeStore.setThemeMode('light');
+					editingThemeId = null;
+				}}
+			>
+				<span class="font-medium">フラット ライト</span>
+				<span class="text-xs opacity-70">デフォルト</span>
+			</button>
+			<!-- DB テーマ（組み込みプリセット + カスタム） -->
+			{#each themeStore.themes.filter((t) => t.id !== 'theme-builtin-dark' && t.id !== 'theme-builtin-light') as theme (theme.id)}
+				<div class="flex flex-col gap-1">
+					<button
+						type="button"
+						class="flex flex-1 flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
+						theme.id
+							? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
+							: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+						onclick={() => {
+							void themeStore.setThemeMode(theme.id);
+							editingThemeId = null;
+						}}
+					>
+						<span class="font-medium">{theme.name}</span>
+						<span class="text-xs opacity-70">{theme.is_builtin ? '組み込み' : 'カスタム'}</span>
+					</button>
+					<div class="flex gap-1 px-1">
+						{#if !theme.is_builtin}
+							<button
+								type="button"
+								class="rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+								onclick={() => {
+									if (editingThemeId === theme.id) {
+										editingThemeId = null;
+									} else {
+										editingThemeId = theme.id;
+										void ensureThemeEditorLoaded();
+									}
+								}}
+							>
+								{editingThemeId === theme.id ? '閉じる' : '編集'}
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="flex items-center gap-0.5 rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+								onclick={() => void cloneTheme(theme.id)}
+							>
+								コピーして編集
+							</button>
+						{/if}
+						<button
+							type="button"
+							class="flex items-center gap-0.5 rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+							onclick={() => void handleExport(theme.id)}
+						>
+							<Copy class="h-3 w-3" />
+							{copySuccess ? '✓ コピー済' : 'コピー'}
+						</button>
+						<button
+							type="button"
+							class="rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+							onclick={() => handleExportDownload(theme.id)}
+						>
+							DL
+						</button>
+					</div>
+				</div>
+			{/each}
+		</div>
+
+		<!-- テーマエディタ（インライン展開） -->
+		{#if editingThemeId}
+			{@const editingTheme = themeStore.themes.find((t) => t.id === editingThemeId)}
+			{#if editingTheme}
+				{#if ThemeEditorComponent}
+					{@const TE = ThemeEditorComponent}
+					<TE theme={editingTheme} onClose={() => (editingThemeId = null)} />
+				{:else}
+					<div class="text-sm text-[var(--ag-text-muted)]">テーマエディタを読み込み中…</div>
+				{/if}
+			{/if}
+		{/if}
+
+		<!-- JSON インポート -->
+		<div class="mt-4 border-t border-[var(--ag-border)] pt-4">
+			<div class="flex items-center gap-3">
+				<button
+					type="button"
+					class="text-xs text-[var(--ag-text-muted)] underline-offset-2 hover:text-[var(--ag-text-secondary)] hover:underline focus-visible:outline-none"
+					onclick={() => {
+						showImportArea = !showImportArea;
+						importError = null;
+					}}
+				>
+					JSON からインポート
+				</button>
+				<label
+					class="cursor-pointer text-xs text-[var(--ag-text-muted)] underline-offset-2 hover:text-[var(--ag-text-secondary)] hover:underline"
+				>
+					ファイルを選択
+					<input
+						type="file"
+						accept=".json"
+						class="sr-only"
+						onchange={handleFileImport}
+					/>
+				</label>
+			</div>
+			{#if showImportArea}
+				<div class="mt-2 space-y-2">
+					<textarea
+						bind:value={importJson}
+						placeholder={importPlaceholder}
+						rows={4}
+						class="w-full resize-none rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-2 font-mono text-xs text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
+					></textarea>
+					{#if importError}
+						<p class="text-xs text-[var(--ag-error-text)]">{importError}</p>
+					{/if}
+					<button
+						type="button"
+						disabled={!importJson.trim()}
+						class="rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+						onclick={handleImport}
+					>
+						インポート
+					</button>
+				</div>
+			{/if}
+		</div>
+	</div>
+</div>

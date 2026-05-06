@@ -1,7 +1,22 @@
 <script lang="ts">
-import { Check, Pencil, Trash2 } from '@lucide/svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import type { Theme } from '$lib/types/theme';
+import ThemeEditorHeader from './ThemeEditorHeader.svelte';
+import ThemeEditorTokenEditor from './ThemeEditorTokenEditor.svelte';
+
+/**
+ * ThemeEditor facade。
+ *
+ * 引用元 guideline:
+ *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、332 LOC を facade + 2 sub に分割)
+ *
+ * 子 component:
+ * - ThemeEditorHeader (theme info + name edit + save/delete buttons + status)
+ * - ThemeEditorTokenEditor (grouped vars editor + color picker + text input)
+ *
+ * agent judgment: a3 元提案 (Preview / CategoryList / TokenEditor 3 子) は実装に対応する
+ * visual preview / sidebar category list が無く、Header + TokenEditor の 2 子に再構成。
+ */
 
 let { theme, onClose }: { theme: Theme; onClose: () => void } = $props();
 
@@ -123,20 +138,10 @@ function cancelNameEdit() {
 	editingName = false;
 }
 
-function handleNameKeydown(e: KeyboardEvent) {
-	if (e.key === 'Enter') {
-		e.preventDefault();
-		void commitNameEdit();
-	} else if (e.key === 'Escape') {
-		cancelNameEdit();
-	}
-}
-
 const isDirty = $derived(entries.some((e, i) => e.value !== savedCssVars[i]?.value));
 
 // unmount 時に未保存の CSS vars をリセットする
 // $effect の return は cleanup（unmount 時に呼ばれる）
-// effect body では savedCssVars を参照しないため reactive 依存なし → unmount 専用
 $effect(() => {
 	return () => {
 		for (const { key, value } of savedCssVars) {
@@ -144,14 +149,6 @@ $effect(() => {
 		}
 	};
 });
-
-function isHex(value: string): boolean {
-	return /^#[0-9a-f]{6}$/i.test(value);
-}
-
-function looksLikeColor(value: string): boolean {
-	return /^(#|rgb|hsl)/i.test(value.trim());
-}
 
 function handleValueChange(idx: number, newValue: string) {
 	entries[idx].value = newValue;
@@ -228,105 +225,25 @@ const grouped = $derived.by(() => {
 </script>
 
 <div class="mt-4 rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-4">
-	<div class="mb-3 flex items-center justify-between">
-		<div class="flex items-center gap-2">
-			{#if editingName}
-				<input
-					type="text"
-					bind:value={nameValue}
-					aria-label="テーマ名"
-					onblur={() => void commitNameEdit()}
-					onkeydown={handleNameKeydown}
-					class="rounded border border-[var(--ag-accent)] bg-[var(--ag-surface-2)] px-2 py-0.5 text-sm font-semibold text-[var(--ag-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
-				/>
-			{:else}
-				<button
-					type="button"
-					title="クリックして名前を変更"
-					onclick={startNameEdit}
-					class="flex items-center gap-1.5 rounded px-1 py-0.5 text-sm font-semibold text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
-				>
-					{theme.name} を編集
-					<Pencil class="h-3 w-3 opacity-50" />
-				</button>
-			{/if}
-			{#if isDirty}
-				<span class="rounded px-1.5 py-0.5 text-xs font-medium text-[var(--ag-warm-text)]">
-					● 未保存
-				</span>
-			{/if}
-		</div>
-		<div class="flex items-center gap-2">
-			{#if savedSuccess}
-				<span class="text-xs text-[var(--ag-success-text)]">✓ 保存しました</span>
-			{/if}
-			{#if !theme.is_builtin}
-				<button
-					type="button"
-					class="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-[var(--ag-error-text)] transition-colors hover:bg-[var(--ag-error-bg)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
-					onclick={handleDelete}
-				>
-					<Trash2 class="h-3.5 w-3.5" />
-					{confirmDelete ? '本当に削除' : '削除'}
-				</button>
-			{/if}
-			<button
-				type="button"
-				disabled={saving || !isDirty}
-				class="flex items-center gap-1.5 rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
-				onclick={handleSave}
-			>
-				<Check class="h-3.5 w-3.5" />
-				{saving ? '保存中…' : '保存'}
-			</button>
-		</div>
-	</div>
+	<ThemeEditorHeader
+		themeName={theme.name}
+		isBuiltin={theme.is_builtin}
+		{isDirty}
+		{saving}
+		{savedSuccess}
+		{confirmDelete}
+		{editingName}
+		bind:nameValue
+		onStartNameEdit={startNameEdit}
+		onCommitNameEdit={() => void commitNameEdit()}
+		onCancelNameEdit={cancelNameEdit}
+		onSave={() => void handleSave()}
+		onDelete={() => void handleDelete()}
+	/>
 
 	{#if saveError}
 		<p class="mb-2 text-xs text-[var(--ag-error-text)]">{saveError}</p>
 	{/if}
 
-	<div class="max-h-80 space-y-4 overflow-y-auto pr-1">
-		{#each grouped as [groupKey, vars]}
-			<div>
-				<p class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-					{groupKey.replace('--ag-', '')}
-				</p>
-				<div class="space-y-1.5">
-					{#each vars as entry (entry.key)}
-						{@const entryIdx = entries.indexOf(entry)}
-						<div class="flex items-center gap-2">
-							<span
-								class="w-48 shrink-0 truncate text-xs text-[var(--ag-text-muted)]"
-								title={entry.key}
-							>
-								{entry.key.replace('--ag-', '')}
-							</span>
-							{#if isHex(entry.value)}
-								<input
-									type="color"
-									value={entry.value}
-									oninput={(e) => handleValueChange(entryIdx, e.currentTarget.value)}
-									class="h-6 w-8 shrink-0 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent p-0.5"
-								/>
-							{:else}
-								{#if looksLikeColor(entry.value)}
-									<span
-										class="h-5 w-5 shrink-0 rounded-full border border-[var(--ag-border)]"
-										style="background: {entry.value}"
-									></span>
-								{/if}
-							{/if}
-							<input
-								type="text"
-								value={entry.value}
-								oninput={(e) => handleValueChange(entryIdx, e.currentTarget.value)}
-								class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-0.5 font-mono text-xs text-[var(--ag-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
-							/>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/each}
-	</div>
+	<ThemeEditorTokenEditor {entries} {grouped} onValueChange={handleValueChange} />
 </div>
