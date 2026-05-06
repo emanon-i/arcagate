@@ -412,6 +412,7 @@ mod tests {
     use super::*;
     use crate::db::initialize_in_memory;
     use crate::models::item::{Item, ItemType};
+    use crate::models::workspace::WidgetType;
     use crate::repositories::item_repository;
 
     fn make_workspace(id: &str, name: &str, sort_order: i64) -> Workspace {
