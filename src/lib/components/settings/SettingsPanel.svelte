@@ -135,10 +135,6 @@ function handleNavKeydown(e: KeyboardEvent) {
 						現在の拡大率: {configStore.widgetZoom}%
 					</p>
 				</div>
-				<p class="text-xs text-[var(--ag-text-muted)]">
-					ライブラリカードの設定は
-					<strong class="text-[var(--ag-text-secondary)]">ライブラリ</strong> タブに移動しました。
-				</p>
 			</div>
 		{:else if activeCategory === 'library'}
 			<SettingsLibraryPane />

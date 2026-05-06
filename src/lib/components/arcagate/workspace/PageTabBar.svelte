@@ -46,14 +46,16 @@ function handleKeydown(e: KeyboardEvent) {
 
 <div class="flex flex-wrap items-center gap-2">
 	<!-- 4/30 user 検収: workspace 選択 chip の塗りつぶし削除。border-only で active を識別、
-	     wallpaper / surface gradient が透けて見えるよう全 chip を bg-transparent に。 -->
+	     wallpaper / surface gradient が透けて見えるよう全 chip を bg-transparent に。
+	     #4 fix: active text を --ag-accent-text (黒、yellow 背景前提) から --ag-accent
+	     (Industrial Yellow 自身) に切替。透明 bg でも dark 背景で潰れず可読、yellow 強調。 -->
 	{#each workspaceStore.workspaces as ws (ws.id)}
 		{@const isActive = ws.id === workspaceStore.activeWorkspaceId}
 		<button
 			type="button"
 			class="rounded-full border bg-transparent px-3.5 py-1.5 text-xs transition-[color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			class:border-[var(--ag-accent-border)]={isActive}
-			class:text-[var(--ag-accent-text)]={isActive}
+			class:text-[var(--ag-accent)]={isActive}
 			class:font-medium={isActive}
 			class:border-[var(--ag-border)]={!isActive}
 			class:text-[var(--ag-text-secondary)]={!isActive}

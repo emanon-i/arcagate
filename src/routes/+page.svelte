@@ -29,8 +29,7 @@ import { loadString, saveString } from '$lib/utils/local-storage';
 
 type ActiveView = 'library' | 'workspace';
 
-// 検収 #8/#9 + Codex Low #8: activeView を localStorage で永続化（safe helper 経由で
-// quota / SecurityError を握り潰し）。
+// activeView は localStorage で永続化 (safe helper 経由で quota / SecurityError 握り潰し)。
 const VIEW_KEY = 'arcagate.app.activeView';
 const initialView = loadString(VIEW_KEY, 'library');
 let activeView = $state<ActiveView>(initialView === 'workspace' ? 'workspace' : 'library');
@@ -56,7 +55,7 @@ $effect(() => {
 	void themeStore.loadTheme();
 });
 
-// PH-456: Updater 自動チェック (起動時 + 24h)
+// Updater 自動チェック (起動時 + 24h)
 $effect(() => {
 	startUpdaterAutoCheck();
 });
@@ -272,7 +271,7 @@ function handleFormClose() {
 		{/snippet}
 	</TitleBar>
 
-	<!-- メインコンテンツ (PH-425: ErrorBoundary で横断耐障害性) -->
+	<!-- メインコンテンツ (ErrorBoundary で横断耐障害性) -->
 	<main class="min-h-0 flex-1 overflow-hidden">
 		<ErrorBoundary>
 			{#snippet children()}
