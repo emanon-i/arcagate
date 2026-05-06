@@ -10,12 +10,20 @@ import { formatItemMeta } from '$lib/utils/format-meta';
 interface Props {
 	item: Item;
 	isStarred?: boolean;
+	isSelected?: boolean;
 	viewMode?: 'grid' | 'list';
 	onclick?: () => void;
 	ondblclick?: () => void;
 }
 
-let { item, isStarred = false, viewMode = 'grid', onclick, ondblclick }: Props = $props();
+let {
+	item,
+	isStarred = false,
+	isSelected = false,
+	viewMode = 'grid',
+	onclick,
+	ondblclick,
+}: Props = $props();
 
 // metadataStore は親 (LibraryMainArea / LibraryItemPicker) が
 // loadMetadataForItems(visibleIds) で warm up する。card は cache を読むだけ。
@@ -81,10 +89,14 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 </script>
 
 {#if viewMode === 'list'}
+	<!-- B-6 #1: isSelected で Industrial Yellow 強調 (ring-2 + bg accent overlay) -->
 	<button
 		type="button"
-		class="flex w-full items-center gap-3 px-4 py-3 text-left transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] {item.is_enabled ? '' : 'opacity-40 grayscale'}"
+		class="flex w-full items-center gap-3 px-4 py-3 text-left transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] {isSelected
+			? 'bg-[var(--ag-accent)]/15 ring-2 ring-inset ring-[var(--ag-accent)]'
+			: ''} {item.is_enabled ? '' : 'opacity-40 grayscale'}"
 		data-testid="library-card-{item.id}"
+		aria-pressed={isSelected}
 		{onclick}
 		{ondblclick}
 	>
@@ -107,11 +119,15 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 		</span>
 	</button>
 {:else}
+	<!-- B-6 #1: isSelected で Industrial Yellow 強調 (ring-4 + border accent + scale) -->
 	<button
 		type="button"
-		class="library-card relative aspect-[4/3] overflow-hidden rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-left transition-[border-color,background-color,transform,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-4)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-0)] {item.is_enabled ? '' : 'opacity-40 grayscale'}"
+		class="library-card relative aspect-[4/3] overflow-hidden rounded-[var(--ag-radius-card)] border bg-[var(--ag-surface-3)] text-left transition-[border-color,background-color,transform,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-4)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-0)] {isSelected
+			? 'border-[var(--ag-accent)] ring-4 ring-[var(--ag-accent)]/60'
+			: 'border-[var(--ag-border)]'} {item.is_enabled ? '' : 'opacity-40 grayscale'}"
 		style="width: var(--ag-card-w);"
 		data-testid="library-card-{item.id}"
+		aria-pressed={isSelected}
 		{onclick}
 		{ondblclick}
 	>

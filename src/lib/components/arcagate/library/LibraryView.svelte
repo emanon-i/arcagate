@@ -22,6 +22,7 @@ import LibraryCard from './LibraryCard.svelte';
 interface Props {
 	filteredItems: Item[];
 	starredIds: Set<string>;
+	selectedIds: Set<string>;
 	viewMode: 'grid' | 'list';
 	selectionMode: boolean;
 	searchQuery: string;
@@ -37,6 +38,7 @@ interface Props {
 let {
 	filteredItems,
 	starredIds,
+	selectedIds,
 	viewMode,
 	selectionMode,
 	searchQuery,
@@ -74,6 +76,7 @@ let {
 				{item}
 				{viewMode}
 				isStarred={starredIds.has(item.id)}
+				isSelected={selectedIds.has(item.id)}
 				onclick={() => {
 					if (selectionMode) onToggleSelection(item.id);
 					else onSelectItem?.(item.id);
@@ -121,6 +124,7 @@ let {
 			<LibraryCard
 				{item}
 				isStarred={starredIds.has(item.id)}
+				isSelected={selectedIds.has(item.id)}
 				onclick={() => {
 					if (selectionMode) onToggleSelection(item.id);
 					else onSelectItem?.(item.id);

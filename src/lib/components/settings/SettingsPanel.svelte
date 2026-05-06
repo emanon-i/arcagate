@@ -32,7 +32,7 @@ import SettingsLibraryPane from './SettingsLibraryPane.svelte';
 type CategoryId = NavSettingsId;
 
 const categories: { id: CategoryId; label: string; icon: Component }[] = (
-	['general', 'workspace', 'library', 'appearance', 'data', 'about'] as const
+	['general', 'library', 'appearance', 'data', 'about'] as const
 ).map((id) => ({ id, ...NAV_SETTINGS[id] }));
 
 let activeCategory = $state<CategoryId>('general');
@@ -92,50 +92,6 @@ function handleNavKeydown(e: KeyboardEvent) {
 			<LoadingState description="設定を読み込み中..." testId="settings-loading" />
 		{:else if activeCategory === 'general'}
 			<SettingsGeneralPane />
-		{:else if activeCategory === 'workspace'}
-			<div
-				id="settings-panel-workspace"
-				role="tabpanel"
-				aria-labelledby="tab-workspace"
-				class="space-y-4 px-6 py-5"
-			>
-				<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-					ワークスペース
-				</h3>
-				<!-- PH-issue-019: ウィジェット拡大率 slider 削除。Ctrl+wheel + Ctrl+0 + Ctrl+Shift+1 に統一
-				     (Obsidian / Figma 慣習、§13 規約)。configStore.widgetZoom store は維持。 -->
-				<div>
-					<p class="text-sm font-medium text-[var(--ag-text-primary)]">
-						ウィジェットの拡大・縮小
-					</p>
-					<ul class="mt-2 space-y-1 text-xs text-[var(--ag-text-muted)]">
-						<li>
-							<span
-								class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-[var(--ag-text-secondary)]"
-								>Ctrl + ホイール</span
-							>
-							— 拡大 / 縮小 (50〜200%)
-						</li>
-						<li>
-							<span
-								class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-[var(--ag-text-secondary)]"
-								>Ctrl + 0</span
-							>
-							— 100% にリセット
-						</li>
-						<li>
-							<span
-								class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono text-[var(--ag-text-secondary)]"
-								>Ctrl + Shift + 1</span
-							>
-							— 全体を表示
-						</li>
-					</ul>
-					<p class="mt-2 text-xs tabular-nums text-[var(--ag-text-faint)]">
-						現在の拡大率: {configStore.widgetZoom}%
-					</p>
-				</div>
-			</div>
 		{:else if activeCategory === 'library'}
 			<SettingsLibraryPane />
 		{:else if activeCategory === 'appearance'}
