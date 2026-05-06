@@ -62,6 +62,15 @@ $effect(() => {
 	void workspaceStore.loadWorkspaces();
 });
 
+// Codex P2 fix: WorkspaceLayout unmount 時に context menu store を close する。
+// store 化により page lifecycle を超えて state が永続化されるため、menu open 中に workspace を
+// 離れて戻ると stale menu が re-render される regression を防ぐ。
+$effect(() => {
+	return () => {
+		workspaceContextMenuStore.close();
+	};
+});
+
 let selectedWidgetId = $state<string | null>(null);
 let renameOpen = $state(false);
 let wallpaperOpen = $state(false);
