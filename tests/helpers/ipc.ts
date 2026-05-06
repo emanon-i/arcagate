@@ -155,3 +155,17 @@ export async function getTags(page: Page): Promise<Tag[]> {
 export async function searchItems(page: Page, query: string): Promise<Item[]> {
 	return invoke<Item[]>(page, 'cmd_search_items', { query });
 }
+
+// T3-1 で追加した helper
+
+export async function bulkDeleteItems(page: Page, itemIds: string[]): Promise<number> {
+	return invoke<number>(page, 'cmd_bulk_delete_items', { itemIds });
+}
+
+export async function bulkAddTag(page: Page, itemIds: string[], tagId: string): Promise<number> {
+	return invoke<number>(page, 'cmd_bulk_add_tag', { itemIds, tagId });
+}
+
+export async function searchItemsInTag(page: Page, tagId: string, query: string): Promise<Item[]> {
+	return invoke<Item[]>(page, 'cmd_search_items_in_tag', { tagId, query });
+}

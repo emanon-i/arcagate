@@ -1,4 +1,5 @@
 import { type Browser, test as base, chromium, type Page } from '@playwright/test';
+import { markSetupComplete } from '../helpers/ipc.js';
 
 /**
  * Tauri + WebView2 CDP attach fixture (minimal T1 phase 版)。
@@ -35,6 +36,14 @@ export const test = base.extend<{ page: Page }, { sharedBrowser: Browser }>({
 		// 存在せず default 画面 (library) で永久 timeout。<main> タグは root layout
 		// (src/routes/+page.svelte) で常時 render される、SvelteKit hydration 完了の signal。
 		await mainPage.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
+		// T3-1 safe net: 前 spec で deleteWorkspace 等で setup-complete state が破壊された
+		// 場合に SetupWizard が復活するため、各 spec 開始時に markSetupComplete を呼んで
+		// 確実に skip 状態にする。既に setup-complete なら no-op。
+		try {
+			await markSetupComplete(mainPage);
+		} catch {
+			// IPC 失敗時は spec 内で fail させる
+		}
 		await use(mainPage);
 	},
 });
