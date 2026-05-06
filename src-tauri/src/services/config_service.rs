@@ -155,3 +155,71 @@ mod tests {
         assert_eq!(result, Some("custom_value".to_string()));
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+pub struct ConfigService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl ConfigService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn get_hotkey(&self) -> Result<String, AppError> {
+        get_hotkey(&self.db)
+    }
+
+    pub fn set_hotkey(&self, hotkey: &str) -> Result<(), AppError> {
+        set_hotkey(&self.db, hotkey)
+    }
+
+    pub fn get_autostart(&self) -> Result<bool, AppError> {
+        get_autostart(&self.db)
+    }
+
+    pub fn set_autostart(&self, enabled: bool) -> Result<(), AppError> {
+        set_autostart(&self.db, enabled)
+    }
+
+    pub fn is_setup_complete(&self) -> Result<bool, AppError> {
+        is_setup_complete(&self.db)
+    }
+
+    pub fn mark_setup_complete(&self) -> Result<(), AppError> {
+        mark_setup_complete(&self.db)
+    }
+
+    pub fn is_onboarding_complete(&self) -> Result<bool, AppError> {
+        is_onboarding_complete(&self.db)
+    }
+
+    pub fn mark_onboarding_complete(&self) -> Result<(), AppError> {
+        mark_onboarding_complete(&self.db)
+    }
+
+    pub fn get_telemetry_opt_in(&self) -> Result<bool, AppError> {
+        get_telemetry_opt_in(&self.db)
+    }
+
+    pub fn set_telemetry_opt_in(&self, enabled: bool) -> Result<(), AppError> {
+        set_telemetry_opt_in(&self.db, enabled)
+    }
+
+    pub fn get_crash_report_opt_in(&self) -> Result<bool, AppError> {
+        get_crash_report_opt_in(&self.db)
+    }
+
+    pub fn set_crash_report_opt_in(&self, enabled: bool) -> Result<(), AppError> {
+        set_crash_report_opt_in(&self.db, enabled)
+    }
+
+    pub fn get_config(&self, key: &str) -> Result<Option<String>, AppError> {
+        get_config(&self.db, key)
+    }
+
+    pub fn set_config(&self, key: &str, value: &str) -> Result<(), AppError> {
+        set_config(&self.db, key, value)
+    }
+}

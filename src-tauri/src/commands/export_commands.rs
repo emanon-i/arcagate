@@ -1,15 +1,14 @@
 use tauri::State;
 
-use crate::db::DbState;
-use crate::services::export_service;
+use crate::services::AppServices;
 use crate::utils::error::AppError;
 
 #[tauri::command]
-pub fn cmd_export_json(db: State<DbState>, output_path: String) -> Result<(), AppError> {
-    export_service::export_json(&db, &output_path)
+pub fn cmd_export_json(services: State<AppServices>, output_path: String) -> Result<(), AppError> {
+    services.export.export_json(&output_path)
 }
 
 #[tauri::command]
-pub fn cmd_import_json(db: State<DbState>, input_path: String) -> Result<(), AppError> {
-    export_service::import_json(&db, &input_path)
+pub fn cmd_import_json(services: State<AppServices>, input_path: String) -> Result<(), AppError> {
+    services.export.import_json(&input_path)
 }

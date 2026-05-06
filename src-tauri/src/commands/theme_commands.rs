@@ -1,47 +1,42 @@
 use tauri::{AppHandle, Emitter, State};
 
-use crate::db::DbState;
 use crate::models::theme::{CreateThemeInput, Theme, UpdateThemeInput};
-use crate::services::theme_service;
+use crate::services::AppServices;
 use crate::utils::error::AppError;
 
 #[tauri::command]
-pub fn cmd_list_themes(db: State<DbState>) -> Result<Vec<Theme>, AppError> {
-    theme_service::list_themes(&db)
+pub fn cmd_list_themes(services: State<AppServices>) -> Result<Vec<Theme>, AppError> {
+    services.theme.list_themes()
 }
 
 #[tauri::command]
-pub fn cmd_get_theme(db: State<DbState>, id: String) -> Result<Theme, AppError> {
-    theme_service::get_theme(&db, &id)
+pub fn cmd_get_theme(services: State<AppServices>, id: String) -> Result<Theme, AppError> {
+    services.theme.get_theme(&id)
 }
 
 #[tauri::command]
 pub fn cmd_create_theme(
-    db: State<DbState>,
+    services: State<AppServices>,
     name: String,
     base_theme: String,
     css_vars: String,
 ) -> Result<Theme, AppError> {
-    theme_service::create_theme(
-        &db,
-        CreateThemeInput {
-            name,
-            base_theme,
-            css_vars,
-        },
-    )
+    services.theme.create_theme(CreateThemeInput {
+        name,
+        base_theme,
+        css_vars,
+    })
 }
 
 #[tauri::command]
 pub fn cmd_update_theme(
-    db: State<DbState>,
+    services: State<AppServices>,
     id: String,
     name: Option<String>,
     base_theme: Option<String>,
     css_vars: Option<String>,
 ) -> Result<Theme, AppError> {
-    theme_service::update_theme(
-        &db,
+    services.theme.update_theme(
         &id,
         UpdateThemeInput {
             name,
@@ -52,32 +47,35 @@ pub fn cmd_update_theme(
 }
 
 #[tauri::command]
-pub fn cmd_delete_theme(db: State<DbState>, id: String) -> Result<(), AppError> {
-    theme_service::delete_theme(&db, &id)
+pub fn cmd_delete_theme(services: State<AppServices>, id: String) -> Result<(), AppError> {
+    services.theme.delete_theme(&id)
 }
 
 #[tauri::command]
-pub fn cmd_get_active_theme_mode(db: State<DbState>) -> Result<String, AppError> {
-    theme_service::get_active_theme_mode(&db)
+pub fn cmd_get_active_theme_mode(services: State<AppServices>) -> Result<String, AppError> {
+    services.theme.get_active_theme_mode()
 }
 
 #[tauri::command]
 pub fn cmd_set_active_theme_mode(
     app: AppHandle,
-    db: State<DbState>,
+    services: State<AppServices>,
     mode: String,
 ) -> Result<(), AppError> {
-    theme_service::set_active_theme_mode(&db, &mode)?;
+    services.theme.set_active_theme_mode(&mode)?;
     let _ = app.emit("theme-changed", &mode);
     Ok(())
 }
 
 #[tauri::command]
-pub fn cmd_export_theme_json(db: State<DbState>, id: String) -> Result<String, AppError> {
-    theme_service::export_theme_json(&db, &id)
+pub fn cmd_export_theme_json(services: State<AppServices>, id: String) -> Result<String, AppError> {
+    services.theme.export_theme_json(&id)
 }
 
 #[tauri::command]
-pub fn cmd_import_theme_json(db: State<DbState>, json: String) -> Result<Theme, AppError> {
-    theme_service::import_theme_json(&db, &json)
+pub fn cmd_import_theme_json(
+    services: State<AppServices>,
+    json: String,
+) -> Result<Theme, AppError> {
+    services.theme.import_theme_json(&json)
 }

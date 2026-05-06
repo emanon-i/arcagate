@@ -410,3 +410,26 @@ mod tests {
         }
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+pub struct MetadataService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl MetadataService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn get_item_metadata(&self, item_id: &str) -> Result<ItemMetadata, AppError> {
+        get_item_metadata(&self.db, item_id)
+    }
+
+    pub fn get_items_metadata_batch(
+        &self,
+        ids: &[String],
+    ) -> Result<Vec<(String, ItemMetadata)>, AppError> {
+        get_items_metadata_batch(&self.db, ids)
+    }
+}

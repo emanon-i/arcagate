@@ -251,3 +251,32 @@ mod tests {
         ));
     }
 }
+
+/// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
+/// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
+/// 注: `resolve_with_conn` (内部 helper) と `launch_with` (db 不要) は struct method 化しない。
+pub struct OpenerService {
+    db: std::sync::Arc<crate::db::DbState>,
+}
+
+impl OpenerService {
+    pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
+        Self { db }
+    }
+
+    pub fn list_all(&self) -> Result<Vec<Opener>, AppError> {
+        list_all(&self.db)
+    }
+
+    pub fn resolve(&self, opener_id: &str) -> Result<Opener, AppError> {
+        resolve(&self.db, opener_id)
+    }
+
+    pub fn save(&self, input: SaveOpenerInput) -> Result<Opener, AppError> {
+        save(&self.db, input)
+    }
+
+    pub fn delete(&self, id: &str) -> Result<(), AppError> {
+        delete(&self.db, id)
+    }
+}
