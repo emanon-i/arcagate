@@ -60,7 +60,9 @@ export default async function globalSetup(): Promise<void> {
 	const browser = await chromium.connectOverCDP(`http://localhost:${CDP_PORT}`);
 	try {
 		const ctx = browser.contexts()[0];
-		const page = ctx.pages()[0] ?? (await ctx.waitForEvent('page'));
+		// T2-1 fix #2: CI cold start で WebView2 page event が default 30s 内に来ない
+		// 場合があるため、明示 60s に延長 (T1 phase で flaky だった対処の継続)。
+		const page = ctx.pages()[0] ?? (await ctx.waitForEvent('page', { timeout: 60_000 }));
 		// WebView2 が about:blank から devUrl に遷移するまで待機
 		await page.waitForURL(/^http:\/\/localhost:\d+\/?(\?.*)?$/, { timeout: 30_000 });
 		await page.waitForLoadState('domcontentloaded');

@@ -49,3 +49,68 @@ export interface Workspace {
 export async function listWorkspaces(page: Page): Promise<Workspace[]> {
 	return invoke<Workspace[]>(page, 'cmd_list_workspaces');
 }
+
+// T2-1 で追加した helper
+
+export interface Item {
+	id: string;
+	item_type: string;
+	label: string;
+	target: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateItemInput {
+	item_type: string;
+	label: string;
+	target: string;
+	args?: string | null;
+	working_dir?: string | null;
+	icon_path?: string | null;
+	is_tracked?: boolean;
+	aliases: string[];
+	tag_ids?: string[];
+}
+
+export async function createItem(page: Page, input: CreateItemInput): Promise<Item> {
+	return invoke<Item>(page, 'cmd_create_item', { input });
+}
+
+export async function listItems(page: Page): Promise<Item[]> {
+	return invoke<Item[]>(page, 'cmd_list_items');
+}
+
+export async function deleteItem(page: Page, id: string): Promise<void> {
+	return invoke<void>(page, 'cmd_delete_item', { id });
+}
+
+export async function createWorkspace(page: Page, name: string): Promise<Workspace> {
+	return invoke<Workspace>(page, 'cmd_create_workspace', { name });
+}
+
+export async function deleteWorkspace(page: Page, id: string): Promise<void> {
+	return invoke<void>(page, 'cmd_delete_workspace', { id });
+}
+
+export interface Widget {
+	id: string;
+	workspace_id: string;
+	widget_type: string;
+}
+
+export async function listWidgets(page: Page, workspaceId: string): Promise<Widget[]> {
+	return invoke<Widget[]>(page, 'cmd_list_widgets', { workspaceId });
+}
+
+export async function launchItem(page: Page, itemId: string): Promise<void> {
+	return invoke<void>(page, 'cmd_launch_item', { itemId });
+}
+
+export async function addWidget(
+	page: Page,
+	workspaceId: string,
+	widgetType: string,
+): Promise<Widget> {
+	return invoke<Widget>(page, 'cmd_add_widget', { workspaceId, widgetType });
+}
