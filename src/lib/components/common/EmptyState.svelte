@@ -36,8 +36,8 @@ let resolvedActions = $derived<Action[]>(
 	data-testid={testId}
 >
 	<div
-		class="rounded-full p-4 text-[var(--ag-il-yellow,var(--ag-text-muted))]"
-		style="background: color-mix(in srgb, var(--ag-il-yellow, var(--ag-accent)) 12%, transparent);"
+		class="rounded-full p-4 text-[var(--ag-accent)]"
+		style="background: color-mix(in srgb, var(--ag-accent) 12%, transparent);"
 	>
 		<Icon class="h-8 w-8" />
 	</div>
