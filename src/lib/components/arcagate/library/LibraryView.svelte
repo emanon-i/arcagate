@@ -90,18 +90,20 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			<LibraryCard
-				{item}
-				{viewMode}
-				{sizeClasses}
-				isStarred={starredIds.has(item.id)}
-				isSelected={selectedIds.has(item.id)}
-				onclick={() => {
-					if (selectionMode) onToggleSelection(item.id);
-					else onSelectItem?.(item.id);
-				}}
-				ondblclick={() => onLaunch(item)}
-			/>
+			{#key item.card_override_json}
+				<LibraryCard
+					{item}
+					{viewMode}
+					{sizeClasses}
+					isStarred={starredIds.has(item.id)}
+					isSelected={selectedIds.has(item.id)}
+					onclick={() => {
+						if (selectionMode) onToggleSelection(item.id);
+						else onSelectItem?.(item.id);
+					}}
+					ondblclick={() => onLaunch(item)}
+				/>
+			{/key}
 		{/each}
 		{#if filteredItems.length === 0}
 			{#if !searchQuery && !activeTag && itemStore.items.length === 0}
@@ -140,17 +142,19 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			<LibraryCard
-				{item}
-				{sizeClasses}
-				isStarred={starredIds.has(item.id)}
-				isSelected={selectedIds.has(item.id)}
-				onclick={() => {
-					if (selectionMode) onToggleSelection(item.id);
-					else onSelectItem?.(item.id);
-				}}
-				ondblclick={() => onLaunch(item)}
-			/>
+			{#key item.card_override_json}
+				<LibraryCard
+					{item}
+					{sizeClasses}
+					isStarred={starredIds.has(item.id)}
+					isSelected={selectedIds.has(item.id)}
+					onclick={() => {
+						if (selectionMode) onToggleSelection(item.id);
+						else onSelectItem?.(item.id);
+					}}
+					ondblclick={() => onLaunch(item)}
+				/>
+			{/key}
 		{/each}
 		{#if filteredItems.length === 0}
 			{#if !searchQuery && !activeTag && itemStore.items.length === 0}

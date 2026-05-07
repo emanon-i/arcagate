@@ -5,6 +5,7 @@ import { artMap, typeLabel } from '$lib/constants/item-type';
 import { configStore } from '$lib/state/config.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item } from '$lib/types/item';
+import { parseCardOverride } from '$lib/utils/card-override';
 import { formatItemMeta } from '$lib/utils/format-meta';
 import type { SizeClasses } from './library-card-sizes';
 
@@ -43,18 +44,12 @@ let metadata = $derived(
 
 let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
 
-// PH-290: per-card override を global にマージ（背景・文字とも部分上書き）
-let cardOverride = $derived.by(() => {
-	if (!item.card_override_json) return null;
-	try {
-		return JSON.parse(item.card_override_json) as {
-			background?: Partial<typeof configStore.libraryCard.background>;
-			style?: Partial<typeof configStore.libraryCard.style>;
-		};
-	} catch {
-		return null;
-	}
-});
+// PH-290: per-card override を global にマージ（背景・文字とも部分上書き）。
+// E-8 fix (2026-05-07 user 検収 real bug): user が card_override.background.focalX 等を変更しても
+// LibraryCard が re-render しない bug。$derived.by + try-catch + JSON.parse の組合せで Svelte 5 の
+// 依存追跡が正常に効かない場合があり、共通 parseCardOverride helper (LibraryDetailMetadata と同等) に
+// 揃えて signal-clean にする。LibraryDetailMetadata 経由は機能、LibraryCard 経由は失敗していた。
+let cardOverride = $derived(parseCardOverride(item.card_override_json));
 let bg = $derived({
 	...configStore.libraryCard.background,
 	...(cardOverride?.background ?? {}),
