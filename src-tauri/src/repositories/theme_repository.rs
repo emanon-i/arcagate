@@ -98,7 +98,9 @@ mod tests {
         let conn = db.0.lock().unwrap();
 
         let themes = find_all(&conn).unwrap();
-        assert_eq!(themes.len(), 5);
+        // D-5 / D-6 (migration 024): Endfield → Cyan Steel rename + Coral Wine rename +
+        // Lime Forest / Magenta Plum / Lemon Sun 3 件追加 → 8 件 builtin。
+        assert_eq!(themes.len(), 8);
         assert!(themes.iter().all(|t| t.is_builtin));
         assert!(themes.iter().any(|t| t.id == "theme-builtin-dark"));
         assert!(themes.iter().any(|t| t.id == "theme-builtin-light"));
@@ -107,6 +109,16 @@ mod tests {
             .iter()
             .any(|t| t.id == "theme-builtin-ubuntu-frosted"));
         assert!(themes.iter().any(|t| t.id == "theme-builtin-liquid-glass"));
+        assert!(themes.iter().any(|t| t.id == "theme-builtin-lime-forest"));
+        assert!(themes.iter().any(|t| t.id == "theme-builtin-magenta-plum"));
+        assert!(themes.iter().any(|t| t.id == "theme-builtin-lemon-sun"));
+        // rename 確認
+        assert!(themes
+            .iter()
+            .any(|t| t.id == "theme-builtin-endfield" && t.name == "Cyan Steel"));
+        assert!(themes
+            .iter()
+            .any(|t| t.id == "theme-builtin-ubuntu-frosted" && t.name == "Coral Wine"));
     }
 
     #[test]
@@ -132,10 +144,11 @@ mod tests {
         insert(&conn, &make_theme("custom-001", "Custom", "light", false)).unwrap();
 
         let themes = find_all(&conn).unwrap();
-        assert_eq!(themes.len(), 6);
+        // 8 builtin (migration 024 で +3) + 1 custom = 9
+        assert_eq!(themes.len(), 9);
         // builtin first (is_builtin DESC), then custom
-        assert!(themes[..5].iter().all(|t| t.is_builtin));
-        assert!(!themes[5].is_builtin);
+        assert!(themes[..8].iter().all(|t| t.is_builtin));
+        assert!(!themes[8].is_builtin);
     }
 
     #[test]
