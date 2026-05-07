@@ -50,18 +50,18 @@ let {
 </script>
 
 <div
-	class="il-panel relative bg-[var(--ag-il-paper)] text-[var(--ag-il-ink)] {bracket
+	class="il-panel relative bg-[var(--ag-surface-opaque)] text-[var(--ag-text-primary)] {bracket
 		? 'il-bracket-corner'
 		: ''} {extraClass}"
-	style="border-radius: var(--ag-il-radius-card); border: 1px solid var(--ag-il-border); --bracket-c: {bracketYellow
-		? 'var(--ag-il-yellow)'
-		: 'var(--ag-il-bracket)'};"
+	style="border-radius: var(--ag-radius-card); border: 1px solid var(--ag-border); --bracket-c: {bracketYellow
+		? 'var(--ag-accent)'
+		: 'var(--ag-accent)'};"
 >
 	{#if hatching}
 		<div class="il-hatching pointer-events-none absolute inset-0 rounded-[inherit]"></div>
 	{/if}
 	{#if header}
-		<div class="relative {dotscreen ? 'il-dotscreen' : ''} {flush ? '' : 'px-4 py-3'} border-b border-[var(--ag-il-border)]">
+		<div class="relative {dotscreen ? 'il-dotscreen' : ''} {flush ? '' : 'px-4 py-3'} border-b border-[var(--ag-border)]">
 			{@render header()}
 		</div>
 	{/if}
@@ -69,7 +69,7 @@ let {
 		{@render children?.()}
 	</div>
 	{#if footer}
-		<div class="relative border-t border-[var(--ag-il-border)] {flush ? '' : 'px-4 py-3'}">
+		<div class="relative border-t border-[var(--ag-border)] {flush ? '' : 'px-4 py-3'}">
 			{@render footer()}
 		</div>
 	{/if}

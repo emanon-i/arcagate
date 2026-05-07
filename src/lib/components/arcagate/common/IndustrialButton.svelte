@@ -45,7 +45,7 @@ let {
 
 let sizeClass = $derived(size === 'sm' ? 'h-7 px-3 text-xs' : 'h-9 px-4 text-sm');
 // primary は yellow fill 上に focus ring を出すと色が被って見えにくい → ink ring
-let focusRingVar = $derived(variant === 'primary' ? 'var(--ag-il-ink)' : 'var(--ag-il-focus-ring)');
+let focusRingVar = $derived(variant === 'primary' ? 'var(--ag-text-primary)' : 'var(--ag-accent)');
 </script>
 
 <button
@@ -53,9 +53,9 @@ let focusRingVar = $derived(variant === 'primary' ? 'var(--ag-il-ink)' : 'var(--
 	{disabled}
 	{title}
 	aria-label={ariaLabel}
-	class="il-button inline-flex items-center justify-center gap-1.5 font-medium transition-[background-color,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--il-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-il-paper)] disabled:cursor-not-allowed disabled:opacity-[var(--ag-il-disabled-opacity)] {sizeClass} {extraClass}"
+	class="il-button inline-flex items-center justify-center gap-1.5 font-medium transition-[background-color,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--il-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-opaque)] disabled:cursor-not-allowed disabled:opacity-[0.4] {sizeClass} {extraClass}"
 	data-variant={variant}
-	style="border-radius: var(--ag-il-radius-button); --il-focus-ring: {focusRingVar};"
+	style="border-radius: var(--ag-radius-button); --il-focus-ring: {focusRingVar};"
 	{onclick}
 >
 	{@render children?.()}
@@ -63,30 +63,30 @@ let focusRingVar = $derived(variant === 'primary' ? 'var(--ag-il-ink)' : 'var(--
 
 <style>
 .il-button {
-	border: 1px solid var(--ag-il-border);
-	background: var(--ag-il-paper);
-	color: var(--ag-il-ink);
+	border: 1px solid var(--ag-border);
+	background: var(--ag-surface-opaque);
+	color: var(--ag-text-primary);
 	box-shadow:
 		inset 0 1px 0 rgba(255, 255, 255, 0.6),
 		inset 0 -1px 0 rgba(5, 6, 5, 0.06),
 		0 1px 2px rgba(5, 6, 5, 0.08);
 }
 .il-button:hover:not(:disabled) {
-	background: var(--ag-il-paper-dim);
+	background: var(--ag-surface-3);
 }
 .il-button:active:not(:disabled) {
 	box-shadow: inset 0 1px 2px rgba(5, 6, 5, 0.12);
 }
 .il-button[data-variant="primary"] {
-	background: var(--ag-il-yellow);
-	color: var(--ag-il-on-yellow);
-	border-color: var(--ag-il-yellow-active);
+	background: var(--ag-accent);
+	color: var(--ag-accent-text);
+	border-color: var(--ag-accent);
 }
 .il-button[data-variant="primary"]:hover:not(:disabled) {
-	background: var(--ag-il-yellow-hover);
+	background: var(--ag-accent);
 }
 .il-button[data-variant="primary"]:active:not(:disabled) {
-	background: var(--ag-il-yellow-active);
+	background: var(--ag-accent);
 }
 .il-button[data-variant="ghost"] {
 	background: transparent;
@@ -94,14 +94,14 @@ let focusRingVar = $derived(variant === 'primary' ? 'var(--ag-il-ink)' : 'var(--
 	box-shadow: none;
 }
 .il-button[data-variant="ghost"]:hover:not(:disabled) {
-	background: var(--ag-il-paper-dim);
+	background: var(--ag-surface-3);
 }
 .il-button[data-variant="danger"] {
-	background: var(--ag-il-paper);
-	color: var(--ag-il-orange);
-	border-color: var(--ag-il-orange);
+	background: var(--ag-surface-opaque);
+	color: var(--ag-warm-text);
+	border-color: var(--ag-warm-text);
 }
 .il-button[data-variant="danger"]:hover:not(:disabled) {
-	background: var(--ag-il-orange-bg-hover);
+	background: var(--ag-warm-bg);
 }
 </style>

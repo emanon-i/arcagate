@@ -109,54 +109,11 @@
 	--ag-card-w-m: 192px;
 	--ag-card-w-l: 256px;
 
-	/* === Industrial Yellow primitive layer (Library overhaul L2-A) ===
-	   spec: docs/l1_requirements/design/industrial-yellow-spec.md §2.1
-	   直接 component で使わず、--ag-il-* semantic 経由で参照する。 */
-	--prim-il-yellow-50: #fffbe0;
-	--prim-il-yellow-300: #fff066;
-	--prim-il-yellow-500: #ffe600;
-	--prim-il-yellow-600: #e6cf00;
-	--prim-il-yellow-900: #4d4500;
-	--prim-il-paper: #f1f1eb;
-	--prim-il-paper-dim: #e3e3dd;
-	--prim-il-ink-50: #2a2b2a;
-	--prim-il-ink-300: #1a1b1a;
-	--prim-il-ink-500: #050605;
-	--prim-il-orange-300: #ffb266;
-	--prim-il-orange-500: #ff7a00;
-	--prim-il-orange-700: #b25500;
-
-	/* === Industrial Yellow semantic layer (light default) ===
-	   spec §2.2。dark 派生は .dark セクションで上書き。 */
-	--ag-il-page: var(--prim-il-ink-500);
-	--ag-il-paper: var(--prim-il-paper);
-	--ag-il-paper-dim: var(--prim-il-paper-dim);
-	--ag-il-ink: var(--prim-il-ink-500);
-
-	--ag-il-yellow: var(--prim-il-yellow-500);
-	--ag-il-yellow-hover: var(--prim-il-yellow-300);
-	--ag-il-yellow-active: var(--prim-il-yellow-600);
-	--ag-il-on-yellow: var(--prim-il-ink-500);
-
-	--ag-il-orange: var(--prim-il-orange-500);
-	--ag-il-orange-hover: var(--prim-il-orange-300);
-	--ag-il-orange-bg-hover: rgba(255, 122, 0, 0.08);
-
-	--ag-il-border: rgba(5, 6, 5, 0.12);
-	--ag-il-border-hover: rgba(5, 6, 5, 0.24);
-	--ag-il-bracket: var(--prim-il-ink-500);
-
-	--ag-il-focus-ring: var(--prim-il-yellow-500);
-	--ag-il-selected-fill: var(--prim-il-yellow-500);
-	--ag-il-selected-ink: var(--prim-il-ink-500);
-	--ag-il-disabled-opacity: 0.4;
-
-	/* Industrial radius (≤10px、完全角丸禁止 except chip) */
-	--ag-il-radius-chip: 3px;
-	--ag-il-radius-button: 6px;
-	--ag-il-radius-input: 4px;
-	--ag-il-radius-card: 8px;
-	--ag-il-radius-dialog: 10px;
+	/* B-6 + C: Industrial Yellow direction 撤回 (2026-05-07)。--ag-il-* / --prim-il-*
+	   tokens は全削除、components は --ag-accent / --ag-warm-* / --ag-text-* /
+	   --ag-surface-* / --ag-border 等 theme tokens 経由で全 theme 追従するよう書き換え済。
+	   visual elements (panel / hatch / dot / bracket pattern) は keep、color reference
+	   のみ theme tokens 経由。 */
 }
 
 /* PH-305 Canvas 編集モード時はスクロールバー非表示（パン操作専用） */
@@ -229,17 +186,6 @@
 	--ag-text-muted: rgba(255, 255, 255, 0.45);
 	--ag-text-faint: rgba(255, 255, 255, 0.35);
 
-	/* === Industrial Yellow dark overrides ===
-	   spec §6: paper を dark 系に。--ag-il-ink は paper 上で読める text color として
-	   semantic flip させる (light=黒 / dark=白っぽい paper-50)、--ag-il-on-yellow は
-	   yellow が両 mode で同じ明るさのため不変。border alpha は ink 基準で上げ、
-	   bracket は dark 環境での視認性確保のため yellow に切替。 */
-	--ag-il-paper: var(--prim-il-ink-300);
-	--ag-il-paper-dim: var(--prim-il-ink-50);
-	--ag-il-ink: var(--prim-il-paper);
-	--ag-il-border: rgba(255, 255, 255, 0.18);
-	--ag-il-border-hover: rgba(255, 255, 255, 0.32);
-	--ag-il-bracket: var(--prim-il-yellow-500);
 }
 
 @media (prefers-reduced-motion: reduce) {

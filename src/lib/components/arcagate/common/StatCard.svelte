@@ -20,9 +20,9 @@ let { label, value }: Props = $props();
 </script>
 
 <div
-	class="border border-[var(--ag-il-border)] bg-[var(--ag-il-paper)] p-4"
-	style="border-radius: var(--ag-il-radius-card);"
+	class="border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4"
+	style="border-radius: var(--ag-radius-card);"
 >
-	<div class="text-xs text-[var(--ag-il-ink)] opacity-70">{label}</div>
-	<div class="mt-2 text-2xl font-semibold text-[var(--ag-il-ink)]">{value}</div>
+	<div class="text-xs text-[var(--ag-text-primary)] opacity-70">{label}</div>
+	<div class="mt-2 text-2xl font-semibold text-[var(--ag-text-primary)]">{value}</div>
 </div>
