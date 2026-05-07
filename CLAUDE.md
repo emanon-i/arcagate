@@ -46,6 +46,7 @@ PC 上に散在する起動元を集約する個人用ランチャー。Tauri v2
 - `--no-verify` で hook bypass
 - main への force push / 直 push（PR 経由 squash merge のみ）
 - 実機目視なしで完了報告
+- **color hardcode 禁止**: component で `#ffe600` / `rgba(...)` / `bg-yellow-500` 等の生色値を書かない、必ず `var(--ag-accent)` / `var(--ag-warm-text)` / `var(--ag-text-*)` / `var(--ag-surface-*)` 等 theme tokens 経由（pre-commit `design-tokens` hook で機械検出済）。Industrial Yellow direction は撤回 (2026-05-07、`memory/feedback_industrial_yellow_revoked.md` 参照)
 </critical-rule>
 
 ## Branch convention (refactor 期間は終了済)
