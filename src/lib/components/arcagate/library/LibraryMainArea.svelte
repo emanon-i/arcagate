@@ -1,7 +1,6 @@
 <script lang="ts">
 import { Button } from '$lib/components/ui/button';
 import { bulkAddTag, bulkDeleteItems, getItemTags, searchItemsInTag } from '$lib/ipc/items';
-import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
@@ -10,6 +9,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { fuzzyFilter } from '$lib/utils/fuzzy-search';
 import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/grid-keyboard';
 import { formatIpcError } from '$lib/utils/ipc-error';
+import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { sortItems } from '$lib/utils/library-sort';
 import LibrarySearchBar from './LibrarySearchBar.svelte';
@@ -229,7 +229,8 @@ async function deleteWithUndo(item: import('$lib/types/item').Item) {
 }
 
 function handleLaunch(item: import('$lib/types/item').Item) {
-	void launchItem(item.id)
+	// C-15 #10 + #19: card_override.opener_id があれば opener 経由起動、無ければ既存 cmd_launch_item。
+	void launchItemWithCascade(item)
 		.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
 }
