@@ -1,7 +1,7 @@
-use tauri::{AppHandle, Manager, State};
+use tauri::State;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-use crate::services::{crash_monitor_service, AppServices};
+use crate::services::AppServices;
 use crate::utils::error::AppError;
 
 #[tauri::command]
@@ -71,43 +71,4 @@ pub fn cmd_is_onboarding_complete(services: State<AppServices>) -> Result<bool, 
 #[tauri::command]
 pub fn cmd_mark_onboarding_complete(services: State<AppServices>) -> Result<(), AppError> {
     services.config.mark_onboarding_complete()
-}
-
-// PH-465 / PH-466 batch-106: Telemetry / Crash 監視 Opt-in
-#[tauri::command]
-pub fn cmd_get_telemetry_opt_in(services: State<AppServices>) -> Result<bool, AppError> {
-    services.config.get_telemetry_opt_in()
-}
-
-#[tauri::command]
-pub fn cmd_set_telemetry_opt_in(
-    services: State<AppServices>,
-    enabled: bool,
-) -> Result<(), AppError> {
-    services.config.set_telemetry_opt_in(enabled)
-}
-
-#[tauri::command]
-pub fn cmd_get_crash_report_opt_in(services: State<AppServices>) -> Result<bool, AppError> {
-    services.config.get_crash_report_opt_in()
-}
-
-#[tauri::command]
-pub fn cmd_set_crash_report_opt_in(
-    services: State<AppServices>,
-    enabled: bool,
-) -> Result<(), AppError> {
-    services.config.set_crash_report_opt_in(enabled)
-}
-
-/// R10-D E1: 直前 panic 情報を APPDATA/last-panic.json から read + 削除する。
-/// 起動直後に frontend から呼び、未読の panic を user に提示する (toast)。
-/// panic 無し → null、有り → JSON 文字列。
-#[tauri::command]
-pub fn cmd_consume_last_panic(app: AppHandle) -> Result<Option<String>, AppError> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
-    Ok(crash_monitor_service::consume_last_panic(&app_data_dir))
 }
