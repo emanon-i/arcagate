@@ -1,7 +1,21 @@
-# Industrial Yellow Design Spec
+# Industrial Yellow Design Spec — 撤回 (REVOKED 2026-05-07)
 
-**Status**: spec / 実装着手 OK (L2-A の前提)
-**Date**: 2026-05-04
+> ⚠️ **本 spec は 2026-05-07 に撤回されました。**
+> user 「Industrial Yellow いらない」「テーマ追従しないの意味わからない」 (2026-05-07) を受けて、selection / accent 色は **全画面で theme accent (`--ag-accent`) に追従** する方針に切替。
+>
+> 実装での対応:
+>
+> - `refactor/il-zone-scope-shrink` PR #368: `data-il-zone` scope 削除
+> - `refactor/remove-industrial-yellow-tokens` PR #373: `--ag-il-*` tokens 全廃止、components は `var(--ag-accent)` / `var(--ag-warm-text)` / `var(--ag-text-*)` / `var(--ag-surface-*)` 経由
+>
+> Visual elements (白パネル / 斜線ハッチ / ドット / L 字ブラケット) 自体は **当面 keep**、color reference のみ theme tokens 経由。
+>
+> 本 spec は historical reference として残置。新規 component で `--ag-il-*` を再導入しないこと (CLAUDE.md `<critical-rule>` 「color hardcode 禁止、theme tokens 経由」と整合)。
+
+---
+
+**Status**: ~~spec / 実装着手 OK (L2-A の前提)~~ → **REVOKED 2026-05-07**
+**Date**: 2026-05-04 (確定) → 2026-05-07 (撤回)
 **Predecessor**: [design-direction.md](../l3_phases/_archive/library-overhaul/design-direction.md) §0.2 / [design_system_architecture.md](./design-system.md) / [ux_standards.md](./ux-standards.md) §3 (色 / コントラスト)
 
 ## 1. 目的 / 適用範囲
