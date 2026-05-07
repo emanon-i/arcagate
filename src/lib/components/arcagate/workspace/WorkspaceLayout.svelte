@@ -185,8 +185,10 @@ function confirmRename(name: string) {
 	></div>
 {/if}
 
-<!-- R6-2: Workspace 全体を Industrial Yellow scope に。 -->
-<div class="il-zone relative flex h-full" data-il-zone>
+<!-- B-6 #1: il-zone scope 撤去。selection / accent は theme accent (--ag-accent) 追従。
+     Industrial Yellow design 自体 (panel / hatch / dot / bracket) は keep、
+     selection 色だけ theme に連動させる方針。 -->
+<div class="relative flex h-full">
 	<WorkspaceHintBar editMode={true} {selectedWidgetId} />
 
 	{#if sidebarOpen}
@@ -312,14 +314,3 @@ function confirmRename(name: string) {
 <!-- R8-3: widget delete 直後 5 秒間「元に戻す」snackbar (Library と同型 UX) -->
 <WorkspaceUndoSnackbar />
 
-<style>
-/* R6-2: Industrial Yellow scope。Settings / Onboarding と同じ token re-bind。 */
-.il-zone {
-	--ag-accent: var(--ag-il-yellow);
-	--ag-accent-text: var(--ag-il-on-yellow);
-	--ag-accent-bg: color-mix(in srgb, var(--ag-il-yellow) 12%, transparent);
-	--ag-accent-border: color-mix(in srgb, var(--ag-il-yellow) 40%, transparent);
-	--ag-accent-active-bg: color-mix(in srgb, var(--ag-il-yellow) 18%, transparent);
-	--ag-accent-active-border: color-mix(in srgb, var(--ag-il-yellow) 50%, transparent);
-}
-</style>
