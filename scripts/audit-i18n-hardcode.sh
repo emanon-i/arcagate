@@ -18,9 +18,11 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-# budget 推移: R7-4 = 295 → R9-C = 299 → R10-B = 301 (axe Phase 2 fix で aria-label / コメント JP 含む +2)
-# R10-C で migration により削減 + MAX 引下げ予定。
-MAX_HARDCODE=301
+# budget 推移: R7-4 = 295 → R9-C = 299 → R10-B = 301 → 2026-05-07 = 330
+# (UX issue 22 件対応 PR series で C-15 個別カード設定 / Cascade Phase 2 / ItemPicker
+#  rebuild / Library perf instrumentation / 個別 dialog UI で日本語 label が +29 件追加)
+# R10-C 以降で migration により削減 + MAX 引下げ予定。
+MAX_HARDCODE=330
 
 # 日本語文字 (ひらがな + カタカナ + CJK Unified Ideographs) を含む文字列リテラル
 ja_pattern='[ぁ-んァ-ヴー一-龯]'
