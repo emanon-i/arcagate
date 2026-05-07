@@ -7,7 +7,12 @@ import type { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import { loadJSON, saveJSON } from '$lib/utils/local-storage';
-import { computeBoundingBox, computeFitScroll, computeOrigin } from '$lib/utils/zoom-math';
+import {
+	bufferOffsetPx,
+	computeBoundingBox,
+	computeFitScroll,
+	computeOrigin,
+} from '$lib/utils/zoom-math';
 import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
 import WorkspaceWidgetGrid from './WorkspaceWidgetGrid.svelte';
@@ -137,15 +142,20 @@ function onWorkspaceScroll() {
 }
 
 // canvas inner box size (grid 込みの flex container 全体): grid と viewport の大きい方。
-//   gridContentW = dynamicCols × (widgetW + gap) + flex p-5 padding (40)
-//   gridContentH = maxRow × (widgetH + gap) + flex p-5 padding (40)
+//   gridContentW = bufferPx.x + dynamicCols × (widgetW + gap) + flex p-5 padding (40)
+//   gridContentH = bufferPx.y + maxRow × (widgetH + gap) + flex p-5 padding (40)
+//
+// 2026-05-07 user 検収「左/上の壁が戻った」 fix: canvas に buffer 領域 (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP)
+// を持たせ、grid origin (0,0) を canvas 内側へ offset する。これで widget が grid 端に置かれても
+// canvas 上は buffer 分だけ右下にあり、user は更に上/左へ pan できる empty 領域を持つ (Obsidian Canvas 風)。
 const FLEX_PADDING = 40; // p-5 = 20px × 2
 const GRID_GAP = 16;
+let bufferPx = $derived(bufferOffsetPx(configStore.widgetZoom));
 let canvasW = $derived(
-	Math.max(containerWidth, dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING),
+	Math.max(containerWidth, bufferPx.x + dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING),
 );
 let canvasH = $derived(
-	Math.max(containerHeight, maxRow * (zoom.widgetH + GRID_GAP) + FLEX_PADDING),
+	Math.max(containerHeight, bufferPx.y + maxRow * (zoom.widgetH + GRID_GAP) + FLEX_PADDING),
 );
 
 const widgetComponents = Object.fromEntries(
@@ -211,13 +221,18 @@ void openItemDetail;
 		onpointerup={onCanvasPointerUp}
 		onscroll={onWorkspaceScroll}
 	>
-		<!-- 5/04 user 検収 (post-redo3 #2): canvas size = max(viewport, grid)、padding 0。 -->
+		<!-- 5/04 user 検収 (post-redo3 #2): canvas size = max(viewport, grid)、padding 0。
+		     2026-05-07 fix: canvas に buffer 領域 (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP) を持たせ、
+		     widget grid origin (0,0) を canvas 内側へ offset することで「左/上の壁」を解消。 -->
 		<div
 			class="relative"
 			style="width: {canvasW}px; height: {canvasH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 			bind:this={infiniteCanvas}
 		>
-			<div class="flex gap-4 p-5">
+			<div
+				class="flex gap-4 p-5"
+				style="padding-left: {bufferPx.x + 20}px; padding-top: {bufferPx.y + 20}px;"
+			>
 				<div class="relative min-w-0 flex-1">
 					<!-- 検収 #6: WorkspaceWidgetGrid は **常時** 描画する。
 					     widgets.length === 0 時の grid unmount で pointerup → addWidget 失敗を起こすため。 -->

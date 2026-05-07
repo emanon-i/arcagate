@@ -16,6 +16,13 @@ PC 上に散在する起動元を集約する個人用ランチャー。Tauri v2
 **「DOM 存在 = 治った」 判定 禁止**。「pnpm verify pass = 治った」と書かない。**画面で目視確認**できるまで「治った」と言わない（自分で screenshot を撮って Read で読み返す）。最終判定は user dev 検収。
 </critical-rule>
 
+<critical-rule id="agent-self-complete">
+**user に dev 起動 / dump 取得 / 動作確認 / DB 操作を一切依頼しない**。
+agent dev (CDP attach + WEBVIEW2_USER_DATA_FOLDER で隔離) で完結すること。
+profile / debug / 真因特定は **agent dev + 実 data scale の seed (100+ items / 多型混在 / icon_path 設定)** で完結。`__arcagate__.perf.dump()` 等の dump 取得も agent CDP evaluate で自走。
+user に観察データを求めるのは規律違反 (2026-05-07 user 指摘)。
+</critical-rule>
+
 <critical-rule id="lateral-sweep">
 **1 つの不整合を発見したら横展開で全画面 audit**。1 ファイル直して終わりにしない。同パターンが他に無いか必ず grep。
 </critical-rule>

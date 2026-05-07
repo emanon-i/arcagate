@@ -22,6 +22,24 @@ export const MIN_ZOOM = 25;
 export const MAX_ZOOM = 200;
 export const RESET_ZOOM = 100;
 
+/**
+ * 2026-05-07 user 検収: 「左/上の壁が戻った」 regression 対応。
+ *
+ * 旧 fix (06a1955) は MIN_PAN_COLS=24 / MIN_PAN_ROWS=128 で grid を広く確保し、初期 scroll を
+ * BB 重心 viewport 中央に置く戦略だった。しかし widget が row 0 / col 0 付近に配置されると
+ * BB 重心 < viewport/2 で scroll が 0 にクランプ、結果 user は左/上の壁を直接触る。
+ *
+ * 構造 fix: canvas に **buffer 領域 (top/left)** を持たせ、grid origin (0,0) を canvas 内側にオフセット。
+ *   - `BUFFER_COLS_LEFT` 列ぶん grid 全体を右に offset
+ *   - `BUFFER_ROWS_TOP` 行ぶん grid 全体を下に offset
+ *   - canvas size と initial/Fit scroll はこの offset を考慮 (`bufferOffsetPx()` 経由)
+ *
+ * これで widget が grid (0,0) でも canvas 上は buffer 分だけ右下にあり、user は更に上/左へ pan
+ * できる empty 領域を持つ。Obsidian Canvas 等の「無限平面」体験に近づく。
+ */
+export const BUFFER_COLS_LEFT = 12;
+export const BUFFER_ROWS_TOP = 64;
+
 /** chrome reserve (上下左右の toolbar 高さ) */
 export const TOP_RESERVE = 80;
 export const BOTTOM_RESERVE = 80;
@@ -38,6 +56,17 @@ export function cellStrideY(zoomPct: number): number {
 /** zoom を [MIN_ZOOM, MAX_ZOOM] にクランプして整数化。 */
 export function clampZoom(zoom: number): number {
 	return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom)));
+}
+
+/**
+ * 2026-05-07 fix: canvas 内側で grid (0, 0) が始まる位置を px で返す (buffer 領域分オフセット)。
+ * canvas-size 計算 / initial scroll / Fit scroll / 任意の BB→canvas 変換で共有して使う。
+ */
+export function bufferOffsetPx(zoom: number): { x: number; y: number } {
+	return {
+		x: BUFFER_COLS_LEFT * cellStrideX(zoom),
+		y: BUFFER_ROWS_TOP * cellStrideY(zoom),
+	};
 }
 
 export interface Viewport {
@@ -102,14 +131,18 @@ export function computeZoomAnchorScroll(
 	// boundary 注: scrollLeft + ax < INNER_PAD で cellAtAnchor が負になった場合、
 	// 結果 scroll が `Math.max(0, ...)` で 0 にクランプされる。これは canvas top-left
 	// 境界で anchor 厳密保存ができない既知の振る舞い (Codex L2)。
+	// 2026-05-07: buffer (canvas 上の grid origin offset) も zoom 連動するため、
+	// cell 座標を buffer 込み effective cell で扱う (buffer 内の anchor は cellAtAnchor < 0)。
 	const sxOld = cellStrideX(oldZoom);
 	const syOld = cellStrideY(oldZoom);
 	const sxNew = cellStrideX(newZoom);
 	const syNew = cellStrideY(newZoom);
-	const cellAtAnchorX = (viewport.scrollLeft + ax - INNER_PAD) / sxOld;
-	const cellAtAnchorY = (viewport.scrollTop + ay - INNER_PAD) / syOld;
-	const newCanvasX = INNER_PAD + cellAtAnchorX * sxNew;
-	const newCanvasY = INNER_PAD + cellAtAnchorY * syNew;
+	const bufOld = bufferOffsetPx(oldZoom);
+	const bufNew = bufferOffsetPx(newZoom);
+	const cellAtAnchorX = (viewport.scrollLeft + ax - INNER_PAD - bufOld.x) / sxOld;
+	const cellAtAnchorY = (viewport.scrollTop + ay - INNER_PAD - bufOld.y) / syOld;
+	const newCanvasX = INNER_PAD + bufNew.x + cellAtAnchorX * sxNew;
+	const newCanvasY = INNER_PAD + bufNew.y + cellAtAnchorY * syNew;
 	return {
 		scrollLeft: Math.max(0, newCanvasX - ax),
 		scrollTop: Math.max(0, newCanvasY - ay),
@@ -212,14 +245,15 @@ export function computeFitScroll(
 ): { scrollLeft: number; scrollTop: number } {
 	const sx = cellStrideX(zoom);
 	const sy = cellStrideY(zoom);
+	// 2026-05-07 fix: canvas は buffer (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP) を持つため、
+	// grid origin (0, 0) は canvas 内では (INNER_PAD + buffer.x, INNER_PAD + buffer.y) から始まる。
+	// origin.cellX / origin.cellY は **grid 座標** なので canvas 座標へ変換時に buffer を加算する。
+	const buffer = bufferOffsetPx(zoom);
 	// 5/05 Codex H1 fix: BB center px の正確な計算。
-	// BB 端 = INNER_PAD + (minX × stride) 〜 INNER_PAD + (maxX × stride − gap)
-	//   (最後のセルは widgetW px、後続 gap なし)
-	// → BB center = INNER_PAD + ((minX + maxX) / 2) × stride − gap/2
-	//             = INNER_PAD + origin.cellX × stride − GRID_GAP / 2
-	// 旧実装は GRID_GAP/2 = 8px の系統的 bias で BB が右下に 8px ずれていた。
-	const originPxX = INNER_PAD + origin.cellX * sx - GRID_GAP / 2;
-	const originPxY = INNER_PAD + origin.cellY * sy - GRID_GAP / 2;
+	// BB 端 = INNER_PAD + buffer + (minX × stride) 〜 INNER_PAD + buffer + (maxX × stride − gap)
+	// → BB center = INNER_PAD + buffer + ((minX + maxX) / 2) × stride − gap/2
+	const originPxX = INNER_PAD + buffer.x + origin.cellX * sx - GRID_GAP / 2;
+	const originPxY = INNER_PAD + buffer.y + origin.cellY * sy - GRID_GAP / 2;
 	// visual center: chrome reserve を考慮した available area の中央
 	// X: 単純な viewport 中央 (左右 reserve は対称なので center は不変)
 	// Y: TOP_RESERVE 〜 (clientHeight - BOTTOM_RESERVE) の中央

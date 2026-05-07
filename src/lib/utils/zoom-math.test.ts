@@ -2,13 +2,18 @@ import { describe, expect, it } from 'vitest';
 import {
 	BASE_H,
 	BASE_W,
+	BUFFER_COLS_LEFT,
+	BUFFER_ROWS_TOP,
+	bufferOffsetPx,
 	cellStrideX,
 	cellStrideY,
 	clampZoom,
 	computeBoundingBox,
+	computeFitScroll,
 	computeFitZoom,
 	computeOrigin,
 	GRID_GAP,
+	INNER_PAD,
 	MAX_ZOOM,
 	MIN_ZOOM,
 } from './zoom-math';
@@ -94,6 +99,63 @@ describe('cellStrideX / cellStrideY', () => {
 	it('200% zoom は 2倍 + gap', () => {
 		expect(cellStrideX(200)).toBe(BASE_W * 2 + GRID_GAP);
 		expect(cellStrideY(200)).toBe(BASE_H * 2 + GRID_GAP);
+	});
+});
+
+describe('bufferOffsetPx (2026-05-07 wall fix)', () => {
+	it('100% zoom は BUFFER_COLS_LEFT * cellStrideX(100), BUFFER_ROWS_TOP * cellStrideY(100)', () => {
+		const buf = bufferOffsetPx(100);
+		expect(buf.x).toBe(BUFFER_COLS_LEFT * cellStrideX(100));
+		expect(buf.y).toBe(BUFFER_ROWS_TOP * cellStrideY(100));
+	});
+
+	it('zoom と一緒に scale する (200% は 2 倍)', () => {
+		const buf100 = bufferOffsetPx(100);
+		const buf200 = bufferOffsetPx(200);
+		// stride は (BASE * zoom/100) + GRID_GAP のため厳密に 2 倍ではないが、
+		// 大体 (BASE 部分) は 2 倍。verify cellStrideX 関係。
+		expect(buf200.x).toBe(BUFFER_COLS_LEFT * cellStrideX(200));
+		expect(buf200.x).toBeGreaterThan(buf100.x);
+	});
+
+	it('BUFFER 値は十分大きい (壁が遠い)', () => {
+		// 12 cols × 64 rows は実用 viewport (1920×1080) で 1 画面以上の buffer。
+		expect(BUFFER_COLS_LEFT).toBeGreaterThanOrEqual(8);
+		expect(BUFFER_ROWS_TOP).toBeGreaterThanOrEqual(32);
+	});
+});
+
+describe('computeFitScroll (buffer 込み)', () => {
+	it('widget at (0, 0) は scroll が buffer 分以上、left/top wall を回避', () => {
+		// widget (0,0) size (4, 3) → BB = {0, 0, 4, 3}, origin = (2, 1.5)
+		const origin = { cellX: 2, cellY: 1.5 };
+		const result = computeFitScroll(origin, 100, { clientWidth: 1920, clientHeight: 1080 });
+		// buffer (12 cols × ~256 + 64 rows × ~151) → ~3072 / ~9664
+		// origin px = INNER_PAD + buffer + origin.cell * stride
+		// scrollLeft = max(0, originPxX - viewport_w/2)
+		// 期待: scrollLeft >> 0 (buffer のおかげで widget 中央に scroll しても left wall 触らない)
+		const buf = bufferOffsetPx(100);
+		const expectedScrollLeft =
+			INNER_PAD + buf.x + origin.cellX * cellStrideX(100) - GRID_GAP / 2 - 1920 / 2;
+		expect(result.scrollLeft).toBeCloseTo(Math.max(0, expectedScrollLeft), 0);
+		expect(result.scrollLeft).toBeGreaterThan(buf.x - 1920); // buffer の半分以上は確実に scroll する
+	});
+
+	it('viewport が極小でも widget BB を center に置こうとする', () => {
+		const origin = { cellX: 5, cellY: 10 };
+		const result = computeFitScroll(origin, 100, { clientWidth: 600, clientHeight: 400 });
+		expect(result.scrollLeft).toBeGreaterThan(0);
+		expect(result.scrollTop).toBeGreaterThan(0);
+	});
+
+	it('grid 原点 (0, 0) の widget でも scrollLeft / scrollTop > 0 (壁 回避)', () => {
+		// 旧 fix では BB が小さい / top-left 配置 で scroll = 0 にクランプされ「壁」体感していた。
+		// 新 fix では buffer のおかげで widget at (0, 0) でも scroll > 0 になる。
+		const origin = { cellX: 0.5, cellY: 0.5 }; // 1×1 widget at (0,0)
+		const result = computeFitScroll(origin, 100, { clientWidth: 1920, clientHeight: 1080 });
+		// buffer.x ≈ 12 * 256 = 3072, viewport_w/2 = 960 → originPx > 960 → scrollLeft > 0
+		expect(result.scrollLeft).toBeGreaterThan(0);
+		expect(result.scrollTop).toBeGreaterThan(0);
 	});
 });
 
