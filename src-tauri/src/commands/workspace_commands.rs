@@ -1,6 +1,6 @@
 use tauri::{AppHandle, Manager, State};
 
-use crate::models::git::GitStatus;
+use crate::models::git::{GitStatus, GitStatusBatchEntry};
 use crate::models::item::Item;
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
@@ -132,6 +132,16 @@ pub fn cmd_get_folder_items(services: State<AppServices>) -> Result<Vec<Item>, A
 #[tauri::command]
 pub fn cmd_git_status(path: String) -> Result<GitStatus, AppError> {
     workspace_service::git_status(&path)
+}
+
+/// Phase L-1 (2026-05-07 user 検収 Library 真因 #1):
+/// 旧 cmd_git_status は ProjectsWidget で各フォルダ別に N+1 IPC を発火し、累積数秒の遅延に
+/// なっていた。本 IPC は paths を batch で受け、内部で並列に実行して 1 roundtrip にまとめる。
+#[tauri::command]
+pub fn cmd_get_git_statuses_batch(
+    paths: Vec<String>,
+) -> Result<Vec<GitStatusBatchEntry>, AppError> {
+    Ok(workspace_service::git_statuses_batch(paths))
 }
 
 /// PH-issue-009: 画像を `<app_data_dir>/wallpapers/<uuid>.<ext>` にコピーして保存先パスを返す。

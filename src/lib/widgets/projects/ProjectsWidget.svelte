@@ -21,7 +21,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { getFolderItems, getGitStatus } from '$lib/ipc/workspace';
+import { getFolderItems, getGitStatusesBatch } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { GitStatus } from '$lib/types/git';
@@ -56,19 +56,30 @@ const PROJECT_CONFIG_DEFAULTS = {
 
 let config = $derived(parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS));
 
+// Phase L-1 (2026-05-07 user 検収 Library 真因 #1): N+1 IPC を batch IPC に集約。
+// 旧実装は各 folder item ごと cmd_git_status を発火 (10+ folders で累積数秒)、本実装は
+// 全 folder paths を 1 IPC `cmd_get_git_statuses_batch` で並列取得 (backend で thread spawn)。
 async function fetchGitStatuses(items: Item[], merge = false): Promise<void> {
+	const folderItems = items.filter((item) => item.item_type === 'folder');
+	if (folderItems.length === 0) {
+		if (!merge) gitStatuses = {};
+		return;
+	}
+	const paths = folderItems.map((i) => i.target);
+	const pathToItemId = new Map(folderItems.map((i) => [i.target, i.id]));
+	let results: Awaited<ReturnType<typeof getGitStatusesBatch>>;
+	try {
+		results = await getGitStatusesBatch(paths);
+	} catch {
+		// batch 自体が失敗した場合 (panic 等)、silent skip。caller の polling で次回 retry。
+		return;
+	}
 	const entries: Record<string, GitStatus> = {};
-	await Promise.all(
-		items
-			.filter((item) => item.item_type === 'folder')
-			.map(async (item) => {
-				try {
-					entries[item.id] = await getGitStatus(item.target);
-				} catch {
-					// git なしフォルダはスキップ
-				}
-			}),
-	);
+	for (const r of results) {
+		if (r.status === null) continue; // git なしフォルダ
+		const itemId = pathToItemId.get(r.path);
+		if (itemId) entries[itemId] = r.status;
+	}
 	gitStatuses = merge ? { ...gitStatuses, ...entries } : entries;
 }
 
