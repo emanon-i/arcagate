@@ -39,10 +39,10 @@ export const NAV_TOP = {
 	palette: { icon: Search, label: 'Palette' },
 } as const satisfies Record<string, NavItem>;
 
-/** Settings 内カテゴリ */
+/** Settings 内カテゴリ。B-10 #20: workspace tab 削除 (中身は zoom keyboard hint のみで
+ *  設定項目なし、user 認識通り tab 自体不要)。 */
 export const NAV_SETTINGS = {
 	general: { icon: Settings2, label: 'General' },
-	workspace: { icon: LayoutDashboard, label: 'Workspace' },
 	library: { icon: Archive, label: 'Library' },
 	appearance: { icon: Palette, label: 'Appearance' },
 	data: { icon: Database, label: 'Data' },

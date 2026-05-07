@@ -14,7 +14,7 @@
  * - docs/l1_requirements/ux_standards.md §6-1 Widget fluid sizing / §7 EmptyState
  * - CLAUDE.md「ラベルは機能 / 状態 / アクションを書く」
  */
-import { CircleDot, FolderKanban, GitBranch, Settings } from '@lucide/svelte';
+import { CircleDot, FolderKanban, GitBranch, Info, Settings } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
@@ -198,8 +198,19 @@ async function handleLaunch(item: Item) {
 			指定フォルダ内にサブフォルダがありません。
 		</p>
 	{:else}
+		<!-- B-7 #9: Settings description は info icon + hover tooltip に変更 (widget 領域圧迫防止) -->
 		{#if config.description}
-			<p class="mb-3 text-xs text-[var(--ag-text-muted)]">{config.description}</p>
+			<div class="mb-3 flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
+				<button
+					type="button"
+					aria-label="説明を表示"
+					class="flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					title={config.description}
+				>
+					<Info class="h-3.5 w-3.5" />
+				</button>
+				<span class="truncate">説明</span>
+			</div>
 		{/if}
 		<!-- PH-issue-039 / 検収項目 #18: container query で widget 幅に応じて 1/2/3 列に動的調整。
 		     PH-issue-039 / 検収項目 #17: 各 row のアイコンを削除 (folder 型では meaningless)。

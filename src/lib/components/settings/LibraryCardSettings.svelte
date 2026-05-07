@@ -121,32 +121,9 @@ const MODES = [
 		</section>
 	{/if}
 
-	{#if bg.mode === 'image'}
-		<section class="space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
-			<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">画像の表示位置 (focal point)</h4>
-			<p class="text-xs text-[var(--ag-text-muted)]">画像が切り抜かれるとき、どの位置を中心に残すかを指定します。</p>
-			{@render RangeRow(
-				'X (横)',
-				bg.focalX,
-				0,
-				100,
-				1,
-				(v) => configStore.setLibraryCardBackground({ focalX: v }),
-				'library-focal-x',
-				'%',
-			)}
-			{@render RangeRow(
-				'Y (縦)',
-				bg.focalY,
-				0,
-				100,
-				1,
-				(v) => configStore.setLibraryCardBackground({ focalY: v }),
-				'library-focal-y',
-				'%',
-			)}
-		</section>
-	{/if}
+	<!-- B-9 #17: 画像の表示位置 (focal point) section は Settings から削除。
+	     全カード一律設定では実用性低、適切な移動先未定のため一旦削除。
+	     bg.focalX/Y の defaults は configStore で 50/50 維持。 -->
 
 	<!-- ラベル文字 -->
 	<section class="space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
