@@ -1,10 +1,11 @@
 <script lang="ts">
 /**
- * PH-issue-026 (Issue 23): ExeFolderSettings polish — folder picker を shadcn Button に統一。
- * PH-issue-039 / 検収項目 #13 + #15: Clear button + description (120 文字制限) を Projects と統一。
- * 4/30 user 検収: ProjectsSettings と **項目順を統一** + FolderPickerField 共通化。
- * 順序: 監視フォルダ → スキャン挙動 → タイトル → 説明 (Projects と同形)。
+ * ExeFolderSettings (監視フォルダ widget の設定 dialog)。
+ *
+ * C-15 #19: default_opener_id field 追加 (cascade で widget レベルの起動アプリ default)。
  */
+import { onMount } from 'svelte';
+import { listOpeners, type Opener } from '$lib/ipc/opener';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
 
 const DESCRIPTION_MAX = 120;
@@ -16,6 +17,7 @@ interface Props {
 		title?: string;
 		description?: string;
 		item_overrides?: Record<string, string>;
+		default_opener_id?: string | null;
 	};
 }
 
@@ -25,6 +27,18 @@ let watchPath = $derived(config.watch_path ?? '');
 let scanDepth = $derived(config.scan_depth ?? 2);
 let exeFolderTitle = $derived(config.title ?? '');
 let exeDescription = $derived(config.description ?? '');
+
+// C-15 #19: Opener 一覧 (widget default opener select 用)。
+let openers = $state<Opener[]>([]);
+onMount(() => {
+	void listOpeners()
+		.then((list) => {
+			openers = list;
+		})
+		.catch(() => {
+			// best-effort
+		});
+});
 </script>
 
 <!-- 1. 監視フォルダ (Projects と同位置 / 同 component) -->
@@ -98,4 +112,28 @@ let exeDescription = $derived(config.description ?? '');
 			config = { ...config, description: (e.currentTarget as HTMLInputElement).value };
 		}}
 	/>
+</div>
+
+<!-- C-15 #19: widget レベルの起動アプリ default。 -->
+<div class="space-y-1">
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-default-opener">
+		デフォルト起動アプリ
+	</label>
+	<select
+		id="ws-exe-default-opener"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		value={config.default_opener_id ?? ''}
+		onchange={(e) => {
+			const v = (e.currentTarget as HTMLSelectElement).value;
+			config = { ...config, default_opener_id: v || null };
+		}}
+	>
+		<option value="">既定 (system) / item.default_app に従う</option>
+		{#each openers as op (op.id)}
+			<option value={op.id}>{op.name}{op.is_builtin ? ' (組み込み)' : ''}</option>
+		{/each}
+	</select>
+	<p class="text-xs text-[var(--ag-text-muted)]">
+		この widget からの起動でこの Opener を使う。Library カード個別設定が指定されてればそちらが優先。
+	</p>
 </div>
