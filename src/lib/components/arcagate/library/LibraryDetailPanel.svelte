@@ -1,10 +1,8 @@
 <script lang="ts">
 import { ask, open } from '@tauri-apps/plugin-dialog';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
-import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { countItemReferences, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -47,7 +45,6 @@ let selectedItem = $derived(itemStore.items.find((i) => i.id === selectedItemId)
 
 // タグ状態管理
 let itemTags = $state<Tag[]>([]);
-let resetConfirmOpen = $state(false);
 
 // request token: selectedItemId 切替時に古いレスポンスで上書きしないため
 let tagRequestId = 0;
@@ -165,19 +162,6 @@ async function handlePickDefaultApp() {
 	}
 }
 
-function handleCardOverrideEnable() {
-	if (!selectedItem) return;
-	// 現在の global 設定を override にコピー（編集の起点）
-	const current = JSON.stringify({
-		background: configStore.libraryCard.background,
-		style: configStore.libraryCard.style,
-	});
-	void itemStore.updateItem(selectedItem.id, {
-		card_override_json: current,
-	});
-	toastStore.add('このカードだけ個別調整を開始しました', 'success');
-}
-
 let moreMenuItems = $derived.by(() => {
 	if (!selectedItem) return [];
 	return [
@@ -208,11 +192,7 @@ let moreMenuItems = $derived.by(() => {
 >
 	{#if selectedItem}
 		<LibraryDetailHeader item={selectedItem} {moreMenuItems} {onClose} />
-		<LibraryDetailMetadata
-			item={selectedItem}
-			onCardOverrideEnable={handleCardOverrideEnable}
-			onCardOverrideResetRequest={() => (resetConfirmOpen = true)}
-		/>
+		<LibraryDetailMetadata item={selectedItem} />
 
 		<!-- Tags section (S-3-5, S-3-6) -->
 		<LibraryItemTagSection
@@ -240,19 +220,4 @@ let moreMenuItems = $derived.by(() => {
 	{/if}
 </aside>
 
-{#if selectedItem}
-	<ConfirmDialog
-		open={resetConfirmOpen}
-		title="個別調整を解除しますか？"
-		description="このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。"
-		confirmLabel="解除する"
-		confirmVariant="destructive"
-		onConfirm={() => {
-			const id = selectedItem.id;
-			resetConfirmOpen = false;
-			void itemStore.updateItem(id, { card_override_json: null });
-			toastStore.add('個別調整を解除しました', 'success');
-		}}
-		onCancel={() => (resetConfirmOpen = false)}
-	/>
-{/if}
+<!-- E-3 (2026-05-07): カード表示設定 + reset ConfirmDialog は ItemFormCardOverride 内蔵に移植済。 -->
