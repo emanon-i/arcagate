@@ -2,33 +2,19 @@
 import type { Tag } from '$lib/types/tag';
 
 /**
- * ItemForm のメタデータフィールド (is_tracked + tags)。
+ * ItemForm の tag 選択フィールド。
  *
- * 引用元 guideline:
- *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、tags 抽出)
+ * D-11 #11 / D-14 #14: ファイル追跡 checkbox は完全撤去。URL は filesystem watcher 対象外、
+ * URL 以外は default 追跡 ON で固定 (ItemForm 側で is_tracked を type 別に決定)。
  */
 interface Props {
 	userTags: Tag[];
-	isTracked: boolean;
 	selectedTagIds: Set<string>;
 	onToggleTag: (id: string) => void;
 }
 
-let { userTags, isTracked = $bindable(true), selectedTagIds, onToggleTag }: Props = $props();
+let { userTags, selectedTagIds, onToggleTag }: Props = $props();
 </script>
-
-<!-- J-5: ファイル追跡チェックボックス -->
-<div class="flex items-center gap-2">
-	<input
-		id="item-tracked"
-		type="checkbox"
-		class="h-4 w-4 rounded border-[var(--ag-border)]"
-		bind:checked={isTracked}
-	/>
-	<label class="text-sm text-[var(--ag-text-secondary)]" for="item-tracked">
-		ファイル変更を追跡する
-	</label>
-</div>
 
 {#if userTags.length > 0}
 	<div class="space-y-2">
