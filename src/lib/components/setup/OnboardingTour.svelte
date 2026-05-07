@@ -70,14 +70,13 @@ function handleNext() {
 
 {#if isOpen}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- R6-2: Onboarding tour を Industrial Yellow scope に。Settings と同じ token re-bind。 -->
+	<!-- B-6 #1: il-zone scope 撤去、accent は theme 追従。 -->
 	<div
-		class="il-zone fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-8"
+		class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-8"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="onboarding-title"
 		data-testid="onboarding-tour"
-		data-il-zone
 		transition:fade={{ duration: dFast }}
 		tabindex="-1"
 	>
@@ -138,14 +137,3 @@ function handleNext() {
 	</div>
 {/if}
 
-<style>
-/* R6-2: Industrial Yellow scope (Settings と同じ pattern)。 */
-.il-zone {
-	--ag-accent: var(--ag-il-yellow);
-	--ag-accent-text: var(--ag-il-on-yellow);
-	--ag-accent-bg: color-mix(in srgb, var(--ag-il-yellow) 12%, transparent);
-	--ag-accent-border: color-mix(in srgb, var(--ag-il-yellow) 40%, transparent);
-	--ag-accent-active-bg: color-mix(in srgb, var(--ag-il-yellow) 18%, transparent);
-	--ag-accent-active-border: color-mix(in srgb, var(--ag-il-yellow) 50%, transparent);
-}
-</style>

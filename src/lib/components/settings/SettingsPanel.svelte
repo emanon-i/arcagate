@@ -53,10 +53,8 @@ function handleNavKeydown(e: KeyboardEvent) {
 }
 </script>
 
-<!-- R6-1: Settings 全体を Industrial Yellow scope に (data-il-zone)。
-     CSS で --ag-accent / --ag-accent-text / --ag-accent-bg / --ag-accent-border を
-     yellow に override、既存 class はそのままで瞬時に Industrial 化。 -->
-<div class="il-zone flex h-full min-h-0" data-il-zone>
+<!-- B-6 #1: il-zone scope 撤去、accent は theme 追従。 -->
+<div class="flex h-full min-h-0">
 	<!-- 左: カテゴリナビ -->
 	<!-- svelte-ignore a11y_interactive_supports_focus -->
 	<div
@@ -166,17 +164,3 @@ function handleNavKeydown(e: KeyboardEvent) {
 	</div>
 </div>
 
-<style>
-/* R6-1: Industrial Yellow accent scope。
-   Settings 配下のすべての --ag-accent* を Industrial Yellow に re-bind し、
-   class や inline 値を一切変更せずに focus / selected / accent state を瞬時に Industrial 化。
-   scope 外 (Library / Workspace 等) は元 cyan accent のまま。 */
-.il-zone {
-	--ag-accent: var(--ag-il-yellow);
-	--ag-accent-text: var(--ag-il-on-yellow);
-	--ag-accent-bg: color-mix(in srgb, var(--ag-il-yellow) 12%, transparent);
-	--ag-accent-border: color-mix(in srgb, var(--ag-il-yellow) 40%, transparent);
-	--ag-accent-active-bg: color-mix(in srgb, var(--ag-il-yellow) 18%, transparent);
-	--ag-accent-active-border: color-mix(in srgb, var(--ag-il-yellow) 50%, transparent);
-}
-</style>

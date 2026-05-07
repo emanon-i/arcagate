@@ -65,8 +65,7 @@ const dNormal = rm ? 0 : 200;
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
-		class="il-zone fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-		data-il-zone
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
@@ -92,14 +91,3 @@ const dNormal = rm ? 0 : 200;
 	</div>
 {/if}
 
-<style>
-/* R6-4: Industrial Yellow scope。 */
-.il-zone {
-	--ag-accent: var(--ag-il-yellow);
-	--ag-accent-text: var(--ag-il-on-yellow);
-	--ag-accent-bg: color-mix(in srgb, var(--ag-il-yellow) 12%, transparent);
-	--ag-accent-border: color-mix(in srgb, var(--ag-il-yellow) 40%, transparent);
-	--ag-accent-active-bg: color-mix(in srgb, var(--ag-il-yellow) 18%, transparent);
-	--ag-accent-active-border: color-mix(in srgb, var(--ag-il-yellow) 50%, transparent);
-}
-</style>
