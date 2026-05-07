@@ -10,10 +10,9 @@ pub mod utils;
 pub mod watcher;
 
 use commands::config_commands::{
-    cmd_consume_last_panic, cmd_get_autostart, cmd_get_config, cmd_get_crash_report_opt_in,
-    cmd_get_hotkey, cmd_get_telemetry_opt_in, cmd_is_onboarding_complete, cmd_is_setup_complete,
-    cmd_mark_onboarding_complete, cmd_mark_setup_complete, cmd_set_autostart, cmd_set_config,
-    cmd_set_crash_report_opt_in, cmd_set_hotkey, cmd_set_telemetry_opt_in,
+    cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_onboarding_complete,
+    cmd_is_setup_complete, cmd_mark_onboarding_complete, cmd_mark_setup_complete,
+    cmd_set_autostart, cmd_set_config, cmd_set_hotkey,
 };
 use commands::exe_scanner_commands::cmd_scan_exe_folders;
 use commands::export_commands::{cmd_export_json, cmd_import_json};
@@ -115,11 +114,6 @@ pub fn run() {
                 .app_data_dir()
                 .expect("failed to resolve app data dir");
             std::fs::create_dir_all(&app_data_dir)?;
-
-            // R10-D E1: panic_hook を install。panic 発生時に APPDATA/last-panic.json へ記録、
-            // 次回起動時に frontend が cmd_consume_last_panic で読み取って toast 表示。
-            // (Sentry envelope 自動送信は telemetry opt-in 時のみ、本 hook では行わない)
-            services::crash_monitor_service::install_panic_hook(app_data_dir.clone());
 
             // E2E テスト時は ARCAGATE_DB_PATH 環境変数で DB パスを上書きできる
             let db_path = std::env::var("ARCAGATE_DB_PATH")
@@ -298,11 +292,6 @@ pub fn run() {
             cmd_export_theme_json,
             cmd_import_theme_json,
             cmd_check_kill_switch,
-            cmd_get_telemetry_opt_in,
-            cmd_set_telemetry_opt_in,
-            cmd_get_crash_report_opt_in,
-            cmd_set_crash_report_opt_in,
-            cmd_consume_last_panic,
             cmd_list_openers,
             cmd_save_opener,
             cmd_delete_opener,

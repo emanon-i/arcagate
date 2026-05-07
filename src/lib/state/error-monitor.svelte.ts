@@ -12,8 +12,6 @@ import { toastStore } from './toast.svelte';
  * - `error` event (window-level、bubble してくる thrown error) を同様に処理
  * - 連発抑止: 同 message が 5 秒以内に再発生したら toast を suppress (console.error は維持)
  * - `installErrorMonitor()` は `+layout.svelte` mount 時に 1 回だけ呼ぶ。idempotent。
- *
- * 将来: telemetry opt-in の user で error を Sentry endpoint に POST する経路を追加 (R5+)。
  */
 
 const RECENT_TTL_MS = 5_000;
