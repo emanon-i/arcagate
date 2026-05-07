@@ -3,8 +3,42 @@ import * as themeIpc from '$lib/ipc/theme';
 import type { Theme, ThemeMode } from '$lib/types/theme';
 import { getErrorMessage } from '$lib/utils/format-error';
 
+/**
+ * E-1 (2026-05-07 user 検収): 起動時 古い初期 UI ちらつき (light theme 一瞬表示) の真因対策。
+ *
+ * 旧: theme apply は loadTheme() の IPC 完了後 → IPC 待ち中 (100-300ms) に default CSS
+ * (light mode、`dark` class なし) で UI 描画される。user / e2e で「古い初期 UI が一瞬見える」
+ * と観測される根本原因。
+ *
+ * 新: 前回 active mode を localStorage に cache し、module 初期化時に **同期** で apply。
+ * loadTheme 完了後に最新値で再 apply (custom theme tokens 等は IPC 必須なので)。
+ */
+const THEME_MODE_CACHE_KEY = 'arcagate.theme.activeMode';
+
+function readCachedMode(): ThemeMode {
+	if (typeof window === 'undefined') return 'dark';
+	try {
+		const v = window.localStorage.getItem(THEME_MODE_CACHE_KEY);
+		if (v === 'dark' || v === 'light' || v === 'system') return v;
+		// 任意の custom theme ID も受容 (theme load 後に存在性確認、無効なら fallback)
+		if (v && v.length > 0) return v as ThemeMode;
+	} catch {
+		// localStorage 不可環境は dark default
+	}
+	return 'dark';
+}
+
+function writeCachedMode(mode: ThemeMode): void {
+	if (typeof window === 'undefined') return;
+	try {
+		window.localStorage.setItem(THEME_MODE_CACHE_KEY, mode);
+	} catch {
+		// quota / SecurityError は黙殺
+	}
+}
+
 let themes = $state<Theme[]>([]);
-let activeMode = $state<ThemeMode>('dark');
+let activeMode = $state<ThemeMode>(readCachedMode());
 const resolvedMode = $derived(resolveMode(activeMode));
 let error = $state<string | null>(null);
 
@@ -103,6 +137,7 @@ async function loadTheme(): Promise<void> {
 		]);
 		themes = allThemes;
 		activeMode = mode;
+		writeCachedMode(mode);
 		applyTheme();
 
 		if (!themeChangedUnlisten) {
@@ -117,6 +152,7 @@ async function loadTheme(): Promise<void> {
 
 async function setThemeMode(mode: ThemeMode): Promise<void> {
 	activeMode = mode;
+	writeCachedMode(mode);
 	applyTheme();
 	try {
 		await themeIpc.setActiveThemeMode(mode);
@@ -197,6 +233,12 @@ async function importTheme(json: string): Promise<Theme | null> {
 		error = getErrorMessage(e);
 		return null;
 	}
+}
+
+// E-1 fix: module load 時に cached mode で即時 apply (IPC 待ちで default light mode が一瞬出る問題を解消)。
+// loadTheme が後で IPC で正しい theme 状態を fetch して再 apply する (custom themes の tokens は IPC 必須)。
+if (typeof document !== 'undefined') {
+	applyTheme();
 }
 
 export const themeStore = {
