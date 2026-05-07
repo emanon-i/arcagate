@@ -1,4 +1,6 @@
 <script lang="ts">
+import { File, Folder } from '@lucide/svelte';
+import { open } from '@tauri-apps/plugin-dialog';
 import type { ItemType } from '$lib/types/item';
 import DropZone from './DropZone.svelte';
 
@@ -32,6 +34,32 @@ let {
 	onTypeModeChange,
 	onDrop,
 }: Props = $props();
+
+// E-5 (2026-05-08 user 検収): native file/folder picker dialog (Tauri @tauri-apps/plugin-dialog).
+// 直接入力 (E-4) / drag&drop と並行で picker UI を提供、UX 選択肢を増やす。
+async function handlePickFile(): Promise<void> {
+	const selected = await open({
+		multiple: false,
+		directory: false,
+		filters: [
+			{
+				name: '実行ファイル / Script',
+				extensions: ['exe', 'bat', 'cmd', 'ps1', 'sh', 'py', 'js'],
+			},
+			{ name: 'すべてのファイル', extensions: ['*'] },
+		],
+	});
+	if (typeof selected === 'string') {
+		target = selected;
+	}
+}
+
+async function handlePickFolder(): Promise<void> {
+	const selected = await open({ multiple: false, directory: true });
+	if (typeof selected === 'string') {
+		target = selected;
+	}
+}
 </script>
 
 {#if !isEdit}
@@ -93,16 +121,39 @@ let {
 		/>
 		<p class="text-xs text-[var(--ag-text-muted)]">ブラウザで開く URL を入力</p>
 	{:else}
-		<input
-			id="item-target"
-			type="text"
-			autocomplete="off"
-			class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
-			bind:value={target}
-			required
-			placeholder="C:\path\to\file.exe または ドラッグ＆ドロップ"
-		/>
-		<p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス。直接入力 / drag&drop / file picker のいずれも可</p>
+		<div class="flex items-stretch gap-2">
+			<input
+				id="item-target"
+				type="text"
+				autocomplete="off"
+				class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
+				bind:value={target}
+				required
+				placeholder="C:\path\to\file.exe または ドラッグ＆ドロップ"
+			/>
+			<!-- E-5: file picker buttons (Tauri native dialog)。直接入力 + drag&drop と並行。 -->
+			<button
+				type="button"
+				class="flex shrink-0 items-center gap-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-2 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+				aria-label="ファイルを参照"
+				title="ファイルを選択"
+				onclick={() => void handlePickFile()}
+			>
+				<File class="h-3.5 w-3.5" />
+				ファイル
+			</button>
+			<button
+				type="button"
+				class="flex shrink-0 items-center gap-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-2 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+				aria-label="フォルダを参照"
+				title="フォルダを選択"
+				onclick={() => void handlePickFolder()}
+			>
+				<Folder class="h-3.5 w-3.5" />
+				フォルダ
+			</button>
+		</div>
+		<p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス。直接入力 / drag&drop / 参照ボタンのいずれも可</p>
 	{/if}
 </div>
 
