@@ -49,7 +49,6 @@ let args = $state('');
 let workingDir = $state('');
 let iconPath = $state('');
 let aliasesText = $state('');
-let isTracked = $state(true);
 let selectedTagIds = $state<Set<string>>(new Set());
 let initialPathsProcessed = $state(false);
 
@@ -65,7 +64,6 @@ $effect(() => {
 	workingDir = item?.working_dir ?? '';
 	iconPath = item?.icon_path ?? '';
 	aliasesText = item?.aliases.join(', ') ?? '';
-	isTracked = item?.is_tracked ?? true;
 	selectedTagIds = new Set();
 	initialPathsProcessed = false;
 });
@@ -94,6 +92,11 @@ function handleSubmit(e: Event) {
 		.map((s) => s.trim())
 		.filter(Boolean);
 
+	// D-11 #11 / D-14 #14: ファイル追跡 checkbox 完全撤去。URL は filesystem watcher 対象外
+	// なので false 固定、それ以外は true 固定 (既存挙動の default 動作と整合)。
+	const finalTypeForTracked = item?.item_type ?? (typeMode === 'url' ? 'url' : itemType);
+	const isTrackedFixed = finalTypeForTracked !== 'url';
+
 	if (item) {
 		const input: UpdateItemInput = {
 			label: label || undefined,
@@ -102,7 +105,7 @@ function handleSubmit(e: Event) {
 			working_dir: workingDir || null,
 			icon_path: iconPath || null,
 			aliases,
-			is_tracked: isTracked,
+			is_tracked: isTrackedFixed,
 			tag_ids: Array.from(selectedTagIds),
 		};
 		onSubmit(input);
@@ -117,7 +120,7 @@ function handleSubmit(e: Event) {
 			icon_path: iconPath || null,
 			aliases,
 			tag_ids: Array.from(selectedTagIds),
-			is_tracked: isTracked,
+			is_tracked: isTrackedFixed,
 		};
 		onSubmit(input);
 	}
@@ -136,13 +139,7 @@ function toggleTag(id: string) {
 function handleTypeModeChange(mode: TypeMode) {
 	if (item) return;
 	typeMode = mode;
-	if (mode === 'url') {
-		itemType = 'url';
-		isTracked = false;
-	} else {
-		itemType = 'exe';
-		isTracked = true;
-	}
+	itemType = mode === 'url' ? 'url' : 'exe';
 	target = '';
 }
 
@@ -157,7 +154,6 @@ async function handleDrop(paths: string[]) {
 	}
 	itemType = detected;
 	target = path;
-	isTracked = true;
 	if (!label) {
 		const filename = path.split(/[\\/]/).pop() ?? '';
 		label = filename.replace(/\.[^.]+$/, '');
@@ -199,7 +195,6 @@ async function handleSelectIcon() {
 
 	<ItemFormTags
 		{userTags}
-		bind:isTracked
 		{selectedTagIds}
 		onToggleTag={toggleTag}
 	/>
