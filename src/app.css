@@ -124,4 +124,18 @@ select[data-themed] option {
   ::-webkit-scrollbar-thumb:hover {
     background: var(--ag-text-faint, oklch(1 0 0 / 20%));
   }
+
+  /* E-2 (2026-05-08 user 検収): 選択 group UI 共通化 — <select> dropdown の <option>
+     リストが OS default styling で theme と被って文字色 + 背景色が見えない問題を全面解消。
+     全 select の <option> を theme tokens 経由で塗り、Library ソート / カード設定 select /
+     widget settings 等すべて contrast 保証。
+     Tauri WebView2 (Chromium) は <option> styling を尊重するので有効。 */
+  select option {
+    color: var(--ag-text-primary);
+    background: var(--ag-surface-3);
+  }
+  select option:checked {
+    color: var(--ag-accent-text);
+    background: var(--ag-accent-bg);
+  }
 }
