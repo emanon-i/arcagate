@@ -1,7 +1,8 @@
 use std::path::Path;
 use std::process::Command;
+use std::thread;
 
-use crate::models::git::GitStatus;
+use crate::models::git::{GitStatus, GitStatusBatchEntry};
 use crate::utils::error::AppError;
 
 /// 親プロセス（Tauri / lefthook 等）から漏れた GIT_* 環境変数を除去した Command を作る。
@@ -68,6 +69,39 @@ pub fn git_status(path: &str) -> Result<GitStatus, AppError> {
         has_changes: changed_count > 0,
         changed_count,
     })
+}
+
+/// Phase L-1 (2026-05-07): git_status を **並列実行**で batch 化。
+///
+/// 真因: 旧実装は ProjectsWidget mount 時に各フォルダ別で `cmd_git_status` IPC を呼んでいたため、
+/// IPC roundtrip + git process spawn × N フォルダ で累積数秒の遅延 (user 検収 Library freeze の主因)。
+///
+/// fix: 入力 `paths: Vec<String>` を受け、各 path に std::thread::spawn を立てて並列実行。
+/// thread の join で結果回収、入力順序を保持して `Vec<GitStatusBatchEntry>` を返す。
+///
+/// エラー (.git なし / git 無 / process panic) は `status: None` で silent skip — ProjectsWidget
+/// 側の旧 try/catch スキップ仕様と互換。
+///
+/// thread 並列度: paths.len() ぶん spawn (実用 N≤50 想定)。OS thread コストが軽微なため pool 不要。
+pub fn git_statuses_batch(paths: Vec<String>) -> Vec<GitStatusBatchEntry> {
+    let handles: Vec<_> = paths
+        .into_iter()
+        .map(|path| {
+            let p = path.clone();
+            (path, thread::spawn(move || git_status(&p)))
+        })
+        .collect();
+    handles
+        .into_iter()
+        .map(|(path, handle)| {
+            let status = match handle.join() {
+                Ok(Ok(s)) => Some(s),
+                Ok(Err(_)) => None,
+                Err(_) => None,
+            };
+            GitStatusBatchEntry { path, status }
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -173,5 +207,46 @@ mod tests {
     fn test_git_status_nonexistent_path() {
         let result = git_status("/nonexistent/path/to/repo");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_git_statuses_batch_preserves_order_and_skips_errors() {
+        // Phase L-1: 入力 paths と同じ順序で結果が返る、git repo でない path は status: None。
+        let tmp_repo = std::env::temp_dir().join(format!("ag_batch_test_{}", uuid::Uuid::now_v7()));
+        fs::create_dir_all(&tmp_repo).unwrap();
+        init_git_repo(&tmp_repo);
+        super::git_cmd()
+            .args(["commit", "--allow-empty", "-m", "init"])
+            .current_dir(&tmp_repo)
+            .output()
+            .unwrap();
+
+        let tmp_non_repo =
+            std::env::temp_dir().join(format!("ag_batch_test_nonrepo_{}", uuid::Uuid::now_v7()));
+        fs::create_dir_all(&tmp_non_repo).unwrap();
+
+        let paths = vec![
+            tmp_repo.to_string_lossy().to_string(),
+            tmp_non_repo.to_string_lossy().to_string(),
+            "/nonexistent/foo".to_string(),
+        ];
+        let results = git_statuses_batch(paths.clone());
+
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].path, paths[0]);
+        assert_eq!(results[1].path, paths[1]);
+        assert_eq!(results[2].path, paths[2]);
+        assert!(results[0].status.is_some(), "git repo は status を持つ");
+        assert!(results[1].status.is_none(), "non-repo は None");
+        assert!(results[2].status.is_none(), "nonexistent も None");
+
+        let _ = fs::remove_dir_all(&tmp_repo);
+        let _ = fs::remove_dir_all(&tmp_non_repo);
+    }
+
+    #[test]
+    fn test_git_statuses_batch_empty_input() {
+        let results = git_statuses_batch(vec![]);
+        assert_eq!(results.len(), 0);
     }
 }

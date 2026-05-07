@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use crate::db::DbState;
-use crate::models::git::GitStatus;
+use crate::models::git::{GitStatus, GitStatusBatchEntry};
 use crate::models::item::Item;
 use crate::models::tag::{self, Tag};
 use crate::models::workspace::{
@@ -232,6 +232,11 @@ pub fn get_folder_items(db: &DbState) -> Result<Vec<Item>, AppError> {
 
 pub fn git_status(path: &str) -> Result<GitStatus, AppError> {
     git::git_status(path)
+}
+
+/// Phase L-1: git_status batch (並列実行) — Library freeze 主因の N+1 IPC を 1 IPC に集約。
+pub fn git_statuses_batch(paths: Vec<String>) -> Vec<GitStatusBatchEntry> {
+    git::git_statuses_batch(paths)
 }
 
 #[cfg(test)]

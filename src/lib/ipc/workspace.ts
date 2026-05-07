@@ -97,3 +97,19 @@ export async function getFolderItems(): Promise<Item[]> {
 export async function getGitStatus(path: string): Promise<GitStatus> {
 	return invoke<GitStatus>('cmd_git_status', { path });
 }
+
+/**
+ * Phase L-1 (2026-05-07 user 検収 Library 真因 #1):
+ * 複数 path の git_status を 1 IPC に集約。backend で並列実行。
+ * 旧 N+1 問題 (各フォルダ別 IPC × N) を解消。
+ *
+ * 入力 paths と同じ順序で entry が返る。git repo でない / エラーは `status: null` で silent skip。
+ */
+export interface GitStatusBatchEntry {
+	path: string;
+	status: GitStatus | null;
+}
+
+export async function getGitStatusesBatch(paths: string[]): Promise<GitStatusBatchEntry[]> {
+	return invoke<GitStatusBatchEntry[]>('cmd_get_git_statuses_batch', { paths });
+}
