@@ -67,20 +67,36 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
 }
 
 pub fn search_in_tag(conn: &Connection, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
-    let pattern = format!("%{}%", query);
-    let mut stmt = conn.prepare(
-        "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+    // Phase L-2 (2026-05-07 user 検収 Library 真因 #2):
+    // 旧実装は空 query 時も `LIKE '%%'` を全行に評価して full scan を起こし、avg 168ms /
+    // max 201ms (@ 690 items)。空 query 時は LIKE clause 自体を省き、idx_item_tags_tag
+    // (migration 025) で tag_id INDEX のみを使う query にする。
+    const SELECT: &str = "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_tags it ON it.item_id = i.id
          WHERE it.tag_id = ?1
-           AND i.is_enabled = 1
-           AND (i.label LIKE ?2 OR i.aliases LIKE ?2)
-         ORDER BY i.sort_order, i.label",
-    )?;
-    let items = stmt
-        .query_map(params![tag_id, pattern], Item::from_row)?
-        .collect::<rusqlite::Result<Vec<Item>>>()?;
-    Ok(items)
+           AND i.is_enabled = 1";
+    const ORDER: &str = " ORDER BY i.sort_order, i.label";
+
+    if query.is_empty() {
+        let sql = format!("{}{}", SELECT, ORDER);
+        let mut stmt = conn.prepare(&sql)?;
+        let items = stmt
+            .query_map(params![tag_id], Item::from_row)?
+            .collect::<rusqlite::Result<Vec<Item>>>()?;
+        Ok(items)
+    } else {
+        let pattern = format!("%{}%", query);
+        let sql = format!(
+            "{}{}{}",
+            SELECT, "\n           AND (i.label LIKE ?2 OR i.aliases LIKE ?2)", ORDER
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let items = stmt
+            .query_map(params![tag_id, pattern], Item::from_row)?
+            .collect::<rusqlite::Result<Vec<Item>>>()?;
+        Ok(items)
+    }
 }
 
 pub fn update(conn: &Connection, id: &str, input: &UpdateItemInput) -> Result<(), AppError> {
