@@ -1,18 +1,17 @@
 <script lang="ts">
+import { onMount } from 'svelte';
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
+import { listOpeners, type Opener } from '$lib/ipc/opener';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
+import { type CardOverrideJson, parseCardOverride } from '$lib/utils/card-override';
 
 /**
  * Library detail panel メタデータセクション (gradient preview + DetailRows + visibility + card override)。
  *
- * 引用元 guideline:
- *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、metadata 抽出)
- *
- * - is_enabled toggle は itemStore.updateItem を直接呼ぶ (mutation 系 IPC)
- * - card override の enable / reset は親に callback で通知 (reset は ConfirmDialog 経由)
+ * C-15 #10 + #19: per-card override に opener_id field 追加 (起動アプリ override、最優先 cascade)。
  */
 interface Props {
 	item: Item;
@@ -21,6 +20,26 @@ interface Props {
 }
 
 let { item, onCardOverrideEnable, onCardOverrideResetRequest }: Props = $props();
+
+// Opener 一覧 (per-card opener override の select 用)。mount 時 1 回 fetch。
+let openers = $state<Opener[]>([]);
+onMount(() => {
+	void listOpeners()
+		.then((list) => {
+			openers = list;
+		})
+		.catch(() => {
+			// best-effort
+		});
+});
+
+let cardOverride = $derived(parseCardOverride(item.card_override_json));
+let currentOpenerId = $derived(cardOverride?.opener_id ?? '');
+
+async function setOpenerId(value: string): Promise<void> {
+	const next: CardOverrideJson = { ...(cardOverride ?? {}), opener_id: value || null };
+	await itemStore.updateItem(item.id, { card_override_json: JSON.stringify(next) });
+}
 </script>
 
 <!-- Gradient preview -->
@@ -113,6 +132,26 @@ let { item, onCardOverrideEnable, onCardOverrideResetRequest }: Props = $props()
 		{/if}
 	</div>
 	{#if item.card_override_json}
+		<!-- C-15 #10 + #19: 起動アプリ Opener override (cascade で最優先)。 -->
+		<div class="mt-3 space-y-2 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
+			<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-opener">
+				起動アプリ (Opener override)
+			</label>
+			<select
+				id="card-opener"
+				class="w-full rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				value={currentOpenerId}
+				onchange={(e) => void setOpenerId((e.currentTarget as HTMLSelectElement).value)}
+			>
+				<option value="">既定 (system) / item.default_app に従う</option>
+				{#each openers as op (op.id)}
+					<option value={op.id}>{op.name}{op.is_builtin ? ' (組み込み)' : ''}</option>
+				{/each}
+			</select>
+			<p class="text-xs text-[var(--ag-text-muted)]">
+				このカードのみ指定 Opener で起動。Library / Workspace 両方の click 起動に効く。
+			</p>
+		</div>
 		<p class="text-xs text-[var(--ag-text-muted)]">
 			詳細編集 UI は Settings > Library に統合予定。当面はリセット → 再有効化で global の最新値を取り込めます。
 		</p>
