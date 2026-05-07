@@ -83,6 +83,19 @@ async function fetchGitStatuses(items: Item[], merge = false): Promise<void> {
 // アイテム消去** されていた。修正: 前回 folder 値を変数で保持し、文字列が変わったときだけ scan
 // reset + 再 fetch。これでリサイズ中も folderItems がそのまま残る。
 let prevFolder: string | undefined;
+
+// B 案 (#16): watched_folder を file system watcher (watched_paths) に自動連携。
+async function ensureWatchedPath(path: string): Promise<void> {
+	try {
+		const { addWatchedPath } = await import('$lib/ipc/watched_paths');
+		await addWatchedPath(path, null);
+	} catch (e: unknown) {
+		if (!String(e).toLowerCase().includes('unique')) {
+			console.warn('ensureWatchedPath failed', e);
+		}
+	}
+}
+
 $effect(() => {
 	const folder = config.watched_folder;
 	if (folder === prevFolder) return; // resize 等で widget object が更新されても folder 不変なら何もしない
@@ -93,6 +106,8 @@ $effect(() => {
 		scanning = false;
 		return;
 	}
+	// B 案 (#16): file system watcher (watched_paths) に path を自動登録
+	void ensureWatchedPath(folder);
 	scanning = true;
 	autoRegisterFolderItems(folder)
 		.then(async (items) => {
