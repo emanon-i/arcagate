@@ -8,8 +8,8 @@ import DropZone from './DropZone.svelte';
  * 引用元 guideline:
  *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、target 抽出)
  *
- * - 編集 (isEdit=true) では type mode / DropZone を非表示、target は readonly
- * - 新規作成では DropZone + type toggle (URL/ローカル) + target 入力
+ * - 編集 (isEdit=true) では type mode / DropZone を非表示
+ * - 新規 / 編集ともに target は直接入力可 (E-4 で readonly 撤廃、2026-05-08)
  */
 type TypeMode = 'url' | 'local';
 
@@ -74,7 +74,8 @@ let {
 	{/if}
 </div>
 
-<!-- J-3: ターゲット readonly 化 -->
+<!-- E-4 (2026-05-08 user 検収): local path も直接入力可能化 (旧 readonly 撤廃)。
+     drag&drop / 既存 picker (E-5 で追加予定) と並行可、user の手書き編集に対応。 -->
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-target">
 		{typeMode === 'url' ? 'URL' : 'ファイル / フォルダのパス'}
@@ -96,13 +97,12 @@ let {
 			id="item-target"
 			type="text"
 			autocomplete="off"
-			class="w-full cursor-default rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] placeholder:text-[var(--ag-text-muted)]"
-			value={target}
-			readonly
+			class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
+			bind:value={target}
 			required
-			placeholder="ドラッグ＆ドロップ または 下のボタンで選択"
+			placeholder="C:\path\to\file.exe または ドラッグ＆ドロップ"
 		/>
-		<p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス（直接入力不可）</p>
+		<p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス。直接入力 / drag&drop / file picker のいずれも可</p>
 	{/if}
 </div>
 
