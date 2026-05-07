@@ -20,6 +20,7 @@
  *   workspace-config.activeWorkspaceId を **method body 内**で読む構成で問題なし。
  */
 
+import { getWatchedPaths, removeWatchedPath } from '$lib/ipc/watched_paths';
 import * as workspaceIpc from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceConfig } from '$lib/state/workspace-config.svelte';
@@ -33,6 +34,50 @@ import {
 	wouldOverlapAt,
 } from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
+
+/**
+ * Phase 2 cascade (B 案 #16 完遂、2026-05-07):
+ * exe_folder / projects widget の config から監視 path を抽出。
+ * `watch_path` (exe_folder) と `watched_folder` (projects) の両方をサポート。
+ */
+function extractWatchedPathFromWidget(w: WorkspaceWidget): string | null {
+	if (w.widget_type !== 'exe_folder' && w.widget_type !== 'projects') return null;
+	if (!w.config) return null;
+	try {
+		const cfg = JSON.parse(w.config) as { watch_path?: string; watched_folder?: string };
+		return cfg.watch_path ?? cfg.watched_folder ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Phase 2 cascade: 削除対象 widget の path を、残存 widgets (active workspace 内) で
+ * 誰も使ってないなら watched_paths から remove。
+ *
+ * cross-workspace の同 path は対象外: 別 workspace の widget が再 mount される際の
+ * `ensureWatchedPath` が UNIQUE skip を経由せず再追加するため self-healing になる
+ * (widgets/exe-folder/ExeFolderWatchWidget.svelte / projects/ProjectsWidget.svelte 参照)。
+ */
+async function cascadeRemoveWatchedPath(
+	removed: WorkspaceWidget,
+	remaining: WorkspaceWidget[],
+): Promise<void> {
+	const targetPath = extractWatchedPathFromWidget(removed);
+	if (!targetPath) return;
+	const stillUsed = remaining.some((w) => extractWatchedPathFromWidget(w) === targetPath);
+	if (stillUsed) return;
+	try {
+		const list = await getWatchedPaths();
+		const found = list.find((wp) => wp.path === targetPath);
+		if (found) {
+			await removeWatchedPath(found.id);
+		}
+	} catch (e) {
+		// best-effort: cascade 失敗で widget 削除自体を中止しない (silent log)
+		console.warn('cascadeRemoveWatchedPath failed', e);
+	}
+}
 
 /**
  * 検収 #7: widget タイプごとの推奨デフォルトサイズを registry から取得する helper。
@@ -253,7 +298,8 @@ class WorkspaceWidgets {
 		const wsId = workspaceConfig.activeWorkspaceId;
 		try {
 			await workspaceIpc.removeWidget(id);
-			this.widgets = this.widgets.filter((w) => w.id !== id);
+			const remaining = this.widgets.filter((w) => w.id !== id);
+			this.widgets = remaining;
 			// PH-issue-002: history record (remove)
 			if (target && wsId) {
 				workspaceHistory.record({
@@ -269,6 +315,11 @@ class WorkspaceWidgets {
 					},
 					config: target.config,
 				});
+			}
+			// Phase 2 cascade (B 案 #16 完遂): exe_folder / projects widget が削除されたら
+			// 同 path を使う他 widget が active workspace に無ければ watched_paths も解除。
+			if (target) {
+				await cascadeRemoveWatchedPath(target, remaining);
 			}
 		} catch (e) {
 			this.error = getErrorMessage(e);
