@@ -10,7 +10,8 @@ export const meta: WidgetMeta = {
 	icon: NotebookPen,
 	label: 'メモ',
 	defaultConfig: { font_size: 'md' },
-	defaultSize: { w: 3, h: 2 },
+	// E-9 (2026-05-08 user 検収): 3x2 → 2x2 縮小 (textarea は flex で adjust)。
+	defaultSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'memo',
 	categoryOrder: 1,

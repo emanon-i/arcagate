@@ -10,7 +10,8 @@ export const meta: WidgetMeta = {
 	icon: TrendingUp,
 	label: 'よく使うもの',
 	defaultConfig: { max_items: 10 },
-	defaultSize: { w: 2, h: 3 },
+	// E-9 (2026-05-08 user 検収): 2x3 → 2x2 縮小。
+	defaultSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'library',
 	categoryOrder: 4,
