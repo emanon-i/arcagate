@@ -16,9 +16,11 @@
  *   - 全解除 button (1 件以上)
  */
 import { Package, Plus, X } from '@lucide/svelte';
+import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import { Button } from '$lib/components/ui/button';
+import { listOpeners, type Opener } from '$lib/ipc/opener';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
 
@@ -27,12 +29,26 @@ interface Props {
 		item_ids?: string[];
 		view_mode?: 'grid' | 'list';
 		sort_field?: 'manual' | 'name' | 'recent';
+		/** C-15 #19: Widget レベルの起動アプリ default。 */
+		default_opener_id?: string | null;
 	};
 }
 
 let { config = $bindable() }: Props = $props();
 
 let pickerOpen = $state(false);
+
+// C-15 #19: Opener 一覧 (widget default opener select 用)。
+let openers = $state<Opener[]>([]);
+onMount(() => {
+	void listOpeners()
+		.then((list) => {
+			openers = list;
+		})
+		.catch(() => {
+			// best-effort
+		});
+});
 
 let itemIds = $derived.by<string[]>(() => config.item_ids ?? []);
 
@@ -185,6 +201,30 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 			</select>
 		</div>
 	{/if}
+
+	<!-- C-15 #19: widget レベルの起動アプリ default (cascade で card override の下、system の上) -->
+	<div class="space-y-1">
+		<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-item-default-opener">
+			デフォルト起動アプリ
+		</label>
+		<select
+			id="ws-item-default-opener"
+			class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+			value={config.default_opener_id ?? ''}
+			onchange={(e) => {
+				const v = (e.currentTarget as HTMLSelectElement).value;
+				config = { ...config, default_opener_id: v || null };
+			}}
+		>
+			<option value="">既定 (system) / item.default_app に従う</option>
+			{#each openers as op (op.id)}
+				<option value={op.id}>{op.name}{op.is_builtin ? ' (組み込み)' : ''}</option>
+			{/each}
+		</select>
+		<p class="text-xs text-[var(--ag-text-muted)]">
+			この widget からの起動でこの Opener を使う。Library カード個別設定が指定されてればそちらが優先。
+		</p>
+	</div>
 {/if}
 
 {#if pickerOpen}

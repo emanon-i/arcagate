@@ -20,12 +20,12 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
-import { launchItem } from '$lib/ipc/launch';
 import { updateWidgetConfig } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
+import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { widgetMenuItems } from '../_shared/menu-items';
 
@@ -43,6 +43,8 @@ interface ItemWidgetConfig {
 	item_ids?: string[];
 	view_mode?: 'grid' | 'list';
 	sort_field?: 'manual' | 'name' | 'recent';
+	/** C-15 #19: Widget レベルの起動アプリ default。 */
+	default_opener_id?: string | null;
 }
 
 let config = $derived.by<ItemWidgetConfig>(() => {
@@ -84,7 +86,8 @@ async function setViewMode(mode: 'grid' | 'list') {
 }
 
 async function handleLaunch(item: Item) {
-	void launchItem(item.id)
+	// C-15 #19: cascade resolve (card override → widget default → system)
+	void launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })
 		.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
 }

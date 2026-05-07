@@ -12,13 +12,13 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { registerExeItemsBulk } from '$lib/ipc/items';
-import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
+import { launchItemWithCascade, launchTargetWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { widgetMenuItems } from '../_shared/menu-items';
 
@@ -57,6 +57,8 @@ interface WidgetConfig {
 	/** 並び替え設定。 */
 	sort_field?: SortField;
 	sort_order?: SortOrder;
+	/** C-15 #19: widget レベルの起動アプリ default。 */
+	default_opener_id?: string | null;
 }
 
 let config = $derived.by<WidgetConfig>(() => {
@@ -245,11 +247,16 @@ async function launchEntry(entry: ExeFolderEntry) {
 		toastStore.add(`${entry.folderName}: 起動可能な exe が見つかりません`, 'error');
 		return;
 	}
-	// Library 自動登録済の exe は launchItem 経由で launch_log 記録 (Recent widget に出る)。
-	// 未登録 (auto-register 前 / scan 中の race) は fallback で raw OS 起動。
+	// C-15 #19: cascade resolve (card override → widget default_opener_id → system)。
+	// Library 自動登録済の exe は launchItemWithCascade 経由 (item-level + widget-level cascade)。
+	// 未登録 + widget opener 指定 → launchTargetWithCascade、いずれも無 → cmd_open_path fallback。
 	const item = itemStore.items.find((i) => i.target === exePath);
 	if (item) {
-		void launchItem(item.id)
+		void launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })
+			.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
+			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
+	} else if (config.default_opener_id) {
+		void launchTargetWithCascade(exePath, { widgetDefaultOpenerId: config.default_opener_id })
 			.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
 			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
 	} else {
