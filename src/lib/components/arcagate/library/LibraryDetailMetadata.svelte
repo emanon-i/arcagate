@@ -52,6 +52,10 @@ let style = $derived({
 	...(cardOverride?.style ?? {}),
 });
 
+// E-7 (2026-05-07 user 検収): preview の表示を LibraryCard と統一する。
+// LibraryCard と同じ resolvedMode logic で image / fill / none を分岐。
+let resolvedMode = $derived(bg.mode === 'image' && !item.icon_path ? 'fill' : bg.mode);
+
 async function setOpenerId(value: string): Promise<void> {
 	const next: CardOverrideJson = { ...(cardOverride ?? {}), opener_id: value || null };
 	await itemStore.updateItem(item.id, { card_override_json: JSON.stringify(next) });
@@ -71,18 +75,44 @@ async function patchOverride(patch: {
 }
 </script>
 
-<!-- Gradient preview -->
+<!-- E-7 fix (2026-05-07 user 検収): preview を LibraryCard と同形式で render。
+     image mode は icon を全面 cover (focal 反映)、fill は色 + 中央 icon、none は gradient + icon。
+     LibraryCard 内 logic と同等、card_override 反映で見た目統一。 -->
 <div
-	class="flex h-40 items-center justify-center rounded-[var(--ag-radius-widget)] bg-gradient-to-br {artMap[
-		item.item_type
-	]}"
+	class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--ag-radius-widget)] {resolvedMode ===
+	'none'
+		? `bg-gradient-to-br ${artMap[item.item_type]}`
+		: ''}"
 >
-	<ItemIcon
-		iconPath={item.icon_path}
-		itemType={item.item_type}
-		alt="{item.label} icon"
-		class="h-20 w-20 object-cover drop-shadow-lg"
-	/>
+	{#if resolvedMode === 'image' && item.icon_path}
+		<ItemIcon
+			iconPath={item.icon_path}
+			itemType={item.item_type}
+			alt="{item.label} icon"
+			class="absolute inset-0 h-full w-full object-cover"
+			style="object-position: {bg.focalX}% {bg.focalY}%;"
+		/>
+	{:else if resolvedMode === 'fill'}
+		<div
+			class="absolute inset-0 flex items-center justify-center"
+			style="background: {bg.fillBgColor};"
+		>
+			<ItemIcon
+				iconPath={undefined}
+				itemType={item.item_type}
+				alt="{item.label} icon"
+				class="h-20 w-20 object-contain drop-shadow-lg"
+				style="color: {bg.fillIconColor};"
+			/>
+		</div>
+	{:else}
+		<ItemIcon
+			iconPath={undefined}
+			itemType={item.item_type}
+			alt="{item.label} icon"
+			class="h-20 w-20 object-contain drop-shadow-sm"
+		/>
+	{/if}
 </div>
 
 <!-- Detail rows -->
