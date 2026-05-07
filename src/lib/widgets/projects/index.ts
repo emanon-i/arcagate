@@ -20,7 +20,8 @@ export const meta: WidgetMeta = {
 		watched_folder: '',
 		auto_add: false,
 	},
-	defaultSize: { w: 3, h: 3 },
+	// E-9 (2026-05-08 user 検収): 3x3 → 3x2 縮小 (横幅は folder list 表示維持、高さのみ -1)。
+	defaultSize: { w: 3, h: 2 },
 	addable: true,
 	category: 'watch',
 	categoryOrder: 1,

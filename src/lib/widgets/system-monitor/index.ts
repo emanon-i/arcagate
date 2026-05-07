@@ -15,7 +15,8 @@ export const meta: WidgetMeta = {
 		show_memory: true,
 		show_disk: false,
 	},
-	defaultSize: { w: 2, h: 3 },
+	// E-9 (2026-05-08 user 検収): 2x3 → 2x2 縮小。
+	defaultSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'info',
 	categoryOrder: 2,
