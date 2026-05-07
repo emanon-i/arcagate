@@ -10,6 +10,7 @@ import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
 import { markEnd, markStart, PERF_LABELS } from '$lib/utils/perf';
 import LibraryCard from './LibraryCard.svelte';
+import { getSizeClasses } from './library-card-sizes';
 
 // Library hot path 計測 (mount/unmount)。
 onMount(() => markStart(PERF_LABELS.libraryViewMount));
@@ -61,6 +62,12 @@ let {
 	onAddItem,
 	onGridKeydown,
 }: Props = $props();
+
+// Phase L-3 (2026-05-07 user 検収 Library 真因 #3):
+// LibraryCard 内で itemSize-only 5 個の $derived (iconClassFilled / iconClassNone / labelPadClass /
+// labelFontClass / targetFontClass) が 690 cards × 5 = 3450 reactive deps を生み、itemSize
+// 変更時 JS longtask 1.2 秒の主因だった。共有 module で 1 回 derive、props 配布で 3450× 効率化。
+let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 </script>
 
 <!-- Stat cards -->
@@ -86,6 +93,7 @@ let {
 			<LibraryCard
 				{item}
 				{viewMode}
+				{sizeClasses}
 				isStarred={starredIds.has(item.id)}
 				isSelected={selectedIds.has(item.id)}
 				onclick={() => {
@@ -134,6 +142,7 @@ let {
 		{#each filteredItems as item (item.id)}
 			<LibraryCard
 				{item}
+				{sizeClasses}
 				isStarred={starredIds.has(item.id)}
 				isSelected={selectedIds.has(item.id)}
 				onclick={() => {
