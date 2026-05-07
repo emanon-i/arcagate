@@ -161,7 +161,8 @@ mod tests {
     fn test_list_themes() {
         let db = initialize_in_memory();
         let themes = list_themes(&db).unwrap();
-        assert_eq!(themes.len(), 5); // builtin dark + light + endfield + ubuntu-frosted + liquid-glass
+        // 8 builtin (migration 024 で Lime Forest / Magenta Plum / Lemon Sun 追加)
+        assert_eq!(themes.len(), 8);
     }
 
     #[test]
@@ -271,7 +272,7 @@ mod tests {
 
         delete_theme(&db, &theme.id).unwrap();
         let all = list_themes(&db).unwrap();
-        assert_eq!(all.len(), 5); // only builtins
+        assert_eq!(all.len(), 8); // 8 builtins (migration 024 で +3)
     }
 
     #[test]
