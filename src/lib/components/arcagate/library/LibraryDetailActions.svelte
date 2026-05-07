@@ -42,11 +42,12 @@ let { item, isStarred, onLaunch, onEdit, onToggleStar, onDelete, onPickDefaultAp
 	</div>
 {/if}
 
-<!-- Action buttons -->
-<div class="mt-4 grid grid-cols-4 gap-2">
+<!-- Action buttons (E-6 fix 2026-05-08: 4-col grid で「お気に入り」label が truncate される
+     ため 2x2 layout に変更。各 button cell 幅が倍増し label 完全表示。truncate は
+     safety net として残置。 -->
+<div class="mt-4 grid grid-cols-2 gap-2">
 	<ActionButton icon={Play} label="起動" onclick={onLaunch} />
 	<ActionButton icon={Settings2} label="編集" onclick={onEdit} />
-	<!-- #7/#8 fix: whitespace-nowrap + min-w-0 + truncate で narrow grid 時の label 改行防止。 -->
 	<button
 		type="button"
 		aria-label={isStarred ? 'お気に入りを解除' : 'お気に入りに追加'}
