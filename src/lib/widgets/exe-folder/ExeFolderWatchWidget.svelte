@@ -99,6 +99,20 @@ let scanRequestId = 0;
 let prevPath: string | undefined;
 let prevDepth: number | undefined;
 
+// B 案 (#16 cascade): watch_path 設定時に file system watcher (watched_paths) に自動連携。
+// duplicate (UNIQUE constraint) は silent skip。
+async function ensureWatchedPath(path: string): Promise<void> {
+	try {
+		const { addWatchedPath } = await import('$lib/ipc/watched_paths');
+		await addWatchedPath(path, null);
+	} catch (e: unknown) {
+		// path UNIQUE 違反は OK (既に登録済)
+		if (!String(e).toLowerCase().includes('unique')) {
+			console.warn('ensureWatchedPath failed', e);
+		}
+	}
+}
+
 // Lazy fetch: watch_path / scan_depth が設定されたとき + 変化時に scan
 $effect(() => {
 	const path = config.watch_path;
@@ -113,6 +127,8 @@ $effect(() => {
 		scanning = false;
 		return;
 	}
+	// B 案 (#16): file system watcher (watched_paths) に path を自動登録
+	void ensureWatchedPath(path);
 	const myId = ++scanRequestId;
 	scanning = true;
 	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { root: path, depth })
