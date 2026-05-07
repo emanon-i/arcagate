@@ -12,6 +12,7 @@ import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { sortItems } from '$lib/utils/library-sort';
+import { markEnd, markStart, PERF_LABELS } from '$lib/utils/perf';
 import LibrarySearchBar from './LibrarySearchBar.svelte';
 import LibrarySortControls from './LibrarySortControls.svelte';
 import LibraryUndoSnackbar from './LibraryUndoSnackbar.svelte';
@@ -164,12 +165,19 @@ let starredIds = $state<Set<string>>(new Set());
 $effect(() => {
 	const _dep = itemStore.items;
 	void _dep;
+	markStart(PERF_LABELS.libraryStarredFetch);
 	searchItemsInTag('sys-starred', '')
 		.then((items) => {
 			starredIds = new Set(items.map((i) => i.id));
 		})
 		.catch(() => {
 			// best-effort、失敗時は前回の値を維持
+		})
+		.finally(() => {
+			const dur = markEnd(PERF_LABELS.libraryStarredFetch);
+			if (dur !== null && dur > 100) {
+				console.warn(`[perf] starred fetch ${dur.toFixed(1)}ms (items=${itemStore.items.length})`);
+			}
 		});
 });
 
@@ -177,18 +185,34 @@ $effect(() => {
 // debouncedQuery で fuzzy filter (label / target / aliases 横断、score 降順)。
 // query 無しなら configStore.librarySort で並べ替え。
 let filteredItems = $derived.by(() => {
+	markStart(PERF_LABELS.libraryFilteredItemsCompute);
 	const source = activeTag ? localTagItems : itemStore.items;
+	let result: import('$lib/types/item').Item[];
 	if (debouncedQuery.trim().length > 0) {
-		return fuzzyFilter(source, debouncedQuery, (i) => [i.label, i.target, ...i.aliases]);
+		result = fuzzyFilter(source, debouncedQuery, (i) => [i.label, i.target, ...i.aliases]);
+	} else {
+		result = sortItems(source, configStore.librarySort);
 	}
-	return sortItems(source, configStore.librarySort);
+	const dur = markEnd(PERF_LABELS.libraryFilteredItemsCompute);
+	if (dur !== null && dur > 30) {
+		console.warn(
+			`[perf] filteredItems compute ${dur.toFixed(1)}ms (source=${source.length}, query='${debouncedQuery}', result=${result.length})`,
+		);
+	}
+	return result;
 });
 
 // I3 fix: per-card $effect 並列呼び出しを排除し、visible items を 1 batch で warm up。
 $effect(() => {
 	if (viewMode !== 'grid' || configStore.itemSize === 'S') return;
 	const ids = filteredItems.map((i) => i.id);
-	void metadataStore.loadMetadataForItems(ids);
+	markStart(PERF_LABELS.libraryMetadataWarmup);
+	void metadataStore.loadMetadataForItems(ids).finally(() => {
+		const dur = markEnd(PERF_LABELS.libraryMetadataWarmup);
+		if (dur !== null && dur > 100) {
+			console.warn(`[perf] metadata warmup ${dur.toFixed(1)}ms (n=${ids.length})`);
+		}
+	});
 });
 
 // L2-B B1: keyboard nav (grid 矢印 / Enter / Esc / Space)。

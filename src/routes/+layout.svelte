@@ -4,6 +4,7 @@ import '../app.css';
 import { onDestroy, onMount } from 'svelte';
 import { installErrorMonitor, uninstallErrorMonitor } from '$lib/state/error-monitor.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { installLongtaskObserver, installResourceObserver } from '$lib/utils/perf';
 
 let { children } = $props();
 
@@ -11,6 +12,10 @@ let { children } = $props();
 // unhandledrejection / window error を捕捉し toast で user に通知。
 onMount(() => {
 	installErrorMonitor();
+	// Library hot path 計測用 observer (dev mode のみ)。
+	// longtask = main thread 50ms+ block、resource = image / fetch の 100ms+ load。
+	installLongtaskObserver();
+	installResourceObserver();
 	// R10-D E1: 起動直後に直前 panic 情報を consume して toast 表示。
 	void (async () => {
 		try {

@@ -1,8 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { Item, ItemStats } from '$lib/types/item';
+import { wrapIpc } from '$lib/utils/perf';
 
 export async function searchItems(query: string): Promise<Item[]> {
-	return invoke<Item[]>('cmd_search_items', { query });
+	return wrapIpc('search_items', () => invoke<Item[]>('cmd_search_items', { query }));
 }
 
 export async function launchItem(itemId: string): Promise<void> {

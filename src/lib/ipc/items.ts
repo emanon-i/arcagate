@@ -2,13 +2,14 @@ import { invoke } from '@tauri-apps/api/core';
 import type { CreateItemInput, Item, LibraryStats, UpdateItemInput } from '$lib/types/item';
 import type { ItemMetadata } from '$lib/types/item-metadata';
 import type { CreateTagInput, Tag, TagWithCount } from '$lib/types/tag';
+import { wrapIpc } from '$lib/utils/perf';
 
 export async function createItem(input: CreateItemInput): Promise<Item> {
 	return invoke<Item>('cmd_create_item', { input });
 }
 
 export async function listItems(): Promise<Item[]> {
-	return invoke<Item[]>('cmd_list_items');
+	return wrapIpc('list_items', () => invoke<Item[]>('cmd_list_items'));
 }
 
 export async function updateItem(id: string, input: UpdateItemInput): Promise<Item> {
@@ -37,7 +38,9 @@ export async function updateTagPrefix(id: string, prefix: string | null): Promis
 }
 
 export async function searchItemsInTag(tagId: string, query: string): Promise<Item[]> {
-	return invoke<Item[]>('cmd_search_items_in_tag', { tagId, query });
+	return wrapIpc('search_items_in_tag', () =>
+		invoke<Item[]>('cmd_search_items_in_tag', { tagId, query }),
+	);
 }
 
 export async function checkIsDirectory(path: string): Promise<boolean> {
@@ -55,7 +58,9 @@ export async function getItemMetadata(itemId: string): Promise<ItemMetadata> {
  */
 export async function getItemsMetadataBatch(ids: string[]): Promise<Array<[string, ItemMetadata]>> {
 	if (ids.length === 0) return [];
-	return invoke<Array<[string, ItemMetadata]>>('cmd_get_items_metadata_batch', { ids });
+	return wrapIpc('get_items_metadata_batch', () =>
+		invoke<Array<[string, ItemMetadata]>>('cmd_get_items_metadata_batch', { ids }),
+	);
 }
 
 export async function extractItemIcon(exePath: string): Promise<string> {

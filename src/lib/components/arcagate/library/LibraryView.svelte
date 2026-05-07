@@ -1,5 +1,6 @@
 <script lang="ts">
 import { HelpCircle, Package } from '@lucide/svelte';
+import { onDestroy, onMount } from 'svelte';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
@@ -7,7 +8,17 @@ import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
+import { markEnd, markStart, PERF_LABELS } from '$lib/utils/perf';
 import LibraryCard from './LibraryCard.svelte';
+
+// Library hot path 計測 (mount/unmount)。
+onMount(() => markStart(PERF_LABELS.libraryViewMount));
+onDestroy(() => {
+	const dur = markEnd(PERF_LABELS.libraryViewMount);
+	if (dur !== null && dur > 200) {
+		console.warn(`[perf] LibraryView lifetime ${dur.toFixed(1)}ms (long)`);
+	}
+});
 
 /**
  * Library card grid / list view + Stat cards + EmptyState fallbacks。
