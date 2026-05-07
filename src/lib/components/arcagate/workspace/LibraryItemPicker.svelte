@@ -3,6 +3,7 @@ import { Search, Star } from '@lucide/svelte';
 import { cubicOut } from 'svelte/easing';
 import { fade, scale } from 'svelte/transition';
 import LibraryCard from '$lib/components/arcagate/library/LibraryCard.svelte';
+import { getSizeClasses } from '$lib/components/arcagate/library/library-card-sizes';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -59,6 +60,9 @@ $effect(() => {
 	}, 150);
 	return () => clearTimeout(timer);
 });
+
+// Phase L-3: itemSize 共通の class を 1 回 derive、全 card に props 配布。
+let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 
 // starredIds: sys-starred tag を IPC で取得 (旧実装の暫定 false 全件を fix)
 let starredIds = $state<Set<string>>(new Set());
@@ -278,6 +282,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 								/>
 								<LibraryCard
 									{item}
+									{sizeClasses}
 									isStarred={starredIds.has(item.id)}
 									viewMode="grid"
 									onclick={() => toggleSelected(item.id)}
@@ -287,6 +292,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 						{:else}
 							<LibraryCard
 								{item}
+								{sizeClasses}
 								isStarred={starredIds.has(item.id)}
 								viewMode="grid"
 								onclick={() => onSelect(item)}

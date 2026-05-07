@@ -6,9 +6,17 @@ import { configStore } from '$lib/state/config.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item } from '$lib/types/item';
 import { formatItemMeta } from '$lib/utils/format-meta';
+import type { SizeClasses } from './library-card-sizes';
 
+/**
+ * Phase L-3 (2026-05-07 user 検収 Library 真因 #3):
+ * itemSize-only な class derive (5 件) は parent (LibraryView / LibraryItemPicker) で 1 度だけ
+ * 計算し、sizeClasses prop で全 card に共有配布する。690 cards × 5 = 3450 reactive deps を
+ * 1 hook deps に削減し、itemSize 変更時の longtask を解消する。type は library-card-sizes.ts。
+ */
 interface Props {
 	item: Item;
+	sizeClasses: SizeClasses;
 	isStarred?: boolean;
 	isSelected?: boolean;
 	viewMode?: 'grid' | 'list';
@@ -18,6 +26,7 @@ interface Props {
 
 let {
 	item,
+	sizeClasses,
 	isStarred = false,
 	isSelected = false,
 	viewMode = 'grid',
@@ -33,21 +42,6 @@ let metadata = $derived(
 );
 
 let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
-
-// fill / image モード時の中央アイコン: drop-shadow-lg で立体感
-let iconClassFilled = $derived.by(() => {
-	if (configStore.itemSize === 'S') return 'h-10 w-10 object-contain drop-shadow-lg';
-	if (configStore.itemSize === 'L') return 'h-20 w-20 object-contain drop-shadow-lg';
-	return 'h-14 w-14 object-contain drop-shadow-lg';
-});
-
-// none モード時: 強い drop-shadow がアイコンの edge をぼやけさせるため、
-// shadow を弱め + サイズを少し大きくして相対的に明瞭化（PH-292 修正）
-let iconClassNone = $derived.by(() => {
-	if (configStore.itemSize === 'S') return 'h-12 w-12 object-contain drop-shadow-sm';
-	if (configStore.itemSize === 'L') return 'h-24 w-24 object-contain drop-shadow-sm';
-	return 'h-16 w-16 object-contain drop-shadow-sm';
-});
 
 // PH-290: per-card override を global にマージ（背景・文字とも部分上書き）
 let cardOverride = $derived.by(() => {
@@ -79,13 +73,6 @@ let resolvedMode = $derived.by(() => {
 	if (bg.mode === 'image' && !item.icon_path) return 'fill';
 	return bg.mode;
 });
-
-// pre-compute size-dependent classes (avoid repeated ternary in template)
-let labelPadClass = $derived(configStore.itemSize === 'S' ? 'px-2 pb-1.5 pt-3' : 'px-3 pb-2 pt-6');
-let labelFontClass = $derived(
-	configStore.itemSize === 'S' ? 'text-xs' : configStore.itemSize === 'L' ? 'text-base' : 'text-sm',
-);
-let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-xs');
 </script>
 
 {#if viewMode === 'list'}
@@ -145,13 +132,13 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 					iconPath={undefined}
 					itemType={item.item_type}
 					alt="{item.label} icon"
-					class={iconClassFilled}
+					class={sizeClasses.iconClassFilled}
 					style="color: {bg.fillIconColor};"
 				/>
 			</div>
 		{:else}
 			<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
-				<ItemIcon iconPath={undefined} itemType={item.item_type} alt="{item.label} icon" class={iconClassNone} />
+				<ItemIcon iconPath={undefined} itemType={item.item_type} alt="{item.label} icon" class={sizeClasses.iconClassNone} />
 			</div>
 		{/if}
 
@@ -170,11 +157,13 @@ let targetFontClass = $derived(configStore.itemSize === 'L' ? 'text-xs' : 'text-
 		<div
 			class="library-card__label absolute inset-x-0 bottom-0 {style.overlayEnabled
 				? 'bg-gradient-to-t from-black/75 via-black/40 to-transparent'
-				: ''} {labelPadClass}"
+				: ''} {sizeClasses.labelPadClass}"
 		>
-			<div class="truncate font-semibold {labelFontClass}" style={labelStyle}>{item.label}</div>
+			<div class="truncate font-semibold {sizeClasses.labelFontClass}" style={labelStyle}>
+				{item.label}
+			</div>
 			{#if configStore.itemSize !== 'S'}
-				<div class="truncate {targetFontClass} opacity-80" style={labelStyle}>
+				<div class="truncate {sizeClasses.targetFontClass} opacity-80" style={labelStyle}>
 					{metaLines?.line1 || item.target}
 				</div>
 			{/if}
