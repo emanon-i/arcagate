@@ -6,7 +6,7 @@
  *   旧実装は「アイテム未選択」 placeholder + 別の場所に「アイテムを追加」 button + 並び順 select が
  *   全部並んでいて、empty 状態でも全 sections 表示。視認性が悪く「おかしい」と感じる。
  * 修正:
- *   - empty 時: prominent CTA「アイテムを紐付け」 button のみを表示 (placeholder + button 二重撤廃)
+ *   - empty 時: prominent CTA「アイテムを追加」 button のみを表示 (placeholder + button 二重撤廃)
  *   - 並び順 select は 2 件以上のとき**だけ**表示 (1 件以下では並べる対象が無い)
  *   - 「アイテムを追加」 button は常時 visible だが、empty 時は CTA 兼ねる
  *
@@ -113,11 +113,11 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 	<button
 		type="button"
 		class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-8 text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
-		aria-label="アイテムを紐付け"
+		aria-label="アイテムを追加"
 		onclick={() => (pickerOpen = true)}
 	>
 		<Package class="h-6 w-6" />
-		<span class="text-sm font-medium">アイテムを紐付け</span>
+		<span class="text-sm font-medium">アイテムを追加</span>
 		<span class="px-3 text-xs leading-relaxed text-[var(--ag-text-faint)]">
 			ライブラリから 1 件以上のアイテムを選択
 		</span>
