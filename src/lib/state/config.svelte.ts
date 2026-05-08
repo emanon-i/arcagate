@@ -6,7 +6,14 @@ import {
 	type SortField,
 	type SortOrder,
 } from '$lib/utils/library-sort';
-import { loadJSON, loadNumber, saveJSON, saveNumber } from '$lib/utils/local-storage';
+import {
+	loadBool,
+	loadJSON,
+	loadNumber,
+	saveBool,
+	saveJSON,
+	saveNumber,
+} from '$lib/utils/local-storage';
 
 export type ItemSize = 'S' | 'M' | 'L';
 
@@ -90,6 +97,17 @@ function setLibrarySort(field: SortField, order: SortOrder): void {
 	if (librarySort.field === field && librarySort.order === order) return;
 	librarySort = { field, order };
 	saveJSON(LIBRARY_SORT_STORAGE_KEY, librarySort);
+}
+
+// F-1 (2026-05-08 user 検収): Library 一覧の「非表示アイテムを表示」 toggle 状態を永続化。
+// default: false (= 非表示アイテムは Library 一覧から外れる、検索 / widget も同様)。
+const LIBRARY_SHOW_HIDDEN_KEY = 'arcagate.library.show-hidden';
+let libraryShowHidden = $state<boolean>(loadBool(LIBRARY_SHOW_HIDDEN_KEY, false));
+
+function setLibraryShowHidden(value: boolean): void {
+	if (libraryShowHidden === value) return;
+	libraryShowHidden = value;
+	saveBool(LIBRARY_SHOW_HIDDEN_KEY, value);
 }
 
 function persistLibraryCard(): void {
@@ -231,6 +249,9 @@ export const configStore = {
 	get librarySort() {
 		return librarySort;
 	},
+	get libraryShowHidden() {
+		return libraryShowHidden;
+	},
 	loadConfig,
 	saveHotkey,
 	saveAutostart,
@@ -240,4 +261,5 @@ export const configStore = {
 	setLibraryCardBackground,
 	setLibraryCardStyle,
 	setLibrarySort,
+	setLibraryShowHidden,
 };

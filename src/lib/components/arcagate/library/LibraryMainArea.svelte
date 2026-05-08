@@ -184,9 +184,12 @@ $effect(() => {
 // L2-C C1+C4+C6: source = activeTag 中なら tagItems、そうでなければ全 items。
 // debouncedQuery で fuzzy filter (label / target / aliases 横断、score 降順)。
 // query 無しなら configStore.librarySort で並べ替え。
+// F-1 (2026-05-08 user 検収): configStore.libraryShowHidden = false なら is_enabled=false
+// アイテムを除外。toggle で表示切替可能 (LibrarySortControls 経由)。
 let filteredItems = $derived.by(() => {
 	markStart(PERF_LABELS.libraryFilteredItemsCompute);
-	const source = activeTag ? localTagItems : itemStore.items;
+	const rawSource = activeTag ? localTagItems : itemStore.items;
+	const source = configStore.libraryShowHidden ? rawSource : rawSource.filter((i) => i.is_enabled);
 	let result: import('$lib/types/item').Item[];
 	if (debouncedQuery.trim().length > 0) {
 		result = fuzzyFilter(source, debouncedQuery, (i) => [i.label, i.target, ...i.aliases]);
