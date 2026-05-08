@@ -76,7 +76,9 @@ let resolvedMode = $derived.by(() => {
 		type="button"
 		class="flex w-full items-center gap-3 px-4 py-3 text-left transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] {isSelected
 			? 'bg-[var(--ag-accent)]/15 ring-2 ring-inset ring-[var(--ag-accent)]'
-			: ''} {item.is_enabled ? '' : 'opacity-40 grayscale'}"
+			: ''} {item.is_enabled
+			? ''
+			: 'opacity-40 grayscale shadow-inner ring-1 ring-inset ring-[var(--ag-border)]'}"
 		data-testid="library-card-{item.id}"
 		aria-pressed={isSelected}
 		{onclick}
@@ -106,7 +108,7 @@ let resolvedMode = $derived.by(() => {
 		type="button"
 		class="library-card relative aspect-[4/3] overflow-hidden rounded-[var(--ag-radius-card)] border bg-[var(--ag-surface-3)] text-left transition-[border-color,background-color,transform,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-4)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-0)] {isSelected
 			? 'border-[var(--ag-accent)] ring-4 ring-[var(--ag-accent)]/60'
-			: 'border-[var(--ag-border)]'} {item.is_enabled ? '' : 'opacity-40 grayscale'}"
+			: 'border-[var(--ag-border)]'} {item.is_enabled ? '' : 'opacity-40 grayscale shadow-inner'}"
 		style="width: var(--ag-card-w);"
 		data-testid="library-card-{item.id}"
 		aria-pressed={isSelected}
