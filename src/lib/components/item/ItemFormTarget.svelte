@@ -78,7 +78,6 @@ async function handlePickFolder(): Promise<void> {
 			'local'
 				? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
 				: 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
-			disabled={isEdit}
 			onclick={() => onTypeModeChange('local')}
 		>
 			ローカル
@@ -89,7 +88,6 @@ async function handlePickFolder(): Promise<void> {
 			'url'
 				? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
 				: 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
-			disabled={isEdit}
 			onclick={() => onTypeModeChange('url')}
 		>
 			URL
