@@ -266,9 +266,12 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 						: 'アイテムがまだありません'}
 				</div>
 			{:else}
+				<!-- F-7 (2026-05-08 user 検収): LibraryView と同様 --ag-card-w を inline で設定。
+				     旧実装は var(--ag-card-w, 192px) でフォールバック頼みだったが、子 LibraryCard 側
+				     `width: var(--ag-card-w)` が未定義 fallback なしで card width 不足の表示崩れに。 -->
 				<div
 					class="grid"
-					style="grid-template-columns: repeat(auto-fill, var(--ag-card-w, 192px)); gap: 1rem; justify-content: center;"
+					style="grid-template-columns: repeat(auto-fill, var(--ag-card-w)); gap: 1rem; justify-content: center; --ag-card-w: var(--ag-card-w-{configStore.itemSize.toLowerCase()});"
 				>
 					{#each pageItems as item (item.id)}
 						{#if multi}
