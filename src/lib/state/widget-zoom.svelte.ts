@@ -4,6 +4,10 @@ import { normalizeWheelStep } from '$lib/utils/wheel-normalize';
 import {
 	BASE_H,
 	BASE_W,
+	BOTTOM_RESERVE,
+	bufferOffsetPx,
+	cellStrideX,
+	cellStrideY,
 	clampAnchor,
 	clampZoom,
 	computeBoundingBox,
@@ -11,9 +15,13 @@ import {
 	computeFitZoom,
 	computeOrigin,
 	computeZoomAnchorScroll,
+	GRID_GAP,
+	INNER_PAD,
 	MAX_ZOOM,
 	MIN_ZOOM,
 	RESET_ZOOM,
+	SIDE_RESERVE,
+	TOP_RESERVE,
 } from '$lib/utils/zoom-math';
 
 /**
@@ -165,15 +173,38 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		if (pendingZoomRAF !== null) cancelAnimationFrame(pendingZoomRAF);
 		pendingZoomRAF = requestAnimationFrame(() => {
 			pendingZoomRAF = null;
-			const target = computeFitScroll(origin, targetZoom, {
-				clientWidth: el.clientWidth,
-				clientHeight: el.clientHeight,
-			});
-			el.scrollTo({
-				left: target.scrollLeft,
-				top: target.scrollTop,
-				behavior: 'instant',
-			});
+			// F-8 (2026-05-08 user 検収): BB が viewport に入らない (= MIN_ZOOM 飽和) 時は
+			// BB top-left を viewport visual top-left に align する。center 配置だと
+			// 巨大 BB の中央 = canvas 中央 empty 領域に飛んで widget 何も見えなくなる
+			// (user "変な場所にフォーカス飛んで動かない")。
+			const sx = cellStrideX(targetZoom);
+			const sy = cellStrideY(targetZoom);
+			const bbWidthPx = (bb.maxX - bb.minX) * sx - GRID_GAP;
+			const bbHeightPx = (bb.maxY - bb.minY) * sy - GRID_GAP;
+			const availW = el.clientWidth - SIDE_RESERVE * 2;
+			const availH = el.clientHeight - TOP_RESERVE - BOTTOM_RESERVE;
+			const overflows = bbWidthPx > availW || bbHeightPx > availH;
+			if (overflows) {
+				// BB top-left → viewport top-left の align (widget が必ず見える)。
+				const buffer = bufferOffsetPx(targetZoom);
+				const minPxX = INNER_PAD + buffer.x + bb.minX * sx;
+				const minPxY = INNER_PAD + buffer.y + bb.minY * sy;
+				el.scrollTo({
+					left: Math.max(0, minPxX - SIDE_RESERVE),
+					top: Math.max(0, minPxY - TOP_RESERVE),
+					behavior: 'instant',
+				});
+			} else {
+				const target = computeFitScroll(origin, targetZoom, {
+					clientWidth: el.clientWidth,
+					clientHeight: el.clientHeight,
+				});
+				el.scrollTo({
+					left: target.scrollLeft,
+					top: target.scrollTop,
+					behavior: 'instant',
+				});
+			}
 		});
 	}
 
