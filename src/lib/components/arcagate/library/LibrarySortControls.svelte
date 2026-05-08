@@ -1,5 +1,5 @@
 <script lang="ts">
-import { LayoutGrid, LayoutList, Plus } from '@lucide/svelte';
+import { Eye, EyeOff, LayoutGrid, LayoutList, Plus } from '@lucide/svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { SORT_FIELD_LABELS, type SortField, type SortOrder } from '$lib/utils/library-sort';
 
@@ -31,6 +31,24 @@ let {
 </script>
 
 <div class="flex items-center gap-2">
+	<!-- F-1 (2026-05-08 user 検収): 非表示アイテム表示 toggle button。
+	     default: 非表示 (Eye-off icon)、click で全件表示 (Eye icon)。configStore.libraryShowHidden に永続化。 -->
+	<button
+		type="button"
+		class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] {configStore.libraryShowHidden
+			? 'bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
+			: 'bg-[var(--ag-surface-3)] text-[var(--ag-text-muted)]'}"
+		aria-label={configStore.libraryShowHidden ? '非表示アイテムを隠す' : '非表示アイテムを表示'}
+		title={configStore.libraryShowHidden ? '非表示アイテムを隠す' : '非表示アイテムを表示'}
+		data-testid="library-show-hidden-toggle"
+		onclick={() => configStore.setLibraryShowHidden(!configStore.libraryShowHidden)}
+	>
+		{#if configStore.libraryShowHidden}
+			<Eye class="h-4 w-4" />
+		{:else}
+			<EyeOff class="h-4 w-4" />
+		{/if}
+	</button>
 	<!-- L2-C C1: sort dropdown (field + asc/desc)。debouncedQuery 入力中は fuzzy score 順が
 	     優先されるため見た目上 disable 状態に。 -->
 	<select
