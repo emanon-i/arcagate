@@ -275,14 +275,10 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 				>
 					{#each pageItems as item (item.id)}
 						{#if multi}
+							<!-- G-1 (2026-05-09 user 検収): checkbox を右下に移動。
+							     左上はカード icon / お気に入り星と被って視認性が悪い。右下なら
+							     カード操作と独立して見やすい。背景に半透明 surface-opaque で contrast 担保。 -->
 							<div class="relative">
-								<input
-									type="checkbox"
-									class="pointer-events-none absolute left-2 top-2 z-10 h-4 w-4 cursor-pointer accent-[var(--ag-accent)]"
-									checked={selectedIds.has(item.id)}
-									aria-label="{item.label} を選択"
-									tabindex="-1"
-								/>
 								<LibraryCard
 									{item}
 									{sizeClasses}
@@ -290,6 +286,13 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 									viewMode="grid"
 									onclick={() => toggleSelected(item.id)}
 									ondblclick={() => toggleSelected(item.id)}
+								/>
+								<input
+									type="checkbox"
+									class="pointer-events-none absolute bottom-2 right-2 z-10 h-4 w-4 cursor-pointer rounded border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] accent-[var(--ag-accent)] shadow-sm"
+									checked={selectedIds.has(item.id)}
+									aria-label="{item.label} を選択"
+									tabindex="-1"
 								/>
 							</div>
 						{:else}
