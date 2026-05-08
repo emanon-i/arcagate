@@ -139,11 +139,13 @@ function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
 //   - caller は **必ず** clampZoom 済の値を渡す前提 (defense in depth ではない)
 //   - 二重 clamp / 5 単位 round / 整数化を全部撤廃
 //   - load-time clamp のみ残す (corrupted localStorage 対策、value drift 検知不能のため)
-import { MAX_ZOOM, MIN_ZOOM, RESET_ZOOM } from '$lib/utils/zoom-math';
+import { MAX_ZOOM, MIN_ZOOM_FIT, RESET_ZOOM } from '$lib/utils/zoom-math';
 
 const ZOOM_STORAGE_KEY = 'widget-zoom';
 
-let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, RESET_ZOOM, MIN_ZOOM, MAX_ZOOM));
+// F-8 v2 (2026-05-09): load range の下限は MIN_ZOOM_FIT (1) — fit-to-content で 25% 未満になった
+// 値も persist して reload 時復元する (旧: MIN_ZOOM=25 で範囲外 → fallback で全体表示状態が失われていた)。
+let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, RESET_ZOOM, MIN_ZOOM_FIT, MAX_ZOOM));
 
 function setWidgetZoom(zoom: number): void {
 	// caller は clampZoom() 済の値を渡す前提。本関数は no-op-skip + persist のみ。
