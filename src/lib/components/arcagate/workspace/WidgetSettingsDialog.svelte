@@ -76,23 +76,30 @@ function handleDelete() {
 			if (e.target === e.currentTarget) onClose();
 		}}
 	>
+		<!-- G-4 (2026-05-09 user 検収): 多数 item リンク時のモーダル overflow 解消。
+		     max-h で 85vh に制限、header / footer は flex-none で固定、form body だけ
+		     overflow-y-auto で内部 scroll させる。 -->
 		<div
-			class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
+			class="flex max-h-[85vh] w-full max-w-sm flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]"
 			role="document"
 			aria-labelledby="widget-settings-title"
 			transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
 		>
 			<!-- PH-issue-026 (Issue 23): widget label を含めた title。aria-labelledby でアクセシブル。 -->
-			<h3 id="widget-settings-title" class="mb-4 text-base font-semibold text-[var(--ag-text-primary)]">
+			<h3
+				id="widget-settings-title"
+				class="flex-none border-b border-[var(--ag-border)] px-6 pb-4 pt-6 text-base font-semibold text-[var(--ag-text-primary)]"
+			>
 				{WIDGET_LABELS[widget.widget_type] ?? 'ウィジェット'} の設定
 			</h3>
 			<form
+				class="flex min-h-0 flex-1 flex-col"
 				onsubmit={(e) => {
 					e.preventDefault();
 					void handleSave();
 				}}
 			>
-				<div class="space-y-4">
+				<div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
 					{#if SettingsContent}
 						<SettingsContent bind:config />
 					{:else}
@@ -102,7 +109,7 @@ function handleDelete() {
 
 				<!-- PH-issue-033 / 検収項目 #4: 左に削除 button、右に キャンセル / 保存。
 				     destructive operation を主操作 (保存) と離して配置 (誤クリック防止)。 -->
-				<div class="mt-6 flex items-center justify-between gap-2">
+				<div class="flex flex-none items-center justify-between gap-2 border-t border-[var(--ag-border)] px-6 py-4">
 					<Button
 						type="button"
 						variant="ghost"
