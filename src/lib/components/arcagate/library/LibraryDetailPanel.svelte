@@ -1,13 +1,17 @@
 <script lang="ts">
+import { Settings2 } from '@lucide/svelte';
 import { ask, open } from '@tauri-apps/plugin-dialog';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
+import { Button } from '$lib/components/ui/button';
 import { countItemReferences, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
+import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
 import { formatLaunchError } from '$lib/utils/launch-error';
+import CardOverrideDialog from './CardOverrideDialog.svelte';
 import LibraryDetailActions from './LibraryDetailActions.svelte';
 import LibraryDetailHeader from './LibraryDetailHeader.svelte';
 import LibraryDetailMetadata from './LibraryDetailMetadata.svelte';
@@ -169,6 +173,28 @@ let moreMenuItems = $derived.by(() => {
 		{ label: 'JSONコピー', onclick: handleExportItem },
 	];
 });
+
+// F-5 (2026-05-08 user 検収): カード個別調整 toggle + 別 modal 編集に変更。
+// E-3 で ItemForm 内に直接埋め込んだ ItemFormCardOverride を撤去、detail panel に
+// checkbox + 「個別設定モーダルを開く」 button を配置、CardOverrideDialog を別 modal で開く。
+let cardOverrideDialogOpen = $state(false);
+
+function handleCardOverrideToggle(enable: boolean): void {
+	if (!selectedItem) return;
+	if (enable) {
+		// global config を copy で個別調整 enable
+		const initial = JSON.stringify({
+			background: configStore.libraryCard.background,
+			style: configStore.libraryCard.style,
+		});
+		void itemStore.updateItem(selectedItem.id, { card_override_json: initial });
+		toastStore.add('このカードだけ個別調整を開始しました', 'success');
+	} else {
+		// reset: 個別調整解除
+		void itemStore.updateItem(selectedItem.id, { card_override_json: null });
+		toastStore.add('個別調整を解除しました', 'info');
+	}
+}
 </script>
 
 <svelte:window
@@ -193,6 +219,32 @@ let moreMenuItems = $derived.by(() => {
 	{#if selectedItem}
 		<LibraryDetailHeader item={selectedItem} {moreMenuItems} {onClose} />
 		<LibraryDetailMetadata item={selectedItem} />
+
+		<!-- F-5 (2026-05-08): カード個別調整 toggle + 別 modal 編集 -->
+		<div class="mt-4 flex items-center justify-between gap-2 border-t border-[var(--ag-border)] pt-4">
+			<label class="flex items-center gap-2 text-sm text-[var(--ag-text-secondary)]">
+				<input
+					type="checkbox"
+					class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
+					data-testid="card-override-toggle"
+					checked={!!selectedItem.card_override_json}
+					onchange={(e) =>
+						handleCardOverrideToggle((e.currentTarget as HTMLInputElement).checked)}
+				/>
+				<span>カード個別調整</span>
+			</label>
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				disabled={!selectedItem.card_override_json}
+				data-testid="card-override-open-dialog"
+				onclick={() => (cardOverrideDialogOpen = true)}
+			>
+				<Settings2 class="h-3.5 w-3.5" />
+				個別設定を開く
+			</Button>
+		</div>
 
 		<!-- Tags section (S-3-5, S-3-6) -->
 		<LibraryItemTagSection
@@ -220,4 +272,10 @@ let moreMenuItems = $derived.by(() => {
 	{/if}
 </aside>
 
-<!-- E-3 (2026-05-07): カード表示設定 + reset ConfirmDialog は ItemFormCardOverride 内蔵に移植済。 -->
+{#if selectedItem}
+	<CardOverrideDialog
+		open={cardOverrideDialogOpen}
+		item={selectedItem}
+		onClose={() => (cardOverrideDialogOpen = false)}
+	/>
+{/if}
