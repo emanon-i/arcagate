@@ -23,6 +23,13 @@ export const MAX_ZOOM = 200;
 export const RESET_ZOOM = 100;
 
 /**
+ * F-8 v2 (2026-05-09 user 検収): fit-to-content では BB が viewport に必ず収まる scale が必要
+ * なので MIN_ZOOM (25) を緩めた専用下限を使う。wheel zoom や reset は今まで通り MIN_ZOOM 25 で
+ * 操作性を担保。fit のみ「scale 自動調整」のため 1% まで許容 (実用上 5%〜25% の範囲に着地)。
+ */
+export const MIN_ZOOM_FIT = 1;
+
+/**
  * 2026-05-07 user 検収: 「左/上の壁が戻った」 regression 対応。
  *
  * 旧 fix (06a1955) は MIN_PAN_COLS=24 / MIN_PAN_ROWS=128 で grid を広く確保し、初期 scroll を
@@ -56,6 +63,15 @@ export function cellStrideY(zoomPct: number): number {
 /** zoom を [MIN_ZOOM, MAX_ZOOM] にクランプして整数化。 */
 export function clampZoom(zoom: number): number {
 	return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom)));
+}
+
+/**
+ * fit-to-content 専用 clamp。下限 MIN_ZOOM_FIT (=1)、**上限 RESET_ZOOM (=100)**。
+ * 上限 1.0 で「fit は 100% を超えて拡大しない」(Figma / Excalidraw 業界標準)。
+ * 下限 1% で BB が巨大な場合でも全 widget が viewport に収まる scale を返せる。
+ */
+export function clampZoomFit(zoom: number): number {
+	return Math.max(MIN_ZOOM_FIT, Math.min(RESET_ZOOM, Math.round(zoom)));
 }
 
 /**
@@ -213,6 +229,16 @@ export function computeOrigin(bb: BoundingBox): { cellX: number; cellY: number }
  *
  * BB が available area (viewport から chrome reserve を引いた領域) に納まる最大 zoom を返す。
  * BASE 単位 (zoom 100% 時) の cell pixel を使って ratio を出すので零点合わせ済。
+ *
+ * F-8 v2 (2026-05-09 user 検収): 旧実装は `clampZoom` で MIN_ZOOM=25 / MAX_ZOOM=200 にクランプ
+ * していたが、user 検収「画面の拡大率変わらない」 root cause は **巨大 BB が MIN_ZOOM 25% でも
+ * 入らず scale 飽和 → top-left align fallback に逃げて user 視覚的には fit が機能していない**
+ * ように見える状態だった。
+ *
+ * 修正: `clampZoomFit` で **下限 MIN_ZOOM_FIT=1 / 上限 RESET_ZOOM=100** に変更:
+ *   - 下限 1%: BB が幾ら巨大でも必ず収まる scale を返せる (= overflow fallback 不要に)
+ *   - 上限 100%: fit は拡大しない (Figma / Excalidraw 業界標準)。1 個だけ widget があるとき
+ *     200% に飛ぶと user は混乱する。
  */
 export function computeFitZoom(
 	bb: BoundingBox,
@@ -228,7 +254,7 @@ export function computeFitZoom(
 	if (bbW100 <= 0 || bbH100 <= 0) return RESET_ZOOM;
 	const ratio = Math.min(availW / bbW100, availH / bbH100);
 	// floor で「BB が必ず収まる」を保証 (round / ceil だと境界で 1px overflow が起きる)
-	return clampZoom(Math.floor(ratio * 100));
+	return clampZoomFit(Math.floor(ratio * 100));
 }
 
 /**

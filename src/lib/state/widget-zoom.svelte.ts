@@ -4,10 +4,6 @@ import { normalizeWheelStep } from '$lib/utils/wheel-normalize';
 import {
 	BASE_H,
 	BASE_W,
-	BOTTOM_RESERVE,
-	bufferOffsetPx,
-	cellStrideX,
-	cellStrideY,
 	clampAnchor,
 	clampZoom,
 	computeBoundingBox,
@@ -15,13 +11,9 @@ import {
 	computeFitZoom,
 	computeOrigin,
 	computeZoomAnchorScroll,
-	GRID_GAP,
-	INNER_PAD,
 	MAX_ZOOM,
 	MIN_ZOOM,
 	RESET_ZOOM,
-	SIDE_RESERVE,
-	TOP_RESERVE,
 } from '$lib/utils/zoom-math';
 
 /**
@@ -134,11 +126,14 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	}
 
 	/**
-	 * Fit to content (post-redo3 #7 抜本書き直し):
-	 *   1. BB を計算 (空 → 100% zoom + canvas 中央 scroll)
-	 *   2. 重心 = origin (= 原点) を確定
-	 *   3. BB が available area に収まる zoom を計算 → setZoom (anchor 補正なしで純 zoom 切替)
-	 *   4. requestAnimationFrame 待ち後に origin を viewport center に持ってくる scrollTo
+	 * Fit to content。
+	 *
+	 * F-8 v2 (2026-05-09 user 検収):
+	 *   - 旧仕様 (PR #393) は MIN_ZOOM=25% 飽和時に top-left align で逃げていたが、user 視覚的には
+	 *     「拡大率変わらない」と感じる UX になっていた。`computeFitZoom` の clamp を MIN_ZOOM_FIT=1
+	 *     まで緩めたので、**BB は計算 zoom で必ず viewport に収まる** ようになり、overflow 分岐は不要に。
+	 *   - 上限は RESET_ZOOM=100% (fit は拡大しない、Figma / Excalidraw 業界標準)。
+	 *   - 流れ: 空ワークスペース → 100% + canvas 中央 / 非空 → fit zoom + BB origin を viewport center。
 	 */
 	function fitToContent(widgets: WorkspaceWidget[]) {
 		const el = containerRef();
@@ -173,38 +168,15 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		if (pendingZoomRAF !== null) cancelAnimationFrame(pendingZoomRAF);
 		pendingZoomRAF = requestAnimationFrame(() => {
 			pendingZoomRAF = null;
-			// F-8 (2026-05-08 user 検収): BB が viewport に入らない (= MIN_ZOOM 飽和) 時は
-			// BB top-left を viewport visual top-left に align する。center 配置だと
-			// 巨大 BB の中央 = canvas 中央 empty 領域に飛んで widget 何も見えなくなる
-			// (user "変な場所にフォーカス飛んで動かない")。
-			const sx = cellStrideX(targetZoom);
-			const sy = cellStrideY(targetZoom);
-			const bbWidthPx = (bb.maxX - bb.minX) * sx - GRID_GAP;
-			const bbHeightPx = (bb.maxY - bb.minY) * sy - GRID_GAP;
-			const availW = el.clientWidth - SIDE_RESERVE * 2;
-			const availH = el.clientHeight - TOP_RESERVE - BOTTOM_RESERVE;
-			const overflows = bbWidthPx > availW || bbHeightPx > availH;
-			if (overflows) {
-				// BB top-left → viewport top-left の align (widget が必ず見える)。
-				const buffer = bufferOffsetPx(targetZoom);
-				const minPxX = INNER_PAD + buffer.x + bb.minX * sx;
-				const minPxY = INNER_PAD + buffer.y + bb.minY * sy;
-				el.scrollTo({
-					left: Math.max(0, minPxX - SIDE_RESERVE),
-					top: Math.max(0, minPxY - TOP_RESERVE),
-					behavior: 'instant',
-				});
-			} else {
-				const target = computeFitScroll(origin, targetZoom, {
-					clientWidth: el.clientWidth,
-					clientHeight: el.clientHeight,
-				});
-				el.scrollTo({
-					left: target.scrollLeft,
-					top: target.scrollTop,
-					behavior: 'instant',
-				});
-			}
+			const target = computeFitScroll(origin, targetZoom, {
+				clientWidth: el.clientWidth,
+				clientHeight: el.clientHeight,
+			});
+			el.scrollTo({
+				left: target.scrollLeft,
+				top: target.scrollTop,
+				behavior: 'instant',
+			});
 		});
 	}
 
