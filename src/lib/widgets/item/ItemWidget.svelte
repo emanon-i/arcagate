@@ -20,9 +20,9 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
-import { updateWidgetConfig } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
@@ -75,7 +75,7 @@ let pinnedItems = $derived.by<Item[]>(() => {
 async function persistConfig(next: ItemWidgetConfig) {
 	if (!widget) return;
 	try {
-		await updateWidgetConfig(widget.id, JSON.stringify(next));
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
 		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
 	}
@@ -104,7 +104,7 @@ async function pickerSelectMany(items: Item[]) {
 	if (added === 0) return; // 全件 既存と重複 → 永続化不要
 	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next };
 	try {
-		await updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
 		toastStore.add(`${added} 件のアイテムを紐付けました`, 'success');
 	} catch (e: unknown) {
 		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
@@ -121,7 +121,7 @@ async function pickerSelectSingle(item: Item) {
 		item_ids: [...itemIds, item.id],
 	};
 	try {
-		await updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
 		toastStore.add(`${item.label} を紐付けました`, 'success');
 	} catch (e: unknown) {
 		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
