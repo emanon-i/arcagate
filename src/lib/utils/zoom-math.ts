@@ -23,11 +23,16 @@ export const MAX_ZOOM = 200;
 export const RESET_ZOOM = 100;
 
 /**
- * F-8 v2 (2026-05-09 user 検収): fit-to-content では BB が viewport に必ず収まる scale が必要
- * なので MIN_ZOOM (25) を緩めた専用下限を使う。wheel zoom や reset は今まで通り MIN_ZOOM 25 で
- * 操作性を担保。fit のみ「scale 自動調整」のため 1% まで許容 (実用上 5%〜25% の範囲に着地)。
+ * F-8 v3 (2026-05-09 user 再検収): fit-to-content 専用下限。
+ *
+ * v2 (=1) は理論上 BB が必ず viewport に収まるが、小さい window だと 2% 等の極端な値に
+ * 到達して widget が読めなくなる UX 問題があった。user 期待 range は「多 widget 広域で
+ * 5-20%」のため下限を **5** に変更。MIN で BB が overflow する時は scroll を BB top-left
+ * align するフォールバックを `fitToContent` 側で復活させる。
+ *
+ * wheel zoom / reset は今まで通り MIN_ZOOM=25 (操作性担保)。
  */
-export const MIN_ZOOM_FIT = 1;
+export const MIN_ZOOM_FIT = 5;
 
 /**
  * 2026-05-07 user 検収: 「左/上の壁が戻った」 regression 対応。
