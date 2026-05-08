@@ -138,7 +138,8 @@ function toggleTag(id: string) {
 }
 
 function handleTypeModeChange(mode: TypeMode) {
-	if (item) return;
+	// F-4 (2026-05-08 user 検収): 編集モードでも type 切替を許可。target は reset され
+	// user が再入力する前提 (新規 / 編集ともに同じ振る舞い)。旧仕様の `if (item) return` を撤廃。
 	typeMode = mode;
 	itemType = mode === 'url' ? 'url' : 'exe';
 	target = '';
