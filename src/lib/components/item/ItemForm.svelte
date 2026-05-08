@@ -7,7 +7,6 @@ import type { CreateItemInput, Item, ItemType, UpdateItemInput } from '$lib/type
 import type { Tag } from '$lib/types/tag';
 import { detectType } from '$lib/utils/detect-type';
 import ItemFormBasic from './ItemFormBasic.svelte';
-import ItemFormCardOverride from './ItemFormCardOverride.svelte';
 import ItemFormTags from './ItemFormTags.svelte';
 import ItemFormTarget from './ItemFormTarget.svelte';
 
@@ -201,11 +200,8 @@ async function handleSelectIcon() {
 		onToggleTag={toggleTag}
 	/>
 
-	<!-- E-3 (2026-05-07 user 検収): カード表示設定を detail panel から ここ (編集モーダル) に移植。
-	     新規作成時 (item undefined) は item.id 必須なので非表示、既存編集時のみ section 表示。 -->
-	{#if item}
-		<ItemFormCardOverride {item} />
-	{/if}
+	<!-- F-5 (2026-05-08 user 検収): E-3 で ItemForm に直接埋め込んだ ItemFormCardOverride
+	     を撤去。代わりに detail panel から CardOverrideDialog で別 modal として開く方式に変更。 -->
 
 	<div class="flex justify-end gap-2 pt-2">
 		<Button type="button" variant="outline" onclick={onCancel} disabled={submitting}
