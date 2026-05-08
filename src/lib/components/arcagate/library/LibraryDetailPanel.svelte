@@ -3,7 +3,7 @@ import { Settings2 } from '@lucide/svelte';
 import { ask, open } from '@tauri-apps/plugin-dialog';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
 import { Button } from '$lib/components/ui/button';
-import { countItemReferences, getItemTags } from '$lib/ipc/items';
+import { countItemReferences, createTag, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -92,6 +92,24 @@ async function handleRemoveTag(tagId: string) {
 	const currentIds = itemTags.filter((t) => t.id !== tagId).map((t) => t.id);
 	await itemStore.updateItem(selectedItem.id, { tag_ids: currentIds });
 	itemTags = await getItemTags(selectedItem.id);
+}
+
+// F-9 (2026-05-08 user 検収): tag inline create + 即 attach。既存 tag が 0 件でも初回作成可能に。
+async function handleCreateAndAttachTag(name: string) {
+	if (!selectedItem) return;
+	const trimmed = name.trim();
+	if (!trimmed) return;
+	try {
+		const created = await createTag({ name: trimmed, is_hidden: false });
+		const currentIds = itemTags.map((t) => t.id);
+		await itemStore.updateItem(selectedItem.id, { tag_ids: [...currentIds, created.id] });
+		itemTags = await getItemTags(selectedItem.id);
+		await itemStore.loadTagWithCounts();
+		toastStore.add(`タグ「${trimmed}」を作成しました`, 'success');
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e);
+		toastStore.add(`タグ作成失敗: ${msg}`, 'error');
+	}
 }
 
 async function handleToggleStar() {
@@ -252,6 +270,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 			{availableTags}
 			onAddTag={(id) => void handleAddTag(id)}
 			onRemoveTag={(id) => void handleRemoveTag(id)}
+			onCreateTag={(name) => void handleCreateAndAttachTag(name)}
 			onEscapeWhenClosed={() => onClose?.()}
 		/>
 
