@@ -1,25 +1,20 @@
 <script lang="ts">
-import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
-
 /**
- * ItemForm の識別フィールド (label / icon / aliases)。
+ * ItemForm の識別フィールド (label / aliases)。
+ *
+ * G-6 (2026-05-09 user 検収): icon 編集 UI は ItemFormCardOverride (カード個別設定) に移植。
+ * 「アイコンはアイテム本体属性ではなくカードの見た目に属する」 user 整理。E-3 / F-5 で
+ * 確立した「カード見た目は detail panel の checkbox + 別 modal で編集」 line に合流。
  *
  * 引用元 guideline:
  *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、basic 抽出)
  */
 interface Props {
 	label: string;
-	iconPath: string;
 	aliasesText: string;
-	onSelectIcon: () => void;
 }
 
-let {
-	label = $bindable(''),
-	iconPath = $bindable(''),
-	aliasesText = $bindable(''),
-	onSelectIcon,
-}: Props = $props();
+let { label = $bindable(''), aliasesText = $bindable('') }: Props = $props();
 </script>
 
 <div class="space-y-1">
@@ -37,40 +32,6 @@ let {
 		autofocus
 		placeholder="表示名"
 	/>
-</div>
-
-<!-- J-6: アイコン画像プレビュー -->
-<div class="space-y-1">
-	<span class="text-sm font-medium text-[var(--ag-text-primary)]">アイコン</span>
-	<div class="flex items-center gap-3">
-		<div
-			class="flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]"
-		>
-			{#if iconPath}
-				<ItemIcon iconPath={iconPath} alt="アイコン" class="h-16 w-16 object-contain" />
-			{:else}
-				<span class="text-xs text-[var(--ag-text-muted)]">なし</span>
-			{/if}
-		</div>
-		<button
-			type="button"
-			class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
-			onclick={onSelectIcon}
-		>
-			アイコンを選択
-		</button>
-		{#if iconPath}
-			<button
-				type="button"
-				class="text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:text-destructive"
-				onclick={() => {
-					iconPath = '';
-				}}
-			>
-				削除
-			</button>
-		{/if}
-	</div>
 </div>
 
 <div class="space-y-1">

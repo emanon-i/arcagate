@@ -1,5 +1,4 @@
 <script lang="ts">
-import { open } from '@tauri-apps/plugin-dialog';
 import { untrack } from 'svelte';
 import { Button } from '$lib/components/ui/button';
 import { checkIsDirectory, extractItemIcon } from '$lib/ipc/items';
@@ -165,15 +164,9 @@ async function handleDrop(paths: string[]) {
 	}
 }
 
-async function handleSelectIcon() {
-	const selected = await open({
-		multiple: false,
-		filters: [{ name: 'アイコン画像', extensions: ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'] }],
-	});
-	if (selected) {
-		iconPath = selected;
-	}
-}
+// G-6 (2026-05-09): 手動 icon 選択は CardOverrideDialog 内 ItemFormCardOverride に移植済。
+// `iconPath` state は handleDrop で自動抽出 (drag .exe → extractItemIcon) と save 時の
+// `icon_path: iconPath` を維持するため残す (新規作成時の自動 icon 取得経路)。
 </script>
 
 <form class="space-y-4" onsubmit={handleSubmit}>
@@ -189,9 +182,7 @@ async function handleSelectIcon() {
 
 	<ItemFormBasic
 		bind:label
-		bind:iconPath
 		bind:aliasesText
-		onSelectIcon={() => void handleSelectIcon()}
 	/>
 
 	<ItemFormTags

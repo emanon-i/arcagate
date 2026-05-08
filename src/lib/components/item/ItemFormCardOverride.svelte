@@ -1,5 +1,7 @@
 <script lang="ts">
+import { open } from '@tauri-apps/plugin-dialog';
 import { onMount } from 'svelte';
+import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { listOpeners, type Opener } from '$lib/ipc/opener';
 import {
@@ -98,7 +100,60 @@ function resetOverride(): void {
 	void itemStore.updateItem(item.id, { card_override_json: null });
 	toastStore.add('個別調整を解除しました', 'success');
 }
+
+// G-6 (2026-05-09 user 検収): ItemForm からアイコン編集を移植。
+// アイコンはアイテム本体属性ではなく「カードの見た目」に属する整理。
+// 現状は item.icon_path 単一 column (per-card override icon は future work)。
+async function selectIcon(): Promise<void> {
+	const selected = await open({
+		multiple: false,
+		filters: [{ name: 'アイコン画像', extensions: ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'] }],
+	});
+	if (selected) {
+		await itemStore.updateItem(item.id, { icon_path: selected as string });
+		toastStore.add('アイコンを変更しました', 'success');
+	}
+}
+
+async function clearIcon(): Promise<void> {
+	await itemStore.updateItem(item.id, { icon_path: null });
+	toastStore.add('アイコンを削除しました', 'info');
+}
 </script>
+
+<!-- G-6 (2026-05-09 user 検収): icon 編集 UI を ItemForm から移植。
+     override toggle の上 (常時 visible) に配置し、いつでも item.icon_path を変更可能。 -->
+<div class="space-y-2">
+	<span class="text-sm font-medium text-[var(--ag-text-primary)]">アイコン</span>
+	<div class="flex items-center gap-3">
+		<div
+			class="flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]"
+		>
+			{#if item.icon_path}
+				<ItemIcon iconPath={item.icon_path} alt="アイコン" class="h-16 w-16 object-contain" />
+			{:else}
+				<span class="text-xs text-[var(--ag-text-muted)]">なし</span>
+			{/if}
+		</div>
+		<button
+			type="button"
+			class="rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
+			data-testid="card-override-icon-select"
+			onclick={() => void selectIcon()}
+		>
+			アイコンを選択
+		</button>
+		{#if item.icon_path}
+			<button
+				type="button"
+				class="text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:text-destructive"
+				onclick={() => void clearIcon()}
+			>
+				削除
+			</button>
+		{/if}
+	</div>
+</div>
 
 <div class="space-y-2 border-t border-[var(--ag-border)] pt-4">
 	<div class="flex items-start justify-between gap-3">
