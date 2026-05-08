@@ -93,7 +93,7 @@ async function handleLaunch(item: Item) {
 }
 
 // I2 fix: 空状態から「設定 dialog → 同じ button もう 1 回 → picker」 の 2 step UX を排除し、
-// 空状態 click で picker を直接開いて 1 step で紐付けできるようにする。
+// 空状態 click で picker を直接開いて 1 step で追加できるようにする (G-2: 文言「紐付け」→「追加」)。
 async function pickerSelectMany(items: Item[]) {
 	pickerOpen = false;
 	if (items.length === 0 || !widget) return;
@@ -105,7 +105,7 @@ async function pickerSelectMany(items: Item[]) {
 	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next };
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
-		toastStore.add(`${added} 件のアイテムを紐付けました`, 'success');
+		toastStore.add(`${added} 件のアイテムを追加しました`, 'success');
 	} catch (e: unknown) {
 		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
 	}
@@ -122,7 +122,7 @@ async function pickerSelectSingle(item: Item) {
 	};
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
-		toastStore.add(`${item.label} を紐付けました`, 'success');
+		toastStore.add(`${item.label} を追加しました`, 'success');
 	} catch (e: unknown) {
 		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
 	}
@@ -141,11 +141,11 @@ let title = $derived(
 		<button
 			type="button"
 			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
-			aria-label="このウィジェットにアイテムを紐付け"
+			aria-label="このウィジェットにアイテムを追加"
 			onclick={() => (pickerOpen = true)}
 		>
 			<Plus class="h-6 w-6" />
-			<span class="text-xs">アイテムを紐付け</span>
+			<span class="text-xs">アイテムを追加</span>
 		</button>
 	{:else}
 		<!-- 5/03 user 検収 (C): toolbar に view-mode toggle (grid / list)。複数 item 時のみ。 -->
