@@ -3,7 +3,6 @@ import { Command } from '@lucide/svelte';
 import { cubicOut } from 'svelte/easing';
 import { fade, fly } from 'svelte/transition';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
-import { hiddenStore } from '$lib/state/hidden.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
 import PaletteKeyGuide from './PaletteKeyGuide.svelte';
 import PaletteQuickContext from './PaletteQuickContext.svelte';
@@ -121,7 +120,6 @@ function handleKeydown(e: KeyboardEvent) {
 				</div>
 				<div class="flex items-center gap-2">
 					<Chip tone="accent">Ctrl + Shift + Space</Chip>
-					<Chip tone="warm">{hiddenStore.isHiddenVisible ? '非表示: ON' : '非表示: OFF'}</Chip>
 				</div>
 			</div>
 

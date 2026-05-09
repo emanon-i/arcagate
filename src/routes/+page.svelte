@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Eye, EyeOff, HelpCircle, X } from '@lucide/svelte';
+import { HelpCircle, X } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { onDestroy } from 'svelte';
@@ -18,7 +18,6 @@ import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
 import { NAV_TOP } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
-import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -239,12 +238,6 @@ function handleFormClose() {
 				icon={HelpCircle}
 				label="ヘルプ"
 				onclick={() => helpStore.open()}
-			/>
-			<TitleAction
-				icon={hiddenStore.isHiddenVisible ? Eye : EyeOff}
-				label={hiddenStore.isHiddenVisible ? '非表示アイテム: 表示' : '非表示アイテム: 非表示'}
-				tone={hiddenStore.isHiddenVisible ? 'warm' : 'default'}
-				onclick={() => hiddenStore.toggleDirect()}
 			/>
 			<TitleAction
 				icon={NAV_TOP.palette.icon}

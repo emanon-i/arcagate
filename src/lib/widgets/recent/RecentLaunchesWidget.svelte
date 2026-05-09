@@ -6,7 +6,6 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
-import { hiddenStore } from '$lib/state/hidden.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
@@ -32,9 +31,8 @@ $effect(() => {
 	});
 });
 
-let visibleRecentItems = $derived(
-	hiddenStore.isHiddenVisible ? recentItems : recentItems.filter((i) => i.is_enabled),
-);
+// H-1: 非表示 (is_enabled=false) のアイテムは widget でも常に除外 (hiddenStore 削除に伴う簡素化)。
+let visibleRecentItems = $derived(recentItems.filter((i) => i.is_enabled));
 
 let sortField = $derived(parseWidgetConfig(widget?.config, LIST_WIDGET_DEFAULTS).sort_field);
 
