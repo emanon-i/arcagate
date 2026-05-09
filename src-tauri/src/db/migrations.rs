@@ -26,6 +26,7 @@ const MIGRATION_022: &str = include_str!("../../migrations/022_icon_cache.sql");
 const MIGRATION_023: &str = include_str!("../../migrations/023_drop_legacy_item_id.sql");
 const MIGRATION_024: &str = include_str!("../../migrations/024_theme_palette_expansion.sql");
 const MIGRATION_025: &str = include_str!("../../migrations/025_item_tags_index.sql");
+const MIGRATION_026: &str = include_str!("../../migrations/026_drop_workspace_system_tags.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -54,6 +55,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_023),
         M::up(MIGRATION_024),
         M::up(MIGRATION_025),
+        M::up(MIGRATION_026),
     ])
 }
 

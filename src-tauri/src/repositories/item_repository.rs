@@ -282,14 +282,8 @@ pub fn remove_system_tag(conn: &Connection, item_id: &str, tag_id: &str) -> Resu
     Ok(())
 }
 
-/// 5/01 user 検収 (C3): 指定 tag を持つ item id リストを取得 (workspace tag 同期で使用)。
-pub fn find_ids_by_tag(conn: &Connection, tag_id: &str) -> Result<Vec<String>, AppError> {
-    let mut stmt = conn.prepare("SELECT item_id FROM item_tags WHERE tag_id = ?1")?;
-    let rows = stmt
-        .query_map(params![tag_id], |row| row.get::<_, String>(0))?
-        .collect::<rusqlite::Result<Vec<String>>>()?;
-    Ok(rows)
-}
+// G-7 (2026-05-09): find_ids_by_tag は sys-ws-* tag 同期専用だったため、機能撤去に
+// 伴い削除。他 tag の id 検索が必要になったら再追加可能。
 
 #[cfg(test)]
 mod tests {

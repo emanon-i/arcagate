@@ -6,10 +6,10 @@ pub fn sys_type_tag_id(item_type: &ItemType) -> String {
     format!("sys-type-{}", item_type.as_str())
 }
 
-/// システムタグID: ワークスペース別 (e.g. "sys-ws-<uuid>")
-pub fn sys_ws_tag_id(workspace_id: &str) -> String {
-    format!("sys-ws-{}", workspace_id)
-}
+// G-7 (2026-05-09 user 検収): workspace 名 system tag (sys-ws-*) 機能ごと撤去。
+// 「workspace 名 = system tag」 自動付与は不要、widget item に勝手に tag が増える UX を解消。
+// 関連 logic は workspace_service の create/update/delete + sync_workspace_item_tags 全廃止。
+// migration 026 で既存 sys-ws-* row を削除。
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tag {
@@ -70,20 +70,7 @@ mod tests {
         assert_eq!(sys_type_tag_id(&ItemType::Command), "sys-type-command");
     }
 
-    #[test]
-    fn test_sys_ws_tag_id() {
-        let ws_id = "01234567-89ab-cdef-0123-456789abcdef";
-        assert_eq!(
-            sys_ws_tag_id(ws_id),
-            "sys-ws-01234567-89ab-cdef-0123-456789abcdef"
-        );
-    }
-
-    #[test]
-    fn test_sys_ws_tag_id_prefix_format() {
-        let result = sys_ws_tag_id("any-id");
-        assert!(result.starts_with("sys-ws-"));
-    }
+    // G-7: sys_ws_tag_id 関連 test 撤去 (機能削除に伴う)。
 
     #[test]
     fn test_sys_type_tag_id_prefix_format() {
