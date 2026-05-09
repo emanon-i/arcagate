@@ -6,7 +6,6 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
-import { hiddenStore } from '$lib/state/hidden.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
@@ -34,9 +33,10 @@ $effect(() => {
 	});
 });
 
-let visibleFavorites = $derived(
-	hiddenStore.isHiddenVisible ? favorites : favorites.filter((i) => i.is_enabled),
-);
+// H-1: 非表示 (is_enabled=false) のアイテムは widget でも常に除外。
+// 旧 hiddenStore (titlebar toggle) は H-1 で削除済、user が明示的に非表示にしたものは
+// Library / Workspace 双方で hide が一貫挙動。
+let visibleFavorites = $derived(favorites.filter((i) => i.is_enabled));
 
 let sortField = $derived(parseWidgetConfig(widget?.config, LIST_WIDGET_DEFAULTS).sort_field);
 
