@@ -19,7 +19,7 @@ $effect(() => {
 
 let starredTags = $derived(itemStore.tagWithCounts.filter((t) => t.id === 'sys-starred'));
 let typeTags = $derived(itemStore.tagWithCounts.filter((t) => t.id.startsWith('sys-type-')));
-let workspaceTags = $derived(itemStore.tagWithCounts.filter((t) => t.id.startsWith('sys-ws-')));
+// G-7 (2026-05-09 user 検収): workspace 名 system tag (sys-ws-*) 機能ごと撤去。sidebar セクションも撤去。
 let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 </script>
 
@@ -83,31 +83,9 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 		</section>
 	{/if}
 
-	<!-- セクション 3: ワークスペース -->
-	{#if workspaceTags.length > 0}
-		<section
-			class="space-y-1.5 border-t border-[var(--ag-border)] pt-3"
-			data-testid="sidebar-section-workspace"
-		>
-			{#if expanded}
-				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-					ワークスペース
-				</h3>
-			{/if}
-			{#each workspaceTags as tag (tag.id)}
-				<SidebarRow
-					icon={NAV_TOP.workspace.icon}
-					label={tag.name}
-					meta={expanded ? String(tag.item_count) : undefined}
-					iconOnly={!expanded}
-					active={activeTag === tag.id}
-					onclick={() => onSelectTag?.(tag.id)}
-				/>
-			{/each}
-		</section>
-	{/if}
+	<!-- G-7: 旧セクション 3「ワークスペース」 (sys-ws-* tag) は機能ごと撤去。 -->
 
-	<!-- セクション 4: ユーザータグ -->
+	<!-- セクション 3: ユーザータグ -->
 	{#if userTags.length > 0}
 		<section
 			class="space-y-1.5 border-t border-[var(--ag-border)] pt-3"

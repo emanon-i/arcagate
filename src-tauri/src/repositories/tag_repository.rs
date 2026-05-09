@@ -159,14 +159,9 @@ pub fn upsert_system_tag(conn: &Connection, tag: &Tag) -> Result<(), AppError> {
     Ok(())
 }
 
-/// IDでシステムタグを削除（ワークスペース削除時用）
-pub fn delete_system_tag_by_id(conn: &Connection, id: &str) -> Result<(), AppError> {
-    conn.execute(
-        "DELETE FROM tags WHERE id = ?1 AND is_system = 1",
-        params![id],
-    )?;
-    Ok(())
-}
+// G-7 (2026-05-09): delete_system_tag_by_id は workspace 削除時の sys-ws-* 削除用
+// だったため、機能撤去に伴い削除。他 system tag (sys-starred / sys-type-*) は固定で
+// 削除されないため不要。再追加が必要なら復活可。
 
 #[cfg(test)]
 mod tests {
@@ -331,18 +326,7 @@ mod tests {
         assert_eq!(found.name, "RenamedWorkspace");
     }
 
-    #[test]
-    fn test_delete_system_tag_by_id() {
-        let db = initialize_in_memory();
-        let conn = db.0.lock().unwrap();
-
-        let tag = make_system_tag("sys-ws-del", "ToDelete");
-        upsert_system_tag(&conn, &tag).unwrap();
-
-        delete_system_tag_by_id(&conn, "sys-ws-del").unwrap();
-        let result = find_by_id(&conn, "sys-ws-del");
-        assert!(result.is_err());
-    }
+    // G-7: test_delete_system_tag_by_id 撤去 (関数自体削除に伴う)。
 
     #[test]
     fn test_find_system_tags() {
