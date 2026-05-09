@@ -9,6 +9,7 @@ import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { useWorkspaceInput } from '$lib/state/workspace-input.svelte';
+import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadBool, saveBool } from '$lib/utils/local-storage';
 import ItemContextMenu from './ItemContextMenu.svelte';
 import WorkspaceGrid from './WorkspaceGrid.svelte';
@@ -71,7 +72,8 @@ $effect(() => {
 	};
 });
 
-let selectedWidgetId = $state<string | null>(null);
+// H-2 Tier B (2026-05-09 user 検収): selection は workspaceSelection store (Set<string>) に
+// 移行。HintBar や input hooks は単選択時の id を選択 store の `singleId` で取得。
 let renameOpen = $state(false);
 let wallpaperOpen = $state(false);
 
@@ -143,9 +145,10 @@ let maxRow = $derived(
 
 const input = useWorkspaceInput({
 	getContainer: () => workspaceContainer,
-	getSelectedId: () => selectedWidgetId,
+	getSelectedId: () => workspaceSelection.singleId,
 	setSelectedId: (id) => {
-		selectedWidgetId = id;
+		if (id) workspaceSelection.setSingle(id);
+		else workspaceSelection.clear();
 	},
 	isModalOpen: () => renameOpen,
 	onDelete: instantDeleteWidget,
@@ -189,7 +192,7 @@ function confirmRename(name: string) {
      Industrial Yellow design 自体 (panel / hatch / dot / bracket) は keep、
      selection 色だけ theme に連動させる方針。 -->
 <div class="relative flex h-full">
-	<WorkspaceHintBar editMode={true} {selectedWidgetId} />
+	<WorkspaceHintBar editMode={true} selectedWidgetId={workspaceSelection.singleId} />
 
 	{#if sidebarOpen}
 		<WorkspaceSidebar {dynamicCols} onClose={() => (sidebarOpen = false)} />
@@ -212,14 +215,12 @@ function confirmRename(name: string) {
 		{containerHeight}
 		{dynamicCols}
 		{maxRow}
-		{selectedWidgetId}
 		{deleteConfirmId}
 		{zoom}
 		{onEditItem}
 		onSelectWorkspace={handleSelectWorkspace}
 		onRenameActive={() => (renameOpen = true)}
 		onEditWallpaper={() => (wallpaperOpen = true)}
-		onSelectedWidgetIdChange={(id) => (selectedWidgetId = id)}
 		onDeleteConfirmIdChange={consumeDeleteConfirm}
 		onCanvasPointerDown={input.onPointerDown}
 		onCanvasPointerMove={input.onPointerMove}

@@ -2,6 +2,7 @@
 import { GripHorizontal, X } from '@lucide/svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import {
 	clampResizeForOverlap,
 	computeResize,
@@ -34,19 +35,11 @@ interface Props {
 	dynamicCols: number;
 	widgetW: number;
 	widgetH: number;
-	onSelectedWidgetIdChange: (id: string | null) => void;
 	onDeleteConfirmIdChange: (id: string | null) => void;
 }
 
-let {
-	widgetId,
-	isSelected,
-	dynamicCols,
-	widgetW,
-	widgetH,
-	onSelectedWidgetIdChange,
-	onDeleteConfirmIdChange,
-}: Props = $props();
+let { widgetId, isSelected, dynamicCols, widgetW, widgetH, onDeleteConfirmIdChange }: Props =
+	$props();
 
 const MAX_SPAN = 4;
 
@@ -115,7 +108,10 @@ function handleMoveStart(e: PointerEvent) {
 	e.preventDefault();
 	e.stopPropagation();
 	(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-	onSelectedWidgetIdChange(widgetId);
+	// H-2 Tier B: 選択外 widget の drag は単選択化、選択内 widget の drag は selection 維持。
+	if (!workspaceSelection.has(widgetId)) {
+		workspaceSelection.setSingle(widgetId);
+	}
 	pointerDrag.start({ kind: 'move', widgetId }, e.clientX, e.clientY);
 }
 

@@ -2,6 +2,7 @@
 import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { WIDGET_LABELS } from '$lib/types/workspace';
 import { clampWidget, wouldOverlapAt } from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
@@ -13,7 +14,6 @@ interface Props {
 	widgetW: number;
 	widgetH: number;
 	widgetComponents: Record<string, Component>;
-	selectedWidgetId: string | null;
 	deleteConfirmId: string | null;
 	editMode?: boolean;
 	/**
@@ -21,7 +21,6 @@ interface Props {
 	 * 旧 callback 互換のため引数 1 個でも呼べるが、新規実装は ev を受け取って x/y で popup 位置を決める。
 	 */
 	onItemContext: (itemId: string, ev?: MouseEvent) => void;
-	onSelectedWidgetIdChange: (id: string | null) => void;
 	onDeleteConfirmIdChange: (id: string | null) => void;
 }
 
@@ -31,12 +30,20 @@ let {
 	widgetW,
 	widgetH,
 	widgetComponents,
-	selectedWidgetId,
 	editMode = true,
 	onItemContext,
-	onSelectedWidgetIdChange,
 	onDeleteConfirmIdChange,
 }: Props = $props();
+
+// H-2 Tier B: selection は workspaceSelection store (Set<string>)
+function handleWidgetClick(e: MouseEvent, id: string): void {
+	e.stopPropagation();
+	if (e.shiftKey) {
+		workspaceSelection.toggle(id);
+	} else {
+		workspaceSelection.setSingle(id);
+	}
+}
 
 let dropZoneEl = $state<HTMLDivElement | null>(null);
 
@@ -114,9 +121,26 @@ $effect(() => {
 			}
 		} else if (src.kind === 'move') {
 			if (cell) {
-				// Codex r4 HIGH #2: move 経路にも dynamicCols を渡し、preview の bound 判定と
-				// store の commit 判定を同期させる。preview が「越境 = 赤」表示なのに commit が通る乖離を防止。
-				void workspaceStore.moveWidget(src.widgetId, cell.x, cell.y, dynamicCols);
+				// H-2 Tier B: 複数 widget が selected で primary がその中なら全体 delta 移動
+				if (workspaceSelection.size > 1 && workspaceSelection.has(src.widgetId)) {
+					const primary = workspaceStore.widgets.find((w) => w.id === src.widgetId);
+					if (primary) {
+						const dx = cell.x - primary.position_x;
+						const dy = cell.y - primary.position_y;
+						const moves = workspaceSelection
+							.asArray()
+							.map((id) => {
+								const w = workspaceStore.widgets.find((x) => x.id === id);
+								return w ? { id, toX: w.position_x + dx, toY: w.position_y + dy } : null;
+							})
+							.filter((m): m is { id: string; toX: number; toY: number } => m !== null);
+						void workspaceStore.moveMany(moves, dynamicCols);
+					}
+				} else {
+					// Codex r4 HIGH #2: move 経路にも dynamicCols を渡し、preview の bound 判定と
+					// store の commit 判定を同期させる。preview が「越境 = 赤」表示なのに commit が通る乖離を防止。
+					void workspaceStore.moveWidget(src.widgetId, cell.x, cell.y, dynamicCols);
+				}
 			}
 		}
 	}
@@ -132,17 +156,31 @@ $effect(() => {
 	};
 });
 
-// PH-issue-001: 編集モード時 Delete / Backspace で選択 widget を削除確認 (§13 規格)
+// H-2 Tier B (2026-05-09 user 検収): Delete / Backspace で全選択 widget を削除 (history 1 batch)。
+// Esc で全選択解除。単選択時 (size=1) は従来通り deleteConfirmDialog 経路。
 function handleKeydown(e: KeyboardEvent) {
-	if (!editMode || !selectedWidgetId) return;
+	if (!editMode) return;
 	const target = e.target as HTMLElement | null;
 	const isEditable =
 		target &&
 		(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
 	if (isEditable) return;
-	if (e.key === 'Delete' || e.key === 'Backspace') {
+	if (e.key === 'Escape' && workspaceSelection.size > 0) {
 		e.preventDefault();
-		onDeleteConfirmIdChange(selectedWidgetId);
+		workspaceSelection.clear();
+		return;
+	}
+	if (e.key === 'Delete' || e.key === 'Backspace') {
+		if (workspaceSelection.size === 0) return;
+		e.preventDefault();
+		if (workspaceSelection.size === 1) {
+			// 単選択は既存 ConfirmDialog 経路 (誤操作防止)
+			onDeleteConfirmIdChange(workspaceSelection.singleId);
+		} else {
+			// 複数選択は明示的 multi delete として即実行 (history で undo 可能)
+			void workspaceStore.removeMany(workspaceSelection.asArray());
+			workspaceSelection.clear();
+		}
 	}
 }
 
@@ -177,16 +215,17 @@ $effect(() => {
 	<div
 		class="absolute inset-0 z-10"
 		style="display: grid; grid-template-columns: repeat({dynamicCols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
-		onclick={() => { onSelectedWidgetIdChange(null); }}
+		onclick={() => { workspaceSelection.clear(); }}
 	>
 		{#each workspaceStore.widgets as widget (widget.id)}
 			{@const WidgetComp = widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
 			{@const clamped = clampWidget(widget, dynamicCols)}
 			{@const isMoving = pointerDrag.active?.kind === 'move' && pointerDrag.active.widgetId === widget.id}
-			{@const isSelected = editMode && selectedWidgetId === widget.id}
+			{@const isSelected = editMode && workspaceSelection.has(widget.id)}
 			{#if WidgetComp}
 				<!-- PH-issue-001: WidgetHandles を選択時のみマウント。
-				     非選択 widget は通常表示のみ、handle / ring は出ない (P11 装飾は対象を邪魔しない)。 -->
+				     非選択 widget は通常表示のみ、handle / ring は出ない (P11 装飾は対象を邪魔しない)。
+				     H-2 Tier B: 複数 widget 選択時は全部に ring が描画される。 -->
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -197,8 +236,7 @@ $effect(() => {
 					aria-label={WIDGET_LABELS[widget.widget_type] ?? widget.widget_type}
 					tabindex={editMode ? 0 : -1}
 					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
-					onclick={(e) => { e.stopPropagation(); onSelectedWidgetIdChange(widget.id); }}
-					onfocus={() => onSelectedWidgetIdChange(widget.id)}
+					onclick={(e) => handleWidgetClick(e, widget.id)}
 				>
 					<WidgetComp {widget} {onItemContext} />
 					{#if editMode}
@@ -208,7 +246,6 @@ $effect(() => {
 							{dynamicCols}
 							{widgetW}
 							{widgetH}
-							{onSelectedWidgetIdChange}
 							{onDeleteConfirmIdChange}
 						/>
 					{/if}

@@ -24,7 +24,7 @@ import { getWatchedPaths, removeWatchedPath } from '$lib/ipc/watched_paths';
 import * as workspaceIpc from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceConfig } from '$lib/state/workspace-config.svelte';
-import { workspaceHistory } from '$lib/state/workspace-history.svelte';
+import { type SimpleHistoryEntry, workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import {
@@ -328,6 +328,52 @@ class WorkspaceWidgets {
 		}
 	}
 
+	/**
+	 * H-2 Tier B (2026-05-09 user 検収): 複数 widget をまとめて削除し、history を 1 batch entry
+	 * として記録。Ctrl+Z 1 回で N 件全部復活する UX。
+	 */
+	async removeMany(ids: string[]): Promise<void> {
+		if (ids.length === 0) return;
+		if (ids.length === 1) {
+			// 単件は既存 path で record (snackbar 動作も維持)。
+			await this.removeWidget(ids[0]);
+			return;
+		}
+		this.loading = true;
+		this.error = null;
+		const wsId = workspaceConfig.activeWorkspaceId;
+		const targets = ids
+			.map((id) => this.widgets.find((w) => w.id === id))
+			.filter((w): w is WorkspaceWidget => w !== undefined);
+		try {
+			for (const t of targets) {
+				await workspaceIpc.removeWidget(t.id);
+			}
+			const removedSet = new Set(targets.map((t) => t.id));
+			const remaining = this.widgets.filter((w) => !removedSet.has(w.id));
+			this.widgets = remaining;
+			if (wsId) {
+				const entries: SimpleHistoryEntry[] = targets.map((t) => ({
+					kind: 'remove',
+					workspaceId: wsId,
+					widgetId: t.id,
+					widgetType: t.widget_type,
+					rect: { x: t.position_x, y: t.position_y, w: t.width, h: t.height },
+					config: t.config,
+				}));
+				workspaceHistory.record({ kind: 'batch', entries });
+			}
+			// cascade: 各 removed widget について watched path 解除を試みる
+			for (const t of targets) {
+				await cascadeRemoveWatchedPath(t, remaining);
+			}
+		} catch (e) {
+			this.error = getErrorMessage(e);
+		} finally {
+			this.loading = false;
+		}
+	}
+
 	async persistWidgetOrder(orderedWidgets: WorkspaceWidget[]): Promise<void> {
 		try {
 			await Promise.all(
@@ -436,6 +482,98 @@ class WorkspaceWidgets {
 		}
 	}
 
+	/**
+	 * H-2 Tier B (2026-05-09 user 検収): 複数 widget を同 delta で同時移動 + history 1 batch。
+	 * 全 target が grid 範囲内かつ非選択 widget と overlap しない場合のみ commit、
+	 * 1 件でも違反すれば全体を reject (atomic) + toast 表示。
+	 */
+	async moveMany(moves: { id: string; toX: number; toY: number }[], cols?: number): Promise<void> {
+		if (moves.length === 0) return;
+		if (moves.length === 1) {
+			const m = moves[0];
+			await this.moveWidget(m.id, m.toX, m.toY, cols);
+			return;
+		}
+		this.error = null;
+		const targets = moves.map((m) => {
+			const w = this.widgets.find((x) => x.id === m.id);
+			return w ? { src: w, toX: m.toX, toY: m.toY } : null;
+		});
+		if (targets.some((t) => t === null)) return;
+		const ts = targets as Array<{ src: WorkspaceWidget; toX: number; toY: number }>;
+
+		const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
+		// 1) 範囲内チェック
+		for (const t of ts) {
+			if (
+				t.toX < 0 ||
+				t.toY < 0 ||
+				t.toX + t.src.width > effectiveCols ||
+				t.toY + t.src.height > DEFAULT_MAX_ROW + 1
+			) {
+				toastStore.add('グリッド範囲外のため移動できません', 'error');
+				return;
+			}
+		}
+		// 2) overlap チェック (移動 widget 群同士の衝突 + 非移動 widget との衝突)
+		const movingIds = new Set(ts.map((t) => t.src.id));
+		const stationaryRects = this.widgets
+			.filter((w) => !movingIds.has(w.id))
+			.map((w) => ({ x: w.position_x, y: w.position_y, w: w.width, h: w.height }));
+		// 各 target が stationary と衝突しないか
+		for (const t of ts) {
+			if (wouldOverlapAt(t.toX, t.toY, t.src.width, t.src.height, stationaryRects)) {
+				toastStore.add('他のウィジェットと重なるため移動できません', 'error');
+				return;
+			}
+		}
+		// 移動先同士の衝突
+		const targetRects = ts.map((t) => ({ x: t.toX, y: t.toY, w: t.src.width, h: t.src.height }));
+		for (let i = 0; i < targetRects.length; i++) {
+			const cur = targetRects[i];
+			const others = targetRects.filter((_, j) => j !== i);
+			if (wouldOverlapAt(cur.x, cur.y, cur.w, cur.h, others)) {
+				toastStore.add('選択 widget 同士が重なるため移動できません', 'error');
+				return;
+			}
+		}
+
+		// Optimistic local update
+		const updateMap = new Map(ts.map((t) => [t.src.id, { x: t.toX, y: t.toY }]));
+		this.widgets = this.widgets.map((w) => {
+			const u = updateMap.get(w.id);
+			return u ? { ...w, position_x: u.x, position_y: u.y } : w;
+		});
+		try {
+			for (const t of ts) {
+				await workspaceIpc.updateWidgetPosition(t.src.id, t.toX, t.toY, t.src.width, t.src.height);
+			}
+			const moveEntries: SimpleHistoryEntry[] = ts
+				.filter((t) => t.src.position_x !== t.toX || t.src.position_y !== t.toY)
+				.map((t) => ({
+					kind: 'move',
+					widgetId: t.src.id,
+					before: {
+						x: t.src.position_x,
+						y: t.src.position_y,
+						w: t.src.width,
+						h: t.src.height,
+					},
+					after: { x: t.toX, y: t.toY, w: t.src.width, h: t.src.height },
+				}));
+			if (moveEntries.length > 0) {
+				workspaceHistory.record({ kind: 'batch', entries: moveEntries });
+			}
+		} catch (e) {
+			this.error = getErrorMessage(e);
+			// IPC 失敗時 rollback (全 target 戻す)
+			this.widgets = this.widgets.map((w) => {
+				const t = ts.find((x) => x.src.id === w.id);
+				return t ? { ...w, position_x: t.src.position_x, position_y: t.src.position_y } : w;
+			});
+		}
+	}
+
 	optimisticResize(id: string, width: number, height: number): void {
 		this.widgets = this.widgets.map((w) => (w.id === id ? { ...w, width, height } : w));
 	}
@@ -494,6 +632,67 @@ class WorkspaceWidgets {
 		}
 	}
 
+	/**
+	 * H-2 Tier B: 単一 entry の undo 適用 (batch 内 entry も同じ logic で逆向き適用)。
+	 */
+	private async applySimpleUndo(
+		entry: SimpleHistoryEntry,
+		activeWorkspaceId: string,
+	): Promise<void> {
+		switch (entry.kind) {
+			case 'add': {
+				await workspaceIpc.removeWidget(entry.widgetId);
+				this.widgets = this.widgets.filter((w) => w.id !== entry.widgetId);
+				break;
+			}
+			case 'remove': {
+				const widget = await workspaceIpc.addWidget(entry.workspaceId, entry.widgetType);
+				await workspaceIpc.updateWidgetPosition(
+					widget.id,
+					entry.rect.x,
+					entry.rect.y,
+					entry.rect.w,
+					entry.rect.h,
+				);
+				if (entry.config !== null) {
+					await workspaceIpc.updateWidgetConfig(widget.id, entry.config);
+				}
+				entry.widgetId = widget.id;
+				await this.loadWidgets(activeWorkspaceId);
+				break;
+			}
+			case 'move':
+			case 'resize': {
+				await workspaceIpc.updateWidgetPosition(
+					entry.widgetId,
+					entry.before.x,
+					entry.before.y,
+					entry.before.w,
+					entry.before.h,
+				);
+				this.widgets = this.widgets.map((w) =>
+					w.id === entry.widgetId
+						? {
+								...w,
+								position_x: entry.before.x,
+								position_y: entry.before.y,
+								width: entry.before.w,
+								height: entry.before.h,
+							}
+						: w,
+				);
+				break;
+			}
+			case 'config': {
+				await workspaceIpc.updateWidgetConfig(entry.widgetId, entry.before);
+				this.widgets = this.widgets.map((w) =>
+					w.id === entry.widgetId ? { ...w, config: entry.before } : w,
+				);
+				break;
+			}
+		}
+	}
+
 	/** PH-issue-002: Undo — 履歴 1 件を逆方向に IPC で適用、ローカル state も更新 */
 	async undo(): Promise<void> {
 		const entry = workspaceHistory.popUndo();
@@ -503,61 +702,13 @@ class WorkspaceWidgets {
 		// R8-3: undo が走った時点で削除 snackbar は役割終了 (Ctrl+Z でも snackbar click でも同じ経路)
 		workspaceHistory.dismiss();
 		try {
-			switch (entry.kind) {
-				case 'add': {
-					// add の undo = remove
-					await workspaceIpc.removeWidget(entry.widgetId);
-					this.widgets = this.widgets.filter((w) => w.id !== entry.widgetId);
-					break;
+			if (entry.kind === 'batch') {
+				// H-2 Tier B: 逆順で適用 (記録時の順序で undo すると重ね合わせが崩れるため)
+				for (let i = entry.entries.length - 1; i >= 0; i--) {
+					await this.applySimpleUndo(entry.entries[i], activeWorkspaceId);
 				}
-				case 'remove': {
-					// remove の undo = add (新 widgetId が振られる)
-					const widget = await workspaceIpc.addWidget(entry.workspaceId, entry.widgetType);
-					await workspaceIpc.updateWidgetPosition(
-						widget.id,
-						entry.rect.x,
-						entry.rect.y,
-						entry.rect.w,
-						entry.rect.h,
-					);
-					if (entry.config !== null) {
-						await workspaceIpc.updateWidgetConfig(widget.id, entry.config);
-					}
-					// entry は popUndo で redoStack に push 済。同一参照を mutate して
-					// 後続の redo(remove) が新 widget id を参照できるようにする。
-					entry.widgetId = widget.id;
-					await this.loadWidgets(activeWorkspaceId);
-					break;
-				}
-				case 'move':
-				case 'resize': {
-					await workspaceIpc.updateWidgetPosition(
-						entry.widgetId,
-						entry.before.x,
-						entry.before.y,
-						entry.before.w,
-						entry.before.h,
-					);
-					this.widgets = this.widgets.map((w) =>
-						w.id === entry.widgetId
-							? {
-									...w,
-									position_x: entry.before.x,
-									position_y: entry.before.y,
-									width: entry.before.w,
-									height: entry.before.h,
-								}
-							: w,
-					);
-					break;
-				}
-				case 'config': {
-					await workspaceIpc.updateWidgetConfig(entry.widgetId, entry.before);
-					this.widgets = this.widgets.map((w) =>
-						w.id === entry.widgetId ? { ...w, config: entry.before } : w,
-					);
-					break;
-				}
+			} else {
+				await this.applySimpleUndo(entry, activeWorkspaceId);
 			}
 		} catch (e) {
 			this.error = getErrorMessage(e);
@@ -572,62 +723,78 @@ class WorkspaceWidgets {
 		if (!entry || !activeWorkspaceId) return;
 		this.error = null;
 		try {
-			switch (entry.kind) {
-				case 'add': {
-					const widget = await workspaceIpc.addWidget(entry.workspaceId, entry.widgetType);
-					await workspaceIpc.updateWidgetPosition(
-						widget.id,
-						entry.rect.x,
-						entry.rect.y,
-						entry.rect.w,
-						entry.rect.h,
-					);
-					if (entry.config !== null) {
-						await workspaceIpc.updateWidgetConfig(widget.id, entry.config);
-					}
-					// 後続の undo(add) が新 widget id を参照できるよう同一 entry を mutate。
-					entry.widgetId = widget.id;
-					await this.loadWidgets(activeWorkspaceId);
-					break;
+			if (entry.kind === 'batch') {
+				// H-2 Tier B: 順方向で適用
+				for (const sub of entry.entries) {
+					await this.applySimpleRedo(sub, activeWorkspaceId);
 				}
-				case 'remove': {
-					await workspaceIpc.removeWidget(entry.widgetId);
-					this.widgets = this.widgets.filter((w) => w.id !== entry.widgetId);
-					break;
-				}
-				case 'move':
-				case 'resize': {
-					await workspaceIpc.updateWidgetPosition(
-						entry.widgetId,
-						entry.after.x,
-						entry.after.y,
-						entry.after.w,
-						entry.after.h,
-					);
-					this.widgets = this.widgets.map((w) =>
-						w.id === entry.widgetId
-							? {
-									...w,
-									position_x: entry.after.x,
-									position_y: entry.after.y,
-									width: entry.after.w,
-									height: entry.after.h,
-								}
-							: w,
-					);
-					break;
-				}
-				case 'config': {
-					await workspaceIpc.updateWidgetConfig(entry.widgetId, entry.after);
-					this.widgets = this.widgets.map((w) =>
-						w.id === entry.widgetId ? { ...w, config: entry.after } : w,
-					);
-					break;
-				}
+			} else {
+				await this.applySimpleRedo(entry, activeWorkspaceId);
 			}
 		} catch (e) {
 			this.error = getErrorMessage(e);
 			await this.loadWidgets(activeWorkspaceId);
+		}
+	}
+
+	/**
+	 * H-2 Tier B: 単一 entry の redo 適用 (batch 内 entry も同じ logic で順方向適用)。
+	 */
+	private async applySimpleRedo(
+		entry: SimpleHistoryEntry,
+		activeWorkspaceId: string,
+	): Promise<void> {
+		switch (entry.kind) {
+			case 'add': {
+				const widget = await workspaceIpc.addWidget(entry.workspaceId, entry.widgetType);
+				await workspaceIpc.updateWidgetPosition(
+					widget.id,
+					entry.rect.x,
+					entry.rect.y,
+					entry.rect.w,
+					entry.rect.h,
+				);
+				if (entry.config !== null) {
+					await workspaceIpc.updateWidgetConfig(widget.id, entry.config);
+				}
+				entry.widgetId = widget.id;
+				await this.loadWidgets(activeWorkspaceId);
+				break;
+			}
+			case 'remove': {
+				await workspaceIpc.removeWidget(entry.widgetId);
+				this.widgets = this.widgets.filter((w) => w.id !== entry.widgetId);
+				break;
+			}
+			case 'move':
+			case 'resize': {
+				await workspaceIpc.updateWidgetPosition(
+					entry.widgetId,
+					entry.after.x,
+					entry.after.y,
+					entry.after.w,
+					entry.after.h,
+				);
+				this.widgets = this.widgets.map((w) =>
+					w.id === entry.widgetId
+						? {
+								...w,
+								position_x: entry.after.x,
+								position_y: entry.after.y,
+								width: entry.after.w,
+								height: entry.after.h,
+							}
+						: w,
+				);
+				break;
+			}
+			case 'config': {
+				await workspaceIpc.updateWidgetConfig(entry.widgetId, entry.after);
+				this.widgets = this.widgets.map((w) =>
+					w.id === entry.widgetId ? { ...w, config: entry.after } : w,
+				);
+				break;
+			}
 		}
 	}
 }

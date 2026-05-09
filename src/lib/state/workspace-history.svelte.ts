@@ -17,7 +17,10 @@ import { WIDGET_LABELS, type WidgetType } from '$lib/types/workspace';
 
 export type WidgetRect = { x: number; y: number; w: number; h: number };
 
-export type HistoryEntry =
+// H-2 Tier B (2026-05-09): SimpleHistoryEntry は単一操作。BatchHistoryEntry が複数操作を
+// まとめて 1 step undo / redo するために導入。複数 widget の同時 move / 同時 delete を
+// user の「Ctrl+Z 1 回で全部戻る」 期待に揃える。
+export type SimpleHistoryEntry =
 	| {
 			kind: 'add';
 			workspaceId: string;
@@ -37,6 +40,13 @@ export type HistoryEntry =
 	| { kind: 'move'; widgetId: string; before: WidgetRect; after: WidgetRect }
 	| { kind: 'resize'; widgetId: string; before: WidgetRect; after: WidgetRect }
 	| { kind: 'config'; widgetId: string; before: string | null; after: string | null };
+
+export type BatchHistoryEntry = {
+	kind: 'batch';
+	entries: SimpleHistoryEntry[];
+};
+
+export type HistoryEntry = SimpleHistoryEntry | BatchHistoryEntry;
 
 const MAX_HISTORY = 50;
 

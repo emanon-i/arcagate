@@ -70,6 +70,8 @@ export const workspaceStore = {
 	) => workspaceWidgets.addWidgetAt(widgetType, x, y, cols),
 	bulkAddItemWidgets: (itemIds: string[]) => workspaceWidgets.bulkAddItemWidgets(itemIds),
 	removeWidget: (id: string) => workspaceWidgets.removeWidget(id),
+	// H-2 Tier B: 複数 widget をまとめて削除 (history 1 batch)
+	removeMany: (ids: string[]) => workspaceWidgets.removeMany(ids),
 	updateWidgetConfig: (id: string, config: string | null) =>
 		workspaceWidgets.updateWidgetConfig(id, config),
 	persistWidgetOrder: (orderedWidgets: Parameters<typeof workspaceWidgets.persistWidgetOrder>[0]) =>
@@ -78,6 +80,9 @@ export const workspaceStore = {
 		workspaceWidgets.resizeWidget(id, width, height),
 	moveWidget: (id: string, x: number, y: number, cols?: number) =>
 		workspaceWidgets.moveWidget(id, x, y, cols),
+	// H-2 Tier B: 複数 widget を同時移動 (history 1 batch)
+	moveMany: (moves: Parameters<typeof workspaceWidgets.moveMany>[0], cols?: number) =>
+		workspaceWidgets.moveMany(moves, cols),
 	optimisticResize: (id: string, width: number, height: number) =>
 		workspaceWidgets.optimisticResize(id, width, height),
 	optimisticMoveAndResize: (id: string, x: number, y: number, width: number, height: number) =>
