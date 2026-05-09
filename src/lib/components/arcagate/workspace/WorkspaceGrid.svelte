@@ -32,14 +32,12 @@ interface Props {
 	containerHeight: number;
 	dynamicCols: number;
 	maxRow: number;
-	selectedWidgetId: string | null;
 	deleteConfirmId: string | null;
 	zoom: ReturnType<typeof useWidgetZoom>;
 	onEditItem?: (id: string) => void;
 	onSelectWorkspace: (id: string) => void;
 	onRenameActive: () => void;
 	onEditWallpaper: () => void;
-	onSelectedWidgetIdChange: (id: string | null) => void;
 	onDeleteConfirmIdChange: (id: string | null) => void;
 	onCanvasPointerDown?: (e: PointerEvent) => void;
 	onCanvasPointerMove?: (e: PointerEvent) => void;
@@ -52,14 +50,12 @@ let {
 	containerHeight,
 	dynamicCols,
 	maxRow,
-	selectedWidgetId,
 	deleteConfirmId,
 	zoom,
 	onEditItem,
 	onSelectWorkspace,
 	onRenameActive,
 	onEditWallpaper,
-	onSelectedWidgetIdChange,
 	onDeleteConfirmIdChange,
 	onCanvasPointerDown,
 	onCanvasPointerMove,
@@ -242,11 +238,9 @@ void openItemDetail;
 						widgetW={zoom.widgetW}
 						widgetH={zoom.widgetH}
 						{widgetComponents}
-						{selectedWidgetId}
 						{deleteConfirmId}
 						editMode={true}
 						onItemContext={handleItemContext}
-						onSelectedWidgetIdChange={onSelectedWidgetIdChange}
 						onDeleteConfirmIdChange={onDeleteConfirmIdChange}
 					/>
 					{#if workspaceStore.widgets.length === 0}
