@@ -21,6 +21,16 @@ import { addWidget, createWorkspace, listWidgets, listWorkspaces } from '../help
  */
 
 test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)', () => {
+	// 後続 spec (smoke) が `default activeView = 'library'` 前提で動くため、Workspace
+	// 操作した test の後に必ず Library tab に戻す。
+	test.afterEach(async ({ page }) => {
+		await page
+			.getByRole('button', { name: 'Library', exact: true })
+			.click()
+			.catch(() => {});
+		await page.waitForTimeout(300);
+	});
+
 	test('ItemFormDialog: 「アイテムを追加」 button click で開く + Escape で閉じる', async ({
 		page,
 	}) => {
