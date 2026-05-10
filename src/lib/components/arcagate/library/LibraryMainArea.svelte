@@ -165,6 +165,14 @@ let starredIds = $state<Set<string>>(new Set());
 $effect(() => {
 	const _dep = itemStore.items;
 	void _dep;
+	// L-batch (2026-05-10 user 検収 perf 計測): cold start で items=[] (初期値) →
+	// loadItems 完了で items=[N] の 2 段階で本 $effect が 2 回発火し、starred IPC が
+	// 2 回発射されていた (cold で +44-64ms の余計な IPC、特に Library 初期表示で体感)。
+	// 0 件で fetch しても結果は空 → IPC を skip。
+	if (itemStore.items.length === 0) {
+		if (starredIds.size > 0) starredIds = new Set();
+		return;
+	}
 	markStart(PERF_LABELS.libraryStarredFetch);
 	searchItemsInTag('sys-starred', '')
 		.then((items) => {

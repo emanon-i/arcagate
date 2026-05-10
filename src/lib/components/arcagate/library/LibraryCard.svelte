@@ -45,19 +45,20 @@ let metadata = $derived(
 let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
 
 // PH-290: per-card override を global にマージ（背景・文字とも部分上書き）。
-// E-8 fix (2026-05-07 user 検収 real bug): user が card_override.background.focalX 等を変更しても
-// LibraryCard が re-render しない bug。$derived.by + try-catch + JSON.parse の組合せで Svelte 5 の
-// 依存追跡が正常に効かない場合があり、共通 parseCardOverride helper (LibraryDetailMetadata と同等) に
-// 揃えて signal-clean にする。LibraryDetailMetadata 経由は機能、LibraryCard 経由は失敗していた。
+// E-8 fix (2026-05-07): card_override 変更時 LibraryCard 未更新 bug fix (parseCardOverride helper で signal-clean)。
+// L-batch (2026-05-10 perf): override 無し (大半のカード) では configStore の参照を
+// そのまま返して spread allocation を回避。N cards × 2 spread の object 生成を回避。
 let cardOverride = $derived(parseCardOverride(item.card_override_json));
-let bg = $derived({
-	...configStore.libraryCard.background,
-	...(cardOverride?.background ?? {}),
-});
-let style = $derived({
-	...configStore.libraryCard.style,
-	...(cardOverride?.style ?? {}),
-});
+let bg = $derived(
+	cardOverride?.background
+		? { ...configStore.libraryCard.background, ...cardOverride.background }
+		: configStore.libraryCard.background,
+);
+let style = $derived(
+	cardOverride?.style
+		? { ...configStore.libraryCard.style, ...cardOverride.style }
+		: configStore.libraryCard.style,
+);
 
 let labelStyle = $derived.by(() => {
 	const stroke = style.strokeEnabled ? `${style.strokeWidthPx}px ${style.strokeColor}` : 'none';
