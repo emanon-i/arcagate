@@ -311,8 +311,10 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			指定フォルダ内に exe を含むサブフォルダがありません。
 		</p>
 	{:else}
-		<!-- 並び替え toolbar (5/03 user 検収: 旧「全部 Library 追加」 button は撤廃。auto-register on scan に統一)。 -->
-		<div class="mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] pb-1.5 text-xs">
+		<!-- 並び替え toolbar (5/03 user 検収: 旧「全部 Library 追加」 button は撤廃。auto-register on scan に統一)。
+		     I-3 (2026-05-10 user 検収): scroll で消えないよう sticky top-0 で widget header 領域に pin。
+		     bg-[var(--ag-surface-opaque)] で下層の item rows と被らないよう不透明に。 -->
+		<div class="sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-4 pb-1.5 pt-1 text-xs">
 			<span class="text-[var(--ag-text-muted)]">並び替え:</span>
 			<button
 				type="button"
