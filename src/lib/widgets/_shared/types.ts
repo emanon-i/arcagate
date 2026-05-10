@@ -57,3 +57,11 @@ export interface WidgetModule {
 	widgetType: WidgetType;
 	meta: WidgetMeta;
 }
+
+/**
+ * I-4 (2026-05-10 user 検収): folder watch 系 widget (ExeFolder / Projects) で共通の
+ * 並び替えキー / 順序 型。 user 指示「個別実装 + sort key の type 定義だけ共有」
+ * (3 件目以降が出てから抽象化 ルール、現状 2 件のみ)。
+ */
+export type WidgetSortField = 'name' | 'mtime';
+export type WidgetSortOrder = 'asc' | 'desc';

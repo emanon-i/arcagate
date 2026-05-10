@@ -14,7 +14,15 @@
  * - docs/l1_requirements/ux_standards.md §6-1 Widget fluid sizing / §7 EmptyState
  * - CLAUDE.md「ラベルは機能 / 状態 / アクションを書く」
  */
-import { CircleDot, FolderKanban, GitBranch, Info, Settings } from '@lucide/svelte';
+import {
+	ArrowDown,
+	ArrowUp,
+	CircleDot,
+	FolderKanban,
+	GitBranch,
+	Info,
+	Settings,
+} from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
@@ -24,13 +32,16 @@ import { launchItem } from '$lib/ipc/launch';
 import { getFolderItems, getGitStatusesBatch } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
+import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
+import type { WidgetSortField, WidgetSortOrder } from '../_shared/types';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -53,9 +64,39 @@ const PROJECT_CONFIG_DEFAULTS = {
 	description: '',
 	watched_folder: '',
 	auto_add: false,
+	// I-4 (2026-05-10 user 検収): 並び替え (ExeFolder と同じ key 集合、type は _shared/types.ts に集約)。
+	sort_field: 'name' as WidgetSortField,
+	sort_order: 'asc' as WidgetSortOrder,
 };
 
 let config = $derived(parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS));
+
+// I-4: sort 適用済 items (元 folderItems は immutable、表示のみ並べ替え)。
+// ExeFolder と同じ pattern (個別実装、UI 抽出は 3 件目以降が出てから)。
+let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
+let sortOrder = $derived<WidgetSortOrder>(config.sort_order ?? 'asc');
+let sortedItems = $derived.by(() => {
+	const list = [...folderItems];
+	const dir = sortOrder === 'asc' ? 1 : -1;
+	if (sortField === 'name') {
+		list.sort((a, b) => dir * a.label.localeCompare(b.label, 'ja'));
+	} else {
+		// updated_at は ISO 文字列 (lexicographic = 時系列)。asc=古い順 / desc=新しい順。
+		list.sort((a, b) => dir * a.updated_at.localeCompare(b.updated_at));
+	}
+	return list;
+});
+
+async function setSort(field: WidgetSortField) {
+	if (!widget) return;
+	const nextOrder: WidgetSortOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
+	const next = { ...config, sort_field: field, sort_order: nextOrder };
+	try {
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
+	} catch (e: unknown) {
+		toastStore.add(formatIpcError({ operation: '設定の保存' }, e), 'error');
+	}
+}
 
 // Phase L-1 (2026-05-07 user 検収 Library 真因 #1): N+1 IPC を batch IPC に集約。
 // 旧実装は各 folder item ごと cmd_git_status を発火 (10+ folders で累積数秒)、本実装は
@@ -224,12 +265,59 @@ async function handleLaunch(item: Item) {
 				<span class="truncate">説明</span>
 			</div>
 		{/if}
+		<!-- I-4 (2026-05-10 user 検収): 並び替え toolbar (ExeFolder I-3 と同じ sticky pattern)。
+		     widget header に pin して scroll 中も常時操作可能。 -->
+		<div
+			class="sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-4 pb-1.5 pt-1 text-xs"
+		>
+			<span class="text-[var(--ag-text-muted)]">並び替え:</span>
+			<button
+				type="button"
+				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
+				'name'
+					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+					: 'text-[var(--ag-text-secondary)]'}"
+				onclick={() => void setSort('name')}
+				aria-label="名前で並び替え{sortField === 'name'
+					? sortOrder === 'asc'
+						? ' (現在 昇順)'
+						: ' (現在 降順)'
+					: ''}"
+			>
+				名前
+				{#if sortField === 'name'}
+					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
+							class="h-3 w-3"
+						/>{/if}
+				{/if}
+			</button>
+			<button
+				type="button"
+				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
+				'mtime'
+					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+					: 'text-[var(--ag-text-secondary)]'}"
+				onclick={() => void setSort('mtime')}
+				aria-label="更新日時で並び替え{sortField === 'mtime'
+					? sortOrder === 'asc'
+						? ' (現在 古い順)'
+						: ' (現在 新しい順)'
+					: ''}"
+			>
+				更新日時
+				{#if sortField === 'mtime'}
+					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
+							class="h-3 w-3"
+						/>{/if}
+				{/if}
+			</button>
+		</div>
 		<!-- PH-issue-039 / 検収項目 #18: container query で widget 幅に応じて 1/2/3 列に動的調整。
 		     PH-issue-039 / 検収項目 #17: 各 row のアイコンを削除 (folder 型では meaningless)。
 		     git branch chip + 変更数 chip を保持 (P3 主要情報)。 -->
 		<div class="@container">
 			<div class="grid gap-2 @sm:grid-cols-2 @lg:grid-cols-3">
-				{#each folderItems as item (item.id)}
+				{#each sortedItems as item (item.id)}
 					{@const gs = gitStatuses[item.id]}
 					<button
 						type="button"
