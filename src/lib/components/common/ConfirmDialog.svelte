@@ -1,8 +1,18 @@
 <script lang="ts">
-import { cubicOut } from 'svelte/easing';
-import { fade, scale } from 'svelte/transition';
 import { Button } from '$lib/components/ui/button';
+import BaseDialog from './BaseDialog.svelte';
 
+/**
+ * ConfirmDialog: title + description + cancel/confirm の小型確認 dialog。
+ *
+ * BaseDialog を使う rewrite (refactor: Dialog wrapper unify)。
+ * - BaseDialog 担当: Escape close / backdrop / fade+scale / aria role
+ * - 本 component 担当: Enter → onConfirm の追加 keyboard handler、layout
+ *
+ * Enter handler は BaseDialog の Escape window listener と独立した別 window listener
+ * (anti-pattern §3 回避: BaseDialog に「全 keyboard event の bubbling」 等 leaky API
+ * を追加せず、caller が必要な key を個別 handle)。
+ */
 interface Props {
 	open: boolean;
 	title: string;
@@ -24,65 +34,42 @@ let {
 	onConfirm,
 	onCancel,
 }: Props = $props();
-
-const rm =
-	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const dFast = rm ? 0 : 120;
-const dNormal = rm ? 0 : 200;
 </script>
 
-<!-- Escape / Enter: window listener で root-cause fix。modal div の onkeydown は
-     trigger button から focus が移動しないため発火しない (refactor/escape-key-fix)。
-     `<svelte:window>` は {#if} 外配置必須、open guard を inline 化。 -->
+<!-- Enter → onConfirm: BaseDialog 内の Escape listener とは独立した別 window listener。 -->
 <svelte:window
 	onkeydown={(e) => {
-		if (!open) return;
-		if (e.key === 'Escape') onCancel();
-		if (e.key === 'Enter') onConfirm();
+		if (open && e.key === 'Enter') onConfirm();
 	}}
 />
 
-{#if open}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="confirm-dialog-title"
-		aria-describedby="confirm-dialog-desc"
-		tabindex="-1"
-		transition:fade={{ duration: dFast }}
-		onclick={(e) => {
-			if (e.target === e.currentTarget) onCancel();
-		}}
+<BaseDialog
+	{open}
+	onClose={onCancel}
+	ariaLabelledby="confirm-dialog-title"
+	ariaDescribedby="confirm-dialog-desc"
+	size="sm"
+>
+	<h3
+		id="confirm-dialog-title"
+		class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]"
 	>
-		<div
-			class="w-full max-w-sm rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
-			transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
+		{title}
+	</h3>
+	<p id="confirm-dialog-desc" class="mb-4 text-sm text-[var(--ag-text-secondary)]">
+		{description}
+	</p>
+	<div class="flex justify-end gap-2">
+		<Button type="button" variant="outline" size="sm" onclick={onCancel}>
+			{cancelLabel}
+		</Button>
+		<Button
+			type="button"
+			variant={confirmVariant === 'destructive' ? 'destructive' : 'default'}
+			size="sm"
+			onclick={onConfirm}
 		>
-			<h3
-				id="confirm-dialog-title"
-				class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]"
-			>
-				{title}
-			</h3>
-			<p id="confirm-dialog-desc" class="mb-4 text-sm text-[var(--ag-text-secondary)]">
-				{description}
-			</p>
-			<div class="flex justify-end gap-2">
-				<Button type="button" variant="outline" size="sm" onclick={onCancel}>
-					{cancelLabel}
-				</Button>
-				<Button
-					type="button"
-					variant={confirmVariant === 'destructive' ? 'destructive' : 'default'}
-					size="sm"
-					onclick={onConfirm}
-				>
-					{confirmLabel}
-				</Button>
-			</div>
-		</div>
+			{confirmLabel}
+		</Button>
 	</div>
-{/if}
+</BaseDialog>
