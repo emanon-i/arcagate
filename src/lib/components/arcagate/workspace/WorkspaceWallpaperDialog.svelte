@@ -2,8 +2,7 @@
 import { Image as ImageIcon, Trash2, Upload } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import { cubicOut } from 'svelte/easing';
-import { fade, scale } from 'svelte/transition';
+import BaseDialog from '$lib/components/common/BaseDialog.svelte';
 import { saveWallpaperFile, setWorkspaceWallpaper } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -38,10 +37,9 @@ let opacityPct = $state(60);
 let blurPx = $state(0);
 let saving = $state(false);
 
-const rm =
-	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const dFast = rm ? 0 : 120;
-const dNormal = rm ? 0 : 200;
+// BaseDialog rewrite (Dialog wrapper unify Phase 2)。
+// transition / Escape / backdrop / box style は BaseDialog 担当。
+// 本 component は $effect on open (値読み込み) と form-less UI を keep。
 
 // dialog 開いた瞬間に現在 workspace の値を読み込む。
 $effect(() => {
@@ -121,36 +119,20 @@ async function clearWallpaper() {
 }
 </script>
 
-<!-- Escape: window listener で root-cause fix。modal div の onkeydown は trigger
-     button から focus が移動しないため発火しない (refactor/escape-key-fix)。
-     `<svelte:window>` は {#if} 外配置必須、open guard を inline 化。 -->
-<svelte:window onkeydown={(e) => { if (open && e.key === 'Escape') onClose(); }} />
-
-{#if open && workspace}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="wallpaper-dialog-title"
-		tabindex="-1"
-		transition:fade={{ duration: dFast }}
-		onclick={(e) => {
-			if (e.target === e.currentTarget) onClose();
-		}}
-	>
-		<div
-			class="w-full max-w-md rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
-			transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
+<BaseDialog
+	open={open && !!workspace}
+	{onClose}
+	ariaLabelledby="wallpaper-dialog-title"
+	size="md"
+>
+	{#if workspace}
+		<h3
+			id="wallpaper-dialog-title"
+			class="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--ag-text-primary)]"
 		>
-			<h3
-				id="wallpaper-dialog-title"
-				class="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--ag-text-primary)]"
-			>
-				<ImageIcon class="h-5 w-5 text-[var(--ag-text-muted)]" />
-				「{workspace.name}」の壁紙
-			</h3>
+			<ImageIcon class="h-5 w-5 text-[var(--ag-text-muted)]" />
+			「{workspace.name}」の壁紙
+		</h3>
 
 			<!-- プレビュー -->
 			<div
@@ -242,6 +224,5 @@ async function clearWallpaper() {
 					</button>
 				</div>
 			</div>
-		</div>
-	</div>
-{/if}
+	{/if}
+</BaseDialog>
