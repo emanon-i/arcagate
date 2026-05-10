@@ -40,11 +40,11 @@ pub fn scan_exe_folders(root: &str, depth: u8) -> Result<Vec<ExeFolderEntry>, Ap
     }
 
     let mut entries = Vec::new();
-    walk(root_path, depth, &mut entries);
+    walk(root_path, root_path, depth, &mut entries);
     Ok(entries)
 }
 
-fn walk(dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEntry>) {
+fn walk(root: &Path, dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEntry>) {
     let read = match fs::read_dir(dir) {
         Ok(r) => r,
         Err(_) => return,
@@ -95,11 +95,22 @@ fn walk(dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEntry>) {
     if !exes.is_empty() {
         // size_bytes 降順
         exes.sort_by_key(|c| std::cmp::Reverse(c.size_bytes));
+        // I-1 (2026-05-10 user 検収): folder_name は **watch_path 直下のフォルダ名** を返す。
+        // 旧: dir.file_name() (= exe を含む直接の親フォルダ名、例 `bin`)
+        // 新: root から見た相対 path の最初の component (例 `GameTitle1`)
+        // dir == root の場合は dir.file_name() にフォールバック (root 直下に exe がある稀有なケース)。
         let folder_name = dir
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("")
-            .to_string();
+            .strip_prefix(root)
+            .ok()
+            .and_then(|rel| rel.components().next())
+            .and_then(|c| c.as_os_str().to_str())
+            .map(|s| s.to_string())
+            .or_else(|| {
+                dir.file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|s| s.to_string())
+            })
+            .unwrap_or_default();
         // PH-issue-038: フォルダの mtime を取得 (UNIX epoch ms)、失敗時は 0。
         let mtime_ms = fs::metadata(dir)
             .ok()
@@ -118,7 +129,7 @@ fn walk(dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEntry>) {
 
     if remaining_depth > 1 {
         for sub in subdirs {
-            walk(&sub, remaining_depth - 1, out);
+            walk(root, &sub, remaining_depth - 1, out);
         }
     }
 }
