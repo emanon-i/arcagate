@@ -13,3 +13,8 @@ export async function launchItem(itemId: string): Promise<void> {
 export async function getItemStats(itemId: string): Promise<ItemStats | null> {
 	return invoke<ItemStats | null>('cmd_get_item_stats', { itemId });
 }
+
+/** I-2 (2026-05-10): widget context menu「Explorer で開く」 用。Windows 限定 (`/select,<path>`)。 */
+export async function revealInExplorer(path: string): Promise<void> {
+	return invoke<void>('cmd_reveal_in_explorer', { path });
+}

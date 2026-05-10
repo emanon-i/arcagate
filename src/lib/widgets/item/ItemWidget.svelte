@@ -23,6 +23,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
@@ -31,13 +32,27 @@ import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
 	widget?: WorkspaceWidget;
+	/** I-2: 旧 onItemContext callback は残置 (parent 経路互換)、内部では workspaceContextMenuStore に直接 attach。 */
 	onItemContext?: (itemId: string, ev?: MouseEvent) => void;
 }
 
-let { widget, onItemContext }: Props = $props();
+let { widget }: Props = $props();
 
 let settingsOpen = $state(false);
 let pickerOpen = $state(false);
+
+/** I-2: item-row 右 click → 共通 context menu (path + itemId + 設定 callback)。 */
+function handleItemContext(item: Item, ev: MouseEvent): void {
+	ev.preventDefault();
+	ev.stopPropagation();
+	workspaceContextMenuStore.openMenuFor({
+		itemId: item.id,
+		path: item.target,
+		widgetId: widget?.id ?? null,
+		onOpenSettings: () => (settingsOpen = true),
+		ev,
+	});
+}
 
 interface ItemWidgetConfig {
 	item_ids?: string[];
@@ -192,12 +207,7 @@ let title = $derived(
 								aria-label="{item.label} を起動"
 								title={item.label}
 								onclick={() => void handleLaunch(item)}
-								oncontextmenu={(e) => {
-									if (onItemContext) {
-										e.preventDefault();
-										onItemContext(item.id, e);
-									}
-								}}
+								oncontextmenu={(e) => handleItemContext(item, e)}
 							>
 								<div
 									class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)]"
@@ -226,12 +236,7 @@ let title = $derived(
 							aria-label="{item.label} を起動"
 							title={item.label}
 							onclick={() => void handleLaunch(item)}
-							oncontextmenu={(e) => {
-								if (onItemContext) {
-									e.preventDefault();
-									onItemContext(item.id, e);
-								}
-							}}
+							oncontextmenu={(e) => handleItemContext(item, e)}
 						>
 							<div
 								class="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] @sm:h-11 @sm:w-11"

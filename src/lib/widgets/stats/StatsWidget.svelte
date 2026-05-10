@@ -5,6 +5,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { launchItem } from '$lib/ipc/launch';
 import { getFrequentItems } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { STATS_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
@@ -17,7 +18,7 @@ interface Props {
 	onItemContext?: (itemId: string, ev?: MouseEvent) => void;
 }
 
-let { widget, onItemContext }: Props = $props();
+let { widget }: Props = $props();
 
 let topItems = $state<Item[]>([]);
 let settingsOpen = $state(false);
@@ -47,10 +48,15 @@ async function handleLaunch(id: string) {
 				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
 				onclick={() => void handleLaunch(item.id)}
 				oncontextmenu={(e) => {
-					if (onItemContext) {
-						e.preventDefault();
-						onItemContext(item.id, e);
-					}
+					e.preventDefault();
+					e.stopPropagation();
+					workspaceContextMenuStore.openMenuFor({
+						itemId: item.id,
+						path: item.target,
+						widgetId: widget?.id ?? null,
+						onOpenSettings: () => (settingsOpen = true),
+						ev: e,
+					});
 				}}
 			>
 				<span class="flex min-w-0 items-center gap-2">

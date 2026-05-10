@@ -24,6 +24,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { getFolderItems, getGitStatusesBatch } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
@@ -36,7 +37,7 @@ interface Props {
 	onItemContext?: (itemId: string, ev?: MouseEvent) => void;
 }
 
-let { widget, onItemContext }: Props = $props();
+let { widget }: Props = $props();
 
 let folderItems = $state<Item[]>([]);
 let gitStatuses = $state<Record<string, GitStatus>>({});
@@ -237,10 +238,15 @@ async function handleLaunch(item: Item) {
 						title={item.target}
 						onclick={() => void handleLaunch(item)}
 						oncontextmenu={(e) => {
-							if (onItemContext) {
-								e.preventDefault();
-								onItemContext(item.id, e);
-							}
+							e.preventDefault();
+							e.stopPropagation();
+							workspaceContextMenuStore.openMenuFor({
+								itemId: item.id,
+								path: item.target,
+								widgetId: widget?.id ?? null,
+								onOpenSettings: () => (settingsOpen = true),
+								ev: e,
+							});
 						}}
 					>
 						<div class="min-w-0 truncate text-sm font-semibold text-[var(--ag-text-primary)]">

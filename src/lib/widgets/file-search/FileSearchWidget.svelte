@@ -8,6 +8,7 @@ import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorCode, getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
@@ -249,6 +250,18 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							onclick={() => {
 								selectedIndex = idx;
 								void openEntry(entry);
+							}}
+							oncontextmenu={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								const matchedItem = itemStore.items.find((it) => it.target === entry.path);
+								workspaceContextMenuStore.openMenuFor({
+									itemId: matchedItem?.id ?? null,
+									path: entry.path,
+									widgetId: widget?.id ?? null,
+									onOpenSettings: () => (settingsOpen = true),
+									ev: e,
+								});
 							}}
 						>
 							{#if entry.isDir}

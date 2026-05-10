@@ -11,7 +11,7 @@ import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { useWorkspaceInput } from '$lib/state/workspace-input.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadBool, saveBool } from '$lib/utils/local-storage';
-import ItemContextMenu from './ItemContextMenu.svelte';
+import WidgetItemContextMenu from '$lib/widgets/_shared/WidgetItemContextMenu.svelte';
 import WorkspaceGrid from './WorkspaceGrid.svelte';
 import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
@@ -227,16 +227,16 @@ function confirmRename(name: string) {
 		onCanvasPointerUp={input.onPointerUp}
 	/>
 
-	<!-- PH-issue-024: 右クリック context menu (Open with…) -->
-	<ItemContextMenu
+	<!-- I-2 (2026-05-10 user 検収): 全 widget 共通 context menu (パスをコピー / Explorer で開く /
+	     アイテム削除 / 設定を開く)。旧 ItemContextMenu (Opener 専用) を置換。 -->
+	<WidgetItemContextMenu
 		open={workspaceContextMenuStore.open}
 		x={workspaceContextMenuStore.x}
 		y={workspaceContextMenuStore.y}
-		item={workspaceContextMenuStore.item}
+		path={workspaceContextMenuStore.path}
+		itemId={workspaceContextMenuStore.itemId}
+		onOpenSettings={workspaceContextMenuStore.onOpenSettings}
 		onClose={() => workspaceContextMenuStore.close()}
-		onItemUpdated={() => {
-			void itemStore.loadItems();
-		}}
 	/>
 
 	<!-- 右下 floating toolbar (Undo / Redo / zoom% / Reset / Fit)。

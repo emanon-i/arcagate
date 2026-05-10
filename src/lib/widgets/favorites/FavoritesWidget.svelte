@@ -8,6 +8,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
@@ -20,7 +21,7 @@ interface Props {
 	onItemContext?: (itemId: string, ev?: MouseEvent) => void;
 }
 
-let { widget, onItemContext }: Props = $props();
+let { widget }: Props = $props();
 
 let favorites = $state<Item[]>([]);
 let settingsOpen = $state(false);
@@ -56,6 +57,21 @@ async function handleLaunch(id: string) {
 		.then(() => toastStore.add(`${item?.label ?? id} を起動しました`, 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item?.label ?? id, e), 'error'));
 }
+
+/** I-2: item-row 右 click → 共通 context menu (path + itemId + 設定 callback)。 */
+function handleItemContext(id: string, ev?: MouseEvent): void {
+	const item = favorites.find((i) => i.id === id);
+	if (!item) return;
+	ev?.preventDefault();
+	ev?.stopPropagation();
+	workspaceContextMenuStore.openMenuFor({
+		itemId: item.id,
+		path: item.target,
+		widgetId: widget?.id ?? null,
+		onOpenSettings: () => (settingsOpen = true),
+		ev,
+	});
+}
 </script>
 
 <WidgetShell title={WIDGET_LABELS.favorites} icon={Star} {menuItems}>
@@ -64,7 +80,7 @@ async function handleLaunch(id: string) {
 		{sortField}
 		iconClass={widgetIconClass}
 		onLaunch={handleLaunch}
-		onContext={onItemContext}
+		onContext={handleItemContext}
 		emptyMessage="★ のついたアイテムがここに表示されます"
 	/>
 </WidgetShell>
