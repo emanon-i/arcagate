@@ -2,6 +2,7 @@
 import { MoreHorizontal } from '@lucide/svelte';
 import type { Component, Snippet } from 'svelte';
 import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 
 interface MenuItem {
 	label: string;
@@ -18,11 +19,27 @@ interface Props {
 
 let { title, icon: Icon, menuItems = [], children }: Props = $props();
 
+// I-2: widget body 右 click → 共通 context menu (settings 経路を menuItems の 1 件目から拝借)。
+// 「全 widget 共通の基本機能」 として WidgetShell 経由で 13 widget 全部に attach される。
+function handleWidgetContextMenu(ev: MouseEvent): void {
+	// item rows が個別 oncontextmenu で path + itemId を渡している場合は stopPropagation で
+	// この handler に届かないため、widget-body 上の余白でのみ発火する想定。
+	const settingsItem = menuItems[0];
+	const onOpenSettings = settingsItem ? settingsItem.onclick : null;
+	if (!onOpenSettings) return; // 設定 callback が無い widget は menu 開かない
+	ev.preventDefault();
+	workspaceContextMenuStore.openMenuFor({ onOpenSettings, ev });
+}
+
 let btnClass =
 	'rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]';
 </script>
 
-<div class="flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-shadow duration-[var(--ag-duration-fast)] hover:shadow-md motion-reduce:transition-none">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+	class="flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-shadow duration-[var(--ag-duration-fast)] hover:shadow-md motion-reduce:transition-none"
+	oncontextmenu={handleWidgetContextMenu}
+>
 	<!-- PH-issue-015: header layout 修正。
 	     icon wrapper に shrink-0 + title div に min-w-0 flex-1 を付与し、
 	     widget が狭くなっても title が icon に被らず truncate される。 -->

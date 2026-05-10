@@ -16,6 +16,7 @@ import { registerExeItemsBulk } from '$lib/ipc/items';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
@@ -364,6 +365,19 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
 						aria-label="{entry.folderName} を起動"
 						onclick={() => launchEntry(entry)}
+						oncontextmenu={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							const exePath = resolveExe(entry) ?? entry.folderPath;
+							const matchedItem = itemStore.items.find((it) => it.target === exePath);
+							workspaceContextMenuStore.openMenuFor({
+								itemId: matchedItem?.id ?? null,
+								path: exePath,
+								widgetId: widget?.id ?? null,
+								onOpenSettings: () => (settingsOpen = true),
+								ev: e,
+							});
+						}}
 					>
 						<!-- PH-issue-038 / 検収項目 #19: フォルダ icon → AppWindow (実体は exe 起動なので) -->
 						<AppWindow class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />

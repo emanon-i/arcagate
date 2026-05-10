@@ -7,6 +7,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
@@ -19,7 +20,7 @@ interface Props {
 	onItemContext?: (itemId: string, ev?: MouseEvent) => void;
 }
 
-let { widget, onItemContext }: Props = $props();
+let { widget }: Props = $props();
 
 let recentItems = $state<Item[]>([]);
 let settingsOpen = $state(false);
@@ -52,6 +53,21 @@ async function handleLaunch(id: string) {
 		.then(() => toastStore.add(`${item?.label ?? id} を起動しました`, 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item?.label ?? id, e), 'error'));
 }
+
+/** I-2: item-row 右 click → 共通 context menu。 */
+function handleItemContext(id: string, ev?: MouseEvent): void {
+	const item = recentItems.find((i) => i.id === id);
+	if (!item) return;
+	ev?.preventDefault();
+	ev?.stopPropagation();
+	workspaceContextMenuStore.openMenuFor({
+		itemId: item.id,
+		path: item.target,
+		widgetId: widget?.id ?? null,
+		onOpenSettings: () => (settingsOpen = true),
+		ev,
+	});
+}
 </script>
 
 <WidgetShell title={WIDGET_LABELS.recent} icon={Clock3} {menuItems}>
@@ -61,7 +77,7 @@ async function handleLaunch(id: string) {
 		iconClass={widgetIconClass}
 		showTarget
 		onLaunch={handleLaunch}
-		onContext={onItemContext}
+		onContext={handleItemContext}
 		emptyMessage="最近の起動履歴がここに表示されます"
 	/>
 </WidgetShell>
