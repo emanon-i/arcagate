@@ -23,6 +23,7 @@ import { formatIpcError } from '$lib/utils/ipc-error';
 import { launchItemWithCascade, launchTargetWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { widgetMenuItems } from '../_shared/menu-items';
+import type { WidgetSortField, WidgetSortOrder } from '../_shared/types';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -46,9 +47,6 @@ interface ExeFolderEntry {
 	mtimeMs?: number;
 }
 
-type SortField = 'name' | 'mtime';
-type SortOrder = 'asc' | 'desc';
-
 interface WidgetConfig {
 	watch_path?: string;
 	scan_depth?: number;
@@ -56,9 +54,9 @@ interface WidgetConfig {
 	/** Settings dialog で入力する説明欄を widget 内に表示する。 */
 	description?: string;
 	item_overrides?: Record<string, string>;
-	/** 並び替え設定。 */
-	sort_field?: SortField;
-	sort_order?: SortOrder;
+	/** 並び替え設定 (I-4 で _shared/types.ts に集約)。 */
+	sort_field?: WidgetSortField;
+	sort_order?: WidgetSortOrder;
 	/** C-15 #19: widget レベルの起動アプリ default。 */
 	default_opener_id?: string | null;
 }
@@ -77,8 +75,8 @@ let scanning = $state(false);
 let scanError = $state<string | null>(null);
 
 // sort 適用済 entries (元 entries は immutable、表示のみ並べ替え)
-let sortField = $derived<SortField>(config.sort_field ?? 'name');
-let sortOrder = $derived<SortOrder>(config.sort_order ?? 'asc');
+let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
+let sortOrder = $derived<WidgetSortOrder>(config.sort_order ?? 'asc');
 let sortedEntries = $derived.by(() => {
 	const list = [...entries];
 	const dir = sortOrder === 'asc' ? 1 : -1;
@@ -91,8 +89,8 @@ let sortedEntries = $derived.by(() => {
 	return list;
 });
 
-async function setSort(field: SortField) {
-	const nextOrder: SortOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
+async function setSort(field: WidgetSortField) {
+	const nextOrder: WidgetSortOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
 	await persistConfig({ ...config, sort_field: field, sort_order: nextOrder });
 }
 // 古い path の async 結果が新 path に書き戻されないよう request id で stale response を破棄。
