@@ -1,5 +1,6 @@
 <script lang="ts">
 import { X as XIcon } from '@lucide/svelte';
+import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
 import { typeLabel } from '$lib/constants/item-type';
 import type { Item } from '$lib/types/item';
@@ -29,11 +30,8 @@ let { item, moreMenuItems, onClose }: Props = $props();
 		</div>
 	</div>
 	<div class="flex shrink-0 items-center gap-2">
-		<span
-			class="rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-2.5 py-1 text-xs text-[var(--ag-accent-text)]"
-		>
-			{typeLabel[item.item_type]}
-		</span>
+		<!-- refactor (Chip 既存活用): type badge を Chip.svelte (accent tone) で render。 -->
+		<Chip tone="accent">{typeLabel[item.item_type]}</Chip>
 		<MoreMenu items={moreMenuItems} ariaLabel="アイテム操作メニュー" />
 		<button
 			type="button"
