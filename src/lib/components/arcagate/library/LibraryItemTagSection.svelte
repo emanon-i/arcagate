@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Plus, Search, X as XIcon } from '@lucide/svelte';
+import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import type { Tag, TagWithCount } from '$lib/types/tag';
 import { filterTagSuggestions, isExistingTag } from '$lib/utils/tag-suggest';
 
@@ -96,17 +97,21 @@ $effect(() => {
 	<div class="text-xs font-medium text-[var(--ag-text-muted)]">タグ</div>
 	<div class="flex flex-wrap gap-1.5">
 		{#each itemTags.filter((t) => !t.is_system) as tag (tag.id)}
-			<span class="inline-flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2.5 py-1 text-xs text-[var(--ag-text-secondary)]">
-				{tag.name}
-				<button
-					type="button"
-					class="ml-0.5 rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
-					aria-label="タグ {tag.name} を解除"
-					onclick={() => onRemoveTag(tag.id)}
-				>
-					<XIcon class="h-3 w-3" />
-				</button>
-			</span>
+			<!-- refactor (Chip 既存活用): tag chip を Chip.svelte (default tone) で render。
+			     X icon button は children snippet 内 inline で描画。 -->
+			<Chip tone="default">
+				<span class="inline-flex items-center gap-1">
+					{tag.name}
+					<button
+						type="button"
+						class="ml-0.5 rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+						aria-label="タグ {tag.name} を解除"
+						onclick={() => onRemoveTag(tag.id)}
+					>
+						<XIcon class="h-3 w-3" />
+					</button>
+				</span>
+			</Chip>
 		{/each}
 		{#if itemTags.filter((t) => !t.is_system).length === 0}
 			<span class="text-xs text-[var(--ag-text-muted)]">タグなし</span>
