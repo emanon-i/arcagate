@@ -38,10 +38,26 @@ interface Props {
 	ariaLabelledby?: string;
 	ariaDescribedby?: string;
 	size?: 'sm' | 'md' | 'lg' | 'xl';
+	/**
+	 * 内側 box に追加する class。`max-h-[85vh] overflow-y-auto` (scrollable) や
+	 * `!p-0 flex flex-col` (3-pane layout) 等の caller 固有要件を吸収するため。
+	 *
+	 * 5% の outlier (CardOverrideDialog scrollable / WidgetSettingsDialog 3-pane) を
+	 * variant prop 爆発させずに 1 prop で吸収する設計判断 (anti-pattern §5 回避)。
+	 */
+	boxClass?: string;
 	children: Snippet;
 }
 
-let { open, onClose, ariaLabelledby, ariaDescribedby, size = 'sm', children }: Props = $props();
+let {
+	open,
+	onClose,
+	ariaLabelledby,
+	ariaDescribedby,
+	size = 'sm',
+	boxClass = '',
+	children,
+}: Props = $props();
 
 const rm =
 	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -77,7 +93,7 @@ const sizeClass = $derived(
 		}}
 	>
 		<div
-			class="w-full {sizeClass} rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)]"
+			class="w-full {sizeClass} rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)] {boxClass}"
 			transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
 		>
 			{@render children()}
