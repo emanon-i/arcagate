@@ -4,8 +4,6 @@ import {
 	createItem,
 	createWorkspace,
 	deleteItem,
-	deleteWorkspace,
-	listItems,
 	listWidgets,
 	listWorkspaces,
 } from '../helpers/ipc.js';
@@ -30,14 +28,11 @@ import {
  */
 
 test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)', () => {
-	test('ItemFormDialog: 「+ アイテムを追加」 button click で開く + Escape で閉じる', async ({
+	test('ItemFormDialog: 「アイテムを追加」 button click で開く + Escape で閉じる', async ({
 		page,
 	}) => {
 		// Library tab is default
-		await page
-			.getByRole('button', { name: /\+\s*アイテムを追加/ })
-			.first()
-			.click();
+		await page.locator('[data-testid="add-item-button"]').first().click();
 		const dialog = page.getByRole('dialog').filter({ hasText: 'アイテムを追加' }).first();
 		await expect(dialog).toBeVisible({ timeout: 5_000 });
 
@@ -46,16 +41,10 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 	});
 
 	test('ItemFormDialog: backdrop click で閉じる', async ({ page }) => {
-		await page
-			.getByRole('button', { name: /\+\s*アイテムを追加/ })
-			.first()
-			.click();
+		await page.locator('[data-testid="add-item-button"]').first().click();
 		const dialog = page.getByRole('dialog').filter({ hasText: 'アイテムを追加' }).first();
 		await expect(dialog).toBeVisible({ timeout: 5_000 });
 
-		// Click on the dialog backdrop (outer div, not the inner content)
-		const box = await dialog.boundingBox();
-		if (!box) throw new Error('no bounding box');
 		// Click near top-left corner (backdrop area) — viewport coords
 		await page.mouse.click(10, 10);
 		await expect(dialog).toBeHidden({ timeout: 3_000 });
@@ -64,12 +53,13 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 	test('CardOverrideDialog: detail panel から個別設定を開く + Escape で閉じる', async ({
 		page,
 	}) => {
-		// seed 1 item
+		// seed 1 item (Rust 側 CreateItemInput は tag_ids 必須)
 		const item = await createItem(page, {
 			item_type: 'exe',
 			label: 'TestPinItem',
 			target: 'C:\\test\\pin.exe',
 			aliases: [],
+			tag_ids: [],
 		});
 		try {
 			await page.reload();
