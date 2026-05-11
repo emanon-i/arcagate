@@ -16,6 +16,7 @@ import {
 	INNER_PAD,
 	MAX_ZOOM,
 	MIN_ZOOM,
+	MIN_ZOOM_FIT,
 } from './zoom-math';
 
 /**
@@ -171,10 +172,11 @@ describe('computeFitZoom', () => {
 
 	it('BB が viewport より大きければ縮小 (< 100%)', () => {
 		// BB 100x100 cells、viewport 800x600 → fit zoom は 100% 未満
+		// computeFitZoom は clampZoomFit (MIN=MIN_ZOOM_FIT=5) を使用 (F-8 v3)
 		const bb = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
 		const z = computeFitZoom(bb, { clientWidth: 800, clientHeight: 600 });
 		expect(z).toBeLessThan(100);
-		expect(z).toBeGreaterThanOrEqual(MIN_ZOOM);
+		expect(z).toBeGreaterThanOrEqual(MIN_ZOOM_FIT);
 	});
 
 	it('BB が 0 サイズなら RESET (100)', () => {

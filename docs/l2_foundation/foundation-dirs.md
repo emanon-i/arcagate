@@ -1,194 +1,160 @@
-# Foundation §2.2: ディレクトリ構成
+# Foundation: ディレクトリ構成
 
-[foundation.md](./foundation.md) / [foundation-architecture.md](./foundation-architecture.md) の続編。
+## モジュール構成（概要）
 
-### 2.2 ディレクトリ構成
+```mermaid
+graph TD
+    Root[arcagate/]
+    Root --> Src[src/]
+    Root --> SrcTauri[src-tauri/]
+    Root --> Tests[tests/]
+    Root --> Docs[docs/]
+
+    Src --> Routes[routes/ — SvelteKit 画面]
+    Src --> Lib[lib/]
+
+    Lib --> Components[components/]
+    Lib --> State[state/ — Svelte 5 runes store]
+    Lib --> IPC[ipc/ — Tauri invoke wrapper]
+    Lib --> Types[types/]
+    Lib --> Bindings[bindings/ — ts-rs auto-gen]
+    Lib --> Utils[utils/]
+    Lib --> Constants[constants/]
+    Lib --> Styles[styles/]
+    Lib --> Widgets[widgets/ — widget 本体 (folder-per-widget)]
+
+    Components --> Arcagate[arcagate/]
+    Components --> Item[item/ — ItemForm 等]
+    Components --> Settings[settings/]
+    Components --> Setup[setup/ — SetupWizard]
+    Components --> UI[ui/ — shadcn-svelte]
+
+    Arcagate --> ArcCommon[common/ — Tip / WidgetShell 等]
+    Arcagate --> ArcLibrary[library/]
+    Arcagate --> ArcPalette[palette/]
+    Arcagate --> ArcWorkspace[workspace/]
+
+    SrcTauri --> SrcRust[src/]
+    SrcRust --> Commands[commands/ — Tauri IPC handler]
+    SrcRust --> Services[services/ — business logic]
+    SrcRust --> Repositories[repositories/ — DB CRUD]
+    SrcRust --> Models[models/ — struct/enum]
+    SrcRust --> Launcher[launcher/]
+    SrcRust --> Watcher[watcher/]
+    SrcRust --> Db[db/]
+    SrcRust --> RustUtils[utils/]
+    SrcRust --> Bin[bin/ — CLI binary]
+```
+
+---
+
+## ディレクトリ詳細
 
 ```
 arcagate/
-├── docs/                           # 設計ドキュメント（既存）
+├── docs/
 │   ├── l0_ideas/
 │   ├── l1_requirements/
 │   ├── l2_foundation/
 │   └── l3_phases/
 │
 ├── src/                            # SvelteKit フロントエンド
-│   ├── app.html                    # HTMLテンプレート
-│   ├── app.css                     # グローバルCSS（Tailwind v4 import）
-│   ├── lib/                        # 共有コード ($lib エイリアス)
+│   ├── app.html
+│   ├── app.css                     # グローバル CSS（Tailwind v4 import）
+│   ├── lib/
 │   │   ├── components/
-│   │   │   ├── ui/                 # shadcn-svelte コンポーネント
-│   │   │   │   ├── button/
-│   │   │   │   ├── command/        # コマンドパレットプリミティブ
-│   │   │   │   ├── dialog/
-│   │   │   │   ├── input/
-│   │   │   │   └── scroll-area/
-│   │   │   ├── palette/            # Arcagate コマンドパレット
-│   │   │   │   ├── Palette.svelte
-│   │   │   │   ├── PaletteItem.svelte
-│   │   │   │   └── PaletteInput.svelte
-│   │   │   ├── item/               # アイテム管理
-│   │   │   │   ├── ItemForm.svelte
-│   │   │   │   └── ItemCard.svelte
-│   │   │   ├── settings/           # 設定画面（HotkeyInput / AutostartToggle / WatchedPathsManager 等）
-│   │   │   ├── workspace/          # ワークスペース (PH-003-E)
-│   │   │   │   ├── WorkspaceView.svelte
-│   │   │   │   ├── WidgetGrid.svelte
-│   │   │   │   ├── WidgetCard.svelte
-│   │   │   │   ├── AddWidgetDialog.svelte
-│   │   │   │   ├── FavoritesWidget.svelte
-│   │   │   │   ├── RecentWidget.svelte
-│   │   │   │   ├── ProjectListWidget.svelte
-│   │   │   │   └── WatchedFoldersWidget.svelte
-│   │   │   └── setup/              # セットアップウィザード (REQ-006)
+│   │   │   ├── ui/                 # shadcn-svelte（手動編集禁止）
+│   │   │   ├── arcagate/
+│   │   │   │   ├── common/         # Tip / WidgetShell / ItemIcon 等
+│   │   │   │   ├── library/        # Library 画面コンポーネント
+│   │   │   │   ├── palette/        # Palette overlay
+│   │   │   │   └── workspace/      # Workspace shell / canvas
+│   │   │   ├── item/               # ItemForm / ItemCard
+│   │   │   ├── settings/           # Settings 画面
+│   │   │   └── setup/              # 初回セットアップ Wizard
+│   │   ├── widgets/                # widget 本体（folder-per-widget 構成）
+│   │   │   ├── _shared/            # WidgetShell, 共通型
+│   │   │   ├── clock/
+│   │   │   ├── exe-folder/
+│   │   │   └── ...（全 widget）
 │   │   ├── ipc/                    # Tauri IPC 型付きラッパー
 │   │   │   ├── items.ts
 │   │   │   ├── launch.ts
 │   │   │   ├── config.ts
 │   │   │   ├── export.ts
-│   │   │   ├── theme.ts            # PH-003-F
-│   │   │   ├── watched_paths.ts    # PH-003-D
-│   │   │   └── workspace.ts        # PH-003-E
+│   │   │   ├── theme.ts
+│   │   │   ├── watched_paths.ts
+│   │   │   └── workspace.ts
 │   │   ├── state/                  # グローバルステート (runes)
 │   │   │   ├── palette.svelte.ts
 │   │   │   ├── items.svelte.ts
 │   │   │   ├── config.svelte.ts
 │   │   │   ├── hidden.svelte.ts
-│   │   │   └── workspace.svelte.ts # PH-003-E
+│   │   │   └── workspace.svelte.ts
 │   │   ├── types/                  # TypeScript 型定義
-│   │   │   ├── item.ts
-│   │   │   ├── tag.ts
-│   │   │   ├── palette.ts
-│   │   │   ├── theme.ts            # PH-003-F
-│   │   │   ├── git.ts              # PH-003-F
-│   │   │   ├── workspace.ts        # PH-003-E
-│   │   │   └── watched_path.ts     # PH-003-D
-│   │   └── utils/                  # ユーティリティ
-│   └── routes/                     # SvelteKit ファイルベースルーティング
+│   │   ├── bindings/               # ts-rs auto-gen（編集禁止）
+│   │   ├── constants/
+│   │   ├── styles/                 # arcagate-theme.css 等
+│   │   └── utils/
+│   └── routes/
 │       ├── +layout.svelte          # ルートレイアウト（トレイ・ホットキーリスナー）
 │       ├── +page.svelte            # メインページ（Library / Workspace / Settings）
 │       └── palette/
-│           └── +page.svelte        # フローティングコマンドパレット (PH-003-F)
+│           └── +page.svelte        # フローティングコマンドパレット
 │
 ├── src-tauri/                      # Rust バックエンド (Tauri v2)
-│   ├── Cargo.toml                  # [default-run = "arcagate"] + [[bin]] arcagate_cli
-│   ├── build.rs                    # Tauri ビルドスクリプト
-│   ├── tauri.conf.json             # Tauri 設定
-│   ├── capabilities/               # Tauri v2 パーミッション定義
-│   │   └── default.json
-│   ├── icons/                      # アプリアイコン
-│   ├── migrations/                 # SQLite マイグレーション SQL（001〜010 実装済み）
-│   │   ├── 001_initial.sql
-│   │   ├── 002_mcp_permissions.sql             # → 007 で DROP 済み
-│   │   ├── 003_watched_paths.sql
-│   │   ├── 004_workspaces.sql
-│   │   ├── 005_mcp_workspace_permissions.sql   # → 007 で DROP 済み
-│   │   ├── 006_themes.sql                      # テーマ CRUD（PH-003-F）
-│   │   ├── 007_drop_mcp_permissions.sql        # MCP 除去（PH-003-H）
-│   │   ├── 008_category_to_tag.sql             # カテゴリ → タグ統一（PH-003-N）
-│   │   ├── 009_add_is_tracked.sql              # items.is_tracked 追加（PH-003-M）
-│   │   └── 010_folder_default_app.sql          # items.default_app 追加（PH-003-M）
+│   ├── Cargo.toml
+│   ├── build.rs
+│   ├── tauri.conf.json
+│   ├── capabilities/
+│   ├── icons/
+│   ├── migrations/                 # SQLite マイグレーション SQL（001〜22 実装済み）
 │   └── src/
-│       ├── main.rs                 # エントリーポイント (Windows: コンソール非表示)
+│       ├── main.rs                 # エントリーポイント
 │       ├── lib.rs                  # Tauri app setup, コマンド登録
 │       ├── bin/
-│       │   └── arcagate_cli.rs     # CLI エントリーポイント (PH-003-A)
-│       ├── commands/               # Tauri コマンドハンドラ (thin layer)
-│       │   ├── mod.rs
-│       │   ├── item_commands.rs
-│       │   ├── launch_commands.rs
-│       │   ├── config_commands.rs
-│       │   ├── export_commands.rs
-│       │   ├── theme_commands.rs         # PH-003-F
-│       │   ├── watched_path_commands.rs  # PH-003-D
-│       │   └── workspace_commands.rs     # PH-003-E
+│       │   └── arcagate_cli.rs
+│       ├── commands/               # Tauri コマンドハンドラ（thin layer）
 │       ├── services/               # ビジネスロジック
-│       │   ├── mod.rs
-│       │   ├── item_service.rs
-│       │   ├── launch_service.rs
-│       │   ├── config_service.rs
-│       │   ├── export_service.rs
-│       │   ├── theme_service.rs          # PH-003-F
-│       │   ├── watched_path_service.rs   # PH-003-D
-│       │   └── workspace_service.rs      # PH-003-E
 │       ├── repositories/           # データアクセス (rusqlite)
-│       │   ├── mod.rs
-│       │   ├── item_repository.rs
-│       │   ├── tag_repository.rs
-│       │   ├── launch_repository.rs
-│       │   ├── config_repository.rs
-│       │   ├── theme_repository.rs         # PH-003-F
-│       │   ├── watched_path_repository.rs  # PH-003-D
-│       │   └── workspace_repository.rs     # PH-003-E
 │       ├── models/                 # ドメインモデル・DTO
-│       │   ├── mod.rs
-│       │   ├── item.rs
-│       │   ├── tag.rs
-│       │   ├── launch.rs
-│       │   ├── config.rs
-│       │   ├── theme.rs            # PH-003-F
-│       │   ├── git.rs              # PH-003-F
-│       │   ├── watched_path.rs     # PH-003-D
-│       │   └── workspace.rs        # PH-003-E
-│       ├── plugin_api/             # プラグイン trait 定義 (M1: traitのみ)
-│       │   ├── mod.rs
-│       │   ├── item_provider.rs
-│       │   ├── command_provider.rs
-│       │   └── plugin.rs
-│       ├── watcher/                # notify クレートによる FS 監視 (PH-003-D)
-│       │   ├── mod.rs              # WatcherState / start_watcher / handle_event
-│       │   └── traits.rs           # FileWatcher trait
+│       ├── plugin_api/             # プラグイン trait 定義
+│       ├── watcher/                # notify クレートによる FS 監視
 │       ├── launcher/               # プロセス起動ロジック
-│       │   └── mod.rs
-│       ├── db/                     # DB初期化・マイグレーション
-│       │   ├── mod.rs
-│       │   └── migrations.rs
-│       └── utils/                  # 共有ユーティリティ
-│           ├── mod.rs
-│           ├── icon.rs             # .exe からのアイコン抽出
-│           └── error.rs            # エラー型定義
+│       ├── db/                     # DB 初期化・マイグレーション
+│       └── utils/                  # error / icon 等
 │
-├── tests/                          # Playwright E2E テスト (PH-003-F)
+├── tests/                          # Playwright E2E テスト
 │   ├── fixtures/
-│   │   ├── global-setup.ts         # Tauri アプリ起動 + CDP 待機
-│   │   ├── global-teardown.ts      # アプリ終了 + テスト用 DB 削除
-│   │   └── tauri.ts                # page / context fixture
+│   │   ├── global-setup.ts
+│   │   ├── global-teardown.ts
+│   │   └── tauri.ts
 │   ├── helpers/
-│   │   └── ipc.ts                  # page.evaluate 経由 IPC ヘルパー
+│   │   └── ipc.ts
 │   └── e2e/
-│       ├── items.spec.ts
-│       ├── palette.spec.ts
-│       ├── workspace.spec.ts
-│       └── settings.spec.ts
-│
-├── .claude/
-│   └── skills/
-│       └── e2e-tauri-webview2/     # E2E スキル定義
 │
 ├── .github/
 │   └── workflows/
-│       └── e2e.yml                 # E2E CI (windows-latest + CDP)
+│       ├── ci.yml
+│       └── release.yml
 │
-├── static/                         # 静的アセット
 ├── package.json
 ├── pnpm-lock.yaml
-├── playwright.config.ts            # Playwright 設定（WebView2 CDP + webServer）
-├── svelte.config.js                # SvelteKit config (static adapter)
+├── playwright.config.ts
+├── svelte.config.js
 ├── vite.config.ts
-├── tsconfig.json
-└── .gitignore                      # (既存)
+└── CLAUDE.md
 ```
 
-**ディレクトリ設計の要点**:
+---
 
-| ディレクトリ                | 設計意図                                                                                                  |
-| --------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `src/lib/ipc/`              | フロントエンドは `invoke` を直接呼ばない。型付きラッパー経由でTypeScript型安全性を確保                    |
-| `src/lib/state/`            | `.svelte.ts` 拡張子でコンポーネント外からrunesを使用（Svelte 5推奨パターン）                              |
-| `src-tauri/migrations/`     | SQLファイルを `include_str!` でバイナリに埋め込み。実行時ファイル依存なし。001〜010 実装済み              |
-| `src-tauri/src/plugin_api/` | M1ではtrait定義のみ。M2でプラグインローディングを追加する際のリファクタを防止                             |
-| `src/lib/components/setup/` | セットアップウィザード（REQ-006）。初回起動時のみモーダルダイアログとして表示（独立ルートではない）       |
-| `src-tauri/src/watcher/`    | `notify` クレートによる FS 監視（PH-003-D）。バックグラウンドスレッドが変更を検知しフロントへイベント送信 |
-| `src-tauri/src/bin/`        | `arcagate_cli.rs`（PH-003-A）。`default-run = "arcagate"` で Tauri build との競合を回避                   |
-| `src-tauri/src/launcher/`   | プロセス起動ロジックを集約。アイテムタイプ別の起動処理を `mod.rs` で一元管理                              |
-| `tests/`                    | Playwright E2E テスト（PH-003-F）。CDP 経由で WebView2 に接続。グローバルセットアップで Tauri 起動        |
+## ディレクトリ設計の要点
+
+| ディレクトリ                | 設計意図                                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| `src/lib/ipc/`              | `invoke` を直接呼ばない。型付きラッパー経由で TypeScript 型安全性を確保                       |
+| `src/lib/state/`            | `.svelte.ts` 拡張子でコンポーネント外から runes を使用（Svelte 5 推奨パターン）               |
+| `src/lib/widgets/`          | folder-per-widget 構成。widget 本体 / 設定 / index.ts を同一ディレクトリにまとめる            |
+| `src-tauri/migrations/`     | SQL ファイルを `include_str!` でバイナリに埋め込み。実行時ファイル依存なし                    |
+| `src-tauri/src/plugin_api/` | trait 定義のみ。将来のプラグインローディング追加時のリファクタを防止                          |
+| `src-tauri/src/watcher/`    | `notify` クレートによる FS 監視。バックグラウンドスレッドが変更を検知しフロントへイベント送信 |

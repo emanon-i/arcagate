@@ -12,13 +12,9 @@ Personal launcher consolidating PC-wide entry points. Tauri v2 + SvelteKit + Sve
 ## L1 requirements (要件 / 仕様)
 
 - [vision.md](l1_requirements/vision.md): 機能要件一覧 (REQ-NNNN)・非機能要件・制約
-- [ux-standards.md](l1_requirements/ux-standards.md): パフォーマンス目標・モーショントークン値・Widget グリッド仕様・Workspace canvas ルール
+- [ux-standards.md](l1_requirements/ux-standards.md): パフォーマンス目標・モーショントークン値・Widget グリッド仕様・Workspace canvas ルール・UI 優先順位チェックリスト
 - [design-system.md](l1_requirements/design-system.md): トークン階層 (Primitive/Semantic/Bridge)・テーマアーキテクチャ・背景レイヤー構成
-- [desktop-ui-rules.md](l1_requirements/desktop-ui-rules.md): UI 優先順位・実装後チェックリスト・Arcagate 固有ルール
-- [release-criteria.md](l1_requirements/release-criteria.md): 配布判定基準 A-B (機能完成度 / UI 一貫性)
-- [release-criteria-stability.md](l1_requirements/release-criteria-stability.md): C-D (安定性 / パフォーマンス)
-- [release-criteria-error.md](l1_requirements/release-criteria-error.md): E-F (エラー処理 / 配布要件)
-- [release-criteria-quality.md](l1_requirements/release-criteria-quality.md): G-J (a11y / i18n / docs / test)
+- [release-criteria.md](l1_requirements/release-criteria.md): 配布判定基準 A-J（機能完成度 / UI 一貫性 / 安定性 / パフォーマンス / エラー処理 / 配布要件 / a11y / i18n / docs / test）
 - [widget-add-checklist.md](l1_requirements/widget-add-checklist.md): 新 widget 追加時の触る箇所リスト
 
 ## L1 distribution (運用手順書)
@@ -33,19 +29,11 @@ Personal launcher consolidating PC-wide entry points. Tauri v2 + SvelteKit + Sve
 
 ## L2 foundation (技術設計)
 
-- [foundation.md](l2_foundation/foundation.md): システム構成 overview
-- [foundation-stack.md](l2_foundation/foundation-stack.md): 技術スタック
-- [foundation-architecture.md](l2_foundation/foundation-architecture.md): アーキテクチャ概要
-- [foundation-architecture-service.md](l2_foundation/foundation-architecture-service.md): Service layer
-- [foundation-architecture-state.md](l2_foundation/foundation-architecture-state.md): フロントエンド状態管理
+- [foundation.md](l2_foundation/foundation.md): システム構成 overview・技術スタック・アーキテクチャ図・非機能要件・CI/CD・用語集
+- [foundation-architecture.md](l2_foundation/foundation-architecture.md): Service Layer・Plugin Interface・Tauri IPC 設計・State 管理・エラーハンドリング
 - [foundation-dirs.md](l2_foundation/foundation-dirs.md): ディレクトリ構造
-- [foundation-schema.md](l2_foundation/foundation-schema.md): DB スキーマ
-- [foundation-non-functional.md](l2_foundation/foundation-non-functional.md): 非機能要件・制約
-- [foundation-cicd.md](l2_foundation/foundation-cicd.md): CI/CD
-- [foundation-glossary.md](l2_foundation/foundation-glossary.md): 用語集
-- [engineering-principles.md](l2_foundation/engineering-principles.md): FE/BE 分担 Q-Tree・IPC ルール・エラー形式・依存 curated list
-- [folder-map.md](l2_foundation/folder-map.md): リポジトリ構造 reference
-- [frontend-backend-split.md](l2_foundation/frontend-backend-split.md): IPC 境界詳細
+- [foundation-schema.md](l2_foundation/foundation-schema.md): DB スキーマ（22 migrations）
+- [engineering-principles.md](l2_foundation/engineering-principles.md): FE/BE 分担 Q-Tree・IPC ルール・IPC コマンド全列挙・エラー形式・依存 curated list・リファクタ閾値
 
 ## Live single-file
 

@@ -1,62 +1,162 @@
+# Arcagate システム構成
+
+## 1. 技術スタック
+
+### 1.1 デスクトップフレームワーク
+
+| 項目           | 選定                         |
+| -------------- | ---------------------------- |
+| フレームワーク | **Tauri v2** (latest stable) |
+
+選定理由: IPC カスタムプロトコルで高速、細粒度 capabilities/scopes、Tauri v1 はメンテナンスモード。
+
+#### Tauri v2 プラグイン一覧
+
+| プラグイン                     | 用途                            |
+| ------------------------------ | ------------------------------- |
+| `tauri-plugin-global-shortcut` | グローバルホットキー            |
+| tray-icon (built-in feature)   | システムトレイ常駐              |
+| `tauri-plugin-dialog`          | ファイル選択ダイアログ          |
+| `tauri-plugin-shell`           | 外部プロセス起動                |
+| `tauri-plugin-autostart`       | Windows 起動時の自動起動        |
+| `tauri-plugin-fs`              | ファイルシステムアクセス（D&D） |
+
+### 1.2 フロントエンド
+
+| 項目                 | 選定                                                             |
+| -------------------- | ---------------------------------------------------------------- |
+| フレームワーク       | **SvelteKit** + `@sveltejs/adapter-static` (**Svelte 5**, runes) |
+| CSS                  | **Tailwind CSS v4**                                              |
+| UI コンポーネント    | **shadcn-svelte** (Svelte 5 + Tailwind v4 対応版)                |
+| 状態管理             | Svelte 5 runes ($state, $derived) — 外部ライブラリ不要           |
+| パッケージマネージャ | **pnpm**                                                         |
+
+SvelteKit + adapter-static: SPA 出力（index.html + JS/CSS）、SSR サーバー不要、Tauri v2 公式サポート。Svelte 5: runes による明示的リアクティビティ。shadcn-svelte: コード所有型（外部ランタイム依存なし）、CSS 変数ベーステーマ。
+
+### 1.3 バックエンド
+
+| 項目               | 選定                             |
+| ------------------ | -------------------------------- |
+| 言語               | **Rust** (stable toolchain)      |
+| SQLite アクセス    | **rusqlite** (`bundled` feature) |
+| マイグレーション   | **rusqlite_migration**           |
+| ID 生成            | **UUID v7** (`uuid` crate)       |
+| エラー型導出       | **thiserror**                    |
+| パスワードハッシュ | **argon2**                       |
+
+rusqlite: SQLite 専用軽量ラッパー、`bundled` feature でシステム依存ゼロ。UUID v7: 時刻ソート可能、グローバル一意。ORM 不採用（rusqlite + 生 SQL）。
+
+### 1.4 テスト
+
+| レイヤー              | ツール                             |
+| --------------------- | ---------------------------------- |
+| Rust ユニットテスト   | `cargo test`                       |
+| Svelte コンポーネント | vitest + `@testing-library/svelte` |
+| E2E（デスクトップ）   | **Playwright**（CDP/WebView2）     |
+
 ---
-status: live
+
+## 2. アーキテクチャ overview
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                 FRONTEND (SvelteKit SPA / Svelte 5)       │
+│                                                           │
+│  ┌────────────┐  ┌───────────┐  ┌───────────────────┐    │
+│  │ Command    │  │ Settings  │  │ Workspace         │    │
+│  │ Palette    │  │ UI        │  │                   │    │
+│  └──────┬─────┘  └─────┬─────┘  └─────────┬─────────┘    │
+│         │              │                   │              │
+│  ┌──────▼──────────────▼───────────────────▼───────────┐  │
+│  │         Frontend State ($state runes)                │  │
+│  │       + IPC Client (typed wrappers over invoke)      │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+├─────────────────────────┼─────────────────────────────────┤
+│               TAURI IPC BOUNDARY                          │
+│          commands = request/response                      │
+│          events   = backend → frontend                    │
+├─────────────────────────┼─────────────────────────────────┤
+│                 BACKEND (Rust)                             │
+│                                                           │
+│  ┌──────────────────────▼──────────────────────────────┐  │
+│  │           Command Layer (thin)                       │  │
+│  │   #[tauri::command] — 引数パース → Service 呼び出し  │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+│                         │                                 │
+│  ┌──────────────────────▼──────────────────────────────┐  │
+│  │           Service Layer (ビジネスロジック)            │  │
+│  │   ItemService, LaunchService, ConfigService,         │  │
+│  │   ThemeService, WorkspaceService                     │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+│                         │                                 │
+│  ┌──────────────────────▼──────────────────────────────┐  │
+│  │           Repository Layer (データアクセス)           │  │
+│  │   ItemRepo, TagRepo, LogRepo, ConfigRepo,             │  │
+│  │   ThemeRepo, WatchedPathRepo, WorkspaceRepo           │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+│                         │                                 │
+│  ┌──────────────────────▼──────────────────────────────┐  │
+│  │                 SQLite (rusqlite)                     │  │
+│  └──────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────┘
+```
+
+設計原則: UI は Service Layer を経由する。レイヤー逆方向禁止（`commands → services → repositories → DB`）。
+
 ---
 
-# Arcagate システム構成 (overview)
+## 3. 非機能要求
 
-> Tri-SSD canonical L2。`/gen-l3` `/gen-code` が読む single source of truth (path 固定)。
-> 200 行制約のため詳細を partner file に分離。本書は overview + index。
+| 要求           | 目標値                         | 技術的アプローチ                                                 |
+| -------------- | ------------------------------ | ---------------------------------------------------------------- |
+| 常駐メモリ     | Idle 時 Working Set 120MB 以下 | Tauri v2 + rusqlite bundled                                      |
+| 起動レイテンシ | P95 2,500ms 以内               | Tauri IPC (custom protocol) + SQLite WAL + インデックス最適化    |
+| バイナリサイズ | 単体 exe 20MB 以下             | Tauri v2 + bundled SQLite                                        |
+| データ保存     | ローカル完結                   | SQLite（クラウド同期なし）                                       |
+| CSP            | Tauri v2 デフォルト CSP 準拠   | `ipc:` / `asset:` のみ許可、`unsafe-inline` / `unsafe-eval` 禁止 |
 
-## Sections
+### SQLite PRAGMAs
 
-| §       | 内容                                                        | partner file                                                               |
-| ------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 1       | 技術スタック (Tauri / Rust / SvelteKit / Svelte 5 / SQLite) | [foundation-stack.md](./foundation-stack.md)                               |
-| 2       | アーキテクチャ overview (コンポーネント構成図)              | [foundation-architecture.md](./foundation-architecture.md)                 |
-| 2.2     | ディレクトリ構成                                            | [foundation-dirs.md](./foundation-dirs.md)                                 |
-| 2.3-2.5 | Service Layer / Plugin Interface / Tauri IPC                | [foundation-architecture-service.md](./foundation-architecture-service.md) |
-| 2.6-2.9 | State / rusqlite / Error / Password                         | [foundation-architecture-state.md](./foundation-architecture-state.md)     |
-| 3       | 非機能要求                                                  | [foundation-non-functional.md](./foundation-non-functional.md)             |
-| 4       | SQLite スキーマ                                             | [foundation-schema.md](./foundation-schema.md)                             |
-| 5       | CI/CD                                                       | [foundation-cicd.md](./foundation-cicd.md)                                 |
-| 6       | 用語集                                                      | [foundation-glossary.md](./foundation-glossary.md)                         |
+```sql
+PRAGMA journal_mode = WAL;       -- 読み書き並行性向上
+PRAGMA foreign_keys = ON;
+PRAGMA busy_timeout = 5000;      -- ロック競合時 最大 5 秒待機
+PRAGMA synchronous = NORMAL;
+PRAGMA cache_size = -8000;       -- 8MB ページキャッシュ
+```
 
-## stack 要約
+---
 
-- **Frontend**: SvelteKit + Svelte 5 runes ($state / $derived / $effect / $props)、TypeScript、Tailwind v4、shadcn-svelte
-- **Backend**: Rust (Tauri v2)、`Arc<Mutex<Connection>>` (no pool)、`rusqlite` 直生 SQL (no ORM)、UUID v7
-- **DB**: SQLite + WAL、`include_str!` で migration 埋め込み、forward-only (rollback 不採用)
-- **Distribution**: GH Releases + minisign Tier 1 (updater) + cosign keyless Tier 2 (attestation)
-- **Test**: vitest (FE)、cargo test (BE)、Playwright @smoke + nightly @perf
+## 4. CI/CD
 
-## architecture 要約
+| ワークフロー | ファイル                        | 概要                                                                                     |
+| ------------ | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| CI           | `.github/workflows/ci.yml`      | biome / dprint / clippy / rustfmt / svelte-check / cargo test / vitest / lefthook audits |
+| Release      | `.github/workflows/release.yml` | tag push → Tauri build + tauri signer (Tier 1) + cosign sign-blob (Tier 2)               |
 
-- レイヤー: `commands → services → repositories → DB` (逆禁止)
-- Service Layer が **全 IPC エントリーポイントの共通経路**、Repository を直呼びしない
-- `AppError { code, message }` を Serialize して frontend へ
-- 1 process / 1 webview window (palette は別 webview)、Tauri IPC は msgpack 互換 JSON
+E2E ワークフロー（e2e.yml / e2e-nightly.yml）は PR-Z で削除済。T1-T4 plan で incremental 再構築中（`docs/l1_requirements/test-rebuild/` 参照）。
 
-## エラーハンドリング要約
+---
 
-- BE: `Result<T, AppError>`、IPC で `{ code, message }` serialize
-- FE: `formatIpcError` / `getErrorMessage` で structured 判定 (string contains 禁止)
-- panic_hook: APPDATA/last-panic.json に redact 後書込、起動時に `cmd_consume_last_panic` で toast (R10-D)
-- silent fail: `installErrorMonitor` で `unhandledrejection` / `error` を `toastStore` 通知 (R4-A)
+## 5. 用語集
 
-## DB 要約
+| 用語             | 定義                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| アイテム (Item)  | Arcagate に登録された起動対象。exe / URL / フォルダ / スクリプト / コマンドの 5 種類 |
+| コマンドパレット | キーボード中心の検索・起動 UI。Arcagate のコアインターフェース                       |
+| ワークスペース   | ウィジェットを自由配置できるカスタムページ                                           |
+| Service Layer    | ビジネスロジックの集約層。UI / CLI すべてがここを経由                                |
+| Plugin Interface | 将来プラグインが実装する trait 群。現在は trait 定義のみ                             |
+| ItemProvider     | アイテムを外部ソースから提供するプラグイン trait（例: Steam ライブラリ）             |
+| CommandProvider  | コマンドパレットに独自コマンドを追加するプラグイン trait                             |
 
-- 22 migration (`src-tauri/migrations/NNN_*.sql`)、forward-only
-- Tag system (sys-starred / sys-ws-{wsId} / etc.) で item を多軸分類
-- launch_log + item_stats でアクセス頻度 / frecency 計測 (R9-A)
-- icon_cache table で path-based dedup (R9-B、Lessons C-2 派生対処)
+---
 
-## CI/CD 要約
+詳細は以下の partner file 参照:
 
-- `.github/workflows/ci.yml`: biome / dprint / clippy / rustfmt / svelte-check / cargo test / vitest / lefthook audits
-- `.github/workflows/e2e-nightly.yml`: full Playwright + perf-D7/D8/D9 + memory soak + axe + startup P95
-- `.github/workflows/release.yml`: tag push で Tauri build + tauri signer (Tier 1) + cosign sign-blob (Tier 2)
-- branch protection: check + build + e2e + changes 必須
-
-## 詳細
-
-各 § の詳細は上記 partner file 参照。
+| ファイル                     | 内容                                           |
+| ---------------------------- | ---------------------------------------------- |
+| `foundation-architecture.md` | Service Layer / IPC 設計 / State 管理 / エラー |
+| `foundation-schema.md`       | SQLite スキーマ（22 migrations）               |
+| `foundation-dirs.md`         | ディレクトリ構成                               |
+| `engineering-principles.md`  | 技術判断基準 / IPC コマンド全列挙              |
