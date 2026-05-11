@@ -28,6 +28,9 @@
 	--ag-border-hover: rgba(0, 0, 0, 0.2);
 	--ag-border-dashed: rgba(0, 0, 0, 0.15);
 
+	/* Workspace canvas dot grid */
+	--ag-canvas-dot: rgba(0, 0, 0, 0.12);
+
 	/* Accent (primary) */
 	--ag-accent: #06b6d4;
 
@@ -137,6 +140,9 @@
 	--ag-border: rgba(255, 255, 255, 0.1);
 	--ag-border-hover: rgba(255, 255, 255, 0.2);
 	--ag-border-dashed: rgba(255, 255, 255, 0.15);
+
+	/* Workspace canvas dot grid */
+	--ag-canvas-dot: rgba(255, 255, 255, 0.1);
 
 	/* Accent (primary) */
 	--ag-accent: #22d3ee;

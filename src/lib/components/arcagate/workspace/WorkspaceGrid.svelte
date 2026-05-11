@@ -222,7 +222,7 @@ void openItemDetail;
 		     widget grid origin (0,0) を canvas 内側へ offset することで「左/上の壁」を解消。 -->
 		<div
 			class="relative"
-			style="width: {canvasW}px; height: {canvasH}px; background-image: radial-gradient(circle, rgba(128,128,128,0.22) 1.5px, transparent 1.5px); background-size: 24px 24px;"
+			style="width: {canvasW}px; height: {canvasH}px; background-image: radial-gradient(circle, var(--ag-canvas-dot) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 			bind:this={infiniteCanvas}
 		>
 			<div

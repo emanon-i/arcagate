@@ -108,9 +108,7 @@ function handleKeydown(e: KeyboardEvent) {
 			out:fade={{ duration: dFast }}
 		>
 			<!-- Radial gradient overlay -->
-			<div
-				class="pointer-events-none absolute inset-0 rounded-[var(--ag-radius-palette)] bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,0.10),_transparent_28%)]"
-			></div>
+			<div class="palette-glow pointer-events-none absolute inset-0 rounded-[var(--ag-radius-palette)]"></div>
 
 			<!-- Header bar (fixed) -->
 			<div class="relative flex flex-shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
@@ -128,9 +126,7 @@ function handleKeydown(e: KeyboardEvent) {
 				class="relative min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-1)_100%)] p-4 md:p-8"
 			>
 				<!-- Inner gradient -->
-				<div
-					class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,0.10),_transparent_28%)]"
-				></div>
+				<div class="palette-glow pointer-events-none absolute inset-0"></div>
 
 				<!-- Inner container -->
 				<div
@@ -177,3 +173,10 @@ function handleKeydown(e: KeyboardEvent) {
 	</div>
 {/if}
 
+<style>
+.palette-glow {
+	background-image:
+		radial-gradient(circle at top, color-mix(in srgb, var(--ag-accent) 12%, transparent), transparent 26%),
+		radial-gradient(circle at bottom right, color-mix(in srgb, var(--ag-accent-tertiary) 10%, transparent), transparent 28%);
+}
+</style>

@@ -13,8 +13,9 @@ interface Props {
 
 const toneClasses: Record<TipTone, string> = {
 	default: 'border-[var(--ag-border)] bg-[var(--ag-surface-2)] text-[var(--ag-text-secondary)]',
-	accent: 'border-cyan-400/15 bg-cyan-400/8 text-cyan-50/90',
-	success: 'border-emerald-400/18 bg-emerald-400/8 text-emerald-50/90',
+	accent: 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]',
+	success:
+		'border-[var(--ag-success-border)] bg-[var(--ag-success-bg)] text-[var(--ag-success-text)]',
 };
 
 let { tone = 'default', tipId, children }: Props = $props();
