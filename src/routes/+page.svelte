@@ -38,6 +38,8 @@ $effect(() => {
 let editingItem = $state<Item | null>(null);
 let showItemForm = $state(false);
 let droppedPaths = $state<string[] | undefined>(undefined);
+// U-1: URL D&D で WebView に drop されたとき設定。 ItemFormDialog の initialUrl に流す。
+let droppedUrl = $state<string | undefined>(undefined);
 let isDraggingOver = $state(false);
 let showSettings = $state(false);
 
@@ -104,6 +106,60 @@ listen('tauri://drag-leave', () => {
 	unlistenDragLeave = fn;
 });
 
+// U-1 (2026-05-12): Web ブラウザ等から URL を D&D した時の handler。
+// Tauri の `tauri://drag-drop` は OS file path のみ payload、 URL D&D は WebView の
+// HTML5 drop event 経由でしか取れない。 window-level の `drop` で text/uri-list を捕捉して
+// ItemFormDialog を URL prefill で開く。
+function extractUrlFromDataTransfer(dt: DataTransfer | null): string | null {
+	if (!dt) return null;
+	// text/uri-list は 1 行 1 URL、 comment 行 (#〜) を除外して最初の URL を採用
+	const uriList = dt.getData('text/uri-list');
+	if (uriList) {
+		const first = uriList
+			.split(/\r?\n/)
+			.map((l) => l.trim())
+			.find((l) => l && !l.startsWith('#') && /^https?:\/\//i.test(l));
+		if (first) return first;
+	}
+	// fallback: text/plain が URL 形式なら採用
+	const plain = dt.getData('text/plain').trim();
+	if (/^https?:\/\//i.test(plain)) return plain;
+	return null;
+}
+
+function handleHtmlDrop(e: DragEvent) {
+	// 既に file D&D 処理中 / form 開いてる場合は skip
+	if (showItemForm || activeView !== 'library') return;
+	const url = extractUrlFromDataTransfer(e.dataTransfer);
+	if (!url) return; // file drop は Tauri 側で別途処理
+	e.preventDefault();
+	e.stopPropagation();
+	isDraggingOver = false;
+	droppedUrl = url;
+	droppedPaths = undefined;
+	editingItem = null;
+	showItemForm = true;
+}
+
+function handleHtmlDragOver(e: DragEvent) {
+	if (activeView !== 'library' || showItemForm) return;
+	// URL D&D の場合のみ preventDefault して drop を有効化
+	const types = e.dataTransfer?.types;
+	if (!types) return;
+	if (types.includes('text/uri-list') || types.includes('text/plain')) {
+		e.preventDefault();
+	}
+}
+
+$effect(() => {
+	window.addEventListener('drop', handleHtmlDrop);
+	window.addEventListener('dragover', handleHtmlDragOver);
+	return () => {
+		window.removeEventListener('drop', handleHtmlDrop);
+		window.removeEventListener('dragover', handleHtmlDragOver);
+	};
+});
+
 // パス消失イベントリスナー
 let unlistenPathNotFound: (() => void) | null = null;
 listen<string>('item://path-not-found', (e) => {
@@ -157,12 +213,14 @@ async function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
 	showItemForm = false;
 	editingItem = null;
 	droppedPaths = undefined;
+	droppedUrl = undefined;
 }
 
 function handleFormClose() {
 	showItemForm = false;
 	editingItem = null;
 	droppedPaths = undefined;
+	droppedUrl = undefined;
 }
 </script>
 
@@ -176,6 +234,7 @@ function handleFormClose() {
 	open={showItemForm}
 	item={editingItem ?? undefined}
 	initialPaths={droppedPaths}
+	initialUrl={droppedUrl}
 	tags={itemStore.tags}
 	onSubmit={handleFormSubmit}
 	onClose={handleFormClose}

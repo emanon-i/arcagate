@@ -1,4 +1,5 @@
 <script lang="ts">
+import { invoke } from '@tauri-apps/api/core';
 import { untrack } from 'svelte';
 import { Button } from '$lib/components/ui/button';
 import { checkIsDirectory, extractItemIcon } from '$lib/ipc/items';
@@ -26,6 +27,7 @@ type TypeMode = 'url' | 'local';
 let {
 	item,
 	initialPaths,
+	initialUrl,
 	tags,
 	onSubmit,
 	onCancel,
@@ -33,6 +35,8 @@ let {
 }: {
 	item?: Item;
 	initialPaths?: string[];
+	/** U-1: URL D&D で予め流し込む URL。 mount 時 1 回だけ処理、 title は自動取得 (best-effort)。 */
+	initialUrl?: string;
 	tags: Tag[];
 	onSubmit: (input: CreateItemInput | UpdateItemInput) => void;
 	onCancel: () => void;
@@ -50,6 +54,7 @@ let iconPath = $state('');
 let aliasesText = $state('');
 let selectedTagIds = $state<Set<string>>(new Set());
 let initialPathsProcessed = $state(false);
+let initialUrlProcessed = $state(false);
 
 let userTags = $derived(tags.filter((t) => !t.is_system));
 
@@ -65,6 +70,7 @@ $effect(() => {
 	aliasesText = item?.aliases.join(', ') ?? '';
 	selectedTagIds = new Set();
 	initialPathsProcessed = false;
+	initialUrlProcessed = false;
 });
 
 $effect(() => {
@@ -73,6 +79,33 @@ $effect(() => {
 		void handleDrop(initialPaths);
 	}
 });
+
+$effect(() => {
+	if (initialUrl && !initialUrlProcessed) {
+		initialUrlProcessed = true;
+		void handleUrlDrop(initialUrl);
+	}
+});
+
+/**
+ * U-1 (2026-05-12): URL D&D で渡された URL を form に流し込む。
+ * - typeMode = 'url' / itemType = 'url'
+ * - target = url
+ * - label 未入力なら `cmd_fetch_url_title` で best-effort 取得 (host fallback)
+ */
+async function handleUrlDrop(url: string): Promise<void> {
+	typeMode = 'url';
+	itemType = 'url';
+	target = url;
+	if (!label) {
+		try {
+			const title = await invoke<string>('cmd_fetch_url_title', { url });
+			if (title) label = title;
+		} catch {
+			// best-effort、失敗時は label 空のまま (user が手動入力)
+		}
+	}
+}
 
 // ターゲット入力時の自動タイプ判定（URL モード + 新規作成時のみ）
 $effect(() => {

@@ -41,6 +41,7 @@ use commands::theme_commands::{
     cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
     cmd_update_theme,
 };
+use commands::url_commands::cmd_fetch_url_title;
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
@@ -274,6 +275,7 @@ pub fn run() {
             cmd_auto_register_folder_items,
             cmd_register_exe_item,
             cmd_register_exe_items_bulk,
+            cmd_fetch_url_title,
             cmd_get_item_stats,
             cmd_get_item_metadata,
             cmd_get_items_metadata_batch,

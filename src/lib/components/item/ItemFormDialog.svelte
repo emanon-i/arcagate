@@ -15,6 +15,7 @@ let {
 	open,
 	item,
 	initialPaths,
+	initialUrl,
 	tags,
 	onSubmit,
 	onClose,
@@ -22,6 +23,8 @@ let {
 	open: boolean;
 	item?: Item;
 	initialPaths?: string[];
+	/** U-1: URL D&D の prefill (target に URL、 label に title 自動取得)。 */
+	initialUrl?: string;
 	tags: Tag[];
 	onSubmit: (input: CreateItemInput | UpdateItemInput) => Promise<void>;
 	onClose: () => void;
@@ -55,5 +58,13 @@ async function handleSubmit(input: CreateItemInput | UpdateItemInput) {
 			{submitError}
 		</div>
 	{/if}
-	<ItemForm {item} {initialPaths} {tags} onSubmit={handleSubmit} onCancel={onClose} {submitting} />
+	<ItemForm
+		{item}
+		{initialPaths}
+		{initialUrl}
+		{tags}
+		onSubmit={handleSubmit}
+		onCancel={onClose}
+		{submitting}
+	/>
 </BaseDialog>
