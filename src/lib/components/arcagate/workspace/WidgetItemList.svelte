@@ -82,39 +82,43 @@ function toggleSearch() {
 	{/if}
 
 	<!-- PH-widget-polish: aria-label / title 追加で a11y、hover で Chevron 強調、
-	     group hover でテキスト色強調 (P1 操作可視化、Favorites / Recent 等の起動 row)。 -->
-	<div class="space-y-1.5">
-		{#each displayItems as item (item.id)}
-			<button
-				type="button"
-				class="group/row flex w-full min-w-0 items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
-				aria-label="{item.label} を起動 (右クリックで詳細)"
-				title={showTarget ? item.target : item.label}
-				onclick={() => onLaunch(item.id)}
-				oncontextmenu={(e) => {
-					if (onContext) {
-						e.preventDefault();
-						onContext(item.id, e);
-					}
-				}}
-			>
-				<span class="flex min-w-0 flex-1 items-center gap-2">
-					<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class={iconClass} />
-					<span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
-				</span>
-				{#if showTarget}
-					<span class="shrink-0 max-w-[40%] truncate text-xs text-[var(--ag-text-muted)]">{item.target}</span>
-				{:else}
-					<ChevronRight
-						class="h-4 w-4 shrink-0 text-[var(--ag-text-faint)] transition-[color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover/row:translate-x-0.5 group-hover/row:text-[var(--ag-text-muted)]"
-					/>
-				{/if}
-			</button>
-		{/each}
-		{#if displayItems.length === 0}
-			<div class="py-4 text-center text-xs text-[var(--ag-text-muted)]">
-				{searchQuery ? '一致するアイテムがありません' : emptyMessage}
-			</div>
-		{/if}
+	     group hover でテキスト色強調 (P1 操作可視化、Favorites / Recent 等の起動 row)。
+	     J-3 (2026-05-12): @container query で wide widget で multi-column 化。
+	     widget resize maxSpan=12 まで広がるので、単列だと item が横に間延びする問題を回避。 -->
+	<div class="@container">
+		<div class="grid gap-1.5 @md:grid-cols-2 @[28rem]:grid-cols-3 @[40rem]:grid-cols-4">
+			{#each displayItems as item (item.id)}
+				<button
+					type="button"
+					class="group/row flex w-full min-w-0 items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+					aria-label="{item.label} を起動 (右クリックで詳細)"
+					title={showTarget ? item.target : item.label}
+					onclick={() => onLaunch(item.id)}
+					oncontextmenu={(e) => {
+						if (onContext) {
+							e.preventDefault();
+							onContext(item.id, e);
+						}
+					}}
+				>
+					<span class="flex min-w-0 flex-1 items-center gap-2">
+						<ItemIcon iconPath={item.icon_path} alt="{item.label} icon" class={iconClass} />
+						<span class="min-w-0 flex-1 truncate text-left">{item.label}</span>
+					</span>
+					{#if showTarget}
+						<span class="shrink-0 max-w-[40%] truncate text-xs text-[var(--ag-text-muted)]">{item.target}</span>
+					{:else}
+						<ChevronRight
+							class="h-4 w-4 shrink-0 text-[var(--ag-text-faint)] transition-[color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover/row:translate-x-0.5 group-hover/row:text-[var(--ag-text-muted)]"
+						/>
+					{/if}
+				</button>
+			{/each}
+			{#if displayItems.length === 0}
+				<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">
+					{searchQuery ? '一致するアイテムがありません' : emptyMessage}
+				</div>
+			{/if}
+		</div>
 	</div>
 </div>
