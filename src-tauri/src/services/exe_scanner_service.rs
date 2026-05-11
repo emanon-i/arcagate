@@ -71,8 +71,13 @@ fn walk(root: &Path, dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEnt
             .extension()
             .and_then(|e| e.to_str())
             .map(|s| s.to_ascii_lowercase());
+        // U-4 (2026-05-12 user 検収): 監視フォルダで .exe 以外の script 系
+        // (.bat / .cmd / .ps1 / .sh) も自動検出するよう拡張。spec の
+        // "監視フォルダに追加されたbat,ps1,shellなどのスクリプトが自動でリストに現れる" 対応。
+        // 内部命名 (`exe_candidates`) は互換性維持のため変更しない (label は「Exe フォルダ監視」のまま、
+        // フロント側で「実行ファイル」として一般化的に表示)。
         match ext.as_deref() {
-            Some("exe") => {
+            Some("exe" | "bat" | "cmd" | "ps1" | "sh") => {
                 let name = path
                     .file_name()
                     .and_then(|n| n.to_str())
@@ -196,6 +201,33 @@ mod tests {
         let r = scan_exe_folders(dir.to_str().unwrap(), 2).unwrap();
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].folder_name, "with-exe");
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn scan_detects_script_extensions() {
+        // U-4 (2026-05-12): .bat / .cmd / .ps1 / .sh も exe と同様に検出する。
+        let dir = mk_temp_dir("scripts");
+        let folder = dir.join("scripts-folder");
+        write_file(&folder.join("install.bat"), b"@echo off\n");
+        write_file(&folder.join("deploy.ps1"), b"# powershell\n");
+        write_file(&folder.join("run.sh"), b"#!/bin/sh\n");
+        write_file(&folder.join("build.cmd"), b"@echo off\n");
+        write_file(&folder.join("note.txt"), b"unrelated"); // 除外確認
+        let r = scan_exe_folders(dir.to_str().unwrap(), 2).unwrap();
+        assert_eq!(r.len(), 1);
+        let entry = &r[0];
+        assert_eq!(entry.folder_name, "scripts-folder");
+        let names: Vec<&str> = entry
+            .exe_candidates
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
+        assert!(names.contains(&"install.bat"));
+        assert!(names.contains(&"deploy.ps1"));
+        assert!(names.contains(&"run.sh"));
+        assert!(names.contains(&"build.cmd"));
+        assert!(!names.contains(&"note.txt"));
         fs::remove_dir_all(&dir).ok();
     }
 
