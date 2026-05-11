@@ -19,6 +19,12 @@ pub enum WidgetType {
     ClipboardHistory,
     FileSearch,
     SystemMonitor,
+    /// U-5 (2026-05-12): 画像 D&D で配置するスクラップ widget。
+    /// config: { path: string }。 widget が path から image を render。
+    ImageScrap,
+    /// U-6 (2026-05-12): テキストファイル D&D で配置する preview widget。
+    /// config: { path: string }。 widget が path から file を読んでメタ + 中身を render。
+    FilePreview,
 }
 
 impl WidgetType {
@@ -36,6 +42,8 @@ impl WidgetType {
             WidgetType::ClipboardHistory => "clipboard_history",
             WidgetType::FileSearch => "file_search",
             WidgetType::SystemMonitor => "system_monitor",
+            WidgetType::ImageScrap => "image_scrap",
+            WidgetType::FilePreview => "file_preview",
         }
     }
 
@@ -54,6 +62,8 @@ impl WidgetType {
             "clipboard_history" => Some(WidgetType::ClipboardHistory),
             "file_search" => Some(WidgetType::FileSearch),
             "system_monitor" => Some(WidgetType::SystemMonitor),
+            "image_scrap" => Some(WidgetType::ImageScrap),
+            "file_preview" => Some(WidgetType::FilePreview),
             _ => None,
         }
     }

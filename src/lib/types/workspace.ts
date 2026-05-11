@@ -20,6 +20,9 @@ export const WIDGET_LABELS: Record<WidgetType, string> = {
 	clipboard_history: 'クリップボード履歴',
 	file_search: 'ファイル検索',
 	system_monitor: 'システムモニタ',
+	// U-5 / U-6 (2026-05-12): screens-and-flows.md Workspace § 画像 / テキストファイル D&D widget。
+	image_scrap: '画像',
+	file_preview: 'ファイルプレビュー',
 };
 
 export interface Workspace {

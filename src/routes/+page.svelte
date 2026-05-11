@@ -80,11 +80,62 @@ $effect(() => {
 });
 
 // D&D: Library タブ & フォーム未表示のときだけ ItemFormDialog を開く
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
+const TEXT_EXTS = ['md', 'txt', 'markdown', 'log', 'json', 'yaml', 'yml', 'toml', 'csv'];
+
+function pickExtension(path: string): string | undefined {
+	const m = path.match(/\.([^./\\]+)$/);
+	return m ? m[1].toLowerCase() : undefined;
+}
+
 let unlistenDragDrop: (() => void) | null = null;
-listen<{ paths: string[] }>('tauri://drag-drop', (event) => {
+listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 	isDraggingOver = false;
-	if (activeView === 'library' && !showItemForm && event.payload.paths?.length > 0) {
-		droppedPaths = event.payload.paths;
+	const paths = event.payload.paths ?? [];
+	if (paths.length === 0) return;
+
+	// U-5 / U-6 (2026-05-12): Workspace タブで画像 / テキストファイルを D&D された場合、
+	// 対応する widget を生成。 残りは Library tab に従来通り。
+	if (activeView === 'workspace') {
+		const path = paths[0];
+		const ext = pickExtension(path);
+		if (ext && IMAGE_EXTS.includes(ext)) {
+			try {
+				const { invoke } = await import('@tauri-apps/api/core');
+				const saved = await invoke<string>('cmd_save_image_scrap', { sourcePath: path });
+				await workspaceStore.addWidget('image_scrap');
+				// addWidget 後 last widget の config を更新 (image path)
+				const widgets = workspaceStore.widgets;
+				const last = widgets[widgets.length - 1];
+				if (last) {
+					await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path: saved }));
+				}
+				toastStore.add('画像 widget を配置しました', 'success');
+			} catch (e) {
+				toastStore.add(`画像の配置に失敗: ${String(e)}`, 'error');
+			}
+			return;
+		}
+		if (ext && TEXT_EXTS.includes(ext)) {
+			try {
+				await workspaceStore.addWidget('file_preview');
+				const widgets = workspaceStore.widgets;
+				const last = widgets[widgets.length - 1];
+				if (last) {
+					await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path }));
+				}
+				toastStore.add('ファイルプレビュー widget を配置しました', 'success');
+			} catch (e) {
+				toastStore.add(`ファイルの配置に失敗: ${String(e)}`, 'error');
+			}
+			return;
+		}
+		// それ以外の file は Workspace では扱わない (Library タブに行ってもらう)
+		return;
+	}
+
+	if (activeView === 'library' && !showItemForm && paths.length > 0) {
+		droppedPaths = paths;
 		editingItem = null;
 		showItemForm = true;
 	}
@@ -94,7 +145,9 @@ listen<{ paths: string[] }>('tauri://drag-drop', (event) => {
 
 let unlistenDragOver: (() => void) | null = null;
 listen('tauri://drag-over', () => {
-	if (activeView === 'library' && !showItemForm) isDraggingOver = true;
+	if ((activeView === 'library' && !showItemForm) || activeView === 'workspace') {
+		isDraggingOver = true;
+	}
 }).then((fn) => {
 	unlistenDragOver = fn;
 });
