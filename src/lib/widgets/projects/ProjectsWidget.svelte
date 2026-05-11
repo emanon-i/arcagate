@@ -32,6 +32,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { getFolderItems, getGitStatusesBatch } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { GitStatus } from '$lib/types/git';
@@ -76,7 +77,9 @@ let config = $derived(parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS)
 let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
 let sortOrder = $derived<WidgetSortOrder>(config.sort_order ?? 'asc');
 let sortedItems = $derived.by(() => {
-	const list = [...folderItems];
+	// Phase 2 (2026-05-12): per-widget hide filter を sort 前に適用。
+	const widgetId = widget?.id ?? null;
+	const list = folderItems.filter((i) => !widgetItemHidesStore.has(widgetId, i.target));
 	const dir = sortOrder === 'asc' ? 1 : -1;
 	if (sortField === 'name') {
 		list.sort((a, b) => dir * a.label.localeCompare(b.label, 'ja'));
@@ -85,6 +88,11 @@ let sortedItems = $derived.by(() => {
 		list.sort((a, b) => dir * a.updated_at.localeCompare(b.updated_at));
 	}
 	return list;
+});
+
+// Phase 2: per-widget hide load on mount / widget id change。
+$effect(() => {
+	if (widget?.id) void widgetItemHidesStore.loadFor(widget.id);
 });
 
 async function setSort(field: WidgetSortField) {

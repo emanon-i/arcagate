@@ -1,11 +1,12 @@
 <script lang="ts">
-import { Copy, FolderOpen, Settings2, Trash2 } from '@lucide/svelte';
+import { Copy, EyeOff, FolderOpen, Settings2, Trash2 } from '@lucide/svelte';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import { deleteItem } from '$lib/ipc/items';
 import { revealInExplorer } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
 
 /**
  * I-2 (2026-05-10 user 検収): 全 widget 共通 context menu。
@@ -28,11 +29,14 @@ interface Props {
 	y: number;
 	path?: string | null;
 	itemId?: string | null;
+	/** Phase 2 (2026-05-12): per-widget hide menu を表示する場合の widget id。
+	 * widgetId + path が両方ある時のみ「この widget から外す」 button が出る。 */
+	widgetId?: string | null;
 	onOpenSettings?: (() => void) | null;
 	onClose: () => void;
 }
 
-let { open, x, y, path, itemId, onOpenSettings, onClose }: Props = $props();
+let { open, x, y, path, itemId, widgetId, onOpenSettings, onClose }: Props = $props();
 
 let item = $derived(itemId ? (itemStore.items.find((i) => i.id === itemId) ?? null) : null);
 
@@ -78,6 +82,19 @@ function handleOpenSettings(): void {
 	onOpenSettings();
 	onClose();
 }
+
+/** Phase 2: per-widget hide。 Library / 他 widget には影響しない、 この widget からだけ非表示。 */
+async function handleHideFromWidget(): Promise<void> {
+	if (!widgetId || !path) return;
+	try {
+		await widgetItemHidesStore.add(widgetId, path);
+		toastStore.add('この widget から外しました', 'info');
+	} catch (e: unknown) {
+		toastStore.add(`非表示にできませんでした: ${String(e)}`, 'error');
+	} finally {
+		onClose();
+	}
+}
 </script>
 
 <ContextMenu {open} {x} {y} {onClose}>
@@ -117,8 +134,25 @@ function handleOpenSettings(): void {
 		</button>
 	{/if}
 
-	{#if itemId}
+	{#if widgetId && path}
 		{#if path}
+			<div class="my-1 border-t border-[var(--ag-border)]"></div>
+		{/if}
+		<!-- Phase 2 (2026-05-12): per-widget hide。 Library や他 widget には影響しない、 この widget からだけ外す。 -->
+		<button
+			type="button"
+			role="menuitem"
+			class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:bg-[var(--ag-surface-3)] hover:bg-[var(--ag-surface-3)]"
+			data-testid="widget-context-hide-from-widget"
+			onclick={() => void handleHideFromWidget()}
+		>
+			<EyeOff class="h-3.5 w-3.5" />
+			この widget から外す
+		</button>
+	{/if}
+
+	{#if itemId}
+		{#if path || widgetId}
 			<div class="my-1 border-t border-[var(--ag-border)]"></div>
 		{/if}
 		<button
@@ -129,7 +163,7 @@ function handleOpenSettings(): void {
 			onclick={() => void handleDeleteItem()}
 		>
 			<Trash2 class="h-3.5 w-3.5" />
-			アイテムを削除
+			アイテムを削除 (Library から)
 		</button>
 	{/if}
 

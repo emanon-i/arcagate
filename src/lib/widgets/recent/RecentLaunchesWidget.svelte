@@ -7,6 +7,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
@@ -32,8 +33,17 @@ $effect(() => {
 	});
 });
 
-// H-1: 非表示 (is_enabled=false) のアイテムは widget でも常に除外 (hiddenStore 削除に伴う簡素化)。
-let visibleRecentItems = $derived(recentItems.filter((i) => i.is_enabled));
+// Phase 2 (2026-05-12): per-widget hide load + filter。
+$effect(() => {
+	if (widget?.id) void widgetItemHidesStore.loadFor(widget.id);
+});
+
+// H-1: 非表示 (is_enabled=false) は global hide。 Phase 2: per-widget hide も適用。
+let visibleRecentItems = $derived(
+	recentItems
+		.filter((i) => i.is_enabled)
+		.filter((i) => !widgetItemHidesStore.has(widget?.id ?? null, i.target)),
+);
 
 let sortField = $derived(parseWidgetConfig(widget?.config, LIST_WIDGET_DEFAULTS).sort_field);
 

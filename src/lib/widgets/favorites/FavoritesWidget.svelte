@@ -8,6 +8,7 @@ import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { LIST_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
@@ -34,10 +35,18 @@ $effect(() => {
 	});
 });
 
+// Phase 2 (2026-05-12): per-widget hide load。 mount 時 / widget id 変化時に取得。
+$effect(() => {
+	if (widget?.id) void widgetItemHidesStore.loadFor(widget.id);
+});
+
 // H-1: 非表示 (is_enabled=false) のアイテムは widget でも常に除外。
-// 旧 hiddenStore (titlebar toggle) は H-1 で削除済、user が明示的に非表示にしたものは
-// Library / Workspace 双方で hide が一貫挙動。
-let visibleFavorites = $derived(favorites.filter((i) => i.is_enabled));
+// Phase 2: per-widget hide リストでも除外 (Library 全体には影響しない、 この widget からだけ非表示)。
+let visibleFavorites = $derived(
+	favorites
+		.filter((i) => i.is_enabled)
+		.filter((i) => !widgetItemHidesStore.has(widget?.id ?? null, i.target)),
+);
 
 let sortField = $derived(parseWidgetConfig(widget?.config, LIST_WIDGET_DEFAULTS).sort_field);
 

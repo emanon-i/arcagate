@@ -15,6 +15,7 @@ import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { registerExeItemsBulk } from '$lib/ipc/items';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -78,7 +79,10 @@ let scanError = $state<string | null>(null);
 let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
 let sortOrder = $derived<WidgetSortOrder>(config.sort_order ?? 'asc');
 let sortedEntries = $derived.by(() => {
-	const list = [...entries];
+	// Phase 2 (2026-05-12): per-widget hide filter を適用。
+	// ExeFolder の hide key は folder_path (entry.folderPath、 user 視点の「folder」 単位)。
+	const widgetId = widget?.id ?? null;
+	const list = entries.filter((e) => !widgetItemHidesStore.has(widgetId, e.folderPath));
 	const dir = sortOrder === 'asc' ? 1 : -1;
 	if (sortField === 'name') {
 		list.sort((a, b) => dir * a.folderName.localeCompare(b.folderName, 'ja'));
@@ -87,6 +91,11 @@ let sortedEntries = $derived.by(() => {
 		list.sort((a, b) => dir * ((a.mtimeMs ?? 0) - (b.mtimeMs ?? 0)));
 	}
 	return list;
+});
+
+// Phase 2: per-widget hide load on mount。
+$effect(() => {
+	if (widget?.id) void widgetItemHidesStore.loadFor(widget.id);
 });
 
 async function setSort(field: WidgetSortField) {
@@ -369,11 +378,14 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						oncontextmenu={(e) => {
 							e.preventDefault();
 							e.stopPropagation();
+							// Phase 2 (2026-05-12): hide key を folder_path に統一 (entry = folder 単位、
+							// 「この widget から外す」 はフォルダ全体に対応)。 copy / Explorer 操作も
+							// folder 単位で自然 (exe ではなく folder を copy / open)。
 							const exePath = resolveExe(entry) ?? entry.folderPath;
 							const matchedItem = itemStore.items.find((it) => it.target === exePath);
 							workspaceContextMenuStore.openMenuFor({
 								itemId: matchedItem?.id ?? null,
-								path: exePath,
+								path: entry.folderPath,
 								widgetId: widget?.id ?? null,
 								onOpenSettings: () => (settingsOpen = true),
 								ev: e,
