@@ -52,10 +52,20 @@ export const MIN_ZOOM_FIT = 5;
 export const BUFFER_COLS_LEFT = 12;
 export const BUFFER_ROWS_TOP = 64;
 
-/** chrome reserve (上下左右の toolbar 高さ) */
-export const TOP_RESERVE = 80;
-export const BOTTOM_RESERVE = 80;
-export const SIDE_RESERVE = 40;
+/**
+ * chrome reserve (上下左右の toolbar 高さ + 安全マージン)。
+ *
+ * J-4 (2026-05-12 user 検収): viewport ギリギリまで攻める、隙間必ず確保 (8-16px)。
+ * 旧値 (TOP/BOTTOM=80, SIDE=40) は chrome 高さに余裕を持ちすぎ、fit 後 widget が viewport 中央寄り。
+ * 新値: 実 chrome 高さ + 約 12px の安全マージンに圧縮、視覚的に viewport ギリギリまで fit。
+ *
+ * - SIDE_RESERVE = 16 → page padding (p-5 = 20px) と重なるので最小値、実 gap は INNER_PAD + 16 = 36px 程度
+ * - TOP_RESERVE = 56 → tab bar 約 44px + 12px safety margin
+ * - BOTTOM_RESERVE = 40 → zoom toolbar 約 28px + 12px safety margin
+ */
+export const TOP_RESERVE = 56;
+export const BOTTOM_RESERVE = 40;
+export const SIDE_RESERVE = 16;
 
 /** viewport の `cellPx + gap`（zoom % 込み）。grid 描画と同じ Math.round() を使う。 */
 export function cellStrideX(zoomPct: number): number {

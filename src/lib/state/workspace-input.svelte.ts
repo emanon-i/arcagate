@@ -1,5 +1,6 @@
 import type { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 
 interface InputOpts {
 	getContainer: () => HTMLDivElement | null;
@@ -80,14 +81,14 @@ export function useWorkspaceInput(opts: InputOpts) {
 				opts.zoom.resetZoom();
 				return;
 			}
-			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '!') {
+			if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === '!' || e.key === '1')) {
 				e.preventDefault();
-				opts.zoom.fitToContent(workspaceStore.widgets);
-				return;
-			}
-			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '1') {
-				e.preventDefault();
-				opts.zoom.fitToContent(workspaceStore.widgets);
+				// U-8 (2026-05-12): 選択中 widget があれば選択範囲を fit、無ければ全 widget。
+				const target =
+					workspaceSelection.size > 0
+						? workspaceStore.widgets.filter((w) => workspaceSelection.has(w.id))
+						: workspaceStore.widgets;
+				opts.zoom.fitToContent(target);
 				return;
 			}
 			const id = opts.getSelectedId();

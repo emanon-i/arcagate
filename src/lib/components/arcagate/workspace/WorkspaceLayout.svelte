@@ -288,9 +288,19 @@ function confirmRename(name: string) {
 		<button
 			type="button"
 			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			aria-label="全体を表示"
-			title="全体を表示 (Ctrl+Shift+1)"
-			onclick={() => zoom.fitToContent(workspaceStore.widgets)}
+			aria-label={workspaceSelection.size > 0 ? '選択 widget を表示' : '全体を表示'}
+			title={workspaceSelection.size > 0
+				? `選択中 ${workspaceSelection.size} 個を表示 (Ctrl+Shift+1)`
+				: '全体を表示 (Ctrl+Shift+1)'}
+			onclick={() => {
+				// U-8 (2026-05-12 user 検収): 選択中 widget があればその範囲だけ fit、
+				// 無ければ全 widget を fit (既存挙動)。
+				const target =
+					workspaceSelection.size > 0
+						? workspaceStore.widgets.filter((w) => workspaceSelection.has(w.id))
+						: workspaceStore.widgets;
+				zoom.fitToContent(target);
+			}}
 		>
 			<Maximize2 class="h-4 w-4" />
 		</button>
