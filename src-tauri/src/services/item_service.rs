@@ -334,8 +334,10 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
     Ok(all_items)
 }
 
-/// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録 (item_type=Exe + sys-type-exe tag)。
-/// 同 target が既に存在すれば既存 item を返す (idempotent)。`label` 未指定時は filename から導出。
+/// 5/01 user 検収 (C2): EXE/Script ファイルを Library に Item として登録。
+/// U-4 (2026-05-12): extension で item_type / sys-type-tag を分岐 (exe/com/msi → Exe、
+/// bat/cmd/ps1/sh → Script)。同 target 既存なら既存 item を返す (idempotent)。
+/// `label` 未指定時は filename から導出。
 pub fn register_exe_item(
     db: &DbState,
     path: &str,
@@ -354,10 +356,19 @@ pub fn register_exe_item(
         .and_then(|s| s.to_str())
         .map(|s| s.to_string())
         .unwrap_or_else(|| path.to_string());
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_ascii_lowercase())
+        .unwrap_or_default();
+    let item_type = match ext.as_str() {
+        "bat" | "cmd" | "ps1" | "sh" => crate::models::item::ItemType::Script,
+        _ => crate::models::item::ItemType::Exe,
+    };
     let id = Uuid::now_v7().to_string();
     let item = Item {
         id: id.clone(),
-        item_type: crate::models::item::ItemType::Exe,
+        item_type,
         label: label.unwrap_or(derived_label),
         target: path.to_string(),
         args: None,
@@ -374,7 +385,7 @@ pub fn register_exe_item(
         updated_at: String::new(),
     };
     item_repository::insert(&conn, &item)?;
-    let sys_tag_id = crate::models::tag::sys_type_tag_id(&crate::models::item::ItemType::Exe);
+    let sys_tag_id = crate::models::tag::sys_type_tag_id(&item_type);
     item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
     item_repository::find_by_id(&conn, &id)
 }
