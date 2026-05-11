@@ -15,8 +15,8 @@ export const meta: WidgetMeta = {
 		show_memory: true,
 		show_disk: false,
 	},
-	// E-9 (2026-05-08 user 検収): 2x3 → 2x2 縮小。
-	defaultSize: { w: 2, h: 2 },
+	// J-2 (2026-05-12): chart 系で横幅広め (W:H=4:3)、CPU/RAM/Disk 3 metric 横並び。
+	defaultSize: { w: 4, h: 3 },
 	addable: true,
 	category: 'info',
 	categoryOrder: 2,

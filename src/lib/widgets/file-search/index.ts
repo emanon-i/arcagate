@@ -10,8 +10,8 @@ export const meta: WidgetMeta = {
 	icon: FileSearch,
 	label: 'ファイル検索',
 	defaultConfig: { depth: 2, limit: 200 },
-	// E-9 (2026-05-08 user 検収): 2x4 → 2x3 縮小 (検索結果リスト表示分は高さ確保)。
-	defaultSize: { w: 2, h: 3 },
+	// J-2 (2026-05-12): 検索結果 list を多めに表示できる縦長サイズ。
+	defaultSize: { w: 3, h: 5 },
 	addable: true,
 	category: 'tool',
 	categoryOrder: 2,

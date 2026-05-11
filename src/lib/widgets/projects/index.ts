@@ -20,8 +20,8 @@ export const meta: WidgetMeta = {
 		watched_folder: '',
 		auto_add: false,
 	},
-	// E-9 (2026-05-08 user 検収): 3x3 → 3x2 縮小 (横幅は folder list 表示維持、高さのみ -1)。
-	defaultSize: { w: 3, h: 2 },
+	// J-2 (2026-05-12): folder card grid (container query で 1-3 列)、4:5 で複数列表示できる横幅 + 高さ。
+	defaultSize: { w: 4, h: 5 },
 	addable: true,
 	category: 'watch',
 	categoryOrder: 1,

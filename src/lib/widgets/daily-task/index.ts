@@ -10,8 +10,8 @@ export const meta: WidgetMeta = {
 	icon: CheckSquare,
 	label: 'デイリータスク',
 	defaultConfig: {},
-	// E-9 (2026-05-08 user 検収): 2x3 → 2x2 縮小。
-	defaultSize: { w: 2, h: 2 },
+	// J-2 (2026-05-12): 縦長 (W:H=3:5)、チェックボックス list で 8-12 タスク視認。
+	defaultSize: { w: 3, h: 5 },
 	addable: true,
 	category: 'memo',
 	categoryOrder: 2,

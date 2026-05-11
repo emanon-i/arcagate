@@ -9,7 +9,8 @@ export const meta: WidgetMeta = {
 	Component,
 	icon: Package,
 	label: 'アイテム',
-	defaultSize: { w: 2, h: 2 },
+	// J-2 (2026-05-12): ItemWidget は単一 item 表示 (list 不要)、tile 形状で 2:3 縦長。
+	defaultSize: { w: 2, h: 3 },
 	addable: true,
 	category: 'library',
 	categoryOrder: 3,

@@ -10,8 +10,8 @@ export const meta: WidgetMeta = {
 	icon: Star,
 	label: 'お気に入り',
 	defaultConfig: { max_items: 10 },
-	// E-9 (2026-05-08 user 検収): 2x3 → 2x2 縮小。
-	defaultSize: { w: 2, h: 2 },
+	// J-2 (2026-05-12): item list 縦長で max_items=10 を視認できる高さ。
+	defaultSize: { w: 3, h: 5 },
 	addable: true,
 	category: 'library',
 	categoryOrder: 1,
