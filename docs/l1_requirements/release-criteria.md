@@ -71,11 +71,11 @@
 
 ## B. UI 一貫性
 
-### B1. Industrial Yellow design 全画面適用率
+### B1. デザイントークン適用率（全画面）
 
-- **Verification**: `docs/l1_requirements/industrial-yellow.md` §2-5 (配色 / shape / state / empty-loading-error) を **対象全画面** (Library / Workspace / Settings / Palette / Onboarding / Item form) で screenshot 取得 → checklist 4 軸で照合
-- **Pass criteria**: 全 6 画面で「配色 4 色採用 + 角丸 ≤ 10px (chip 例外) + ピル型 button + L 字 bracket / ハーフトーン / 斜線ハッチ何れか + focus-visible 蛍光イエロー ring」が観測される
-- **Tooling**: CDP screenshot + 目視評価 (Read で screenshot を読み返す、CLAUDE.md ops 規律)、Codex は機械検出のみで判定根拠にしない
+- **Verification**: 全画面（Library / Workspace / Settings / Palette / Onboarding / Item form）で screenshot 取得 → color hardcode・token 逸脱がないか確認
+- **Pass criteria**: 全 6 画面で `--ag-accent` / `--ag-surface-*` / `--ag-text-*` 等の semantic token が一貫して使われている。`scripts/audit-design-tokens.sh` が 0 violations
+- **Tooling**: CDP screenshot + 目視評価（Read で screenshot を読み返す）+ design-tokens lefthook
 
 ### B2. Widget UX 常識遵守 (12 widget × 5 項目)
 
@@ -98,5 +98,5 @@
 ### B5. empty / loading / error 状態の design 統一
 
 - **Verification**: 各画面の empty / loading / error 状態を意図的に発生させ screenshot 取得 (Library 0 件 / IPC 失敗 / DB 起動失敗 等)
-- **Pass criteria**: 全画面で `EmptyState` / `LoadingState` / `ErrorState` 共通 component 採用、Industrial 風 (yellow accent + hatching) 適用
+- **Pass criteria**: 全画面で `EmptyState` / `LoadingState` / `ErrorState` 共通 component 採用、デザイントークン（`--ag-*`）でスタイリング
 - **Tooling**: dev で意図的に IPC kill → screenshot、`grep -rn "<EmptyState\|<LoadingState\|<ErrorState"` で採用率計測
