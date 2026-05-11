@@ -4,8 +4,7 @@ use crate::db::DbState;
 use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
 use crate::models::tag::{self, CreateTagInput, Tag, TagWithCount};
 use crate::repositories::{
-    icon_cache_repository, item_repository, tag_repository, widget_item_settings_repository,
-    workspace_repository,
+    icon_cache_repository, item_repository, tag_repository, workspace_repository,
 };
 use crate::utils::error::AppError;
 use crate::utils::icon;
@@ -343,30 +342,11 @@ pub fn auto_register_folder_items(
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| target.clone());
-        // PH-issue-023 Phase B: 同 path で過去に snapshot された settings があれば resurrect。
-        // (default_app / is_enabled / label override を復元、未設定 default fallback)
-        let prev = widget_item_settings_repository::get(&conn, &target)?;
-        let (label, is_enabled, default_app) = match &prev {
-            Some(row) => {
-                let parsed: serde_json::Value =
-                    serde_json::from_str(&row.settings_json).unwrap_or(serde_json::json!({}));
-                let restored_label = parsed
-                    .get("label")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| default_label.clone());
-                let restored_enabled = parsed
-                    .get("is_enabled")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(true);
-                let restored_default_app = parsed
-                    .get("default_app")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
-                (restored_label, restored_enabled, restored_default_app)
-            }
-            None => (default_label, true, None),
-        };
+        // Phase 1 (2026-05-12 user 承認): path-key snapshot 機構を廃止。
+        // 削除 → 再 watch で常に fresh state (default label / is_enabled=true / default_app=None) で新規作成、
+        // user 意図 override 問題 (widget 削除 → 再作成で旧設定が勝手に復活) を解消。
+        // 個別設定が必要な場合は user が手動で設定し直す前提、 widget 単位の hide は Phase 2 の widget_item_hides で対応。
+        let (label, is_enabled, default_app) = (default_label, true, None);
         let id = Uuid::now_v7().to_string();
         let item = Item {
             id: id.clone(),
@@ -405,10 +385,7 @@ pub fn auto_register_folder_items(
                 item_repository::add_system_tag(&conn, &id, &ws_tag_id)?;
             }
         }
-        // PH-issue-023 Phase B: settings が存在した場合は last_seen_at を update (auto-prune 防止)。
-        if prev.is_some() {
-            widget_item_settings_repository::touch_seen(&conn, &target)?;
-        }
+        // Phase 1 (2026-05-12): widget_item_settings touch_seen は廃止 (snapshot 機構廃止)。
         all_items.push(item_repository::find_by_id(&conn, &id)?);
     }
     Ok(all_items)

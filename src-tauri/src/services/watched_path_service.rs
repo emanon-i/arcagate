@@ -3,9 +3,7 @@ use uuid::Uuid;
 
 use crate::db::DbState;
 use crate::models::watched_path::{CreateWatchedPathInput, WatchedPath};
-use crate::repositories::{
-    item_repository, watched_path_repository, widget_item_settings_repository, workspace_repository,
-};
+use crate::repositories::{item_repository, watched_path_repository, workspace_repository};
 use crate::utils::error::AppError;
 use crate::watcher::WatcherState;
 
@@ -59,20 +57,11 @@ pub fn remove_watched_path(db: &DbState, watcher: &WatcherState, id: &str) -> Re
         let wp = watched_path_repository::find_by_id(&conn, id)?;
         // PH-issue-023: watched_path 削除前に、当該 path 配下の tracked items を Library から削除。
         // 各 item は workspace_widgets cascade (PH-issue-006) で widget config からも自動除去される。
+        // Phase 1 (2026-05-12): path-key snapshot 機構を廃止 (widget_item_settings)。
+        // 再 watch で fresh state に戻す方が user 意図と整合する判断 (詳細 E:/tmp/arcagate-delete-restore-ux.md)。
         let tracked_ids = item_repository::find_tracked_ids_under_path(&conn, &wp.path)?;
         let cascade_count = tracked_ids.len();
         for item_id in &tracked_ids {
-            // PH-issue-023 Phase B: 削除前に user 個別設定 (default_app / is_enabled) を
-            // widget_item_settings に snapshot。再 watch で resurrect 用。
-            let item = item_repository::find_by_id(&conn, item_id)?;
-            let snapshot = serde_json::json!({
-                "default_app": item.default_app,
-                "is_enabled": item.is_enabled,
-                "label": item.label,
-            });
-            let snapshot_str =
-                serde_json::to_string(&snapshot).unwrap_or_else(|_| "{}".to_string());
-            widget_item_settings_repository::upsert(&conn, &item.target, &snapshot_str)?;
             workspace_repository::cascade_remove_item_from_widgets(&conn, item_id)?;
             item_repository::delete(&conn, item_id)?;
         }
