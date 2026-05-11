@@ -83,17 +83,29 @@ export async function getTagWithCounts(): Promise<TagWithCount[]> {
 	return invoke<TagWithCount[]>('cmd_get_tag_counts');
 }
 
-export async function autoRegisterFolderItems(rootPath: string): Promise<Item[]> {
-	return invoke<Item[]>('cmd_auto_register_folder_items', { rootPath });
+// U-7 (2026-05-12): widget 経由登録時 workspace_id を渡せば sys-ws-<id> tag が自動付与される。
+export async function autoRegisterFolderItems(
+	rootPath: string,
+	workspaceId?: string,
+): Promise<Item[]> {
+	return invoke<Item[]>('cmd_auto_register_folder_items', { rootPath, workspaceId });
 }
 
 // 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録 (idempotent: 既存 target はそのまま返す)。
-export async function registerExeItem(path: string, label?: string): Promise<Item> {
-	return invoke<Item>('cmd_register_exe_item', { path, label: label ?? null });
+export async function registerExeItem(
+	path: string,
+	label?: string,
+	workspaceId?: string,
+): Promise<Item> {
+	return invoke<Item>('cmd_register_exe_item', {
+		path,
+		label: label ?? null,
+		workspaceId,
+	});
 }
 
-export async function registerExeItemsBulk(paths: string[]): Promise<Item[]> {
-	return invoke<Item[]>('cmd_register_exe_items_bulk', { paths });
+export async function registerExeItemsBulk(paths: string[], workspaceId?: string): Promise<Item[]> {
+	return invoke<Item[]>('cmd_register_exe_items_bulk', { paths, workspaceId });
 }
 
 export async function toggleStar(itemId: string, starred: boolean): Promise<Item> {

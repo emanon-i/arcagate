@@ -162,7 +162,7 @@ $effect(() => {
 	// B 案 (#16): file system watcher (watched_paths) に path を自動登録
 	void ensureWatchedPath(folder);
 	scanning = true;
-	autoRegisterFolderItems(folder)
+	autoRegisterFolderItems(folder, widget?.workspace_id)
 		.then(async (items) => {
 			folderItems = items;
 			await fetchGitStatuses(items);
@@ -201,7 +201,7 @@ $effect(() => {
 		const parentPath = newPath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
 		const normalizedFolder = folder.replace(/\\/g, '/').replace(/\/$/, '');
 		if (parentPath !== normalizedFolder) return;
-		const newItems = await autoRegisterFolderItems(folder);
+		const newItems = await autoRegisterFolderItems(folder, widget?.workspace_id);
 		if (newItems.length > 0) {
 			const existingIds = new Set(folderItems.map((i) => i.id));
 			const merged = [...folderItems, ...newItems.filter((i) => !existingIds.has(i.id))];

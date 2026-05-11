@@ -19,7 +19,8 @@ $effect(() => {
 
 let starredTags = $derived(itemStore.tagWithCounts.filter((t) => t.id === 'sys-starred'));
 let typeTags = $derived(itemStore.tagWithCounts.filter((t) => t.id.startsWith('sys-type-')));
-// G-7 (2026-05-09 user 検収): workspace 名 system tag (sys-ws-*) 機能ごと撤去。sidebar セクションも撤去。
+// U-3 (2026-05-12): workspace 名 system tag (sys-ws-*) を再導入 (旧 G-7 #410 撤去から復活)。
+let workspaceTags = $derived(itemStore.tagWithCounts.filter((t) => t.id.startsWith('sys-ws-')));
 let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 </script>
 
@@ -83,9 +84,32 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 		</section>
 	{/if}
 
-	<!-- G-7: 旧セクション 3「ワークスペース」 (sys-ws-* tag) は機能ごと撤去。 -->
+	<!-- セクション 3: ワークスペース (U-3 で再導入)。 spec 上、 widget 経由で登録された
+	     item は対応 workspace の sys-ws-<id> tag が付くため、 ここでフィルタ可能。 -->
+	{#if workspaceTags.length > 0}
+		<section
+			class="space-y-1.5 border-t border-[var(--ag-border)] pt-3"
+			data-testid="sidebar-section-workspace"
+		>
+			{#if expanded}
+				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+					ワークスペース
+				</h3>
+			{/if}
+			{#each workspaceTags as tag (tag.id)}
+				<SidebarRow
+					icon={LayoutDashboard}
+					label={tag.name}
+					meta={expanded ? String(tag.item_count) : undefined}
+					iconOnly={!expanded}
+					active={activeTag === tag.id}
+					onclick={() => onSelectTag?.(tag.id)}
+				/>
+			{/each}
+		</section>
+	{/if}
 
-	<!-- セクション 3: ユーザータグ -->
+	<!-- セクション 4: ユーザータグ -->
 	{#if userTags.length > 0}
 		<section
 			class="space-y-1.5 border-t border-[var(--ag-border)] pt-3"

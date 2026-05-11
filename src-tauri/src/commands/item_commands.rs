@@ -158,27 +158,38 @@ pub fn cmd_toggle_star(
 pub fn cmd_auto_register_folder_items(
     services: State<AppServices>,
     root_path: String,
+    workspace_id: Option<String>,
 ) -> Result<Vec<Item>, AppError> {
-    services.item.auto_register_folder_items(&root_path)
+    services
+        .item
+        .auto_register_folder_items(&root_path, workspace_id.as_deref())
 }
 
 /// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録。
+/// U-7: workspace_id 指定時、 sys-ws-<id> tag も自動付与 (widget 経由登録時用)。
 #[tauri::command]
 pub fn cmd_register_exe_item(
     services: State<AppServices>,
     path: String,
     label: Option<String>,
+    workspace_id: Option<String>,
 ) -> Result<Item, AppError> {
-    services.item.register_exe_item(&path, label)
+    services
+        .item
+        .register_exe_item(&path, label, workspace_id.as_deref())
 }
 
 /// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録 (ExeFolderWatchWidget の "全部追加" button 用)。
+/// U-7: workspace_id 指定時、 各 item に sys-ws-<id> tag も自動付与。
 #[tauri::command]
 pub fn cmd_register_exe_items_bulk(
     services: State<AppServices>,
     paths: Vec<String>,
+    workspace_id: Option<String>,
 ) -> Result<Vec<Item>, AppError> {
-    services.item.register_exe_items_bulk(paths)
+    services
+        .item
+        .register_exe_items_bulk(paths, workspace_id.as_deref())
 }
 
 #[tauri::command]
