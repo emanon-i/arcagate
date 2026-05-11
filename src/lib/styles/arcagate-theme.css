@@ -106,6 +106,15 @@
 	/* Backdrop filter (Liquid Glass theme overrides this) */
 	--ag-backdrop: none;
 
+	/* Effect tokens — theme differentiation
+	   --ag-widget-shadow-hover : widget hover 時の box-shadow (base shadow + glow)
+	   --ag-accent-glow         : focus ring / active item の glow (box-shadow 追加値)
+	   --ag-surface-tint        : widget/card surface の gradient overlay (background-image)
+	*/
+	--ag-widget-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
+	--ag-accent-glow: 0 0 0 0 transparent;
+	--ag-surface-tint: none;
+
 	/* Library card sizing (4:3 aspect, gap fixed) */
 	--ag-card-gap: 1rem;
 	--ag-card-w-s: 144px;
@@ -192,6 +201,9 @@
 	--ag-text-muted: rgba(255, 255, 255, 0.45);
 	--ag-text-faint: rgba(255, 255, 255, 0.35);
 
+	/* Effect tokens (dark — deeper hover shadow) */
+	--ag-widget-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -204,9 +216,15 @@
 }
 
 /* =====================================================================
-   Endfield Theme — global structural overrides
+   Endfield Theme — token overrides + global structural overrides
    5-layer: solid bg → contour grid → noise → surface → content
    ===================================================================== */
+
+[data-theme="theme-builtin-endfield"] {
+	--ag-widget-shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.55), 0 0 20px rgba(34, 211, 238, 0.12);
+	--ag-accent-glow: 0 0 8px rgba(34, 211, 238, 0.5);
+	--ag-surface-tint: linear-gradient(135deg, rgba(34, 211, 238, 0.04) 0%, transparent 60%);
+}
 
 /* Contour grid lines (body::before) */
 [data-theme="theme-builtin-endfield"] body::before {
@@ -243,9 +261,19 @@
 	background-repeat: repeat;
 }
 
+/* Endfield: focus-visible に accent glow を追加 */
+[data-theme="theme-builtin-endfield"] :focus-visible {
+	outline-offset: 2px;
+	filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.4));
+}
+
 /* =====================================================================
-   Ubuntu Frosted Theme — global structural overrides
+   Ubuntu Frosted Theme — token overrides + global structural overrides
    ===================================================================== */
+
+[data-theme="theme-builtin-ubuntu-frosted"] {
+	--ag-accent-glow: 0 0 6px rgba(34, 211, 238, 0.35);
+}
 
 /* Sidebar with frosted glass */
 [data-theme="theme-builtin-ubuntu-frosted"] .ag-sidebar {
@@ -272,9 +300,16 @@
 }
 
 /* =====================================================================
-   Liquid Glass Theme — global structural overrides
+   Liquid Glass Theme — token overrides + global structural overrides
    Applied when data-theme="theme-builtin-liquid-glass" is set on <html>
    ===================================================================== */
+
+[data-theme="theme-builtin-liquid-glass"] {
+	--ag-widget-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+	--ag-accent-glow: 0 0 12px rgba(255, 255, 255, 0.3);
+	--ag-surface-tint: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+}
+
 [data-theme="theme-builtin-liquid-glass"] body {
 	background: var(--ag-bg);
 }
@@ -326,4 +361,9 @@
 		0 24px 80px rgba(0, 0, 0, 0.7),
 		0 0 0 1px rgba(255, 255, 255, 0.1),
 		inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Liquid Glass: focus-visible に white glow を追加 */
+[data-theme="theme-builtin-liquid-glass"] :focus-visible {
+	filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.25));
 }

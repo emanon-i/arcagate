@@ -55,7 +55,7 @@ let display = $derived(getDisplay(entry));
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	class="flex items-center justify-between gap-3 rounded-[22px] border px-4 py-3 transition-[border-color,background-color,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {active
-		? 'border-[var(--ag-accent-active-border)] bg-[var(--ag-accent-active-bg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+		? 'result-row-active border-[var(--ag-accent-active-border)] bg-[var(--ag-accent-active-bg)]'
 		: 'border-[var(--ag-border)] bg-white/[0.03]'}"
 	role="option"
 	aria-selected={active}
@@ -86,3 +86,9 @@ let display = $derived(getDisplay(entry));
 		{/if}
 	</div>
 </div>
+
+<style>
+.result-row-active {
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), var(--ag-accent-glow);
+}
+</style>

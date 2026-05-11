@@ -37,7 +37,7 @@ let btnClass =
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-shadow duration-[var(--ag-duration-fast)] hover:shadow-md motion-reduce:transition-none"
+	class="widget-shell flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 transition-[box-shadow,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-out)] motion-reduce:transition-none"
 	oncontextmenu={handleWidgetContextMenu}
 >
 	<!-- PH-issue-015: header layout 修正。
@@ -81,3 +81,14 @@ let btnClass =
 		{@render children()}
 	</div>
 </div>
+
+<style>
+.widget-shell {
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	background-image: var(--ag-surface-tint);
+}
+
+.widget-shell:hover {
+	box-shadow: var(--ag-widget-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+</style>
