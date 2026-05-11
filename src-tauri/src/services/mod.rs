@@ -12,6 +12,7 @@ pub mod metadata_service;
 pub mod opener_service;
 pub mod system_monitor_service;
 pub mod theme_service;
+pub mod url_service;
 pub mod wallpaper_service;
 pub mod watched_path_service;
 pub mod watcher_service;
