@@ -1,4 +1,5 @@
 <script lang="ts">
+import BookmarkImport from './BookmarkImport.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import OpenerSettings from './OpenerSettings.svelte';
 
@@ -28,5 +29,8 @@ import OpenerSettings from './OpenerSettings.svelte';
 	<LibraryCardSettings />
 	<div class="border-t border-[var(--ag-border)] pt-5">
 		<OpenerSettings />
+	</div>
+	<div class="border-t border-[var(--ag-border)] pt-5">
+		<BookmarkImport />
 	</div>
 </div>

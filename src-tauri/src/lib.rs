@@ -9,6 +9,7 @@ pub mod services;
 pub mod utils;
 pub mod watcher;
 
+use commands::bookmark_commands::cmd_parse_bookmark_file;
 use commands::config_commands::{
     cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_onboarding_complete,
     cmd_is_setup_complete, cmd_mark_onboarding_complete, cmd_mark_setup_complete,
@@ -276,6 +277,7 @@ pub fn run() {
             cmd_register_exe_item,
             cmd_register_exe_items_bulk,
             cmd_fetch_url_title,
+            cmd_parse_bookmark_file,
             cmd_get_item_stats,
             cmd_get_item_metadata,
             cmd_get_items_metadata_batch,
