@@ -17,7 +17,9 @@ use commands::config_commands::{
 };
 use commands::exe_scanner_commands::cmd_scan_exe_folders;
 use commands::export_commands::{cmd_export_json, cmd_import_json};
+use commands::file_preview_commands::cmd_read_file_preview;
 use commands::file_search_commands::{cmd_cancel_file_search, cmd_list_files, cmd_open_path};
+use commands::image_scrap_commands::cmd_save_image_scrap;
 use commands::item_commands::{
     cmd_auto_register_folder_items, cmd_bulk_add_tag, cmd_bulk_delete_items, cmd_bulk_remove_tag,
     cmd_check_is_directory, cmd_count_hidden_items, cmd_count_item_references, cmd_create_item,
@@ -278,6 +280,8 @@ pub fn run() {
             cmd_register_exe_items_bulk,
             cmd_fetch_url_title,
             cmd_parse_bookmark_file,
+            cmd_save_image_scrap,
+            cmd_read_file_preview,
             cmd_get_item_stats,
             cmd_get_item_metadata,
             cmd_get_items_metadata_batch,
