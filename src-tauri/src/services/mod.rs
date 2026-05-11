@@ -1,5 +1,6 @@
 // Business logic layer
 pub mod app_services;
+pub mod bookmark_service;
 pub mod config_service;
 pub mod exe_scanner_service;
 pub mod export_service;
