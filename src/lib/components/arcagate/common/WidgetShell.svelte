@@ -48,7 +48,9 @@ let btnClass =
 			<div class="shrink-0 rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5">
 				<Icon class="h-4 w-4 text-[var(--ag-text-secondary)]" />
 			</div>
-			<div class="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ag-text-primary)]">{title}</div>
+			<!-- J-1 (2026-05-12 user 検収): widget title が他 UI と比べ大き過ぎ → text-sm (14px) → text-xs (12px) に縮小。
+			     font-semibold + text-primary は維持 (header 内で識別性は確保)、icon / button は header 全体ではなく title のみ変更。 -->
+			<div class="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--ag-text-primary)]">{title}</div>
 		</div>
 		{#if menuItems.length === 1}
 			{@const sole = menuItems[0]}
