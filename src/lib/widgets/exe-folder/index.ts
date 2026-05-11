@@ -10,8 +10,8 @@ export const meta: WidgetMeta = {
 	icon: FolderOpen,
 	label: 'Exe フォルダ監視',
 	defaultConfig: { scan_depth: 2 },
-	// E-9 (2026-05-08 user 検収): 3x3 → 3x2 縮小 (横幅は folder list 表示維持、高さのみ -1)。
-	defaultSize: { w: 3, h: 2 },
+	// J-2 (2026-05-12): folder list 多数を縦に流すため W:H=3:6 で高さ重視。
+	defaultSize: { w: 3, h: 6 },
 	addable: true,
 	category: 'watch',
 	categoryOrder: 2,

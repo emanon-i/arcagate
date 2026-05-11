@@ -22,12 +22,15 @@ export interface ComputeRectOptions {
  * - 'n' / 'ne' / 'nw': 上辺移動（y + h が固定、y 増減で h 補完）
  * - 'se' / 'ne' / 'sw' / 'nw': 角ハンドル（2 軸）
  */
+// J-3 (2026-05-12 user 検収): widget の resize 上限が `maxSpan=4` (4×4 cell まで) と
+// 早すぎ問題。 cell 12×12 まで拡張、現実的な大画面 1 widget の利用も可能に。
+// maxCols=32 grid なので 12 cell は viewport 中央領域に収まる目安。
 export function computeResize(
 	start: Rect,
 	stepDx: number,
 	stepDy: number,
 	dir: ResizeDir,
-	{ maxSpan = 4, maxCols = 32 }: ComputeRectOptions = {},
+	{ maxSpan = 12, maxCols = 32 }: ComputeRectOptions = {},
 ): Rect {
 	const minSize = 1;
 	let { x, y, w, h } = start;

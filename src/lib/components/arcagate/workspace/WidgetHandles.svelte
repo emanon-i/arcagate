@@ -41,7 +41,9 @@ interface Props {
 let { widgetId, isSelected, dynamicCols, widgetW, widgetH, onDeleteConfirmIdChange }: Props =
 	$props();
 
-const MAX_SPAN = 4;
+// J-3 (2026-05-12): resize 上限を 4 cell → 12 cell に拡張。
+// 大画面 1 widget の利用や 全画面 widget も対応できる現実的な上限。
+const MAX_SPAN = 12;
 
 const isMoving = $derived(
 	pointerDrag.active?.kind === 'move' && pointerDrag.active.widgetId === widgetId,
