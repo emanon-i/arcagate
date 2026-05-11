@@ -23,7 +23,7 @@ pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Wor
 
     let ws = Workspace {
         id: id.clone(),
-        name: input.name,
+        name: input.name.clone(),
         sort_order,
         // PH-issue-009: 壁紙未設定 default
         wallpaper_path: None,
@@ -35,8 +35,15 @@ pub fn create_workspace(db: &DbState, input: CreateWorkspaceInput) -> Result<Wor
 
     workspace_repository::insert_workspace(&conn, &ws)?;
 
-    // G-7: workspace 名 system tag (sys-ws-*) 作成は廃止。
-    // 「workspace に乗っている item は workspace 名 tag が自動付与」 機能ごと撤去。
+    // U-3 (2026-05-12 user 検収): screens-and-flows.md Library / Workspace § で
+    // 「workspace 名 system tag」 を再導入。 旧 G-7 (#410) で撤去されたが、 spec で復活。
+    // workspace 作成と同時に sys-ws-<id> tag を作成 (tag name = workspace name)。
+    let tag_id = format!("sys-ws-{}", id);
+    conn.execute(
+        "INSERT OR IGNORE INTO tags (id, name, is_hidden, is_system, prefix, icon, sort_order, created_at) \
+         VALUES (?1, ?2, 0, 1, NULL, NULL, 70, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))",
+        rusqlite::params![tag_id, input.name],
+    )?;
 
     workspace_repository::find_workspace_by_id(&conn, &id)
 }
@@ -66,7 +73,12 @@ pub fn update_workspace(
 
     let result = workspace_repository::update_workspace(&conn, id, &name)?;
 
-    // G-7: system tag 名 sync 廃止。
+    // U-3: sys-ws-<id> tag の name を workspace 名に同期 (rename 反映)。
+    let tag_id = format!("sys-ws-{}", id);
+    conn.execute(
+        "UPDATE tags SET name = ?1 WHERE id = ?2",
+        rusqlite::params![name, tag_id],
+    )?;
 
     Ok(result)
 }
@@ -75,7 +87,9 @@ pub fn delete_workspace(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::delete_workspace(&conn, id)?;
 
-    // G-7: system tag 削除廃止 (sys-ws-* 機能ごと撤去)。
+    // U-3: workspace 削除と同時に sys-ws-<id> tag も削除 (item_tags は ON DELETE CASCADE)。
+    let tag_id = format!("sys-ws-{}", id);
+    conn.execute("DELETE FROM tags WHERE id = ?1", rusqlite::params![tag_id])?;
 
     Ok(())
 }

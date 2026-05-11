@@ -74,7 +74,68 @@ pub fn list_items(db: &DbState) -> Result<Vec<Item>, AppError> {
 
 pub fn search_items(db: &DbState, query: &str) -> Result<Vec<Item>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    item_repository::search(&conn, query)
+    let mut items = item_repository::search(&conn, query)?;
+
+    // U-9 (2026-05-12): screens-and-flows.md User Flow §
+    //   「コマンドパレットで workspace 名の dev と入力 → 予測で workspace に登録されている
+    //    アイテムが出てくる」 を実装。
+    // query が workspace 名 (sys-ws-* tag.name) と部分一致する場合、 該当 workspace の
+    // sys-ws-<id> tag が付いた item を追加で返す (label match と OR、 重複は排除)。
+    let trimmed = query.trim();
+    if !trimmed.is_empty() {
+        let pattern = format!("%{}%", trimmed);
+        let mut stmt = conn.prepare(
+            "SELECT DISTINCT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
+                    i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
+                    i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+             FROM items i
+             JOIN item_tags it ON it.item_id = i.id
+             JOIN tags t ON t.id = it.tag_id
+             WHERE t.id LIKE 'sys-ws-%' AND t.name LIKE ?1 AND i.is_enabled = 1
+             ORDER BY i.label",
+        )?;
+        let rows = stmt.query_map([&pattern], |row| {
+            let aliases_json: String = row.get(8)?;
+            let aliases: Vec<String> = serde_json::from_str(&aliases_json).unwrap_or_default();
+            let item_type_str: String = row.get(1)?;
+            let item_type =
+                crate::models::item::ItemType::from_str(&item_type_str).unwrap_or_else(|| {
+                    log::warn!(
+                        "invalid item_type '{}' in DB, defaulting to Url",
+                        item_type_str
+                    );
+                    crate::models::item::ItemType::Url
+                });
+            Ok(Item {
+                id: row.get(0)?,
+                item_type,
+                label: row.get(2)?,
+                target: row.get(3)?,
+                args: row.get(4)?,
+                working_dir: row.get(5)?,
+                icon_path: row.get(6)?,
+                icon_type: row.get(7)?,
+                aliases,
+                sort_order: row.get(9)?,
+                is_enabled: row.get(10)?,
+                is_tracked: row.get(11)?,
+                default_app: row.get(12)?,
+                card_override_json: row.get(13)?,
+                created_at: row.get(14)?,
+                updated_at: row.get(15)?,
+            })
+        })?;
+        let workspace_items: Vec<Item> = rows.filter_map(|r| r.ok()).collect();
+        // 既存 items に含まれない workspace item を append (dedup)。
+        let existing_ids: std::collections::HashSet<String> =
+            items.iter().map(|i| i.id.clone()).collect();
+        for it in workspace_items {
+            if !existing_ids.contains(&it.id) {
+                items.push(it);
+            }
+        }
+    }
+    Ok(items)
 }
 
 pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Item, AppError> {
@@ -250,7 +311,11 @@ pub fn count_hidden_items(db: &DbState) -> Result<i64, AppError> {
     item_repository::count_hidden_items(&conn)
 }
 
-pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<Item>, AppError> {
+pub fn auto_register_folder_items(
+    db: &DbState,
+    root_path: &str,
+    workspace_id: Option<&str>,
+) -> Result<Vec<Item>, AppError> {
     let root = std::path::Path::new(root_path);
     if !root.is_dir() {
         return Err(AppError::InvalidInput(format!(
@@ -325,6 +390,21 @@ pub fn auto_register_folder_items(db: &DbState, root_path: &str) -> Result<Vec<I
         let sys_tag_id =
             crate::models::tag::sys_type_tag_id(&crate::models::item::ItemType::Folder);
         item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+        // U-7 (2026-05-12): widget 経由登録時、 workspace 名 system tag (sys-ws-<id>) も自動付与。
+        if let Some(ws_id) = workspace_id {
+            let ws_tag_id = format!("sys-ws-{}", ws_id);
+            // tag 存在チェック (workspace 削除済 / migration 適用前等の race を抑制)
+            let exists: bool = conn
+                .query_row(
+                    "SELECT 1 FROM tags WHERE id = ?1",
+                    rusqlite::params![ws_tag_id],
+                    |_| Ok(true),
+                )
+                .unwrap_or(false);
+            if exists {
+                item_repository::add_system_tag(&conn, &id, &ws_tag_id)?;
+            }
+        }
         // PH-issue-023 Phase B: settings が存在した場合は last_seen_at を update (auto-prune 防止)。
         if prev.is_some() {
             widget_item_settings_repository::touch_seen(&conn, &target)?;
@@ -342,6 +422,7 @@ pub fn register_exe_item(
     db: &DbState,
     path: &str,
     label: Option<String>,
+    workspace_id: Option<&str>,
 ) -> Result<Item, AppError> {
     let p = std::path::Path::new(path);
     if !p.is_file() {
@@ -387,15 +468,33 @@ pub fn register_exe_item(
     item_repository::insert(&conn, &item)?;
     let sys_tag_id = crate::models::tag::sys_type_tag_id(&item_type);
     item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+    // U-7: widget 経由 (workspace_id 指定時) は workspace 名 system tag を自動付与。
+    if let Some(ws_id) = workspace_id {
+        let ws_tag_id = format!("sys-ws-{}", ws_id);
+        let exists: bool = conn
+            .query_row(
+                "SELECT 1 FROM tags WHERE id = ?1",
+                rusqlite::params![ws_tag_id],
+                |_| Ok(true),
+            )
+            .unwrap_or(false);
+        if exists {
+            item_repository::add_system_tag(&conn, &id, &ws_tag_id)?;
+        }
+    }
     item_repository::find_by_id(&conn, &id)
 }
 
 /// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録。1 件ずつ register_exe_item と同等の処理。
 /// 戻り値: 各 path に対応する Item (新規 / 既存) のリスト。
-pub fn register_exe_items_bulk(db: &DbState, paths: Vec<String>) -> Result<Vec<Item>, AppError> {
+pub fn register_exe_items_bulk(
+    db: &DbState,
+    paths: Vec<String>,
+    workspace_id: Option<&str>,
+) -> Result<Vec<Item>, AppError> {
     let mut out = Vec::with_capacity(paths.len());
     for path in &paths {
-        let item = register_exe_item(db, path, None)?;
+        let item = register_exe_item(db, path, None, workspace_id)?;
         out.push(item);
     }
     Ok(out)
@@ -706,7 +805,7 @@ mod tests {
         std::fs::write(tmp.join("readme.txt"), "hello").unwrap();
 
         let root_path = tmp.to_string_lossy().to_string();
-        let result = auto_register_folder_items(&db, &root_path).unwrap();
+        let result = auto_register_folder_items(&db, &root_path, None).unwrap();
         assert_eq!(result.len(), 2, "should register 2 subdirectories");
 
         // Verify items are in the database
@@ -728,7 +827,7 @@ mod tests {
         // 4/30 user 検収: 2 回目以降の呼び出しは **既存 + 新規** をすべて返す
         // (旧仕様の 「新規分のみ」 → ProjectsWidget で空判定される bug 解消)。
         // DB 上の重複作成は依然防止 (find_by_target で skip insert)。
-        let result2 = auto_register_folder_items(&db, &root_path).unwrap();
+        let result2 = auto_register_folder_items(&db, &root_path, None).unwrap();
         assert_eq!(
             result2.len(),
             2,
@@ -748,7 +847,7 @@ mod tests {
     #[test]
     fn test_auto_register_folder_items_invalid_path() {
         let db = initialize_in_memory();
-        let result = auto_register_folder_items(&db, "C:/nonexistent/path/xyz");
+        let result = auto_register_folder_items(&db, "C:/nonexistent/path/xyz", None);
         assert!(
             matches!(result, Err(AppError::InvalidInput(_))),
             "should return InvalidInput for non-directory"
@@ -944,16 +1043,29 @@ impl ItemService {
         count_hidden_items(&self.db)
     }
 
-    pub fn auto_register_folder_items(&self, root_path: &str) -> Result<Vec<Item>, AppError> {
-        auto_register_folder_items(&self.db, root_path)
+    pub fn auto_register_folder_items(
+        &self,
+        root_path: &str,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<Item>, AppError> {
+        auto_register_folder_items(&self.db, root_path, workspace_id)
     }
 
-    pub fn register_exe_item(&self, path: &str, label: Option<String>) -> Result<Item, AppError> {
-        register_exe_item(&self.db, path, label)
+    pub fn register_exe_item(
+        &self,
+        path: &str,
+        label: Option<String>,
+        workspace_id: Option<&str>,
+    ) -> Result<Item, AppError> {
+        register_exe_item(&self.db, path, label, workspace_id)
     }
 
-    pub fn register_exe_items_bulk(&self, paths: Vec<String>) -> Result<Vec<Item>, AppError> {
-        register_exe_items_bulk(&self.db, paths)
+    pub fn register_exe_items_bulk(
+        &self,
+        paths: Vec<String>,
+        workspace_id: Option<&str>,
+    ) -> Result<Vec<Item>, AppError> {
+        register_exe_items_bulk(&self.db, paths, workspace_id)
     }
 
     pub fn toggle_star(&self, item_id: &str, starred: bool) -> Result<Item, AppError> {
