@@ -60,6 +60,8 @@ interface WidgetConfig {
 	sort_order?: WidgetSortOrder;
 	/** C-15 #19: widget レベルの起動アプリ default。 */
 	default_opener_id?: string | null;
+	/** audit batch deferred (2026-05-13) #8: list / card 表示 mode。 */
+	view_mode?: 'list' | 'card';
 }
 
 let config = $derived.by<WidgetConfig>(() => {
@@ -78,6 +80,8 @@ let scanError = $state<string | null>(null);
 // sort 適用済 entries (元 entries は immutable、表示のみ並べ替え)
 let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
 let sortOrder = $derived<WidgetSortOrder>(config.sort_order ?? 'asc');
+// audit batch deferred (2026-05-13) #8: list / card 表示 mode 切替。
+let viewMode = $derived<'list' | 'card'>(config.view_mode ?? 'list');
 let sortedEntries = $derived.by(() => {
 	// Phase 2 (2026-05-12): per-widget hide filter を適用。
 	// ExeFolder の hide key は folder_path (entry.folderPath、 user 視点の「folder」 単位)。
@@ -367,7 +371,43 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				{/if}
 			</button>
 		</div>
-		<ul class="space-y-1">
+		<!-- audit batch deferred (2026-05-13) #8: list / card 表示 mode 切替。 card は @container で grid。
+		     list は 1 列、 card は auto-fit minmax(120px, 1fr) で widget 幅に応じて折返し。 -->
+		<ul class={viewMode === 'card' ? '@container' : 'space-y-1'}>
+			{#if viewMode === 'card'}
+				<div class="grid gap-1.5" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+					{#each sortedEntries as entry (entry.folderPath)}
+						{@const currentExe = resolveExe(entry)}
+						{@const hasOverride = !!config.item_overrides?.[entry.folderPath]}
+						<button
+							type="button"
+							class="flex flex-col items-center gap-1 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-2 text-center text-sm text-[var(--ag-text-primary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
+							aria-label="{entry.folderName} を起動"
+							title={entry.folderPath}
+							onclick={() => launchEntry(entry)}
+							oncontextmenu={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								const exePath = resolveExe(entry) ?? entry.folderPath;
+								const matchedItem = itemStore.items.find((it) => it.target === exePath);
+								workspaceContextMenuStore.openMenuFor({
+									itemId: matchedItem?.id ?? null,
+									path: entry.folderPath,
+									widgetId: widget?.id ?? null,
+									onOpenSettings: () => (settingsOpen = true),
+									ev: e,
+								});
+							}}
+						>
+							<AppWindow class="h-6 w-6 shrink-0 text-[var(--ag-text-muted)]" />
+							<span class="line-clamp-2 min-w-0 w-full break-all">{entry.folderName}</span>
+							<span class="shrink-0 text-xs {hasOverride ? 'text-[var(--ag-accent-text)]' : 'text-[var(--ag-text-faint)]'}">
+								{entry.exeCandidates.length} exe{hasOverride ? ' ◉' : ''}
+							</span>
+						</button>
+					{/each}
+				</div>
+			{:else}
 			{#each sortedEntries as entry (entry.folderPath)}
 				{@const currentExe = resolveExe(entry)}
 				{@const hasOverride = !!config.item_overrides?.[entry.folderPath]}
@@ -452,6 +492,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					{/if}
 				</li>
 			{/each}
+			{/if}
 		</ul>
 	{/if}
 </WidgetShell>

@@ -68,6 +68,9 @@ const PROJECT_CONFIG_DEFAULTS = {
 	// I-4 (2026-05-10 user 検収): 並び替え (ExeFolder と同じ key 集合、type は _shared/types.ts に集約)。
 	sort_field: 'name' as WidgetSortField,
 	sort_order: 'asc' as WidgetSortOrder,
+	// audit batch deferred (2026-05-13) #8: list / card 表示 mode。
+	// Projects は既存の multi-col grid を 'card' default、 'list' 選択時に 1 col 縦 stack に。
+	view_mode: 'card' as 'list' | 'card',
 };
 
 let config = $derived(parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS));
@@ -76,6 +79,7 @@ let config = $derived(parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS)
 // ExeFolder と同じ pattern (個別実装、UI 抽出は 3 件目以降が出てから)。
 let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
 let sortOrder = $derived<WidgetSortOrder>(config.sort_order ?? 'asc');
+let viewMode = $derived<'list' | 'card'>(config.view_mode ?? 'list');
 let sortedItems = $derived.by(() => {
 	// Phase 2 (2026-05-12): per-widget hide filter を sort 前に適用。
 	const widgetId = widget?.id ?? null;
@@ -323,8 +327,10 @@ async function handleLaunch(item: Item) {
 		<!-- PH-issue-039 / 検収項目 #18: container query で widget 幅に応じて 1/2/3 列に動的調整。
 		     PH-issue-039 / 検収項目 #17: 各 row のアイコンを削除 (folder 型では meaningless)。
 		     git branch chip + 変更数 chip を保持 (P3 主要情報)。 -->
+		<!-- audit batch deferred (2026-05-13) #8: list mode は 1-col 縦 stack、 card mode は
+		     既存の @container query で 1/2/3 col grid。 viewMode が config に保存される。 -->
 		<div class="@container">
-			<div class="grid gap-2 @sm:grid-cols-2 @lg:grid-cols-3">
+			<div class={viewMode === 'list' ? 'grid grid-cols-1 gap-2' : 'grid gap-2 @sm:grid-cols-2 @lg:grid-cols-3'}>
 				{#each sortedItems as item (item.id)}
 					{@const gs = gitStatuses[item.id]}
 					<button
