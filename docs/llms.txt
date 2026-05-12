@@ -1,40 +1,35 @@
 # Arcagate
 
-Personal launcher consolidating PC-wide entry points. Tauri v2 + SvelteKit + Svelte 5 runes + Rust + SQLite. Single-user desktop app, distribution-ready.
+PC 上に散在する起動元を集約する個人用ランチャー。 Tauri v2 + SvelteKit + Svelte 5 runes + Rust + SQLite。 Windows 単独 user 向け、 ローカル完結。
 
-## L0 ideas (アイデア / 哲学 / 視覚)
+## L0 ideas (要求 / 動機、 stable layer)
 
-- [product-vision.md](l0_ideas/product-vision.md): 何を作るか・誰のため・どんな画面があるか
-- [ux-vision.md](l0_ideas/ux-vision.md): デザインキャラクター・モーション哲学・エフェクト採用基準
-- [visual-references.md](l0_ideas/visual-references.md): ムードボード・Endfield 配色・ユーザーの嗜好
-- [screens-and-flows.md](l0_ideas/screens-and-flows.md): 画面ごとの説明・あるべき姿・ユーザーフロー
+- [motivation.md](motivation.md) — なぜ作る (a) / 何 (b) / 誰のため (c) / Non-goals (d) / 成功条件 (e) / 制約 (f) / 利用形態 (g) / 失敗パターン (h) を 1 file に集約
 
-## L1 requirements (要件 / 仕様)
+## L1 requirements (要件)
 
-- [vision.md](l1_requirements/vision.md): 機能要件一覧 (REQ-NNNN)・非機能要件・制約
-- [ux-standards.md](l1_requirements/ux-standards.md): パフォーマンス目標・モーショントークン値・Widget グリッド仕様・Workspace canvas ルール・UI 優先順位チェックリスト
-- [design-system.md](l1_requirements/design-system.md): トークン階層 (Primitive/Semantic/Bridge)・テーマアーキテクチャ・背景レイヤー構成
-- [release-criteria.md](l1_requirements/release-criteria.md): 配布判定基準 A-J（機能完成度 / UI 一貫性 / 安定性 / パフォーマンス / エラー処理 / 配布要件 / a11y / i18n / docs / test）
-- [widget-add-checklist.md](l1_requirements/widget-add-checklist.md): 新 widget 追加時の触る箇所リスト
+- 現在 gen-l1 待ち、 `l1_requirements/.gitkeep` のみ
 
-## L1 distribution (運用手順書)
+## L2 foundation (基本設計)
 
-- [dispatch-rules.md](l1_requirements/distribution/dispatch-rules.md): バッチ運用ルール (§11 user-redo depth-first)
-- [pubkey-procedure.md](l1_requirements/distribution/pubkey-procedure.md): updater minisign 手順
-- [cosign-verification.md](l1_requirements/distribution/cosign-verification.md): 配布 attestation
-- [microsoft-store.md](l1_requirements/distribution/microsoft-store.md): Store 提出パス
-- [distribution-rollback.md](l1_requirements/distribution/distribution-rollback.md): release SOP
-- [support.md](l1_requirements/distribution/support.md): user FAQ / SmartScreen
-- [user-action-needed.md](l1_requirements/distribution/user-action-needed.md): user 物理タスク一覧
+- [l2_foundation/foundation.md](l2_foundation/foundation.md) — 全体アーキテクチャ overview / 技術 stack / レイヤー設計 / IPC 境界 / Frontend state / Error / SQLite schema / dirs / 設計判断 / 非機能要求 / CI/CD / 用語
+- [l2_foundation/test_scenarios.md](l2_foundation/test_scenarios.md) — テストシナリオ ⇄ テスト実装 link、 T1-T4 plan + 詳細 scenario 一覧
+- [l2_foundation/screens/](l2_foundation/screens/) — 画面別機能カタログ:
+  - [palette.md](l2_foundation/screens/palette.md) — コマンドパレット (Ctrl+Shift+Space 検索 + Enter 起動)
+  - [library.md](l2_foundation/screens/library.md) — アイテム一覧 + 詳細 panel + sidebar + 複数選択 mode
+  - [workspace.md](l2_foundation/screens/workspace.md) — widget canvas + page tab + Ctrl+A + Box selection
+  - [settings.md](l2_foundation/screens/settings.md) — 設定画面 + theme + data export
+  - [onboarding.md](l2_foundation/screens/onboarding.md) — 初回起動 setup wizard
 
-## L2 foundation (技術設計)
+## L3 phases (実装計画、 アーカイブ済)
 
-- [foundation.md](l2_foundation/foundation.md): システム構成 overview・技術スタック・アーキテクチャ図・非機能要件・CI/CD・用語集
-- [foundation-architecture.md](l2_foundation/foundation-architecture.md): Service Layer・Plugin Interface・Tauri IPC 設計・State 管理・エラーハンドリング
-- [foundation-dirs.md](l2_foundation/foundation-dirs.md): ディレクトリ構造
-- [foundation-schema.md](l2_foundation/foundation-schema.md): DB スキーマ（22 migrations）
-- [engineering-principles.md](l2_foundation/engineering-principles.md): FE/BE 分担 Q-Tree・IPC ルール・IPC コマンド全列挙・エラー形式・依存 curated list・リファクタ閾値
+- [l3_phases/_archive/](l3_phases/_archive/) — 完了済 plan (556 file)
+- [l3_phases/_template/](l3_phases/_template/) — use case audit 雛形 (`use-case-audit.md`)
 
 ## Live single-file
 
-- [lessons.md](lessons.md): 失敗駆動メモリ・再発防止パターン
+- [lessons.md](lessons.md) — 失敗駆動メモリ・再発防止パターン (メタ教訓のみ、 個別 bug は git log)
+
+## 作業前必読 (root)
+
+- [/CLAUDE.md](../CLAUDE.md) — session 開始時必須情報 + 哲学 + 禁止事項 + 所在 pointer

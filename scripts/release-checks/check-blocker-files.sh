@@ -3,7 +3,7 @@
 #
 # release blocker として doc 存在を強制する。
 # - CHANGELOG.md (root)
-# - docs/l1_requirements/distribution/support.md (旧 docs/SUPPORT.md、docs reorg PR #333 で移動)
+# - docs/support.md (旧 docs/SUPPORT.md、docs reorg PR #333 で移動)
 # - PRIVACY.md (root)
 # - LICENSE (root)
 # - README.md に support 節
@@ -27,7 +27,7 @@ check_file() {
 }
 
 check_file "CHANGELOG.md"
-check_file "docs/l1_requirements/distribution/support.md"
+check_file "docs/support.md"
 check_file "PRIVACY.md"
 check_file "LICENSE"
 check_file "README.md"

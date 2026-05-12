@@ -48,8 +48,9 @@ pnpm test:e2e
 
 詳細は [`docs/`](docs/) を参照:
 
-- [`docs/l0_ideas/engineering-principles.md`](docs/l0_ideas/engineering-principles.md) — 技術判断基準
-- [`docs/l1_requirements/distribution/dispatch-rules.md`](docs/l1_requirements/distribution/dispatch-rules.md) — 開発フロー
+- [`docs/motivation.md`](docs/motivation.md) — L0 製品要求 (なぜ作る / 何 / 誰 / Non-goals / 成功条件 / 制約 / 利用形態 / 失敗パターン)
+- [`docs/l2_foundation/foundation.md`](docs/l2_foundation/foundation.md) — L2 全体アーキテクチャ (技術 stack / レイヤー / IPC / state / schema / 設計判断)
+- [`docs/l2_foundation/screens/`](docs/l2_foundation/screens/) — 画面別機能カタログ (palette / library / workspace / settings / onboarding)
 - [`docs/lessons.md`](docs/lessons.md) — 過去の落とし穴と教訓
 
 ## アーキテクチャ
@@ -89,7 +90,7 @@ pwsh scripts/sign-windows.ps1
 
 ## サポート / バグ報告
 
-- 報告 / 質問: [docs/l1_requirements/distribution/support.md](docs/l1_requirements/distribution/support.md) — GitHub Issues / Discussions の経路、log file の場所、SmartScreen 警告の対処を記載
+- 報告 / 質問: [docs/support.md](docs/support.md) — GitHub Issues / Discussions の経路、log file の場所、SmartScreen 警告の対処を記載
 - Changelog: [CHANGELOG.md](CHANGELOG.md) — release ごとの差分 (Keep a Changelog 形式)
 - 既知 issue: [docs/l3_phases/_archive/library-overhaul/](docs/l3_phases/_archive/library-overhaul/) + [docs/lessons.md](docs/lessons.md)
 

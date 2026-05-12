@@ -1,0 +1,191 @@
+# Arcagate — Motivation (L0)
+
+L0 = 「**なぜ・どうしてやりたいか**」を集約する開発者要求 layer。ID 無し、 開発が進むと変わらない stable layer。
+
+---
+
+## (a) なぜ作るか
+
+PC 上に散在する起動元 (Steam / DMM ゲーム / ブラウザゲーム / 各種ランチャー / 開発ツール / PowerShell スクリプト / URL ...) を 1 箇所に集約し、 「**ホットキーから 2 秒以内に何でも起動できる**」 状態を作る。
+
+毎日の起動コストが下がる事自体が価値。 既存のランチャー代替ツール (Raycast / Flow Launcher / Listary / Playnite) はゲーム特化か開発ツール特化のどちらかで、 両方を同一モデルで扱えるツールが存在しない。 Arcagate は `.exe / URL / フォルダ / スクリプト / コマンド` を全て **同一アイテムモデル**で扱う。
+
+---
+
+## (b) 何を作りたいか
+
+「**よく磨かれた工具**」 のような毎日使う個人ランチャー。 精密で信頼でき、 冷たくはなく、 使うほど手に馴染む。
+
+### 機能の核
+
+| 機能          | 内容                                                                            |
+| ------------- | ------------------------------------------------------------------------------- |
+| **Palette**   | Ctrl+Shift+Space で呼び出し、 名前で fuzzy 検索 → Enter で起動。 最速経路       |
+| **Library**   | 全アイテムを統一カード UI で管理。 D&D で即登録、 タグで分類、 起動頻度ソート   |
+| **Workspace** | widget を自由配置するホーム画面。 シナリオ別ページ (Gaming / Dev など) を作れる |
+| **Tray 常駐** | バックグラウンドで動作、 どの画面からでも呼び出し可                             |
+
+### 哲学
+
+- 「**毎日使えるか？**」 で全機能を判断、 微妙なら削る
+- **設定変えたら即見た目が変わる** — 遅延反映は欠陥
+- アニメーションは「動き始めと終わりが緩やかにつながる」 中割スタイル (日本のリミテッドアニメーション easing)、 100ms 以内に視覚反応開始
+- 操作が確実に動く + 操作結果が見える、 この 2 点が最優先。 装飾は後
+
+---
+
+## (c) 誰のため
+
+**自分自身 (開発者)**。 ゲームも開発ツールも日常的に多数使い分けており、 起動までの手数を最小化したい。 キーボード操作を好む。
+
+- ゲーム: Steam / DMM / 同人 RPG / DLsite 等の多数ライブラリを横断
+- 開発: Blender 複数バージョン / VS Code / Claude Code / 各種 CLI / PowerShell スクリプト
+- メモ / クリップボード履歴 / monitored フォルダの可視化を 1 画面に統合したい
+
+将来的に配布・販売の選択肢は開いておく (GitHub public)、 ただし 1 人ユーザーの daily-use を磨き続ける事が最優先。
+
+---
+
+## (d) やらないこと (Non-goals)
+
+- **クラウド同期** — ローカル完結が原則、 1 PC daily-use にフォーカス
+- **Linux / macOS ネイティブ対応** — クロスプラットフォームは設計上意識するが対応しない
+- **ターミナルエミュレータ統合** — スコープ外
+- **ファイルマネージャー / セマンティック検索** — Explorer / Listary が既に解決
+- **コンテキストメニュー統合 (Shell Extension)** — メンテ負担に見合わない
+- **マルチユーザー / 権限管理** — 単独 user 前提
+- **ORM 導入** (diesel / sqlx / sea-orm 等) — rusqlite + 生 SQL を維持
+
+---
+
+## (e) 成功条件
+
+「配布水準を常に狙う」 を品質バーとし、 以下を全達成した状態を成功とする。
+
+### 性能 (numeric pass criteria)
+
+| 指標             | 目標      |
+| ---------------- | --------- |
+| 起動 P95         | ≤ 2,500ms |
+| Palette 表示 P95 | ≤ 120ms   |
+| アイテム起動 P95 | ≤ 200ms   |
+| Idle メモリ      | ≤ 120MB   |
+| Idle CPU         | ≤ 1%      |
+| exe 単体サイズ   | ≤ 20MB    |
+
+### 機能完成度
+
+- 全 widget (現在 14 種) が daily-use に耐える
+- D&D 経由のアイテム登録が全 type (exe / url / folder / script / image / text) でスムーズ
+- Library / Workspace / Palette / Settings の 4 画面が UI 一貫性を持つ
+- セットアップウィザード完走で「即使える」 状態に到達
+
+### 安定性
+
+- 通常使用で crash 無し (1 週間以上連続稼働)
+- DB 不整合 / 起動失敗 / 設定吹き飛び 無し
+- マイグレーション失敗 0 件 (rusqlite_migration が forward-only)
+
+### 主観
+
+- 「**毎日開きたい**」 と思える出来 (CLAUDE.md `daily-use-test` rule)
+- 操作後 100ms 以内に視覚反応がある (CLAUDE.md `instant-feedback` rule)
+- 「治った」 判定は **user dev 検収** で確定 (CLAUDE.md `dom-not-fixed` rule)
+
+---
+
+## (f) 制約
+
+### 動作環境
+
+- **OS**: Windows x86-64 優先 (x64 onlyと割り切り)
+- **WebView2**: Edge ベース (Tauri v2 が前提)
+- **配布**: 単体 exe (インストーラ無し)
+
+### 技術スタック (固定枠、 変えない判断)
+
+- **Tauri v2** + **SvelteKit static adapter** + **Svelte 5 runes** + **Tailwind v4** + **shadcn-svelte**
+- **Rust** stable + **rusqlite** (`bundled`) + **rusqlite_migration**
+- **SQLite** + WAL + UUID v7
+- レイヤー: `commands → services → repositories → DB` (逆禁止)
+- Service Layer が全 IPC エントリーポイントの共通経路、 Repository を直呼び禁止
+- `AppError` は `{ code, message }` Serialize 構造体でフロントへ
+- ORM 不使用 (rusqlite + 生 SQL)
+
+### 運用
+
+- ゼロコスト運用 (OSS / 無料 service のみ、 配布前提になるなら code signing 等は別途検討)
+- main 直 push OK、 PR は大きな変更単位で任意
+- pre-commit lefthook + GitHub CI で品質ゲート
+- 「実機目視なしで完了報告」 禁止
+
+---
+
+## (g) 想定する利用形態
+
+### 起動経路
+
+| 経路                              | 用途                                         |
+| --------------------------------- | -------------------------------------------- |
+| **ホットキー (Ctrl+Shift+Space)** | 最速経路、 任意の画面から palette を呼び出し |
+| **Tray クリック**                 | 元から bg 常駐、 メインウィンドウを前面に    |
+| **Workspace widget click**        | 配置済 widget からの 1 click 起動            |
+| **Library card double-click**     | カード一覧から起動                           |
+
+### 画面遷移
+
+```
+Tray / Hotkey ─→ Palette (検索 → Enter) ─┐
+                                          │
+Main Window ─→ Workspace (widget click) ─┼─→ アイテム起動
+              ─→ Library (card click)   ─┘
+              ─→ Settings (config 編集)
+```
+
+### 典型シナリオ
+
+- **ゲーム起動**: Ctrl+Shift+Space → ゲーム名 一部入力 → Enter
+- **Blender 切替**: `blen4` 入力 → Enter
+- **Claude Code 起動**: `claude` 入力 → Enter
+- **シナリオ別 launcher pad**: Gaming workspace タブで Steam / 同人 widget が見える、 Dev workspace タブで VS Code / Blender / git project widget が見える
+- **クリップボード履歴呼び出し**: ClipboardHistory widget からの 1 click paste
+- **監視フォルダ visualize**: ExeFolder widget が `D:\Games\` のサブフォルダを exe 候補付きで列挙
+
+---
+
+## (h) 失敗パターン (Anti-goals / 避けたいこと)
+
+### 設計失敗
+
+- **過度にゲームっぽい** — 制作者向けツールなのでプレイヤー UI にしない
+- **過度にミニマル** — 何もできなさそうに見える、 機能発見が困難
+- **過度に派手** — 毎日使うには疲れる、 常時パーティクル / 雨粒 / スキャンライン 禁止
+- **常時 BGM / 環境音** — デスクトップツールに不要
+- **複雑な permission / 権限管理** — 1 user 想定なので無駄
+
+### 実装失敗
+
+- 「**DOM 存在 = 治った**」 判定 (CLAUDE.md `dom-not-fixed` 違反)
+- 「**pnpm verify pass = 治った**」 判定 (lessons.md 系)
+- **1 file 直して終わり** で横展開漏れ (CLAUDE.md `lateral-sweep` 違反、 2026-05-13 EXE folder cascade 事例)
+- **user に dev 起動 / dump / screenshot 依頼** (CLAUDE.md `agent-self-complete` 違反)
+- **color hardcode** (`#ffe600` / `rgba(...)` / `bg-yellow-500` 等)、 必ず `var(--ag-*)` token 経由
+- **status: done な L1/L2 doc を書き換え** (history mutation 禁止)
+- **`--no-verify` で hook bypass**
+
+### Product Direction 失敗
+
+- **Industrial Yellow direction** (撤回済 2026-05-07): 配布水準にそぐわず、 daily-use で疲れる
+- **「念のため」 機能の積上げ**: 「微妙なら削る」 哲学に反する
+- **「将来対応」 marker UI**: 動かない select option を残すと user 混乱
+- **scope creep**: 1 PR が肥大化、 「規模超え → 別 PR」 判断を怠ると merge 困難
+
+---
+
+## 関連 doc
+
+- 全体アーキテクチャ / 技術設計 → [`l2_foundation/foundation.md`](l2_foundation/foundation.md)
+- 画面別機能カタログ → [`l2_foundation/screens/`](l2_foundation/screens/)
+- テストシナリオ ⇄ 実装 mapping → [`l2_foundation/test_scenarios.md`](l2_foundation/test_scenarios.md)
+- 失敗駆動メモリ → [`lessons.md`](lessons.md)
+- 過去の実装 plan (アーカイブ済) → [`l3_phases/_archive/`](l3_phases/_archive/)
