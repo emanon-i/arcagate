@@ -80,11 +80,11 @@ let showDisk = $derived(config.show_disk ?? false);
 let showNetwork = $derived(config.show_network ?? false);
 // 4/30 user 検収: per-metric chart_type。各 metric は metric 専用 config が無ければ
 // 旧 `chart_type` (legacy 共通) → 既定値の順に fallback。後方互換 + 新 settings UI。
-let cpuChartType = $derived<ChartType>(config.cpu_chart_type ?? config.chart_type ?? 'sparkline');
-let memChartType = $derived<ChartType>(
-	config.memory_chart_type ?? config.chart_type ?? 'sparkline',
-);
-let diskChartType = $derived<ChartType>(config.disk_chart_type ?? config.chart_type ?? 'gauge');
+// audit batch deferred (2026-05-13) #6: default を bar + value 表示に統一 (CPU / Memory / Disk)。
+// network は rate 値が直感的に把握しやすい sparkline default を維持。
+let cpuChartType = $derived<ChartType>(config.cpu_chart_type ?? config.chart_type ?? 'bar');
+let memChartType = $derived<ChartType>(config.memory_chart_type ?? config.chart_type ?? 'bar');
+let diskChartType = $derived<ChartType>(config.disk_chart_type ?? config.chart_type ?? 'bar');
 let networkChartType = $derived<ChartType>(
 	config.network_chart_type ?? config.chart_type ?? 'sparkline',
 );
@@ -365,45 +365,55 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			{#if showDisk && disks.length > 0}
 				<div class="space-y-1 border-t border-[var(--ag-border)] pt-1">
 					<span class="text-[var(--ag-text-muted)]">ディスク</span>
-					{#each disks as d (d.mount)}
-						{@const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0}
-						{@const diskColor = pctColorVar(pct)}
-						<div class="space-y-0.5">
-							<!-- audit batch (2026-05-13) #5.4: 使用容量 / 全容量 を mount 名 と % の中間に表示。
-							     mount + " 使用 GB / 全 GB" + % の 3 段でディスク内容が一目瞭然。 -->
-							<div class="flex items-baseline justify-between gap-2">
-								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</span>
-								<span class="shrink-0 tabular-nums text-xs text-[var(--ag-text-muted)]">{formatBytes(d.usedBytes)} / {formatBytes(d.totalBytes)}</span>
-								<span class="shrink-0 tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</span>
-							</div>
-							<!-- 4/30 user 検収: ディスクも独立 chart_type -->
-							{#if diskChartType === 'sparkline'}
-								<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
-									<path d={diskSparklinePath(d.mount)} fill="none" stroke={diskColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
-								</svg>
-							{:else if diskChartType === 'gauge'}
-								<div class="flex items-center justify-center">
+					<!-- audit batch deferred (2026-05-13) #3: gauge mode は responsive grid で
+					     コンパクト 横並び / 折返し。 sparkline / bar は従来通り縦 stack (横幅必要)。 -->
+					{#if diskChartType === 'gauge'}
+						<div class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));">
+							{#each disks as d (d.mount)}
+								{@const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0}
+								{@const diskColor = pctColorVar(pct)}
+								<div class="flex flex-col items-center gap-1 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-1.5">
 									<svg viewBox="0 0 48 48" class="h-10 w-10" aria-hidden="true">
 										<path d={gaugePath(100)} fill="none" stroke="var(--ag-surface-3)" stroke-width="3" stroke-linecap="round" />
 										<path d={gaugePath(pct)} fill="none" stroke={diskColor} stroke-width="3" stroke-linecap="round" />
 									</svg>
+									<div class="w-full truncate text-center text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</div>
+									<div class="tabular-nums text-xs text-[var(--ag-text-muted)]">{formatBytes(d.usedBytes)} / {formatBytes(d.totalBytes)}</div>
+									<div class="tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</div>
 								</div>
-							{:else}
-								<div
-									class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
-									role="progressbar"
-									aria-valuenow={pct}
-									aria-valuemin="0"
-									aria-valuemax="100"
-								>
-									<div
-										class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
-										style="width: {pct.toFixed(1)}%; background-color: {diskColor};"
-									></div>
-								</div>
-							{/if}
+							{/each}
 						</div>
-					{/each}
+					{:else}
+						{#each disks as d (d.mount)}
+							{@const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0}
+							{@const diskColor = pctColorVar(pct)}
+							<div class="space-y-0.5">
+								<div class="flex items-baseline justify-between gap-2">
+									<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</span>
+									<span class="shrink-0 tabular-nums text-xs text-[var(--ag-text-muted)]">{formatBytes(d.usedBytes)} / {formatBytes(d.totalBytes)}</span>
+									<span class="shrink-0 tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</span>
+								</div>
+								{#if diskChartType === 'sparkline'}
+									<svg viewBox="0 0 100 20" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
+										<path d={diskSparklinePath(d.mount)} fill="none" stroke={diskColor} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+									</svg>
+								{:else}
+									<div
+										class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]"
+										role="progressbar"
+										aria-valuenow={pct}
+										aria-valuemin="0"
+										aria-valuemax="100"
+									>
+										<div
+											class="h-full rounded-full transition-[width,background-color] duration-[var(--ag-duration-normal)] motion-reduce:transition-none"
+											style="width: {pct.toFixed(1)}%; background-color: {diskColor};"
+										></div>
+									</div>
+								{/if}
+							</div>
+						{/each}
+					{/if}
 				</div>
 			{/if}
 			<!-- PH-issue-042 / 検収項目 #27 + 4/30 user 検収: ネットワークも独立 chart_type で
