@@ -1,6 +1,5 @@
 <script lang="ts">
-import { Search, X as XIcon } from '@lucide/svelte';
-import Chip from '$lib/components/arcagate/common/Chip.svelte';
+import { Globe, Search, X as XIcon } from '@lucide/svelte';
 
 interface Props {
 	query?: string;
@@ -48,5 +47,13 @@ function handleInput(e: Event) {
 		{/if}
 	</div>
 
-	<Chip tone="accent">Arcagate 全体を検索</Chip>
+	<!-- audit batch (2026-05-13) #10: 「Arcagate 全体を検索」 Chip text を icon のみに縮小。
+	     accessible label は title + aria-label で保持、 narrow palette でも overflow しない。 -->
+	<div
+		class="flex shrink-0 items-center justify-center rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)]/60 p-2 text-[var(--ag-accent-text)]"
+		title="Arcagate 全体を検索"
+		aria-label="Arcagate 全体を検索"
+	>
+		<Globe class="h-4 w-4" />
+	</div>
 </div>
