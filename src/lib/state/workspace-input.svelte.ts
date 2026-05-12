@@ -135,10 +135,17 @@ export function useWorkspaceInput(opts: InputOpts) {
 		const el = target as HTMLElement | null;
 		if (!el) return false;
 		// widget-shell or any descendant が click target なら widget 上 (= box select 開始しない)
-		// image-widget-critical fix (2026-05-13): [role="dialog"] を追加して、 widget の
-		// sibling として render される modal (WidgetSettingsDialog 等) の click が box-select
-		// に奪われる bug を防止。 PR #443 (#12 Box-select) の regression fix。
-		return !!el.closest('.widget-shell, [data-widget-handle], [role="menu"], [role="dialog"]');
+		// image-widget-critical fix (2026-05-13):
+		// - [role="dialog"]: WidgetSettingsDialog 等 modal の click が box-select に奪われる bug 防止
+		// - [data-widget-id]: widget root marker。 × close button / 8 方向 resize handle / drag grip
+		//   は WidgetShell 内 ではなく widget root の sibling として render される (WidgetHandles
+		//   が WidgetShell と並列、 WorkspaceWidgetGrid:240 参照)。 [data-widget-id] は widget root
+		//   div の canonical marker (PR #443 で追加) で widget 領域全体を包含。 .widget-shell 単独
+		//   selector では handle / button の click を canvas が steal する regression を起こすため
+		//   必須。 (user 報告: 「ウィジット閉じるボタンで閉じない」)
+		return !!el.closest(
+			'[data-widget-id], .widget-shell, [data-widget-handle], [role="menu"], [role="dialog"]',
+		);
 	}
 
 	function viewportToContainerCoords(e: PointerEvent, container: HTMLDivElement) {
