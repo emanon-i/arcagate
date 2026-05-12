@@ -42,7 +42,9 @@ $effect(() => {
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
-<WidgetShell title={displayName} icon={ImageIcon} {menuItems}>
+<!-- Fix A (2026-05-12): config.path を WidgetShell に渡し、 body 右クリック menu で
+     「パスをコピー / Explorer で開く」 を有効化。 Library item 不在でも widget 内 path から取れる。 -->
+<WidgetShell title={displayName} icon={ImageIcon} {menuItems} path={config.path}>
 	{#if !config.path}
 		<EmptyState
 			icon={ImageIcon}
