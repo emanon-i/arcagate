@@ -281,7 +281,9 @@ async function launchEntry(entry: ExeFolderEntry) {
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
-<WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems}>
+<!-- Lateral sweep (2026-05-12): config.watch_path を WidgetShell に渡し、 widget body 右クリック menu
+     で「監視 folder のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。 -->
+<WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems} path={config.watch_path}>
 	<!-- B-7 #9: Settings の description は info icon + hover tooltip に。inline 表示で
 	     widget 領域を圧迫していた問題への root-cause 対応。 -->
 	{#if config.description}

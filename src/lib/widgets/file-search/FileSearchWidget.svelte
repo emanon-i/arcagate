@@ -186,7 +186,9 @@ async function pickRoot() {
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
-<WidgetShell title={config.title || 'ファイル検索'} icon={FileSearch} {menuItems}>
+<!-- Lateral sweep (2026-05-12): root path を WidgetShell に渡し、 body 右クリック menu で
+     「検索 root のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。 -->
+<WidgetShell title={config.title || 'ファイル検索'} icon={FileSearch} {menuItems} path={root}>
 	{#if !root}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
 		<EmptyState
