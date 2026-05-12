@@ -158,7 +158,8 @@ memory (永続) は `C:\Users\gonda\.claude\projects\E--Cella-Projects-arcagate\
 
 ### L1 (要件)
 
-- 現在 gen-l1 待ち、 `docs/l1_requirements/README.md` のみ (placeholder)
+- [`docs/l1_requirements/vision.md`](docs/l1_requirements/vision.md) — 機能要求一覧 (REQ-NNNN) + 非機能要件 + 制約 + Release 判定基準 + UX 標準 + Design System tokens (旧 vision / release-criteria / ux-standards / design-system 4 file の統合)
+- [`docs/l1_requirements/operations.md`](docs/l1_requirements/operations.md) — Dispatch rules + Release process (rollback / pubkey / cosign) + User-facing support + Widget addition checklist (旧 distribution/ 6 file + widget-add-checklist の統合)
 
 ### L2 (基本設計)
 

@@ -69,7 +69,7 @@
 
 ### 再発防止
 
-`docs/l1_requirements/distribution/dispatch-rules.md §11 user-redo depth-first` 必読。
+`docs/l1_requirements/operations.md §11 user-redo depth-first` 必読。
 1 issue 完了 → user 検収 → 次 issue。speed より確実性。
 
 ---
