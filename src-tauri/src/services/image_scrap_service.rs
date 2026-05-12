@@ -42,7 +42,10 @@ pub fn save_image_scrap(app_data_dir: &Path, source_path: &str) -> Result<String
     let dest_name = format!("{}.{}", Uuid::now_v7(), ext);
     let dest_path = dir.join(&dest_name);
     fs::copy(source, &dest_path)?;
-    Ok(dest_path.to_string_lossy().into_owned())
+    // audit batch (2026-05-13) #1.1: Tauri v2 asset:// protocol が
+    // Windows backslash path で intermittent に load 失敗するケース対策、
+    // forward slash に正規化して返す (Tauri は両 separator を受け入れ)。
+    Ok(dest_path.to_string_lossy().into_owned().replace('\\', "/"))
 }
 
 #[cfg(test)]
