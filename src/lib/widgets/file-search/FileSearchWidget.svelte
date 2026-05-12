@@ -55,6 +55,9 @@ let lastError = $state<string | null>(null);
 let currentSearchId = $state<string | null>(null);
 // PH-issue-018: keyboard nav state. ArrowUp/Down で動かし、Enter で起動。
 let selectedIndex = $state(0);
+// audit batch (2026-05-13) #3.2: 非アクティブ時に選択 ring が残る bug 対策。
+// search input focus 中のみ selection を可視化する。
+let searchActive = $state(false);
 
 function newSearchId(): string {
 	// crypto.randomUUID は Tauri webview で利用可能 (Chromium 92+)
@@ -214,6 +217,8 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					autocomplete="off"
 					bind:value={query}
 					onkeydown={handleSearchKeydown}
+					onfocus={() => (searchActive = true)}
+					onblur={() => (searchActive = false)}
 				/>
 			</div>
 		</div>
@@ -242,10 +247,13 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				{#each filtered as entry, idx (entry.path)}
 					{@const isSelected = idx === selectedIndex}
 					<li>
+						<!-- audit batch (2026-05-13) #3.1: ring-1 が widget content の overflow-x-hidden で
+						     左端 1px 切られる問題対策で ring-inset に変更。 #3.2: searchActive=false 時
+						     selection ring を非表示 (非アクティブ時状態残り回避)。 -->
 						<button
 							type="button"
-							class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {isSelected
-								? 'bg-[var(--ag-surface-3)] ring-1 ring-[var(--ag-accent)]'
+							class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {isSelected && searchActive
+								? 'bg-[var(--ag-surface-3)] ring-1 ring-inset ring-[var(--ag-accent)]'
 								: ''}"
 							aria-label="{entry.name} を開く"
 							aria-selected={isSelected}
