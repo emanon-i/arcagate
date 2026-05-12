@@ -96,6 +96,27 @@ const DEFAULT_GRID_COLS = 4;
 // findFreePosition / addWidgetAt の row bound check は y + h <= DEFAULT_MAX_ROW + 1 (= 129)。
 const DEFAULT_MAX_ROW = 128;
 
+/**
+ * audit batch deferred (2026-05-13) #1+#2: 既存 widget 群の bounding box 中心を seed cell として返す。
+ * D&D / sidebar add で nearCell が無い時、 (0,0) から逐次 scan すると既存 cluster から
+ * 離れた所に置かれる risk が高い。 既存 widget の BB 中心近傍を seed にすることで
+ * 「画面外配置 + fit-to-content でも救えない」 状態を回避。
+ */
+function computeClusterAnchor(rects: Rect[]): { x: number; y: number } | null {
+	if (rects.length === 0) return null;
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	for (const r of rects) {
+		if (r.x < minX) minX = r.x;
+		if (r.y < minY) minY = r.y;
+		if (r.x + r.w > maxX) maxX = r.x + r.w;
+		if (r.y + r.h > maxY) maxY = r.y + r.h;
+	}
+	return { x: Math.floor((minX + maxX) / 2), y: Math.floor((minY + maxY) / 2) };
+}
+
 function widgetsToRects(list: WorkspaceWidget[], excludeId?: string): Rect[] {
 	return list
 		.filter((w) => (excludeId ? w.id !== excludeId : true))
@@ -159,8 +180,13 @@ class WorkspaceWidgets {
 			// 引数未指定時のみ DEFAULT_GRID_COLS にフォールバック。負/0 は最低 1 で sanity guard。
 			const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
 			const rects = widgetsToRects(this.widgets);
-			const pos = nearCell
-				? findFreePositionNear(nearCell.x, nearCell.y, w, h, rects, effectiveCols, DEFAULT_MAX_ROW)
+			// audit batch deferred (2026-05-13) #1+#2 + #13: nearCell 無し時、 (0,0) ではなく
+			// 既存 widget BB 中心近傍に置く。 D&D / sidebar add で「とんでもなく離れて配置」
+			// → 「fit-to-content でも viewport range 外」 という症状の root cause fix。
+			// 既存 widget 無しなら (0,0)、 既存有りなら中心の最寄り cell から spiral 探索。
+			const seedCell = nearCell ?? computeClusterAnchor(rects);
+			const pos = seedCell
+				? findFreePositionNear(seedCell.x, seedCell.y, w, h, rects, effectiveCols, DEFAULT_MAX_ROW)
 				: findFreePosition(w, h, rects, effectiveCols, DEFAULT_MAX_ROW);
 			if (pos === null) {
 				toastStore.add(
