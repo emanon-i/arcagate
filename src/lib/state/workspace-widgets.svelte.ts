@@ -81,10 +81,14 @@ async function cascadeRemoveWatchedPath(
 
 /**
  * 検収 #7: widget タイプごとの推奨デフォルトサイズを registry から取得する helper。
- * registry の `defaultSize` が無い場合は (2, 2) にフォールバック。
+ * image-widget-critical fix (2026-05-13): 初回配置は minViableSize (表記が崩れない最小、
+ * PR #443 で field 追加済) を優先、 user 期待 「初回小さく、 必要時 resize 拡大」 に従う。
+ * minViableSize 未指定の widget は defaultSize、 さらに無ければ (2, 2) フォールバック。
+ * (user 報告: file-preview の D&D 初回サイズでかすぎ — defaultSize=4×5 → minViableSize=3×3 に)
  */
 function defaultSizeFor(type: WidgetType): { w: number; h: number } {
-	return widgetRegistry[type]?.defaultSize ?? { w: 2, h: 2 };
+	const meta = widgetRegistry[type];
+	return meta?.minViableSize ?? meta?.defaultSize ?? { w: 2, h: 2 };
 }
 
 /**
