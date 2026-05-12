@@ -18,6 +18,7 @@ export const meta: WidgetMeta = {
 	label: '画像',
 	defaultConfig: { path: '' },
 	defaultSize: { w: 3, h: 3 },
+	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'memo',
 	categoryOrder: 4,

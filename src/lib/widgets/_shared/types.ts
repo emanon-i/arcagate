@@ -25,6 +25,14 @@ export interface WidgetMeta {
 	 * クリック追加時に widget が極小 (1x1 等) で出るのを防ぐ。
 	 */
 	defaultSize?: { w: number; h: number };
+	/**
+	 * audit batch deferred (2026-05-13) #9: 表記崩れない最小サイズ。
+	 * widget header (icon + title + menu button) + body の必須要素が overlap せず
+	 * 描画できる最小 cell 数。 ユーザが resize で縮める時の lower bound として使う。
+	 * 未指定時は (2, 2) — 「とりあえず読める」 最小、 defaultSize から計算しない方針。
+	 * 将来的に minViableSize を全 widget に設定したら defaultSize の代替として使う。
+	 */
+	minViableSize?: { w: number; h: number };
 	/** 編集モード Sidebar palette に表示するか（false なら API でのみ追加可能） */
 	addable: boolean;
 	/**

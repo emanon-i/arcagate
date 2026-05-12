@@ -12,6 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: {},
 	// J-2 (2026-05-12): snippet list 縦長で 10 件視認。
 	defaultSize: { w: 3, h: 5 },
+	minViableSize: { w: 2, h: 3 },
 	addable: true,
 	category: 'memo',
 	categoryOrder: 3,

@@ -12,6 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: { depth: 2, limit: 200 },
 	// J-2 (2026-05-12): 検索結果 list を多めに表示できる縦長サイズ。
 	defaultSize: { w: 3, h: 5 },
+	minViableSize: { w: 2, h: 4 },
 	addable: true,
 	category: 'tool',
 	categoryOrder: 2,
