@@ -19,6 +19,7 @@ export const meta: WidgetMeta = {
 	label: 'ファイルプレビュー',
 	defaultConfig: { path: '' },
 	defaultSize: { w: 4, h: 5 },
+	minViableSize: { w: 3, h: 3 },
 	addable: true,
 	category: 'memo',
 	categoryOrder: 5,

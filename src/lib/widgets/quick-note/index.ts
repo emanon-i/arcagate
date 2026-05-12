@@ -12,6 +12,7 @@ export const meta: WidgetMeta = {
 	defaultConfig: { font_size: 'md' },
 	// J-2 (2026-05-12): textarea は記述スペースを取りたい、4:5 で書きやすい広さ。
 	defaultSize: { w: 4, h: 5 },
+	minViableSize: { w: 2, h: 3 },
 	addable: true,
 	category: 'memo',
 	categoryOrder: 1,

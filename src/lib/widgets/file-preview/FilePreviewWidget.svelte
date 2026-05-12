@@ -1,6 +1,7 @@
 <script lang="ts">
 import { FileText, RefreshCw, Settings } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
+import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
@@ -155,7 +156,7 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 			{#if preview.frontmatter}
 				<div>
 					<div class="mb-1 text-xs font-medium text-[var(--ag-text-secondary)]">フロントマター</div>
-					<pre class="select-text whitespace-pre-wrap break-all rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
+					<pre class="select-text whitespace-pre-wrap break-all rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 font-mono text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
 				</div>
 			{/if}
 
@@ -164,20 +165,23 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 			     「読み取り専用」 badge を header に追加 (編集できそうな見た目を回避)。
 			     #2.8: select-text class でテキスト選択を明示許可 (一部 OS で pre が user-select:none) -->
 			<div>
+				<!-- audit batch deferred (2026-05-13) #5: inline badge span を Chip 共通 component に。
+				     image-scrap / Library detail header と同 design tokens で見た目統一。 -->
 				<div class="mb-1 flex items-center gap-2 text-xs font-medium text-[var(--ag-text-secondary)]">
 					<span>内容</span>
-					<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">読み取り専用</span>
+					<Chip tone="default">読み取り専用</Chip>
 					{#if preview.truncated}
-						<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">先頭 256KB のみ</span>
+						<Chip tone="warm">先頭 256KB のみ</Chip>
 					{/if}
 					{#if preview.isBinary}
-						<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">バイナリ</span>
+						<Chip tone="default">バイナリ</Chip>
 					{/if}
 				</div>
 				{#if preview.isBinary}
 					<p class="text-xs text-[var(--ag-text-muted)]">バイナリファイルのため表示できません。</p>
 				{:else}
-					<pre class="select-text whitespace-pre-wrap break-words rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
+					<!-- audit batch deferred (2026-05-13) #10: 本文は font-content (serif 系) で読み物としての可読性を上げる。 -->
+					<pre class="select-text whitespace-pre-wrap break-words rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1.5 font-content text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
 				{/if}
 			</div>
 		</div>

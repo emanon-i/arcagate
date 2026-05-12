@@ -9,8 +9,10 @@ interface Props {
 let { variant }: Props = $props();
 </script>
 
+<!-- audit batch deferred (2026-05-13) #4: 3-col grid を narrow palette で見切れる問題対策で
+     auto-fit responsive grid に。 各 chip が説明 text を maintain しつつ折返しで対応。 -->
 {#if variant === "chips"}
-	<div class="grid grid-cols-3 gap-2 pt-3 text-xs text-[var(--ag-text-muted)]">
+	<div class="grid gap-2 pt-3 text-xs text-[var(--ag-text-muted)]" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
 		<div class="rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2">
 			:dev で開発ツールのみ
 		</div>

@@ -81,6 +81,22 @@ export function useWorkspaceInput(opts: InputOpts) {
 				opts.zoom.resetZoom();
 				return;
 			}
+			// audit batch deferred (2026-05-13) #12: Ctrl+A で active workspace の全 widget 選択。
+			// modal 開いてる時 / input フォーカス中は無視。
+			if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+				if (opts.isModalOpen()) return;
+				const target = e.target as HTMLElement | null;
+				if (
+					target?.tagName === 'INPUT' ||
+					target?.tagName === 'TEXTAREA' ||
+					target?.isContentEditable
+				) {
+					return;
+				}
+				e.preventDefault();
+				workspaceSelection.setMany(workspaceStore.widgets.map((w) => w.id));
+				return;
+			}
 			if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === '!' || e.key === '1')) {
 				e.preventDefault();
 				// U-8 (2026-05-12): 選択中 widget があれば選択範囲を fit、無ければ全 widget。
@@ -109,36 +125,118 @@ export function useWorkspaceInput(opts: InputOpts) {
 		return () => window.removeEventListener('keydown', onKeyDown);
 	});
 
+	// audit batch deferred (2026-05-13) #12 part 2: Box (rubber-band) 選択。
+	// 左 click + empty canvas → drag で rect overlay 描画 → release で intersect widgets を selectMany。
+	let boxActive = $state(false);
+	let boxStart = $state({ x: 0, y: 0 });
+	let boxCurrent = $state({ x: 0, y: 0 });
+
+	function isOnWidget(target: EventTarget | null): boolean {
+		const el = target as HTMLElement | null;
+		if (!el) return false;
+		// widget-shell or any descendant が click target なら widget 上 (= box select 開始しない)
+		return !!el.closest('.widget-shell, [data-widget-handle], [role="menu"]');
+	}
+
+	function viewportToContainerCoords(e: PointerEvent, container: HTMLDivElement) {
+		const rect = container.getBoundingClientRect();
+		return {
+			x: e.clientX - rect.left + container.scrollLeft,
+			y: e.clientY - rect.top + container.scrollTop,
+		};
+	}
+
 	return {
+		boxSelectState: {
+			get active() {
+				return boxActive;
+			},
+			get rect() {
+				const left = Math.min(boxStart.x, boxCurrent.x);
+				const top = Math.min(boxStart.y, boxCurrent.y);
+				const width = Math.abs(boxCurrent.x - boxStart.x);
+				const height = Math.abs(boxCurrent.y - boxStart.y);
+				return { left, top, width, height };
+			},
+		},
 		onPointerDown(e: PointerEvent) {
 			const container = opts.getContainer();
 			if (!container) return;
 			const isMiddle = e.button === 1;
 			const isSpaceLeft = e.button === 0 && panSpacePressed;
-			if (!isMiddle && !isSpaceLeft) return;
-			e.preventDefault();
-			panActive = true;
-			panStart = {
-				x: e.clientX,
-				y: e.clientY,
-				scrollLeft: container.scrollLeft,
-				scrollTop: container.scrollTop,
-			};
-			container.setPointerCapture(e.pointerId);
-			container.style.cursor = 'grabbing';
+			if (isMiddle || isSpaceLeft) {
+				e.preventDefault();
+				panActive = true;
+				panStart = {
+					x: e.clientX,
+					y: e.clientY,
+					scrollLeft: container.scrollLeft,
+					scrollTop: container.scrollTop,
+				};
+				container.setPointerCapture(e.pointerId);
+				container.style.cursor = 'grabbing';
+				return;
+			}
+			// 左 click + widget 上でない → box select 開始
+			if (e.button === 0 && !isOnWidget(e.target)) {
+				const p = viewportToContainerCoords(e, container);
+				boxStart = { x: p.x, y: p.y };
+				boxCurrent = { x: p.x, y: p.y };
+				boxActive = true;
+				container.setPointerCapture(e.pointerId);
+			}
 		},
 		onPointerMove(e: PointerEvent) {
 			const container = opts.getContainer();
-			if (!panActive || !container) return;
-			container.scrollLeft = panStart.scrollLeft - (e.clientX - panStart.x);
-			container.scrollTop = panStart.scrollTop - (e.clientY - panStart.y);
+			if (!container) return;
+			if (panActive) {
+				container.scrollLeft = panStart.scrollLeft - (e.clientX - panStart.x);
+				container.scrollTop = panStart.scrollTop - (e.clientY - panStart.y);
+				return;
+			}
+			if (boxActive) {
+				const p = viewportToContainerCoords(e, container);
+				boxCurrent = { x: p.x, y: p.y };
+			}
 		},
 		onPointerUp(e: PointerEvent) {
 			const container = opts.getContainer();
-			if (!panActive || !container) return;
-			panActive = false;
-			container.releasePointerCapture(e.pointerId);
-			container.style.cursor = panSpacePressed ? 'grab' : '';
+			if (!container) return;
+			if (panActive) {
+				panActive = false;
+				container.releasePointerCapture(e.pointerId);
+				container.style.cursor = panSpacePressed ? 'grab' : '';
+				return;
+			}
+			if (boxActive) {
+				boxActive = false;
+				container.releasePointerCapture(e.pointerId);
+				// box rect と各 widget の bounding box の overlap を取って selectMany。
+				const left = Math.min(boxStart.x, boxCurrent.x);
+				const top = Math.min(boxStart.y, boxCurrent.y);
+				const right = Math.max(boxStart.x, boxCurrent.x);
+				const bottom = Math.max(boxStart.y, boxCurrent.y);
+				if (right - left < 4 && bottom - top < 4) return; // tap-only は無視
+				const widgetEls = container.querySelectorAll<HTMLElement>('[data-widget-id]');
+				const containerRect = container.getBoundingClientRect();
+				const intersected: string[] = [];
+				for (const el of widgetEls) {
+					const r = el.getBoundingClientRect();
+					const wLeft = r.left - containerRect.left + container.scrollLeft;
+					const wTop = r.top - containerRect.top + container.scrollTop;
+					const wRight = wLeft + r.width;
+					const wBottom = wTop + r.height;
+					if (wLeft < right && wRight > left && wTop < bottom && wBottom > top) {
+						const id = el.dataset.widgetId;
+						if (id) intersected.push(id);
+					}
+				}
+				if (intersected.length > 0) {
+					workspaceSelection.setMany(intersected);
+				} else {
+					workspaceSelection.clear();
+				}
+			}
 		},
 	};
 }
