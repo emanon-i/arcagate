@@ -37,22 +37,22 @@ function handleWidgetContextMenu(ev: MouseEvent): void {
 	workspaceContextMenuStore.openMenuFor({ path, onOpenSettings, ev });
 }
 
+// audit batch (2026-05-13) #11: header 縦幅縮小。 button padding を p-1.5 (6px) → p-1 (4px) に。
 let btnClass =
-	'rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]';
+	'rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]';
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- audit batch (2026-05-13) #11: container p-4 pt-5 → p-3、 mb-3 → mb-1.5、 icon box p-1.5 → p-1 で
+     header 縦幅を ~16px 縮小。 PH-issue-015 の title truncate 構造は維持。 -->
 <div
-	class="widget-shell flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4 pt-5 transition-[box-shadow,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-out)] motion-reduce:transition-none"
+	class="widget-shell flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-3 transition-[box-shadow,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-out)] motion-reduce:transition-none"
 	oncontextmenu={handleWidgetContextMenu}
 >
-	<!-- PH-issue-015: header layout 修正。
-	     icon wrapper に shrink-0 + title div に min-w-0 flex-1 を付与し、
-	     widget が狭くなっても title が icon に被らず truncate される。 -->
-	<div class="mb-3 shrink-0 flex items-center justify-between gap-2">
+	<div class="mb-1.5 shrink-0 flex items-center justify-between gap-2">
 		<div class="flex min-w-0 flex-1 items-center gap-2">
-			<div class="shrink-0 rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1.5">
-				<Icon class="h-4 w-4 text-[var(--ag-text-secondary)]" />
+			<div class="shrink-0 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1">
+				<Icon class="h-3.5 w-3.5 text-[var(--ag-text-secondary)]" />
 			</div>
 			<!-- J-1 (2026-05-12 user 検収): widget title が他 UI と比べ大き過ぎ → text-sm (14px) → text-xs (12px) に縮小。
 			     font-semibold + text-primary は維持 (header 内で識別性は確保)、icon / button は header 全体ではなく title のみ変更。 -->
@@ -62,12 +62,12 @@ let btnClass =
 			{@const sole = menuItems[0]}
 			{@const SoleIcon = sole.icon ?? MoreHorizontal}
 			<button type="button" class={btnClass} aria-label={sole.label} onclick={sole.onclick}>
-				<SoleIcon class="h-4 w-4" />
+				<SoleIcon class="h-3.5 w-3.5" />
 			</button>
 		{:else if menuItems.length > 1}
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger class={btnClass} aria-label="{title} メニュー">
-					<MoreHorizontal class="h-4 w-4" />
+					<MoreHorizontal class="h-3.5 w-3.5" />
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content>
 					{#each menuItems as item}
