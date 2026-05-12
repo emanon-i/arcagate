@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
@@ -81,6 +82,16 @@ function formatDate(secs: number | null): string {
 	return new Date(secs * 1000).toLocaleString('ja');
 }
 
+// audit batch (2026-05-13) #2.6: ダブルクリックで OS default text editor で開く。
+async function handleDblClick(): Promise<void> {
+	if (!config.path) return;
+	try {
+		await invoke('cmd_open_path', { path: config.path });
+	} catch (e) {
+		toastStore.add(`ファイルを開けませんでした: ${String(e)}`, 'error');
+	}
+}
+
 let menuItems = $derived([
 	{
 		label: '再読み込み',
@@ -115,7 +126,13 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 	{:else if error}
 		<p class="text-sm text-[var(--ag-text-error)]">エラー: {error}</p>
 	{:else if preview}
-		<div class="space-y-2 text-xs">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="space-y-2 text-xs"
+			ondblclick={() => void handleDblClick()}
+			title="ダブルクリックで OS の既定アプリで開く"
+		>
 			<!-- メタデータ row。
 			     audit batch (2026-05-13) #2.9: 「更新」 「作成」 timestamp を 1 行にまとめて固定セット化、
 			     widget が狭くても folded されにくく、 視認性安定。 -->
