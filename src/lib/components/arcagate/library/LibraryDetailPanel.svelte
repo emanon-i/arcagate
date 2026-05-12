@@ -135,12 +135,14 @@ async function handleDelete() {
 	} catch {
 		// 参照数取得失敗時は確認 dialog のみ表示 (削除自体は cascade で安全)
 	}
-	const message =
-		refCount > 0
-			? `「${selectedItem.label}」を削除しますか？\n\nこのアイテムは ${refCount} 個のウィジェットで参照されています。削除するとウィジェットからも自動的に取り除かれます。`
-			: `「${selectedItem.label}」を削除しますか？`;
+	// Phase 3 (2026-05-12 user 検収): delete dialog 文言を強化。
+	// 「user タグ / 起動履歴も消える」 を明示、 widget 参照件数 + 関連 tag 数を表示。
+	const userTagCount = itemTags.filter((t) => !t.is_system).length;
+	const widgetLine = refCount > 0 ? `\n• ウィジェット参照: ${refCount} 個` : '';
+	const userTagLine = userTagCount > 0 ? `\n• ユーザータグ紐付け: ${userTagCount} 個` : '';
+	const message = `「${selectedItem.label}」を完全に削除しますか？\n\n以下も一緒に削除されます (元に戻せません):${widgetLine}${userTagLine}\n• 起動履歴 / 起動回数\n• お気に入り / システムタグ紐付け\n\n5 秒以内なら通知から「元に戻す」 で復元可能です。`;
 	const confirmed = await ask(message, {
-		title: '削除の確認',
+		title: '完全削除の確認',
 		kind: 'warning',
 	});
 	if (confirmed) {

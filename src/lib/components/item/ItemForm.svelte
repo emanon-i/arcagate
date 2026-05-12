@@ -1,8 +1,10 @@
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { untrack } from 'svelte';
 import { Button } from '$lib/components/ui/button';
 import { checkIsDirectory, extractItemIcon } from '$lib/ipc/items';
+import { itemStore } from '$lib/state/items.svelte';
 import type { CreateItemInput, Item, ItemType, UpdateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
 import { detectType } from '$lib/utils/detect-type';
@@ -117,7 +119,7 @@ $effect(() => {
 	});
 });
 
-function handleSubmit(e: Event) {
+async function handleSubmit(e: Event) {
 	e.preventDefault();
 	const aliases = aliasesText
 		.split(',')
@@ -142,6 +144,26 @@ function handleSubmit(e: Event) {
 		};
 		onSubmit(input);
 	} else {
+		// Phase 3 (2026-05-12 user 検収): 重複検出。 新規作成時に同 target がすでに Library にあれば
+		// user に確認 dialog を出して ghost duplicate を防ぐ。
+		// (Steam 版 / Epic 版を別 item として持ちたい意図的 case は user yes で続行)
+		const trimmedTarget = target.trim();
+		if (trimmedTarget) {
+			const existing = itemStore.items.find((i) => i.target === trimmedTarget);
+			if (existing) {
+				const confirmed = await ask(
+					`同じパスのアイテム「${existing.label}」 が既に登録されています。\n\n別アイテムとして追加しますか？\n(キャンセルすると既存をそのまま保持します)`,
+					{
+						title: '重複の確認',
+						kind: 'warning',
+					},
+				);
+				if (!confirmed) {
+					onCancel();
+					return;
+				}
+			}
+		}
 		const finalType = typeMode === 'url' ? ('url' as ItemType) : itemType;
 		const input: CreateItemInput = {
 			item_type: finalType,
