@@ -135,7 +135,10 @@ export function useWorkspaceInput(opts: InputOpts) {
 		const el = target as HTMLElement | null;
 		if (!el) return false;
 		// widget-shell or any descendant が click target なら widget 上 (= box select 開始しない)
-		return !!el.closest('.widget-shell, [data-widget-handle], [role="menu"]');
+		// image-widget-critical fix (2026-05-13): [role="dialog"] を追加して、 widget の
+		// sibling として render される modal (WidgetSettingsDialog 等) の click が box-select
+		// に奪われる bug を防止。 PR #443 (#12 Box-select) の regression fix。
+		return !!el.closest('.widget-shell, [data-widget-handle], [role="menu"], [role="dialog"]');
 	}
 
 	function viewportToContainerCoords(e: PointerEvent, container: HTMLDivElement) {

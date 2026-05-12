@@ -150,7 +150,14 @@ const input = useWorkspaceInput({
 		if (id) workspaceSelection.setSingle(id);
 		else workspaceSelection.clear();
 	},
-	isModalOpen: () => renameOpen,
+	// image-widget-critical fix (2026-05-13): renameOpen 単独だと WidgetSettingsDialog /
+	// WorkspaceWallpaperDialog 等の modal が開いている時 Ctrl+A / Delete / Backspace 等の
+	// shortcut が widget に届いて誤動作 (一括選択 / 削除等)。 DOM の [role="dialog"] が
+	// 存在すれば modal open 判定。
+	isModalOpen: () => {
+		if (renameOpen || wallpaperOpen) return true;
+		return typeof document !== 'undefined' && !!document.querySelector('[role="dialog"]');
+	},
 	onDelete: instantDeleteWidget,
 	zoom,
 });

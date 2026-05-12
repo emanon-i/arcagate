@@ -178,8 +178,14 @@ class WorkspaceWidgets {
 			// 旧 `Math.max(DEFAULT_GRID_COLS, cols ?? DEFAULT_GRID_COLS)` は cols<4 の narrow viewport で
 			// 強制的に 4 にしていたため、preview (dynamicCols=2 等) と判定が乖離する新たな mismatch を発生させていた。
 			// 引数未指定時のみ DEFAULT_GRID_COLS にフォールバック。負/0 は最低 1 で sanity guard。
-			const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
 			const rects = widgetsToRects(this.widgets);
+			// image-widget-critical fix (2026-05-13): cols 未指定 + 既存 widget が wider viewport で
+			// 配置されていた場合、 既存 widget の最大右端を下回らないよう effectiveCols を補正。
+			// 旧実装: cols=undefined → effectiveCols=DEFAULT_GRID_COLS(4) で spiral 探索範囲が x∈[0..1] に
+			// clamp され、 cluster 中心 seed (例 x=4) が無効化 → 結果 widget が既存 cluster の真下に
+			// 配置され「画面外配置」 となる症状の root cause fix。
+			const widgetMaxRight = rects.reduce((m, r) => Math.max(m, r.x + r.w), 0);
+			const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS, widgetMaxRight);
 			// audit batch deferred (2026-05-13) #1+#2 + #13: nearCell 無し時、 (0,0) ではなく
 			// 既存 widget BB 中心近傍に置く。 D&D / sidebar add で「とんでもなく離れて配置」
 			// → 「fit-to-content でも viewport range 外」 という症状の root cause fix。
