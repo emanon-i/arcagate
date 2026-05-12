@@ -229,12 +229,15 @@ $effect(() => {
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+				<!-- audit batch deferred (2026-05-13) #12 part 2: data-widget-id 付与で Box (rubber-band)
+				     selection 時に container 内 widget element の bounding box を取得できる。 -->
 				<div
 					class="relative transition-opacity focus-visible:outline-none"
 					class:opacity-60={isMoving}
 					role="group"
 					aria-label={WIDGET_LABELS[widget.widget_type] ?? widget.widget_type}
 					tabindex={editMode ? 0 : -1}
+					data-widget-id={widget.id}
 					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
 					onclick={(e) => handleWidgetClick(e, widget.id)}
 				>

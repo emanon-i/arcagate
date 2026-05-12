@@ -225,6 +225,7 @@ function confirmRename(name: string) {
 		onCanvasPointerDown={input.onPointerDown}
 		onCanvasPointerMove={input.onPointerMove}
 		onCanvasPointerUp={input.onPointerUp}
+		boxSelectState={input.boxSelectState}
 	/>
 
 	<!-- I-2 (2026-05-10 user 検収): 全 widget 共通 context menu (パスをコピー / Explorer で開く /

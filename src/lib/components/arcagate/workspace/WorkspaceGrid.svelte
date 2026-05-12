@@ -42,6 +42,11 @@ interface Props {
 	onCanvasPointerDown?: (e: PointerEvent) => void;
 	onCanvasPointerMove?: (e: PointerEvent) => void;
 	onCanvasPointerUp?: (e: PointerEvent) => void;
+	/** audit batch deferred (2026-05-13) #12 part 2: Box (rubber-band) selection overlay rect。 */
+	boxSelectState?: {
+		readonly active: boolean;
+		readonly rect: { left: number; top: number; width: number; height: number };
+	};
 }
 
 let {
@@ -60,6 +65,7 @@ let {
 	onCanvasPointerDown,
 	onCanvasPointerMove,
 	onCanvasPointerUp,
+	boxSelectState,
 }: Props = $props();
 
 let infiniteCanvas = $state<HTMLDivElement | null>(null);
@@ -225,6 +231,16 @@ void openItemDetail;
 			style="width: {canvasW}px; height: {canvasH}px; background-image: radial-gradient(circle, var(--ag-canvas-dot) 1.5px, transparent 1.5px); background-size: 24px 24px;"
 			bind:this={infiniteCanvas}
 		>
+			<!-- audit batch deferred (2026-05-13) #12 part 2: Box (rubber-band) selection overlay。
+			     accent 色の半透明 rect、 pointer-events-none で click 透過。 -->
+			{#if boxSelectState?.active}
+				{@const bs = boxSelectState.rect}
+				<div
+					class="pointer-events-none absolute z-30 rounded-sm border border-[var(--ag-accent)] bg-[var(--ag-accent-bg)]/30"
+					style="left: {bs.left}px; top: {bs.top}px; width: {bs.width}px; height: {bs.height}px;"
+					aria-hidden="true"
+				></div>
+			{/if}
 			<div
 				class="flex gap-4 p-5"
 				style="padding-left: {bufferPx.x + 20}px; padding-top: {bufferPx.y + 20}px;"
