@@ -464,6 +464,11 @@ pub fn register_exe_item(
 
 /// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録。1 件ずつ register_exe_item と同等の処理。
 /// 戻り値: 各 path に対応する Item (新規 / 既存) のリスト。
+///
+/// audit batch (2026-05-13) #8: exe-folder widget からの bulk 登録では、
+/// label を exe の file stem (例: "Game", "Setup") ではなく **親フォルダ名**
+/// (例: "MyGame", "Halo Infinite") にする。 これにより exe-folder watch で
+/// 「サブフォルダ単位の作品」 として識別できる。 単発 register_exe_item は影響なし。
 pub fn register_exe_items_bulk(
     db: &DbState,
     paths: Vec<String>,
@@ -471,7 +476,12 @@ pub fn register_exe_items_bulk(
 ) -> Result<Vec<Item>, AppError> {
     let mut out = Vec::with_capacity(paths.len());
     for path in &paths {
-        let item = register_exe_item(db, path, None, workspace_id)?;
+        let label = std::path::Path::new(path)
+            .parent()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .map(|s| s.to_string());
+        let item = register_exe_item(db, path, label, workspace_id)?;
         out.push(item);
     }
     Ok(out)
