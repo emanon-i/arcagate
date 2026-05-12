@@ -81,6 +81,22 @@ export function useWorkspaceInput(opts: InputOpts) {
 				opts.zoom.resetZoom();
 				return;
 			}
+			// audit batch deferred (2026-05-13) #12: Ctrl+A で active workspace の全 widget 選択。
+			// modal 開いてる時 / input フォーカス中は無視。
+			if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+				if (opts.isModalOpen()) return;
+				const target = e.target as HTMLElement | null;
+				if (
+					target?.tagName === 'INPUT' ||
+					target?.tagName === 'TEXTAREA' ||
+					target?.isContentEditable
+				) {
+					return;
+				}
+				e.preventDefault();
+				workspaceSelection.setMany(workspaceStore.widgets.map((w) => w.id));
+				return;
+			}
 			if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === '!' || e.key === '1')) {
 				e.preventDefault();
 				// U-8 (2026-05-12): 選択中 widget があれば選択範囲を fit、無ければ全 widget。

@@ -45,6 +45,11 @@ function clear(): void {
 	ids = new Set();
 }
 
+// audit batch deferred (2026-05-13) #12: Ctrl+A 全選択。 active workspace の全 widget id を Set に。
+function setMany(idList: string[]): void {
+	ids = new Set(idList);
+}
+
 export const workspaceSelection = {
 	get ids() {
 		return ids;
@@ -65,4 +70,5 @@ export const workspaceSelection = {
 	toggle,
 	add,
 	clear,
+	setMany,
 };
