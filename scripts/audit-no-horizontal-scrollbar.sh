@@ -4,7 +4,7 @@
 # 引用元 guideline:
 # - docs/l1_requirements/ux_standards.md §10 スクロール・レイアウトルール
 # - docs/desktop_ui_ux_agent_rules.md P11 (装飾より対象)
-# - docs/lessons.md「flex/grid h-full 伝播 + min-w-0 必須パターン」
+# - docs/l2_foundation/lessons.md「flex/grid h-full 伝播 + min-w-0 必須パターン」
 #
 # 検出する pattern:
 #   widget 内 (src/lib/widgets/) で `overflow-x-auto` / `overflow-x-scroll`

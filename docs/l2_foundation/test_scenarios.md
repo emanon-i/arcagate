@@ -202,5 +202,5 @@ await markSetupComplete(mainPage);  // safe net、 deleteWorkspace 等で state 
 
 - 全体アーキテクチャ → [`foundation.md`](./foundation.md)
 - 画面別カタログ → [`screens/`](./screens/)
-- 失敗駆動メモリ → [`../lessons.md`](../lessons.md)
-- 製品要求 → [`../motivation.md`](../motivation.md)
+- 失敗駆動メモリ → [`./lessons.md`](./lessons.md)
+- 製品要求 → [`../l0_ideas/motivation.md`](../l0_ideas/motivation.md)

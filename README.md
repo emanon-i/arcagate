@@ -48,10 +48,10 @@ pnpm test:e2e
 
 詳細は [`docs/`](docs/) を参照:
 
-- [`docs/motivation.md`](docs/motivation.md) — L0 製品要求 (なぜ作る / 何 / 誰 / Non-goals / 成功条件 / 制約 / 利用形態 / 失敗パターン)
+- [`docs/l0_ideas/motivation.md`](docs/l0_ideas/motivation.md) — L0 製品要求 (なぜ作る / 何 / 誰 / Non-goals / 成功条件 / 制約 / 利用形態 / 失敗パターン)
 - [`docs/l2_foundation/foundation.md`](docs/l2_foundation/foundation.md) — L2 全体アーキテクチャ (技術 stack / レイヤー / IPC / state / schema / 設計判断)
 - [`docs/l2_foundation/screens/`](docs/l2_foundation/screens/) — 画面別機能カタログ (palette / library / workspace / settings / onboarding)
-- [`docs/lessons.md`](docs/lessons.md) — 過去の落とし穴と教訓
+- [`docs/l2_foundation/lessons.md`](docs/l2_foundation/lessons.md) — 過去の落とし穴と教訓
 
 ## アーキテクチャ
 
@@ -60,7 +60,7 @@ pnpm test:e2e
 - **IPC**: `invoke` / `event` 両方、ts-rs で TypeScript bindings 自動生成
 - **State**: Svelte 5 `$state` のみ（外部状態管理ライブラリは導入しない）
 
-レイヤー依存は一方向: `commands → services → repositories → DB`。詳細は [`docs/l2_architecture/folder-map.md`](docs/l2_architecture/folder-map.md)。
+レイヤー依存は一方向: `commands → services → repositories → DB`。 詳細は [`docs/l2_foundation/foundation.md`](docs/l2_foundation/foundation.md) §8 (ディレクトリ構成) + §9 (設計判断)。
 
 ## 配布 (署名)
 
@@ -90,9 +90,42 @@ pwsh scripts/sign-windows.ps1
 
 ## サポート / バグ報告
 
-- 報告 / 質問: [docs/support.md](docs/support.md) — GitHub Issues / Discussions の経路、log file の場所、SmartScreen 警告の対処を記載
+### 報告経路
+
+- **GitHub Issues**: [github.com/emanon-i/arcagate/issues](https://github.com/emanon-i/arcagate/issues) — bug / 機能要望
+- **GitHub Discussions**: [github.com/emanon-i/arcagate/discussions](https://github.com/emanon-i/arcagate/discussions) — 質問 / ベストプラクティス共有
+
+### 報告時に添えると対処が早い情報
+
+- Arcagate のバージョン (Settings → About で確認)
+- Windows のバージョン (例: Windows 11 23H2)
+- 再現手順 (1, 2, 3... 形式)
+- 期待した動作 / 実際の動作
+- エラーメッセージ (toast の文言 or log file 該当行)
+- screenshot / 録画
+
+### log file
+
+```
+%LOCALAPPDATA%\arcagate\logs\arcagate.log
+```
+
+最新 5MB × 7 世代まで rotate 保持。 直近の `arcagate.log.0` を添付すると trace が早い。
+
+### SmartScreen / Defender 警告
+
+当面は未署名で配布。 Win11 で installer 実行時に「Windows がコンピュータを保護しました」 dialog が出るので: 「詳細情報」 → 「実行」。 不審な場合は SHA256 を release page と照合してから実行を推奨。
+
+### サポート対象
+
+- Windows 11 64bit のみ。 macOS / Linux は scope 外
+- 個人開発のため対応は best-effort、 SLA / 保証なし
+
+### 関連
+
 - Changelog: [CHANGELOG.md](CHANGELOG.md) — release ごとの差分 (Keep a Changelog 形式)
-- 既知 issue: [docs/l3_phases/_archive/library-overhaul/](docs/l3_phases/_archive/library-overhaul/) + [docs/lessons.md](docs/lessons.md)
+- 過去の落とし穴: [docs/l2_foundation/lessons.md](docs/l2_foundation/lessons.md)
+- アーカイブ済 plan: [docs/l3_phases/_archive/](docs/l3_phases/_archive/)
 
 ## ライセンス
 

@@ -4,7 +4,7 @@
 # 引用元 guideline:
 # - docs/l1_requirements/ux_standards.md §4-2 タイポグラフィスケール
 # - docs/desktop_ui_ux_agent_rules.md P12 (整合性)
-# - docs/lessons.md "Guideline doc 不活用が劣化の主因"
+# - docs/l2_foundation/lessons.md "Guideline doc 不活用が劣化の主因"
 #
 # 過去 PH-475 (batch-107) で `--text-ag-xs: 11px` 等を新設して全 widget に
 # 一斉適用した結果、Tailwind default (text-xs = 12px) との差で「全体的に劣化」

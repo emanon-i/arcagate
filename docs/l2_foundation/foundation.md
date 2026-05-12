@@ -634,6 +634,6 @@ arcagate/
 
 - 画面別カタログ → [`screens/`](./screens/)
 - テストシナリオ ⇄ 実装 link → [`test_scenarios.md`](./test_scenarios.md)
-- 製品要求 / Non-goals → [`../motivation.md`](../motivation.md)
-- 失敗駆動メモリ → [`../lessons.md`](../lessons.md)
+- 製品要求 / Non-goals → [`../l0_ideas/motivation.md`](../l0_ideas/motivation.md)
+- 失敗駆動メモリ → [`./lessons.md`](./lessons.md)
 - アーカイブ済 plan → [`../l3_phases/_archive/`](../l3_phases/_archive/)
