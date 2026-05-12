@@ -84,9 +84,15 @@ function toggleSearch() {
 	<!-- PH-widget-polish: aria-label / title 追加で a11y、hover で Chevron 強調、
 	     group hover でテキスト色強調 (P1 操作可視化、Favorites / Recent 等の起動 row)。
 	     J-3 (2026-05-12): @container query で wide widget で multi-column 化。
-	     widget resize maxSpan=12 まで広がるので、単列だと item が横に間延びする問題を回避。 -->
+	     widget resize maxSpan=12 まで広がるので、単列だと item が横に間延びする問題を回避。
+	     audit batch (2026-05-13) #9: items.length === 1 だと multi-col grid で
+	     単体 item が 1/N 幅に shrink される bug。 1 件のときは grid-cols-1 を強制。 -->
 	<div class="@container">
-		<div class="grid gap-1.5 @md:grid-cols-2 @[28rem]:grid-cols-3 @[40rem]:grid-cols-4">
+		<div
+			class={displayItems.length <= 1
+				? 'grid gap-1.5 grid-cols-1'
+				: 'grid gap-1.5 @md:grid-cols-2 @[28rem]:grid-cols-3 @[40rem]:grid-cols-4'}
+		>
 			{#each displayItems as item (item.id)}
 				<button
 					type="button"

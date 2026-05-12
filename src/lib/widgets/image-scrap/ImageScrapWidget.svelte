@@ -1,9 +1,10 @@
 <script lang="ts">
 import { Image as ImageIcon, ImageOff, Settings } from '@lucide/svelte';
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
@@ -40,6 +41,19 @@ $effect(() => {
 });
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
+
+// audit batch (2026-05-13) #1.4: ダブルクリックで画像を OS default app (写真ビューア等) で開く。
+// source_path 優先 (元 file を開く)、 無ければ APPDATA copy を開く。
+async function handleDblClick(): Promise<void> {
+	const cfg = config as { path?: string; source_path?: string };
+	const target = cfg.source_path ?? cfg.path;
+	if (!target) return;
+	try {
+		await invoke('cmd_open_path', { path: target });
+	} catch (e) {
+		toastStore.add(`画像を開けませんでした: ${String(e)}`, 'error');
+	}
+}
 </script>
 
 <!-- Fix A (2026-05-12): config.path を WidgetShell に渡し、 body 右クリック menu で
@@ -64,12 +78,18 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			<div class="truncate max-w-full px-4 text-[var(--ag-text-faint)]" title={config.path}>{config.path}</div>
 		</div>
 	{:else}
-		<div class="flex h-full items-center justify-center overflow-hidden">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="flex h-full cursor-pointer items-center justify-center overflow-hidden"
+			ondblclick={() => void handleDblClick()}
+			title="ダブルクリックで OS の既定アプリで開く"
+		>
 			<!-- svelte-ignore a11y_img_redundant_alt -->
 			<img
 				src={imageSrc}
 				alt={`${displayName} 画像`}
-				class="max-h-full max-w-full object-contain"
+				class="pointer-events-none max-h-full max-w-full object-contain"
 				onerror={() => (imageError = true)}
 				data-testid="image-scrap-img"
 			/>

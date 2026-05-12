@@ -94,6 +94,12 @@ pub fn read_file_preview(path_str: &str) -> Result<FilePreview, AppError> {
     } else {
         String::new()
     };
+    // audit batch (2026-05-13) #2.3: frontmatter は別 section で表示するため content から除去 (二重表示防止)。
+    let content = if !frontmatter.is_empty() {
+        strip_frontmatter_block(&content)
+    } else {
+        content
+    };
 
     Ok(FilePreview {
         name,
@@ -116,6 +122,33 @@ fn read_first_n_bytes(path: &Path, n: u64) -> Result<Vec<u8>, AppError> {
     let read = file.read(&mut buf).map_err(AppError::Io)?;
     buf.truncate(read);
     Ok(buf)
+}
+
+/// audit batch (2026-05-13) #2.3: frontmatter ブロック (--- ... ---) を content から削除して
+/// 後続 body のみ返す。 frontmatter 不在なら content をそのまま返す。
+fn strip_frontmatter_block(content: &str) -> String {
+    let after_open = if let Some(s) = content.strip_prefix("---\r\n") {
+        s
+    } else if let Some(s) = content.strip_prefix("---\n") {
+        s
+    } else {
+        return content.to_string();
+    };
+    if let Some(end) = after_open.find("\n---") {
+        // after_open[..end] = frontmatter body, 後ろは "\n---" + 改行 + body
+        let rest = &after_open[end..]; // 先頭 = "\n---..."
+                                       // "\n---\n" / "\n---\r\n" / "\n---" のいずれかの直後から body 開始
+        if let Some(s) = rest.strip_prefix("\n---\r\n") {
+            return s.to_string();
+        }
+        if let Some(s) = rest.strip_prefix("\n---\n") {
+            return s.to_string();
+        }
+        if let Some(s) = rest.strip_prefix("\n---") {
+            return s.trim_start_matches(['\r', '\n']).to_string();
+        }
+    }
+    content.to_string()
 }
 
 /// Markdown frontmatter (--- ... ---) を抽出。 無ければ空文字。
@@ -193,6 +226,9 @@ mod tests {
         let r = read_file_preview(p.to_str().unwrap()).unwrap();
         assert!(r.frontmatter.contains("title: My Note"));
         assert!(r.frontmatter.contains("tags: [a, b]"));
+        // audit #2.3: content から frontmatter block が strip されている
+        assert!(!r.content.contains("title: My Note"));
+        assert!(r.content.contains("# Hello"));
         fs::remove_dir_all(&dir).ok();
     }
 

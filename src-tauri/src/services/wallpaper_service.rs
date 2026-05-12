@@ -58,10 +58,12 @@ pub fn save_wallpaper_file(app_data_dir: &Path, source_path: &str) -> Result<Str
     let dest_name = format!("{}.{}", Uuid::now_v7(), ext);
     let dest_path = wallpapers_dir.join(&dest_name);
     fs::copy(source, &dest_path)?;
+    // audit batch (2026-05-13) #4: Windows backslash path での asset:// protocol
+    // load 失敗対策で forward slash に正規化。 image-scrap と同 pattern。
     Ok(dest_path
         .to_str()
         .ok_or_else(|| AppError::InvalidInput("non-utf8 wallpaper path".into()))?
-        .to_string())
+        .replace('\\', "/"))
 }
 
 /// PH-issue-009: Workspace の壁紙設定を更新 (path / opacity / blur)。

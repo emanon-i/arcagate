@@ -107,8 +107,10 @@ function handleKeydown(e: KeyboardEvent) {
 			in:fly={{ y: -12, duration: dNormal, easing: cubicOut }}
 			out:fade={{ duration: dFast }}
 		>
-			<!-- Radial gradient overlay -->
-			<div class="palette-glow pointer-events-none absolute inset-0 rounded-[var(--ag-radius-palette)]"></div>
+			<!-- Radial gradient overlay。
+			     audit batch (2026-05-13) #10: 四隅塗りつぶしはみ出し対策で overflow-hidden で
+			     確実に rounded mask 内にクリップ。 -->
+			<div class="palette-glow pointer-events-none absolute inset-0 overflow-hidden rounded-[var(--ag-radius-palette)]"></div>
 
 			<!-- Header bar (fixed) -->
 			<div class="relative flex flex-shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
