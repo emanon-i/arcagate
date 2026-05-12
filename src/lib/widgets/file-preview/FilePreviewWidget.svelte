@@ -116,30 +116,40 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 		<p class="text-sm text-[var(--ag-text-error)]">エラー: {error}</p>
 	{:else if preview}
 		<div class="space-y-2 text-xs">
-			<!-- メタデータ row -->
+			<!-- メタデータ row。
+			     audit batch (2026-05-13) #2.9: 「更新」 「作成」 timestamp を 1 行にまとめて固定セット化、
+			     widget が狭くても folded されにくく、 視認性安定。 -->
 			<div class="flex flex-wrap gap-x-3 gap-y-1 text-[var(--ag-text-muted)]">
 				<span><strong class="text-[var(--ag-text-secondary)]">サイズ</strong> {formatBytes(preview.sizeBytes)}</span>
 				{#if preview.charCount !== null}
 					<span><strong class="text-[var(--ag-text-secondary)]">文字数</strong> {preview.charCount.toLocaleString()}</span>
 				{/if}
+			</div>
+			<div class="flex flex-wrap gap-x-3 gap-y-1 text-[var(--ag-text-muted)]">
 				<span><strong class="text-[var(--ag-text-secondary)]">更新</strong> {formatDate(preview.modifiedAtUnix)}</span>
 				{#if preview.createdAtUnix}
 					<span><strong class="text-[var(--ag-text-secondary)]">作成</strong> {formatDate(preview.createdAtUnix)}</span>
 				{/if}
 			</div>
 
-			<!-- Markdown frontmatter (任意) -->
+			<!-- Markdown frontmatter (任意)。
+			     audit batch (2026-05-13) #2.2 / #2.3: frontmatter は backend で content から
+			     strip 済 (二重表示防止)。 ここでは raw YAML のみ表示、 select-text 許可。 -->
 			{#if preview.frontmatter}
 				<div>
 					<div class="mb-1 text-xs font-medium text-[var(--ag-text-secondary)]">フロントマター</div>
-					<pre class="whitespace-pre-wrap break-all rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
+					<pre class="select-text whitespace-pre-wrap break-all rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
 				</div>
 			{/if}
 
-			<!-- 内容プレビュー -->
+			<!-- 内容プレビュー。
+			     audit batch (2026-05-13) #2.7: read-only affordance を明示するため
+			     「読み取り専用」 badge を header に追加 (編集できそうな見た目を回避)。
+			     #2.8: select-text class でテキスト選択を明示許可 (一部 OS で pre が user-select:none) -->
 			<div>
 				<div class="mb-1 flex items-center gap-2 text-xs font-medium text-[var(--ag-text-secondary)]">
 					<span>内容</span>
+					<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">読み取り専用</span>
 					{#if preview.truncated}
 						<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">先頭 256KB のみ</span>
 					{/if}
@@ -150,7 +160,7 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 				{#if preview.isBinary}
 					<p class="text-xs text-[var(--ag-text-muted)]">バイナリファイルのため表示できません。</p>
 				{:else}
-					<pre class="whitespace-pre-wrap break-words rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
+					<pre class="select-text whitespace-pre-wrap break-words rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
 				{/if}
 			</div>
 		</div>
