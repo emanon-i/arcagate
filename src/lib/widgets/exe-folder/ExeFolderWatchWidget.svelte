@@ -371,18 +371,19 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			{#each sortedEntries as entry (entry.folderPath)}
 				{@const currentExe = resolveExe(entry)}
 				{@const hasOverride = !!config.item_overrides?.[entry.folderPath]}
-				<li class="relative flex min-w-0 items-center gap-1">
+				<!-- audit batch deferred (2026-05-13) #7: 「...」 button を main row 内部に統合。
+				     視覚的に 1 つの button に見える (rounded outer 共有 + 隣接 background) が、
+				     click 領域は launch / popup で分離 (stopPropagation で main click が popup に
+				     伝播しない)。 挙動は従来通り。 -->
+				<li class="relative flex min-w-0 items-center rounded-md transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]">
 					<button
 						type="button"
-						class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
+						class="flex min-w-0 flex-1 items-center gap-2 rounded-l-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] {entry.exeCandidates.length > 1 ? '' : 'rounded-r-md'}"
 						aria-label="{entry.folderName} を起動"
 						onclick={() => launchEntry(entry)}
 						oncontextmenu={(e) => {
 							e.preventDefault();
 							e.stopPropagation();
-							// Phase 2 (2026-05-12): hide key を folder_path に統一 (entry = folder 単位、
-							// 「この widget から外す」 はフォルダ全体に対応)。 copy / Explorer 操作も
-							// folder 単位で自然 (exe ではなく folder を copy / open)。
 							const exePath = resolveExe(entry) ?? entry.folderPath;
 							const matchedItem = itemStore.items.find((it) => it.target === exePath);
 							workspaceContextMenuStore.openMenuFor({
@@ -394,7 +395,6 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							});
 						}}
 					>
-						<!-- PH-issue-038 / 検収項目 #19: フォルダ icon → AppWindow (実体は exe 起動なので) -->
 						<AppWindow class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
 						<span class="min-w-0 flex-1 truncate">{entry.folderName}</span>
 						<span class="shrink-0 text-xs {hasOverride ? 'text-[var(--ag-accent-text)]' : 'text-[var(--ag-text-faint)]'}">
@@ -402,17 +402,16 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						</span>
 					</button>
 					{#if entry.exeCandidates.length > 1}
-						<!-- PH-widget-polish: aria-haspopup / aria-expanded で a11y、data-popover-trigger で
-						     click-outside 監視から除外、title で「起動 exe を切替」hint -->
 						<button
 							type="button"
-							class="shrink-0 rounded p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+							class="shrink-0 rounded-r-md px-1.5 py-1.5 text-[var(--ag-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-4)]"
 							aria-label="{entry.folderName} の起動 exe を選ぶ"
 							aria-haspopup="menu"
 							aria-expanded={candidatePopoverFor === entry.folderPath}
 							title="起動 exe を切替"
 							data-popover-trigger="exe-cands"
-							onclick={() => {
+							onclick={(e) => {
+								e.stopPropagation();
 								candidatePopoverFor = candidatePopoverFor === entry.folderPath ? null : entry.folderPath;
 							}}
 						>
