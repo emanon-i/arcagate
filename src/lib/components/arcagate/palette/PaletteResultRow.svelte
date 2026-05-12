@@ -73,9 +73,11 @@ let display = $derived(getDisplay(entry));
 				<display.icon class="h-5 w-5 text-white" />
 			{/if}
 		</div>
+		<!-- audit batch deferred (2026-05-13) #4: title + subtitle が truncate 切り捨て時に
+		     full text を hover tooltip で見えるよう title 属性付与。 -->
 		<div class="min-w-0">
-			<div class="truncate text-sm font-semibold text-[var(--ag-text-primary)]">{display.title}</div>
-			<div class="truncate text-xs text-[var(--ag-text-muted)]">{display.subtitle}</div>
+			<div class="truncate text-sm font-semibold text-[var(--ag-text-primary)]" title={display.title}>{display.title}</div>
+			<div class="truncate text-xs text-[var(--ag-text-muted)]" title={display.subtitle}>{display.subtitle}</div>
 		</div>
 	</div>
 
