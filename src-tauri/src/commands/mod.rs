@@ -15,4 +15,5 @@ pub mod system_monitor_commands;
 pub mod theme_commands;
 pub mod url_commands;
 pub mod watched_path_commands;
+pub mod widget_item_hides_commands;
 pub mod workspace_commands;

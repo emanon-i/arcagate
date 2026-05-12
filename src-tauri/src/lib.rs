@@ -48,6 +48,9 @@ use commands::url_commands::cmd_fetch_url_title;
 use commands::watched_path_commands::{
     cmd_add_watched_path, cmd_get_watched_paths, cmd_remove_watched_path,
 };
+use commands::widget_item_hides_commands::{
+    cmd_add_widget_item_hide, cmd_list_widget_item_hides, cmd_remove_widget_item_hide,
+};
 use commands::workspace_commands::{
     cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
     cmd_get_frecency_items, cmd_get_frequent_items, cmd_get_git_statuses_batch,
@@ -282,6 +285,9 @@ pub fn run() {
             cmd_parse_bookmark_file,
             cmd_save_image_scrap,
             cmd_read_file_preview,
+            cmd_add_widget_item_hide,
+            cmd_remove_widget_item_hide,
+            cmd_list_widget_item_hides,
             cmd_get_item_stats,
             cmd_get_item_metadata,
             cmd_get_items_metadata_batch,

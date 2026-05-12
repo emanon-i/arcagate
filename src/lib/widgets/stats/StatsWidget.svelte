@@ -5,6 +5,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import { launchItem } from '$lib/ipc/launch';
 import { getFrequentItems } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
+import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { STATS_WIDGET_DEFAULTS } from '$lib/types/widget-configs';
@@ -30,6 +31,15 @@ $effect(() => {
 	});
 });
 
+// Phase 2 (2026-05-12): per-widget hide load + filter。
+$effect(() => {
+	if (widget?.id) void widgetItemHidesStore.loadFor(widget.id);
+});
+
+let visibleTopItems = $derived(
+	topItems.filter((i) => !widgetItemHidesStore.has(widget?.id ?? null, i.target)),
+);
+
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 async function handleLaunch(id: string) {
@@ -44,7 +54,7 @@ async function handleLaunch(id: string) {
 	<!-- J-3 (2026-05-12): @container query で wide widget で multi-column 化。 -->
 	<div class="@container">
 		<div class="grid gap-1.5 @md:grid-cols-2 @[28rem]:grid-cols-3 @[40rem]:grid-cols-4">
-			{#each topItems as item, i (item.id)}
+			{#each visibleTopItems as item, i (item.id)}
 				<button
 					type="button"
 					class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
@@ -67,7 +77,7 @@ async function handleLaunch(id: string) {
 					</span>
 				</button>
 			{/each}
-			{#if topItems.length === 0}
+			{#if visibleTopItems.length === 0}
 				<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">起動履歴がありません</div>
 			{/if}
 		</div>
