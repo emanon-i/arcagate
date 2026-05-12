@@ -156,7 +156,7 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 			{#if preview.frontmatter}
 				<div>
 					<div class="mb-1 text-xs font-medium text-[var(--ag-text-secondary)]">フロントマター</div>
-					<pre class="select-text whitespace-pre-wrap break-all rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
+					<pre class="select-text whitespace-pre-wrap break-all rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 font-mono text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
 				</div>
 			{/if}
 
@@ -180,7 +180,8 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 				{#if preview.isBinary}
 					<p class="text-xs text-[var(--ag-text-muted)]">バイナリファイルのため表示できません。</p>
 				{:else}
-					<pre class="select-text whitespace-pre-wrap break-words rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
+					<!-- audit batch deferred (2026-05-13) #10: 本文は font-content (serif 系) で読み物としての可読性を上げる。 -->
+					<pre class="select-text whitespace-pre-wrap break-words rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1.5 font-content text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
 				{/if}
 			</div>
 		</div>

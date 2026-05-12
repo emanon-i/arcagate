@@ -74,8 +74,9 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 <WidgetShell title={WIDGET_LABELS.quick_note} icon={StickyNote} {menuItems}>
 	<div class="flex h-full flex-col gap-1">
+		<!-- audit batch deferred (2026-05-13) #10: メモ本文は font-content (serif 系) で読み物寄せ。 -->
 		<textarea
-			class="h-0 w-full flex-1 resize-none rounded-lg bg-[var(--ag-surface-2)] p-2 {FONT_SIZE_CLASS[config.font_size]} text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
+			class="h-0 w-full flex-1 resize-none rounded-lg bg-[var(--ag-surface-2)] p-2 font-content {FONT_SIZE_CLASS[config.font_size]} text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
 			placeholder="メモを入力..."
 			value={noteText}
 			oninput={handleInput}

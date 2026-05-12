@@ -1,6 +1,13 @@
 /* Arcagate Design Tokens */
 
 :root {
+	/* audit batch deferred (2026-05-13) #10: UI font / content font の分離。
+	 * --ag-font-ui: button / label / menu 等の UI 文字 (system 系 widget 含む)、
+	 * --ag-font-content: note / file preview / snippet 等の本文 (読み物としての可読性優先)。 */
+	--ag-font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+	--ag-font-content: 'Yu Gothic', 'Hiragino Sans', 'Meiryo', ui-serif, Georgia, 'Times New Roman', serif;
+	--ag-font-mono: ui-monospace, 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+
 	/* === Primitive Layer (do not use directly in components — use --ag-* tokens) === */
 	--prim-gray-50: #f9fafb;
 	--prim-gray-100: #f3f4f6;
