@@ -14,21 +14,27 @@ interface Props {
 	title: string;
 	icon: Component;
 	menuItems?: MenuItem[];
+	/** Fix A (2026-05-12): content-owning widget (ImageScrap / FilePreview 等) が
+	 * 持つ file path。 指定時、 widget body 右クリック menu で「パスをコピー / Explorer で開く」
+	 * が機能する (Library item 不在でも widget 内 path から取れる)。 */
+	path?: string | null;
 	children: Snippet;
 }
 
-let { title, icon: Icon, menuItems = [], children }: Props = $props();
+let { title, icon: Icon, menuItems = [], path, children }: Props = $props();
 
 // I-2: widget body 右 click → 共通 context menu (settings 経路を menuItems の 1 件目から拝借)。
 // 「全 widget 共通の基本機能」 として WidgetShell 経由で 13 widget 全部に attach される。
+// Fix A (2026-05-12): path が渡されたら menu に path も注入 (image / file widget で copy/explorer が出るように)。
 function handleWidgetContextMenu(ev: MouseEvent): void {
 	// item rows が個別 oncontextmenu で path + itemId を渡している場合は stopPropagation で
 	// この handler に届かないため、widget-body 上の余白でのみ発火する想定。
 	const settingsItem = menuItems[0];
 	const onOpenSettings = settingsItem ? settingsItem.onclick : null;
-	if (!onOpenSettings) return; // 設定 callback が無い widget は menu 開かない
+	// settings callback も path も無ければ menu 開かない (= 表示する menu item が無い状態を回避)
+	if (!onOpenSettings && !path) return;
 	ev.preventDefault();
-	workspaceContextMenuStore.openMenuFor({ onOpenSettings, ev });
+	workspaceContextMenuStore.openMenuFor({ path, onOpenSettings, ev });
 }
 
 let btnClass =

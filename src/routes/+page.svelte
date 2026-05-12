@@ -10,6 +10,7 @@ import ToastContainer from '$lib/components/arcagate/common/ToastContainer.svelt
 import LibraryLayout from '$lib/components/arcagate/library/LibraryLayout.svelte';
 import WorkspaceLayout from '$lib/components/arcagate/workspace/WorkspaceLayout.svelte';
 import ErrorBoundary from '$lib/components/common/ErrorBoundary.svelte';
+import ThreeOptionDialog from '$lib/components/common/ThreeOptionDialog.svelte';
 import HelpPanel from '$lib/components/help/HelpPanel.svelte';
 import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
@@ -23,6 +24,7 @@ import { themeStore } from '$lib/state/theme.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { startUpdaterAutoCheck } from '$lib/state/updater.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 import { loadString, saveString } from '$lib/utils/local-storage';
 
@@ -88,6 +90,71 @@ function pickExtension(path: string): string | undefined {
 	return m ? m[1].toLowerCase() : undefined;
 }
 
+// Fix B (2026-05-12): D&D 重複検出 3 択 dialog 用 state。
+// 同一 source ファイルを D&D した時に existing widget を focus できるよう source path を比較。
+let dupDialogOpen = $state(false);
+let dupDialogTitle = $state('');
+let dupDialogMessage = $state('');
+let dupExistingWidgetId = $state<string | null>(null);
+let dupPendingAction = $state<(() => Promise<void>) | null>(null);
+
+function focusExistingWidget(widgetId: string): void {
+	// workspace-selection で widget を選択状態にする (highlight + scroll target)。
+	// 完全な viewport scroll は Ctrl+Shift+1 で実行可能と toast で案内。
+	workspaceSelection.setSingle(widgetId);
+	toastStore.add('既存 widget を選択しました (Ctrl+Shift+1 で表示中央へ)', 'info');
+}
+
+/**
+ * Fix B: active workspace 内の同 widget type で source path が一致する widget を返す。
+ * - image_scrap: config.source_path (新規追加 field) で比較
+ * - file_preview: config.path 直接比較
+ */
+function findExistingMatch(
+	widgetType: 'image_scrap' | 'file_preview',
+	sourcePath: string,
+): { id: string; type: string } | null {
+	const widgets = workspaceStore.widgets;
+	for (const w of widgets) {
+		if (w.widget_type !== widgetType) continue;
+		if (!w.config) continue;
+		try {
+			const cfg = JSON.parse(w.config) as { path?: string; source_path?: string };
+			const cmp = widgetType === 'image_scrap' ? cfg.source_path : cfg.path;
+			if (cmp === sourcePath) return { id: w.id, type: w.widget_type };
+		} catch {
+			// invalid JSON skip
+		}
+	}
+	return null;
+}
+
+async function addImageScrapWidget(sourcePath: string): Promise<void> {
+	const { invoke } = await import('@tauri-apps/api/core');
+	const saved = await invoke<string>('cmd_save_image_scrap', { sourcePath });
+	await workspaceStore.addWidget('image_scrap');
+	const widgets = workspaceStore.widgets;
+	const last = widgets[widgets.length - 1];
+	if (last) {
+		// Fix B: source_path も config に保存して将来の重複検出を可能に。
+		await workspaceStore.updateWidgetConfig(
+			last.id,
+			JSON.stringify({ path: saved, source_path: sourcePath }),
+		);
+	}
+	toastStore.add('画像 widget を配置しました', 'success');
+}
+
+async function addFilePreviewWidget(path: string): Promise<void> {
+	await workspaceStore.addWidget('file_preview');
+	const widgets = workspaceStore.widgets;
+	const last = widgets[widgets.length - 1];
+	if (last) {
+		await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path }));
+	}
+	toastStore.add('ファイルプレビュー widget を配置しました', 'success');
+}
+
 let unlistenDragDrop: (() => void) | null = null;
 listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 	isDraggingOver = false;
@@ -96,35 +163,40 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 
 	// U-5 / U-6 (2026-05-12): Workspace タブで画像 / テキストファイルを D&D された場合、
 	// 対応する widget を生成。 残りは Library tab に従来通り。
+	// Fix B (2026-05-12): 同一 source の widget が既に存在するなら 3 択 dialog で
+	// focus 既存 / 別 widget として追加 / キャンセル を user に選ばせる。
 	if (activeView === 'workspace') {
 		const path = paths[0];
 		const ext = pickExtension(path);
 		if (ext && IMAGE_EXTS.includes(ext)) {
+			const existing = findExistingMatch('image_scrap', path);
+			if (existing) {
+				dupDialogTitle = '同じ画像の widget があります';
+				dupDialogMessage = `この画像を表示する widget が既に Workspace に存在します。\n\n• 既存を選択 (おすすめ): その widget を選択状態にします\n• 別 widget として追加: 同じ画像を別 widget に複製します\n• キャンセル: 何もしません`;
+				dupExistingWidgetId = existing.id;
+				dupPendingAction = () => addImageScrapWidget(path);
+				dupDialogOpen = true;
+				return;
+			}
 			try {
-				const { invoke } = await import('@tauri-apps/api/core');
-				const saved = await invoke<string>('cmd_save_image_scrap', { sourcePath: path });
-				await workspaceStore.addWidget('image_scrap');
-				// addWidget 後 last widget の config を更新 (image path)
-				const widgets = workspaceStore.widgets;
-				const last = widgets[widgets.length - 1];
-				if (last) {
-					await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path: saved }));
-				}
-				toastStore.add('画像 widget を配置しました', 'success');
+				await addImageScrapWidget(path);
 			} catch (e) {
 				toastStore.add(`画像の配置に失敗: ${String(e)}`, 'error');
 			}
 			return;
 		}
 		if (ext && TEXT_EXTS.includes(ext)) {
+			const existing = findExistingMatch('file_preview', path);
+			if (existing) {
+				dupDialogTitle = '同じファイルの widget があります';
+				dupDialogMessage = `このファイルを表示する widget が既に Workspace に存在します。\n\n• 既存を選択 (おすすめ): その widget を選択状態にします\n• 別 widget として追加: 同じファイルを別 widget に複製します\n• キャンセル: 何もしません`;
+				dupExistingWidgetId = existing.id;
+				dupPendingAction = () => addFilePreviewWidget(path);
+				dupDialogOpen = true;
+				return;
+			}
 			try {
-				await workspaceStore.addWidget('file_preview');
-				const widgets = workspaceStore.widgets;
-				const last = widgets[widgets.length - 1];
-				if (last) {
-					await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path }));
-				}
-				toastStore.add('ファイルプレビュー widget を配置しました', 'success');
+				await addFilePreviewWidget(path);
 			} catch (e) {
 				toastStore.add(`ファイルの配置に失敗: ${String(e)}`, 'error');
 			}
@@ -142,6 +214,35 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 }).then((fn) => {
 	unlistenDragDrop = fn;
 });
+
+function handleDupPrimary(): void {
+	// default action: 既存 widget を選択
+	if (dupExistingWidgetId) focusExistingWidget(dupExistingWidgetId);
+	dupDialogOpen = false;
+	dupPendingAction = null;
+	dupExistingWidgetId = null;
+}
+
+async function handleDupSecondary(): Promise<void> {
+	// 別 widget として追加
+	const action = dupPendingAction;
+	dupDialogOpen = false;
+	dupPendingAction = null;
+	dupExistingWidgetId = null;
+	if (action) {
+		try {
+			await action();
+		} catch (e) {
+			toastStore.add(`widget 追加に失敗: ${String(e)}`, 'error');
+		}
+	}
+}
+
+function handleDupCancel(): void {
+	dupDialogOpen = false;
+	dupPendingAction = null;
+	dupExistingWidgetId = null;
+}
 
 let unlistenDragOver: (() => void) | null = null;
 listen('tauri://drag-over', () => {
@@ -291,6 +392,19 @@ function handleFormClose() {
 	tags={itemStore.tags}
 	onSubmit={handleFormSubmit}
 	onClose={handleFormClose}
+/>
+
+<!-- Fix B (2026-05-12): image-scrap / file-preview の同一ファイル D&D 重複検出 dialog。
+     既存 widget が見つかったとき 「既存を選択 / 別 widget として追加 / キャンセル」 の 3 択。 -->
+<ThreeOptionDialog
+	open={dupDialogOpen}
+	title={dupDialogTitle}
+	message={dupDialogMessage}
+	primaryLabel="既存を選択"
+	onPrimary={handleDupPrimary}
+	secondaryLabel="別 widget として追加"
+	onSecondary={() => void handleDupSecondary()}
+	onClose={handleDupCancel}
 />
 
 <!-- Settings ダイアログ -->

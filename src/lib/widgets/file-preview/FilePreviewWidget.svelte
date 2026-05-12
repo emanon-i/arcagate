@@ -95,7 +95,9 @@ let menuItems = $derived([
 let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ?? 'ファイル');
 </script>
 
-<WidgetShell title={displayTitle} icon={FileText} {menuItems}>
+<!-- Fix A (2026-05-12): config.path を WidgetShell に渡し、 body 右クリック menu で
+     「パスをコピー / Explorer で開く」 を有効化。 -->
+<WidgetShell title={displayTitle} icon={FileText} {menuItems} path={config.path}>
 	{#if !config.path}
 		<EmptyState
 			icon={FileText}
