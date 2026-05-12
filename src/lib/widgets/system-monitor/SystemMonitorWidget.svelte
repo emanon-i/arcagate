@@ -138,7 +138,9 @@ async function refreshInner() {
 	}
 	if (showDisk) {
 		try {
-			disks = await invoke<DiskStats[]>('cmd_get_disk_stats');
+			// audit batch (2026-05-13) #5.1: Disk mount も interface 同様に安定 sort。
+			const fetched = await invoke<DiskStats[]>('cmd_get_disk_stats');
+			disks = [...fetched].sort((a, b) => a.mount.localeCompare(b.mount));
 			// Codex Medium #6: 消失 mount は履歴 prune（slow leak 防止）。
 			const newDH: Record<string, number[]> = {};
 			for (const d of disks) {
@@ -170,7 +172,9 @@ async function refreshInner() {
 				}
 				newPrev[n.interface] = { rx: n.rxTotalBytes, tx: n.txTotalBytes, t: now };
 			}
-			networks = next;
+			// audit batch (2026-05-13) #5.1: Network interface 順を interface 名で安定 sort。
+			// Rust 側 (sysinfo) の iteration order は HashMap 由来で snapshot 間で揺れる。
+			networks = [...next].sort((a, b) => a.interface.localeCompare(b.interface));
 			netRates = newRates;
 			prevNetworks = newPrev;
 			// 4/30 user 検収: rx Bps の履歴 (sparkline 用)。現存 interface のみ繰越し、prune 同時。
@@ -365,8 +369,11 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						{@const pct = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0}
 						{@const diskColor = pctColorVar(pct)}
 						<div class="space-y-0.5">
+							<!-- audit batch (2026-05-13) #5.4: 使用容量 / 全容量 を mount 名 と % の中間に表示。
+							     mount + " 使用 GB / 全 GB" + % の 3 段でディスク内容が一目瞭然。 -->
 							<div class="flex items-baseline justify-between gap-2">
 								<span class="min-w-0 flex-1 truncate text-[var(--ag-text-primary)]" title={d.mount}>{d.mount}</span>
+								<span class="shrink-0 tabular-nums text-xs text-[var(--ag-text-muted)]">{formatBytes(d.usedBytes)} / {formatBytes(d.totalBytes)}</span>
 								<span class="shrink-0 tabular-nums text-xs" style="color: {diskColor}">{pct.toFixed(0)}%</span>
 							</div>
 							<!-- 4/30 user 検収: ディスクも独立 chart_type -->
