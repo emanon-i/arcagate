@@ -1,6 +1,7 @@
 <script lang="ts">
 import { FileText, RefreshCw, Settings } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
+import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
@@ -164,14 +165,16 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 			     「読み取り専用」 badge を header に追加 (編集できそうな見た目を回避)。
 			     #2.8: select-text class でテキスト選択を明示許可 (一部 OS で pre が user-select:none) -->
 			<div>
+				<!-- audit batch deferred (2026-05-13) #5: inline badge span を Chip 共通 component に。
+				     image-scrap / Library detail header と同 design tokens で見た目統一。 -->
 				<div class="mb-1 flex items-center gap-2 text-xs font-medium text-[var(--ag-text-secondary)]">
 					<span>内容</span>
-					<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">読み取り専用</span>
+					<Chip tone="default">読み取り専用</Chip>
 					{#if preview.truncated}
-						<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">先頭 256KB のみ</span>
+						<Chip tone="warm">先頭 256KB のみ</Chip>
 					{/if}
 					{#if preview.isBinary}
-						<span class="rounded-full border border-[var(--ag-border)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">バイナリ</span>
+						<Chip tone="default">バイナリ</Chip>
 					{/if}
 				</div>
 				{#if preview.isBinary}
