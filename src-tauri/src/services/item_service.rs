@@ -436,7 +436,12 @@ pub fn register_exe_item(
         aliases: vec![],
         sort_order: 0,
         is_enabled: true,
-        is_tracked: false,
+        // audit batch deferred (2026-05-13) #13: is_tracked=true で watched_path cascade に
+        // 載せる。 これで ExeFolder widget 削除 → cascadeRemoveWatchedPath → backend
+        // find_tracked_ids_under_path (is_tracked=1 filter) で漏れず Library item も削除される
+        // (Projects widget の auto_register_folder_items が is_tracked=true で動作している
+        // logic に横展開、 過去 PR の漏れを是正)。
+        is_tracked: true,
         default_app: None,
         card_override_json: None,
         created_at: String::new(),
