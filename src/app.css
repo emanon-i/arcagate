@@ -20,25 +20,27 @@
   --muted-foreground: var(--ag-text-muted);
   --border: var(--ag-border);
   --input: var(--ag-border);
-  --ring: var(--ag-border-hover);
-  /* shadcn-only: hover 輝度・primary の都合で静的値を維持 */
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --ring: var(--ag-accent);
+  /* audit 2026-05-13 Q9: shadcn `--primary` / `--accent` を arcagate theme token に bridge
+     (Codex Round 2 §7、 旧静的値で bg-primary / text-accent-foreground が theme 追従しない問題)。 */
+  --secondary: var(--ag-surface-3);
+  --secondary-foreground: var(--ag-text-primary);
+  --accent: var(--ag-accent);
+  --accent-foreground: var(--ag-accent-text);
+  --primary: var(--ag-accent);
+  --primary-foreground: var(--ag-accent-text);
   --destructive: oklch(0.577 0.245 27.325);
 }
 
 .dark {
-  /* dark mode 用の静的値（ag-* bridge 対象外の shadcn トークン） */
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* dark mode bridge (Q9): light と同じく ag-* tokens 経由、 dark mode の theme token は
+     arcagate-theme.css 側で .dark スコープに定義される。 */
+  --secondary: var(--ag-surface-3);
+  --secondary-foreground: var(--ag-text-primary);
+  --accent: var(--ag-accent);
+  --accent-foreground: var(--ag-accent-text);
+  --primary: var(--ag-accent);
+  --primary-foreground: var(--ag-accent-text);
   --destructive: oklch(0.704 0.191 22.216);
   /* native controls (select, scrollbar等) をダークモードで描画 */
   color-scheme: dark;
