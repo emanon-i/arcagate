@@ -37,33 +37,25 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
         updated_at: String::new(),
     };
 
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // audit 2026-05-13 F5: 手動 BEGIN/COMMIT/ROLLBACK を rusqlite::Transaction API に置換。
+    // 利点: Drop で auto-rollback (panic / early-return でも safe)、 commit 失敗時の
+    // diagnostics 明確化。 bulk_* と同じ pattern に統一。
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
 
-    conn.execute_batch("BEGIN")?;
-    let result = (|| -> Result<Item, AppError> {
-        item_repository::insert(&conn, &item)?;
+    item_repository::insert(&tx, &item)?;
 
-        // システムタグ自動付与（item_type別）
-        let sys_tag_id = tag::sys_type_tag_id(&input.item_type);
-        item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+    // システムタグ自動付与（item_type別）
+    let sys_tag_id = tag::sys_type_tag_id(&input.item_type);
+    item_repository::add_system_tag(&tx, &id, &sys_tag_id)?;
 
-        // ユーザー指定タグ
-        item_repository::set_tags(&conn, &id, &input.tag_ids)?;
+    // ユーザー指定タグ
+    item_repository::set_tags(&tx, &id, &input.tag_ids)?;
 
-        item_repository::find_by_id(&conn, &id)
-    })();
-
-    match &result {
-        Ok(_) => {
-            conn.execute_batch("COMMIT")?;
-            log::info!("item created: id={} label={}", id, item.label);
-        }
-        Err(_) => {
-            let _ = conn.execute_batch("ROLLBACK");
-        }
-    }
-
-    result
+    let created = item_repository::find_by_id(&tx, &id)?;
+    tx.commit()?;
+    log::info!("item created: id={} label={}", id, item.label);
+    Ok(created)
 }
 
 pub fn list_items(db: &DbState) -> Result<Vec<Item>, AppError> {
