@@ -7,6 +7,7 @@ import { revealInExplorer } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 
 /**
@@ -47,7 +48,7 @@ async function handleCopyPath(): Promise<void> {
 		await writeText(path);
 		toastStore.add('パスをコピーしました', 'success');
 	} catch (e: unknown) {
-		toastStore.add(`コピー失敗: ${String(e)}`, 'error');
+		toastStore.add(`コピー失敗: ${getErrorMessage(e)}`, 'error');
 	} finally {
 		onClose();
 	}
@@ -58,7 +59,7 @@ async function handleRevealInExplorer(): Promise<void> {
 	try {
 		await revealInExplorer(path);
 	} catch (e: unknown) {
-		toastStore.add(`Explorer で開く失敗: ${String(e)}`, 'error');
+		toastStore.add(`Explorer で開く失敗: ${getErrorMessage(e)}`, 'error');
 	} finally {
 		onClose();
 	}
@@ -72,7 +73,7 @@ async function handleDeleteItem(): Promise<void> {
 		await itemStore.loadItems();
 		toastStore.add(`${label} を削除しました`, 'info');
 	} catch (e: unknown) {
-		toastStore.add(`削除失敗: ${String(e)}`, 'error');
+		toastStore.add(`削除失敗: ${getErrorMessage(e)}`, 'error');
 	} finally {
 		onClose();
 	}
@@ -92,7 +93,7 @@ async function handleLaunchDefault(): Promise<void> {
 	try {
 		await launchItemWithCascade(item);
 	} catch (e: unknown) {
-		toastStore.add(`起動に失敗: ${String(e)}`, 'error');
+		toastStore.add(`起動に失敗: ${getErrorMessage(e)}`, 'error');
 	} finally {
 		onClose();
 	}
@@ -105,7 +106,7 @@ async function handleHideFromWidget(): Promise<void> {
 		await widgetItemHidesStore.add(widgetId, path);
 		toastStore.add('この widget から外しました', 'info');
 	} catch (e: unknown) {
-		toastStore.add(`非表示にできませんでした: ${String(e)}`, 'error');
+		toastStore.add(`非表示にできませんでした: ${getErrorMessage(e)}`, 'error');
 	} finally {
 		onClose();
 	}

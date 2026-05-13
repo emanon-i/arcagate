@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
 import { toastStore } from '$lib/state/toast.svelte';
+import { getErrorMessage } from '$lib/utils/format-error';
 
 /**
  * U-5: ImageScrap の設定 (画像 path 選択 + APPDATA コピー)。
@@ -24,7 +25,7 @@ async function pickFile(): Promise<void> {
 		const saved = await invoke<string>('cmd_save_image_scrap', { sourcePath: selected as string });
 		config = { ...config, path: saved };
 	} catch (e) {
-		toastStore.add(`画像の保存に失敗: ${String(e)}`, 'error');
+		toastStore.add(`画像の保存に失敗: ${getErrorMessage(e)}`, 'error');
 	} finally {
 		saving = false;
 	}

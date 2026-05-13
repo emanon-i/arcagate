@@ -6,6 +6,7 @@ import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSetti
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
 
@@ -51,7 +52,7 @@ async function handleDblClick(): Promise<void> {
 	try {
 		await invoke('cmd_open_path', { path: target });
 	} catch (e) {
-		toastStore.add(`画像を開けませんでした: ${String(e)}`, 'error');
+		toastStore.add(`画像を開けませんでした: ${getErrorMessage(e)}`, 'error');
 	}
 }
 </script>
