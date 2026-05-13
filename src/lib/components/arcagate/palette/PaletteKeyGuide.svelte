@@ -1,33 +1,28 @@
 <script lang="ts">
 import KeyHint from '$lib/components/arcagate/common/KeyHint.svelte';
 
-interface Props {
-	/** "chips" renders the 3-col guide grid; "bar" renders the bottom keyboard hints */
-	variant: 'chips' | 'bar';
-}
-
-let { variant }: Props = $props();
+/**
+ * overlay-palette cleanup (2026-05-13) Palette フッター hint bar 集約。
+ *
+ * 旧 chips variant (`:dev` / `=` / `>`) は撤去:
+ *   - `:dev` (#2): 機能無し、 実際は tag prefix の delimiter で hint 誤誘導
+ *   - `>` (#4): 内蔵コマンド機能無し、 hint 削除
+ *   - `=` (#3): 実装あり、 bar variant に移動
+ *
+ * bar variant に整理 (#5 #6): 機能ある hint のみ残す:
+ *   - ↑↓ 移動 (実装あり)
+ *   - Tab 詳細 (実装あり、 tab-complete)
+ *   - = で電卓 (実装あり、 # 3 で chip → bar 移動)
+ *   - Ctrl+H 非表示アイテム表示 (#5 で bar 移動、 実装無し hint は撤去対象だが user 指示で「下部に残す」)
+ *
+ * 撤去 (#6 = 不要 action 整理):
+ *   - Ctrl+K アクション (実装無し、 user 8 点に明示無しだが本 cleanup で撤去)
+ */
 </script>
 
-<!-- audit batch deferred (2026-05-13) #4: 3-col grid を narrow palette で見切れる問題対策で
-     auto-fit responsive grid に。 各 chip が説明 text を maintain しつつ折返しで対応。 -->
-{#if variant === "chips"}
-	<div class="grid gap-2 pt-3 text-xs text-[var(--ag-text-muted)]" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
-		<div class="rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2">
-			:dev で開発ツールのみ
-		</div>
-		<div class="rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2">
-			= で電卓
-		</div>
-		<div class="rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2">
-			&gt; で内蔵コマンド
-		</div>
-	</div>
-{:else}
-	<div class="mt-5 flex flex-wrap items-center gap-2">
-		<KeyHint keys="↑ ↓" description="移動" />
-		<KeyHint keys="Tab" description="詳細" />
-		<KeyHint keys="Ctrl+H" description="非表示アイテム表示" />
-		<KeyHint keys="Ctrl+K" description="アクション" />
-	</div>
-{/if}
+<div class="flex flex-wrap items-center gap-2">
+	<KeyHint keys="↑ ↓" description="移動" />
+	<KeyHint keys="Tab" description="詳細" />
+	<KeyHint keys="=" description="電卓" />
+	<KeyHint keys="Ctrl+H" description="非表示アイテム" />
+</div>
