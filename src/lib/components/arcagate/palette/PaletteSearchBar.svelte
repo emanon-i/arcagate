@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Globe, Search, X as XIcon } from '@lucide/svelte';
+import { Search, X as XIcon } from '@lucide/svelte';
 
 interface Props {
 	query?: string;
@@ -17,9 +17,12 @@ function handleInput(e: Event) {
 }
 </script>
 
-<div class="flex flex-wrap items-center gap-3 border-b border-[var(--ag-border)] pb-4">
+<!-- overlay-palette cleanup (2026-05-13) #8: 旧「Arcagate 全体を検索」 Globe icon badge を撤去。
+     search 中なのに再 search button が冗長 (user fb)、 input 1 個に集約。
+     縦幅圧縮: py-3 → py-2.5、 pb-4 → pb-3 で header / search の白い area を減らす (#7 連動)。 -->
+<div class="flex items-center gap-3 border-b border-[var(--ag-border)] pb-3">
 	<div
-		class="flex min-w-[280px] flex-1 items-center gap-3 rounded-2xl border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)]/60 px-4 py-3"
+		class="flex min-w-[280px] flex-1 items-center gap-3 rounded-2xl border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)]/60 px-4 py-2.5"
 	>
 		<Search class="h-5 w-5 text-[var(--ag-accent-text)]" />
 		<input
@@ -45,15 +48,5 @@ function handleInput(e: Event) {
 				<XIcon class="h-4 w-4" />
 			</button>
 		{/if}
-	</div>
-
-	<!-- audit batch (2026-05-13) #10: 「Arcagate 全体を検索」 Chip text を icon のみに縮小。
-	     accessible label は title + aria-label で保持、 narrow palette でも overflow しない。 -->
-	<div
-		class="flex shrink-0 items-center justify-center rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)]/60 p-2 text-[var(--ag-accent-text)]"
-		title="Arcagate 全体を検索"
-		aria-label="Arcagate 全体を検索"
-	>
-		<Globe class="h-4 w-4" />
 	</div>
 </div>

@@ -24,6 +24,10 @@ const dNormal = rm ? 0 : 200;
 
 let searchQuery = $state('');
 
+// overlay-palette cleanup (2026-05-13) #1: 初回は preview panel を出さない。
+// 検索中 (query 非空) or 結果有り のいずれかの時のみ右 panel 表示。
+let showPreview = $derived(searchQuery.length > 0 || paletteStore.results.length > 0);
+
 // Sync open state with paletteStore
 $effect(() => {
 	if (open && !paletteStore.isOpen) {
@@ -112,35 +116,66 @@ function handleKeydown(e: KeyboardEvent) {
 			     確実に rounded mask 内にクリップ。 -->
 			<div class="palette-glow pointer-events-none absolute inset-0 overflow-hidden rounded-[var(--ag-radius-palette)]"></div>
 
-			<!-- Header bar (fixed) -->
-			<div class="relative flex flex-shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
-				<div class="flex items-center gap-2 text-xs text-[var(--ag-text-muted)]">
-					<Command class="h-4 w-4" />
+			<!-- Header bar (fixed)。
+			     overlay-palette cleanup (2026-05-13) #7: 縦幅縮小、 py-3 → py-1.5 で白いエリア削減。
+			     font-size は §4-2 制約 (Tailwind scale 強制、 任意値禁止) で text-xs 維持、 padding のみで height 縮小。
+			     「Desktop Overlay Palette」 title は keep (識別性)、 hotkey chip 維持。 -->
+			<div class="relative flex flex-shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-4 py-1.5">
+				<div class="flex items-center gap-1.5 text-xs text-[var(--ag-text-muted)]">
+					<Command class="h-3 w-3" />
 					<span>Desktop Overlay Palette</span>
 				</div>
 				<div class="flex items-center gap-2">
-					<Chip tone="accent">Ctrl + Shift + Space</Chip>
+					<Chip tone="accent" size="sm">Ctrl + Shift + Space</Chip>
 				</div>
 			</div>
 
-			<!-- Content area (scrollable) -->
+			<!-- Content area (scrollable)。
+			     overlay-palette cleanup (2026-05-13) #7: p-4 md:p-8 → p-3 md:p-4 で内側余白圧縮。 -->
 			<div
-				class="relative min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-1)_100%)] p-4 md:p-8"
+				class="relative min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,var(--ag-surface-0)_0%,var(--ag-surface-1)_100%)] p-3 md:p-4"
 			>
 				<!-- Inner gradient -->
 				<div class="palette-glow pointer-events-none absolute inset-0"></div>
 
-				<!-- Inner container -->
+				<!-- Inner container。
+				     overlay-palette cleanup (2026-05-13) #7: p-5 → p-4 で内側余白圧縮。 -->
 				<div
-					class="relative mx-auto max-w-4xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+					class="relative mx-auto max-w-4xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/95 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl"
 				>
 					<!-- Search bar -->
 					<PaletteSearchBar bind:query={searchQuery} onSearch={handleSearch} />
 
-					<!-- 2-column grid: results + context -->
-					<div class="mt-5 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
-						<!-- Left: results + guide chips -->
-						<div id="palette-results" class="space-y-2" data-testid="palette-results" role="listbox" aria-label="検索結果">
+					<!-- overlay-palette cleanup (2026-05-13) #1: preview area conditional 表示。
+					     初回 (= no query + no results) は 1-col、 検索中 OR results 有り時のみ 2-col。
+					     overlay-palette cleanup #2 / #3 / #4: chips guide (`:dev` / `=` / `>` の 3 hint) 全削除、
+					     必要 hint は footer bar に統合。 -->
+					{#if showPreview}
+						<div class="mt-4 grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+							<div id="palette-results" class="space-y-2" data-testid="palette-results" role="listbox" aria-label="検索結果">
+								{#each paletteStore.results as entry, index (index)}
+									<PaletteResultRow
+										{entry}
+										{index}
+										active={index === paletteStore.selectedIndex}
+										onclick={() => {
+											void paletteStore.launch(entry);
+											close();
+										}}
+									/>
+								{/each}
+								{#if paletteStore.results.length === 0}
+									<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">
+										{searchQuery ? '一致する結果がありません' : '最近の起動履歴がありません'}
+									</div>
+								{/if}
+							</div>
+
+							<PaletteQuickContext />
+						</div>
+					{:else}
+						<!-- 初回 (query 空 + results 空): list area のみ縦並び、 preview panel 非表示。 -->
+						<div id="palette-results" class="mt-4 space-y-2" data-testid="palette-results" role="listbox" aria-label="検索結果">
 							{#each paletteStore.results as entry, index (index)}
 								<PaletteResultRow
 									{entry}
@@ -153,23 +188,18 @@ function handleKeydown(e: KeyboardEvent) {
 								/>
 							{/each}
 							{#if paletteStore.results.length === 0}
-								<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">
-									{searchQuery ? '一致する結果がありません' : '最近の起動履歴がありません'}
-								</div>
+								<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">最近の起動履歴がありません</div>
 							{/if}
-
-							<PaletteKeyGuide variant="chips" />
 						</div>
-
-						<!-- Right: quick context -->
-						<PaletteQuickContext />
-					</div>
+					{/if}
 				</div>
 			</div>
 
-			<!-- Footer bar (fixed) -->
-			<div class="relative flex-shrink-0 border-t border-[var(--ag-border)] px-5 py-3">
-				<PaletteKeyGuide variant="bar" />
+			<!-- Footer bar (fixed)。
+			     overlay-palette cleanup (2026-05-13) #6: 縦幅 py-3 → py-2、 horizontal padding px-5 → px-4 で
+			     下部 area の幅広 layout を整理。 hint は機能あるもののみ (#3 = 電卓 + #5 Ctrl+H + ↑↓ + Tab) に集約。 -->
+			<div class="relative flex-shrink-0 border-t border-[var(--ag-border)] px-4 py-2">
+				<PaletteKeyGuide />
 			</div>
 		</div>
 	</div>
