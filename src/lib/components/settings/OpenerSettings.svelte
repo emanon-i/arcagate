@@ -12,13 +12,8 @@
 import { Pencil, Plus, Trash2 } from '@lucide/svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { Button } from '$lib/components/ui/button';
-import {
-	deleteOpener,
-	listOpeners,
-	type Opener,
-	type SaveOpenerInput,
-	saveOpener,
-} from '$lib/ipc/opener';
+import { deleteOpener, type Opener, type SaveOpenerInput, saveOpener } from '$lib/ipc/opener';
+import { openersStore } from '$lib/state/openers.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 
@@ -32,10 +27,11 @@ let formCommand = $state('');
 let builtins = $derived(all.filter((o) => o.is_builtin));
 let customs = $derived(all.filter((o) => !o.is_builtin));
 
+// audit 2026-05-13 G4: shared openersStore 経由 (CRUD 後は invalidate() で次回 fresh 取得)。
 async function refresh() {
 	loading = true;
 	try {
-		all = await listOpeners();
+		all = await openersStore.load(true);
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: 'Opener 一覧の取得' }, e), 'error');
 	} finally {
@@ -91,6 +87,8 @@ async function handleSubmit(e: Event) {
 	};
 	try {
 		await saveOpener(input);
+		// audit G4: CRUD 後 invalidate (Codex pitfall P3 必須)、 store consumer も次回 fresh 取得。
+		openersStore.invalidate();
 		toastStore.add(`${trimmedName} を保存しました`, 'success');
 		cancelForm();
 		await refresh();
@@ -103,6 +101,8 @@ async function handleDelete(o: Opener) {
 	if (!confirm(`${o.name} を削除しますか?`)) return;
 	try {
 		await deleteOpener(o.id);
+		// audit G4: CRUD 後 invalidate (Codex pitfall P3 必須)。
+		openersStore.invalidate();
 		toastStore.add(`${o.name} を削除しました`, 'info');
 		if (editing?.id === o.id) cancelForm();
 		await refresh();

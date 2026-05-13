@@ -382,9 +382,10 @@ class WorkspaceWidgets {
 			.map((id) => this.widgets.find((w) => w.id === id))
 			.filter((w): w is WorkspaceWidget => w !== undefined);
 		try {
-			for (const t of targets) {
-				await workspaceIpc.removeWidget(t.id);
-			}
+			// audit 2026-05-13 G3a: sequential await → Promise.all 並列化。
+			// 既存 persistWidgetOrder pattern と整合、 backend batch command 不要 (Codex Round 2 concede)。
+			// undo/redo 契約 (`kind: 'batch'`) は entries array 構築で維持、 race risk なし。
+			await Promise.all(targets.map((t) => workspaceIpc.removeWidget(t.id)));
 			const removedSet = new Set(targets.map((t) => t.id));
 			const remaining = this.widgets.filter((w) => !removedSet.has(w.id));
 			this.widgets = remaining;
@@ -581,9 +582,12 @@ class WorkspaceWidgets {
 			return u ? { ...w, position_x: u.x, position_y: u.y } : w;
 		});
 		try {
-			for (const t of ts) {
-				await workspaceIpc.updateWidgetPosition(t.src.id, t.toX, t.toY, t.src.width, t.src.height);
-			}
+			// audit 2026-05-13 G3a: sequential await → Promise.all 並列化 (multi-widget move)。
+			await Promise.all(
+				ts.map((t) =>
+					workspaceIpc.updateWidgetPosition(t.src.id, t.toX, t.toY, t.src.width, t.src.height),
+				),
+			);
 			const moveEntries: SimpleHistoryEntry[] = ts
 				.filter((t) => t.src.position_x !== t.toX || t.src.position_y !== t.toY)
 				.map((t) => ({

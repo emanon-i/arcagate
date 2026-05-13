@@ -1,6 +1,6 @@
 <script lang="ts">
+import Switch from '$lib/components/common/Switch.svelte';
 import { configStore } from '$lib/state/config.svelte';
-import AutostartToggle from './AutostartToggle.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
 import UpdaterSettings from './UpdaterSettings.svelte';
 
@@ -42,9 +42,10 @@ import UpdaterSettings from './UpdaterSettings.svelte';
 			<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">ログイン時に自動的に起動する</p>
 		</div>
 		<div class="shrink-0">
-			<AutostartToggle
-				enabled={configStore.autostart}
+			<Switch
+				checked={configStore.autostart}
 				onChange={(enabled) => configStore.saveAutostart(enabled)}
+				aria-label={configStore.autostart ? '自動起動を無効にする' : '自動起動を有効にする'}
 			/>
 		</div>
 	</div>

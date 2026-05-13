@@ -26,6 +26,7 @@ import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { widgetMenuItems } from '../_shared/menu-items';
@@ -92,7 +93,7 @@ async function persistConfig(next: ItemWidgetConfig) {
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
-		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
+		toastStore.add(`設定保存失敗: ${getErrorMessage(e)}`, 'error');
 	}
 }
 
@@ -122,7 +123,7 @@ async function pickerSelectMany(items: Item[]) {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
 		toastStore.add(`${added} 件のアイテムを追加しました`, 'success');
 	} catch (e: unknown) {
-		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
+		toastStore.add(`設定保存失敗: ${getErrorMessage(e)}`, 'error');
 	}
 }
 
@@ -139,7 +140,7 @@ async function pickerSelectSingle(item: Item) {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
 		toastStore.add(`${item.label} を追加しました`, 'success');
 	} catch (e: unknown) {
-		toastStore.add(`設定保存失敗: ${String(e)}`, 'error');
+		toastStore.add(`設定保存失敗: ${getErrorMessage(e)}`, 'error');
 	}
 }
 

@@ -3,13 +3,14 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
-import { listOpeners, type Opener } from '$lib/ipc/opener';
+import type { Opener } from '$lib/ipc/opener';
 import {
 	configStore,
 	type LibraryCardBackgroundConfig,
 	type LibraryCardStyleConfig,
 } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { openersStore } from '$lib/state/openers.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { type CardOverrideJson, parseCardOverride } from '$lib/utils/card-override';
@@ -43,15 +44,12 @@ interface Props {
 
 let { item }: Props = $props();
 
+// audit 2026-05-13 G4: shared openersStore 経由 fetch。
 let openers = $state<Opener[]>([]);
 onMount(() => {
-	void listOpeners()
-		.then((list) => {
-			openers = list;
-		})
-		.catch(() => {
-			// best-effort
-		});
+	void openersStore.load().then((list) => {
+		openers = list;
+	});
 });
 
 let cardOverride = $derived(parseCardOverride(item.card_override_json));

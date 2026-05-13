@@ -61,6 +61,11 @@ pre-commit:
       # (WidgetShell + widgetMenuItems + WidgetSettingsDialog) に従っているか検証。
       glob: "src/lib/widgets/**/*Widget.svelte"
       run: bash scripts/audit-widget-shell.sh
+    error-format:
+      # audit 2026-05-13 F13: toastStore.add(`...: ${String(e)}`, 'error') を検出。
+      # AppError は { code, message } で String(e) だと [object Object]、 getErrorMessage(e) 経由必須。
+      glob: "src/**/*.{svelte,ts}"
+      run: bash scripts/audit-error-format.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

@@ -46,13 +46,18 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Tag>, AppError> {
 }
 
 pub fn find_all_with_counts(conn: &Connection) -> Result<Vec<TagWithCount>, AppError> {
+    // audit 2026-05-13 F1: N-subquery を single LEFT JOIN + GROUP BY に書換 (50 tag で 50 COUNT
+    // subquery → 1 query)。 Codex pitfall P1: LEFT JOIN 必須 — INNER JOIN だと count=0 の
+    // tag (sys-type-* 等 enabled item 無し) が drop される。 enabled item のみ count するため
+    // ON clause で is_enabled=1 を絞り込み (WHERE では join 後絞り込み = LEFT JOIN 意味消失)。
     let mut stmt = conn.prepare(
         "SELECT t.id, t.name, t.is_system, t.prefix, t.icon,
-                (SELECT COUNT(*) FROM item_tags it
-                 INNER JOIN items i ON i.id = it.item_id
-                 WHERE it.tag_id = t.id AND i.is_enabled = 1) AS item_count
+                COUNT(i.id) AS item_count
          FROM tags t
+         LEFT JOIN item_tags it ON it.tag_id = t.id
+         LEFT JOIN items i ON i.id = it.item_id AND i.is_enabled = 1
          WHERE t.is_hidden = 0
+         GROUP BY t.id, t.name, t.is_system, t.prefix, t.icon, t.sort_order
          ORDER BY t.sort_order, t.name",
     )?;
     let tags = stmt

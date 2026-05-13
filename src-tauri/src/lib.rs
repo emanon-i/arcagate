@@ -107,9 +107,23 @@ pub fn run() {
                     tauri_plugin_log::TargetKind::Stdout,
                 ));
             }
+            // audit 2026-05-13 Q10: production observability runtime knob。
+            // ARCAGATE_LOG_LEVEL 環境変数で Info → Debug / Trace 切替可能
+            // (デフォルト Info 維持、 trouble shooting 時のみ debug 起動)。
+            let log_level = std::env::var("ARCAGATE_LOG_LEVEL")
+                .ok()
+                .and_then(|s| match s.to_lowercase().as_str() {
+                    "trace" => Some(log::LevelFilter::Trace),
+                    "debug" => Some(log::LevelFilter::Debug),
+                    "info" => Some(log::LevelFilter::Info),
+                    "warn" => Some(log::LevelFilter::Warn),
+                    "error" => Some(log::LevelFilter::Error),
+                    _ => None,
+                })
+                .unwrap_or(log::LevelFilter::Info);
             app.handle().plugin(
                 tauri_plugin_log::Builder::default()
-                    .level(log::LevelFilter::Info)
+                    .level(log_level)
                     .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(7))
                     .max_file_size(5 * 1024 * 1024)
                     .targets(log_targets)

@@ -37,33 +37,25 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
         updated_at: String::new(),
     };
 
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // audit 2026-05-13 F5: 手動 BEGIN/COMMIT/ROLLBACK を rusqlite::Transaction API に置換。
+    // 利点: Drop で auto-rollback (panic / early-return でも safe)、 commit 失敗時の
+    // diagnostics 明確化。 bulk_* と同じ pattern に統一。
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
 
-    conn.execute_batch("BEGIN")?;
-    let result = (|| -> Result<Item, AppError> {
-        item_repository::insert(&conn, &item)?;
+    item_repository::insert(&tx, &item)?;
 
-        // システムタグ自動付与（item_type別）
-        let sys_tag_id = tag::sys_type_tag_id(&input.item_type);
-        item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+    // システムタグ自動付与（item_type別）
+    let sys_tag_id = tag::sys_type_tag_id(&input.item_type);
+    item_repository::add_system_tag(&tx, &id, &sys_tag_id)?;
 
-        // ユーザー指定タグ
-        item_repository::set_tags(&conn, &id, &input.tag_ids)?;
+    // ユーザー指定タグ
+    item_repository::set_tags(&tx, &id, &input.tag_ids)?;
 
-        item_repository::find_by_id(&conn, &id)
-    })();
-
-    match &result {
-        Ok(_) => {
-            conn.execute_batch("COMMIT")?;
-            log::info!("item created: id={} label={}", id, item.label);
-        }
-        Err(_) => {
-            let _ = conn.execute_batch("ROLLBACK");
-        }
-    }
-
-    result
+    let created = item_repository::find_by_id(&tx, &id)?;
+    tx.commit()?;
+    log::info!("item created: id={} label={}", id, item.label);
+    Ok(created)
 }
 
 pub fn list_items(db: &DbState) -> Result<Vec<Item>, AppError> {
@@ -124,7 +116,17 @@ pub fn search_items(db: &DbState, query: &str) -> Result<Vec<Item>, AppError> {
                 updated_at: row.get(15)?,
             })
         })?;
-        let workspace_items: Vec<Item> = rows.filter_map(|r| r.ok()).collect();
+        // audit 2026-05-13 F2: row parse 失敗を silent drop していたが、 schema mismatch / NULL violation
+        // 等は log で見える状態にする (best-effort 維持で続行、 ただし観測可能に)。
+        let workspace_items: Vec<Item> = rows
+            .filter_map(|r| match r {
+                Ok(item) => Some(item),
+                Err(e) => {
+                    log::warn!("search_items: workspace row parse failed (dropped): {}", e);
+                    None
+                }
+            })
+            .collect();
         // 既存 items に含まれない workspace item を append (dedup)。
         let existing_ids: std::collections::HashSet<String> =
             items.iter().map(|i| i.id.clone()).collect();
@@ -231,13 +233,14 @@ pub fn bulk_add_tag(
     }
     let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let tx = conn.transaction()?;
-    let mut count = 0;
+    let mut count = 0usize;
     for item_id in &item_ids {
-        tx.execute(
+        // audit 2026-05-13 F3: tx.execute() の affected rows を加算 (INSERT OR IGNORE で既存
+        // 付与済 item は 0 行 affected → count に加えない)。 user 表示の「新規付与件数」 正確化。
+        count += tx.execute(
             "INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
             rusqlite::params![item_id, tag_id],
         )?;
-        count += 1;
     }
     tx.commit()?;
     Ok(count)
@@ -259,13 +262,13 @@ pub fn bulk_remove_tag(
     }
     let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let tx = conn.transaction()?;
-    let mut count = 0;
+    let mut count = 0usize;
     for item_id in &item_ids {
-        tx.execute(
+        // audit 2026-05-13 F3: affected rows 加算 (該当 (item_id, tag_id) pair なし → 0 行)。
+        count += tx.execute(
             "DELETE FROM item_tags WHERE item_id = ?1 AND tag_id = ?2",
             rusqlite::params![item_id, tag_id],
         )?;
-        count += 1;
     }
     tx.commit()?;
     Ok(count)
@@ -283,13 +286,13 @@ pub fn bulk_delete_items(db: &DbState, item_ids: Vec<String>) -> Result<usize, A
     }
     let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let tx = conn.transaction()?;
-    let mut count = 0;
+    let mut count = 0usize;
     for item_id in &item_ids {
-        tx.execute(
+        // audit 2026-05-13 F3: affected rows 加算 (非存在 id → 0 行)。
+        count += tx.execute(
             "DELETE FROM items WHERE id = ?1",
             rusqlite::params![item_id],
         )?;
-        count += 1;
     }
     tx.commit()?;
     Ok(count)

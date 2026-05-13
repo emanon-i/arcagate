@@ -74,12 +74,28 @@ function isOverDropZone(clientX: number, clientY: number): boolean {
 $effect(() => {
 	if (!pointerDrag.active) return;
 
-	function onMove(e: PointerEvent) {
-		pointerDrag.move(e.clientX, e.clientY);
-		if (isOverDropZone(e.clientX, e.clientY)) {
-			pointerDrag.setDropCell(calcDropCell(e.clientX, e.clientY));
+	// audit 2026-05-13 F8: getBoundingClientRect() を pointermove 内 3 回呼出 (60 FPS で 180 query/s)
+	// を rAF (= 表示 refresh と同期) に throttle。 60 → 60 Hz は変わらないが、 各 frame で
+	// 最新 client 座標だけ処理 (中間値捨て)、 layout thrashing 回避。
+	let rafId: number | null = null;
+	let pendingX = 0;
+	let pendingY = 0;
+
+	function processMove() {
+		rafId = null;
+		pointerDrag.move(pendingX, pendingY);
+		if (isOverDropZone(pendingX, pendingY)) {
+			pointerDrag.setDropCell(calcDropCell(pendingX, pendingY));
 		} else {
 			pointerDrag.setDropCell(null);
+		}
+	}
+
+	function onMove(e: PointerEvent) {
+		pendingX = e.clientX;
+		pendingY = e.clientY;
+		if (rafId === null) {
+			rafId = requestAnimationFrame(processMove);
 		}
 	}
 
@@ -150,6 +166,8 @@ $effect(() => {
 	document.addEventListener('pointercancel', onUp);
 
 	return () => {
+		// audit F8: rAF in-flight cleanup (drag 中に effect 解除されても dangling frame 残らない)。
+		if (rafId !== null) cancelAnimationFrame(rafId);
 		document.removeEventListener('pointermove', onMove);
 		document.removeEventListener('pointerup', onUp);
 		document.removeEventListener('pointercancel', onUp);
@@ -264,7 +282,8 @@ $effect(() => {
 			{@const cell = pointerDrag.dropCell}
 			{@const previewSize =
 				pointerDrag.active.kind === 'add'
-					? (widgetRegistry[pointerDrag.active.widgetType]?.defaultSize ?? { w: 2, h: 2 })
+					? (widgetRegistry[pointerDrag.active.widgetType]?.minViableSize ??
+						widgetRegistry[pointerDrag.active.widgetType]?.defaultSize ?? { w: 2, h: 2 })
 					: (() => {
 							const moving = workspaceStore.widgets.find(
 								(w) => pointerDrag.active?.kind === 'move' && w.id === pointerDrag.active.widgetId,

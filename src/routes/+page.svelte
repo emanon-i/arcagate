@@ -26,6 +26,7 @@ import { startUpdaterAutoCheck } from '$lib/state/updater.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
+import { getErrorMessage } from '$lib/utils/format-error';
 import { loadString, saveString } from '$lib/utils/local-storage';
 
 type ActiveView = 'library' | 'workspace';
@@ -181,7 +182,7 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 			try {
 				await addImageScrapWidget(path);
 			} catch (e) {
-				toastStore.add(`画像の配置に失敗: ${String(e)}`, 'error');
+				toastStore.add(`画像の配置に失敗: ${getErrorMessage(e)}`, 'error');
 			}
 			return;
 		}
@@ -198,7 +199,7 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 			try {
 				await addFilePreviewWidget(path);
 			} catch (e) {
-				toastStore.add(`ファイルの配置に失敗: ${String(e)}`, 'error');
+				toastStore.add(`ファイルの配置に失敗: ${getErrorMessage(e)}`, 'error');
 			}
 			return;
 		}
@@ -233,7 +234,7 @@ async function handleDupSecondary(): Promise<void> {
 		try {
 			await action();
 		} catch (e) {
-			toastStore.add(`widget 追加に失敗: ${String(e)}`, 'error');
+			toastStore.add(`widget 追加に失敗: ${getErrorMessage(e)}`, 'error');
 		}
 	}
 }

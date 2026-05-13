@@ -1,5 +1,5 @@
 <script lang="ts">
-import AutostartToggle from '$lib/components/settings/AutostartToggle.svelte';
+import Switch from '$lib/components/common/Switch.svelte';
 import { configStore } from '$lib/state/config.svelte';
 
 let { onNext, onBack }: { onNext: () => void; onBack: () => void } = $props();
@@ -10,7 +10,11 @@ let { onNext, onBack }: { onNext: () => void; onBack: () => void } = $props();
   <p class="text-sm text-muted-foreground mb-6">
     Windows 起動時に Arcagate を自動起動するか設定してください。
   </p>
-  <AutostartToggle enabled={configStore.autostart} onChange={(v) => configStore.saveAutostart(v)} />
+  <Switch
+    checked={configStore.autostart}
+    onChange={(v) => configStore.saveAutostart(v)}
+    aria-label={configStore.autostart ? '自動起動を無効にする' : '自動起動を有効にする'}
+  />
   <div class="mt-8 flex justify-between">
     <button
       type="button"

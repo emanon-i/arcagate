@@ -7,6 +7,7 @@ import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { CreateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
+import { getErrorMessage } from '$lib/utils/format-error';
 
 /**
  * U-2 (2026-05-12): screens-and-flows.md Library § 仕様
@@ -48,7 +49,7 @@ async function pickAndParse() {
 			toastStore.add('URL が見つかりませんでした', 'info');
 		}
 	} catch (e) {
-		toastStore.add(`読み込み失敗: ${String(e)}`, 'error');
+		toastStore.add(`読み込み失敗: ${getErrorMessage(e)}`, 'error');
 	} finally {
 		parsing = false;
 	}
