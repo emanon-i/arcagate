@@ -20,8 +20,9 @@ import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import { Button } from '$lib/components/ui/button';
-import { listOpeners, type Opener } from '$lib/ipc/opener';
+import type { Opener } from '$lib/ipc/opener';
 import { itemStore } from '$lib/state/items.svelte';
+import { openersStore } from '$lib/state/openers.svelte';
 import type { Item } from '$lib/types/item';
 
 interface Props {
@@ -39,15 +40,12 @@ let { config = $bindable() }: Props = $props();
 let pickerOpen = $state(false);
 
 // C-15 #19: Opener 一覧 (widget default opener select 用)。
+// audit 2026-05-13 G4: shared openersStore 経由で fetch (5 file 集約)。
 let openers = $state<Opener[]>([]);
 onMount(() => {
-	void listOpeners()
-		.then((list) => {
-			openers = list;
-		})
-		.catch(() => {
-			// best-effort
-		});
+	void openersStore.load().then((list) => {
+		openers = list;
+	});
 });
 
 let itemIds = $derived.by<string[]>(() => config.item_ids ?? []);

@@ -5,7 +5,8 @@
  * C-15 #19: default_opener_id field 追加 (cascade で widget レベルの起動アプリ default)。
  */
 import { onMount } from 'svelte';
-import { listOpeners, type Opener } from '$lib/ipc/opener';
+import type { Opener } from '$lib/ipc/opener';
+import { openersStore } from '$lib/state/openers.svelte';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
 
 const DESCRIPTION_MAX = 120;
@@ -29,15 +30,12 @@ let exeFolderTitle = $derived(config.title ?? '');
 let exeDescription = $derived(config.description ?? '');
 
 // C-15 #19: Opener 一覧 (widget default opener select 用)。
+// audit 2026-05-13 G4: shared openersStore 経由 fetch。
 let openers = $state<Opener[]>([]);
 onMount(() => {
-	void listOpeners()
-		.then((list) => {
-			openers = list;
-		})
-		.catch(() => {
-			// best-effort
-		});
+	void openersStore.load().then((list) => {
+		openers = list;
+	});
 });
 </script>
 

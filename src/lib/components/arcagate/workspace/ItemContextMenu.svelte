@@ -14,7 +14,8 @@
 import { Check, Settings2 } from '@lucide/svelte';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import { updateItem } from '$lib/ipc/items';
-import { launchWithOpener, listOpeners, type Opener } from '$lib/ipc/opener';
+import { launchWithOpener, type Opener } from '$lib/ipc/opener';
+import { openersStore } from '$lib/state/openers.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { formatLaunchError } from '$lib/utils/launch-error';
@@ -38,7 +39,9 @@ let loading = $state(false);
 $effect(() => {
 	if (!open) return;
 	loading = true;
-	void listOpeners()
+	// audit 2026-05-13 G4: shared openersStore 経由 fetch。
+	void openersStore
+		.load()
 		.then((list) => {
 			openers = list;
 		})
