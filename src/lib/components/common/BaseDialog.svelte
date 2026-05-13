@@ -110,6 +110,14 @@ $effect(() => {
 		previousFocus = (document.activeElement as HTMLElement) ?? null;
 		void tick().then(() => {
 			if (!dialogEl) return;
+			// audit 2026-05-13 Codex Round 3 fix: caller の autofocus / data-autofocus 属性を
+			// 尊重 (ThreeOptionDialog 等の「primary default focus」 contract 維持)、
+			// 無ければ最初の focusable。
+			const explicit = dialogEl.querySelector<HTMLElement>('[data-autofocus], [autofocus]') ?? null;
+			if (explicit) {
+				explicit.focus();
+				return;
+			}
 			const focusables = getFocusableElements(dialogEl);
 			if (focusables.length > 0) focusables[0].focus();
 			else dialogEl.focus();

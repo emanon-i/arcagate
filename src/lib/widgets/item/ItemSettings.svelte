@@ -41,11 +41,18 @@ let pickerOpen = $state(false);
 
 // C-15 #19: Opener 一覧 (widget default opener select 用)。
 // audit 2026-05-13 G4: shared openersStore 経由で fetch (5 file 集約)。
+// Codex Round 3 fix: error 時は best-effort で空 list 維持 (widget level UI で fatal 化しない)。
 let openers = $state<Opener[]>([]);
 onMount(() => {
-	void openersStore.load().then((list) => {
-		openers = list;
-	});
+	openersStore
+		.load()
+		.then((list) => {
+			openers = list;
+		})
+		.catch(() => {
+			// best-effort: opener fetch 失敗時は widget の opener select が出ないだけ、
+			// OpenerSettings (CRUD 経路) で error UI を出すので個別 widget 設定では黙殺 OK。
+		});
 });
 
 let itemIds = $derived.by<string[]>(() => config.item_ids ?? []);
