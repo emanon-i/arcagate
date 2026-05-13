@@ -1,7 +1,7 @@
 <script lang="ts">
 /**
  * PH-issue-026 (Issue 23): 汎用 switch component。
- * AutostartToggle と同じ pattern (button + role="switch" + thumb translate)。
+ * audit 2026-05-13 F10: 旧 AutostartToggle.svelte は vestigial artifact として削除済 (本 Switch に統合)。
  *
  * 引用元 guideline:
  * - docs/desktop_ui_ux_agent_rules.md P1 (操作可視化、状態が一目で分かる) / P2 (反応即時) / P4 (一貫性)
