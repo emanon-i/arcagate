@@ -10,6 +10,7 @@ use super::metadata_service::MetadataService;
 use super::opener_service::OpenerService;
 use super::theme_service::ThemeService;
 use super::watched_path_service::WatchedPathService;
+use super::widget_item_hides_service::WidgetItemHidesService;
 use super::workspace_service::WorkspaceService;
 
 /// V1 解消 (A3 PR-A、B1 対処): 全 DB 系 service struct を集約。
@@ -26,6 +27,7 @@ pub struct AppServices {
     pub export: ExportService,
     pub opener: OpenerService,
     pub watched_path: WatchedPathService,
+    pub widget_item_hides: WidgetItemHidesService,
 }
 
 impl AppServices {
@@ -40,6 +42,7 @@ impl AppServices {
             export: ExportService::new(db.clone()),
             opener: OpenerService::new(db.clone()),
             watched_path: WatchedPathService::new(db.clone()),
+            widget_item_hides: WidgetItemHidesService::new(db.clone()),
             db,
         }
     }
