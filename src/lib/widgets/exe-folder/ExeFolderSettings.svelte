@@ -31,11 +31,17 @@ let exeDescription = $derived(config.description ?? '');
 
 // C-15 #19: Opener 一覧 (widget default opener select 用)。
 // audit 2026-05-13 G4: shared openersStore 経由 fetch。
+// Codex Round 3 fix: error 時は best-effort (空 list)。
 let openers = $state<Opener[]>([]);
 onMount(() => {
-	void openersStore.load().then((list) => {
-		openers = list;
-	});
+	openersStore
+		.load()
+		.then((list) => {
+			openers = list;
+		})
+		.catch(() => {
+			// best-effort: OpenerSettings 経路で error UI を出す。
+		});
 });
 </script>
 

@@ -120,7 +120,17 @@ $effect(() => {
 		return calcDropCell(cx, cy);
 	}
 
-	function onUp(_e: PointerEvent) {
+	function onUp(e: PointerEvent) {
+		// audit 2026-05-13 Codex Round 3 fix: pending rAF を flush してから dropCell 読込。
+		// 旧: rAF が pending のまま onUp 発火 → stale dropCell で誤位置 commit (very fast release)。
+		// 新: pending あれば cancel + 同期 process で最新 client 座標を反映。
+		if (rafId !== null) {
+			cancelAnimationFrame(rafId);
+			rafId = null;
+			pendingX = e.clientX;
+			pendingY = e.clientY;
+			processMove();
+		}
 		const cell = pointerDrag.dropCell;
 		const src = pointerDrag.active;
 		pointerDrag.end();
