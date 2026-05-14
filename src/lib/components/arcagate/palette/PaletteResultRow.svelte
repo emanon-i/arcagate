@@ -3,6 +3,7 @@ import { Calculator, Clipboard } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { typeAccentMap, typeIconMap } from '$lib/constants/item-type';
+import { t } from '$lib/i18n.svelte';
 import type { PaletteEntry } from '$lib/types/palette';
 
 interface Props {
@@ -84,7 +85,7 @@ let display = $derived(getDisplay(entry));
 	<div class="text-right">
 		<div class="text-xs text-[var(--ag-text-muted)]">{display.meta}</div>
 		{#if active}
-			<div class="mt-1 text-xs text-[var(--ag-accent-text)]">Enter で起動</div>
+			<div class="mt-1 text-xs text-[var(--ag-accent-text)]">{t('palette.launch_hint')}</div>
 		{/if}
 	</div>
 </div>
