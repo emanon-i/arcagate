@@ -23,12 +23,17 @@ import { addWidget, createWorkspace, listWidgets, listWorkspaces } from '../help
 test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)', () => {
 	// 後続 spec (smoke) が `default activeView = 'library'` 前提で動くため、Workspace
 	// 操作した test の後に必ず Library tab に戻す。
+	// audit 2026-05-14 rank 10: hard sleep waitForTimeout(300) を signal wait に置換、
+	// Library wrapper (= data-testid="library-main-wrapper") の visible 待ち。
 	test.afterEach(async ({ page }) => {
 		await page
 			.getByRole('button', { name: 'Library', exact: true })
 			.click()
 			.catch(() => {});
-		await page.waitForTimeout(300);
+		await page
+			.getByTestId('library-main-wrapper')
+			.waitFor({ state: 'visible', timeout: 3_000 })
+			.catch(() => {});
 	});
 
 	test('ItemFormDialog: 「アイテムを追加」 button click で開く + Escape で閉じる', async ({
@@ -69,7 +74,9 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 			await page.reload();
 			await page.locator('main').first().waitFor({ state: 'visible' });
 			await page.getByRole('button', { name: 'Workspace', exact: true }).click();
-			await page.waitForTimeout(800);
+			// audit 2026-05-14 rank 10: hard sleep waitForTimeout(800) を signal wait に置換、
+			// Workspace canvas toolbar の visible 待ち (canvas mount 完了 signal)。
+			await page.getByTestId('canvas-toolbar').waitFor({ state: 'visible', timeout: 5_000 });
 
 			// 単一 menu item の時 directly button "設定" として render される (WidgetShell)
 			await page.locator('button[aria-label="設定"]').first().click();
@@ -104,7 +111,8 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 		await page.reload();
 		await page.locator('main').first().waitFor({ state: 'visible' });
 		await page.getByRole('button', { name: 'Workspace', exact: true }).click();
-		await page.waitForTimeout(800);
+		// audit 2026-05-14 rank 10: signal wait に置換。
+		await page.getByTestId('canvas-toolbar').waitFor({ state: 'visible', timeout: 5_000 });
 
 		await page.getByRole('button', { name: 'このワークスペースの壁紙を設定' }).first().click();
 		const dialog = page.getByRole('dialog', { name: /の壁紙/ }).first();
