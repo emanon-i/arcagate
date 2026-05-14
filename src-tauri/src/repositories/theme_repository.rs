@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 
 use crate::models::theme::{Theme, UpdateThemeInput};
-use crate::utils::error::AppError;
+use crate::utils::error::{AppError, ToAppError};
 
 pub fn insert(conn: &Connection, theme: &Theme) -> Result<(), AppError> {
     conn.execute(
@@ -18,16 +18,13 @@ pub fn insert(conn: &Connection, theme: &Theme) -> Result<(), AppError> {
 }
 
 pub fn find_by_id(conn: &Connection, id: &str) -> Result<Theme, AppError> {
-    let result = conn.query_row(
+    // audit F9: ToAppError trait 経由。
+    conn.query_row(
         "SELECT id, name, base_theme, css_vars, is_builtin, created_at, updated_at FROM themes WHERE id = ?1",
         params![id],
         Theme::from_row,
-    );
-    match result {
-        Ok(theme) => Ok(theme),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
-        Err(e) => Err(AppError::Database(e)),
-    }
+    )
+    .to_not_found(id)
 }
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Theme>, AppError> {

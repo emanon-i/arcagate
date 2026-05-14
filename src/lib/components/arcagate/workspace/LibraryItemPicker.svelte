@@ -1,9 +1,8 @@
 <script lang="ts">
 import { Search, Star } from '@lucide/svelte';
-import { cubicOut } from 'svelte/easing';
-import { fade, scale } from 'svelte/transition';
 import LibraryCard from '$lib/components/arcagate/library/LibraryCard.svelte';
 import { getSizeClasses } from '$lib/components/arcagate/library/library-card-sizes';
+import BaseDialog from '$lib/components/common/BaseDialog.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -46,10 +45,8 @@ let sortKey = $state<SortKey>('name-asc');
 let page = $state(0);
 const PAGE_SIZE = 50;
 
-const rm =
-	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const dFast = rm ? 0 : 120;
-const dNormal = rm ? 0 : 200;
+// audit 2026-05-14 G1: BaseDialog 経由に migration、 transition / motion-reduce / Escape / backdrop
+// 全て BaseDialog 内蔵。 disableFocusTrap=true で search input 常時 focus 維持 contract 保持。
 
 // 150ms debounce
 $effect(() => {
@@ -164,27 +161,17 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 };
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-	role="dialog"
-	aria-modal="true"
-	aria-label="アイテム選択"
-	tabindex="-1"
-	transition:fade={{ duration: dFast }}
-	onclick={(e) => {
-		if (e.target === e.currentTarget) onClose();
-	}}
-	onkeydown={(e) => {
-		if (e.key === 'Escape') onClose();
-	}}
+<!-- audit 2026-05-14 G1: BaseDialog migration、 disableFocusTrap=true で search input 常時 focus 維持。
+     size="xl" の max-w-xl を boxClass で max-w-4xl に override、 max-h 85vh + p-0 で 3-pane layout。 -->
+<BaseDialog
+	open={true}
+	{onClose}
+	size="xl"
+	disableFocusTrap={true}
+	ariaLabelledby="picker-title"
+	boxClass="!max-w-4xl !p-0 flex flex-col overflow-hidden max-h-[85vh]"
 >
-	<div
-		class="flex w-full max-w-4xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]"
-		style="max-height: 85vh;"
-		transition:scale={{ duration: dNormal, start: 0.96, easing: cubicOut }}
-	>
+	<div class="flex flex-1 flex-col overflow-hidden" id="picker-title" aria-label="アイテム選択">
 		<!-- 検索バー -->
 		<div class="flex items-center gap-3 border-b border-[var(--ag-border)] px-4 py-3">
 			<Search class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
@@ -360,4 +347,4 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 			</div>
 		</div>
 	</div>
-</div>
+</BaseDialog>

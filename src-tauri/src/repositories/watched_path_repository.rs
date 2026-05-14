@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 
 use crate::models::watched_path::WatchedPath;
-use crate::utils::error::AppError;
+use crate::utils::error::{AppError, ToAppError};
 
 pub fn insert(conn: &Connection, wp: &WatchedPath) -> Result<(), AppError> {
     conn.execute(
@@ -13,17 +13,14 @@ pub fn insert(conn: &Connection, wp: &WatchedPath) -> Result<(), AppError> {
 }
 
 pub fn find_by_id(conn: &Connection, id: &str) -> Result<WatchedPath, AppError> {
-    let result = conn.query_row(
+    // audit F9: ToAppError trait 経由。
+    conn.query_row(
         "SELECT id, path, label, is_active, created_at, updated_at
          FROM watched_paths WHERE id = ?1",
         params![id],
         WatchedPath::from_row,
-    );
-    match result {
-        Ok(wp) => Ok(wp),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
-        Err(e) => Err(AppError::Database(e)),
-    }
+    )
+    .to_not_found(id)
 }
 
 pub fn find_all(conn: &Connection) -> Result<Vec<WatchedPath>, AppError> {

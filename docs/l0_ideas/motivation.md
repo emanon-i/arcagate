@@ -42,7 +42,9 @@ PC 上に散在する起動元 (Steam / DMM ゲーム / ブラウザゲーム / 
 - 開発: Blender 複数バージョン / VS Code / Claude Code / 各種 CLI / PowerShell スクリプト
 - メモ / クリップボード履歴 / monitored フォルダの可視化を 1 画面に統合したい
 
-将来的に配布・販売の選択肢は開いておく (GitHub public)、 ただし 1 人ユーザーの daily-use を磨き続ける事が最優先。
+将来的に配布・販売の選択肢は開いておく (GitHub public)、 daily-use を磨き続ける事が最優先。
+
+**2026-05-14 update**: Microsoft Store 配布 + 海外展開 計画あり、 i18n architecture (= `t('key')` wrapper + locale store + `messages_<locale>.json`) 整備対象。 default locale = `ja`、 future en / 他言語 expansion ready。
 
 ---
 

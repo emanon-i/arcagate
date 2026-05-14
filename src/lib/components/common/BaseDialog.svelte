@@ -47,6 +47,13 @@ interface Props {
 	 * variant prop 爆発させずに 1 prop で吸収する設計判断 (anti-pattern §5 回避)。
 	 */
 	boxClass?: string;
+	/**
+	 * audit 2026-05-14 G1: focus trap (Tab cycle) を opt-out する prop。
+	 * default false (= 既存 7 dialog の挙動完全維持、 focus trap on)。
+	 * LibraryItemPicker 等の「search input が常時 focus 維持」 contract を持つ dialog で `true` 指定。
+	 * 5+ 件で god prop 化したら `LargeDialog.svelte` 別 component に re-split signal。
+	 */
+	disableFocusTrap?: boolean;
 	children: Snippet;
 }
 
@@ -57,6 +64,7 @@ let {
 	ariaDescribedby,
 	size = 'sm',
 	boxClass = '',
+	disableFocusTrap = false,
 	children,
 }: Props = $props();
 
@@ -85,6 +93,8 @@ function getFocusableElements(root: HTMLElement): HTMLElement[] {
 
 function handleTab(e: KeyboardEvent) {
 	if (!open || e.key !== 'Tab' || !dialogEl) return;
+	// audit 2026-05-14 G1: disableFocusTrap=true なら Tab cycle 無効化。
+	if (disableFocusTrap) return;
 	// Codex pitfall P2: IME composition 中は無干渉 (keyCode=229 / e.isComposing)。
 	if (e.isComposing || e.keyCode === 229) return;
 	const focusables = getFocusableElements(dialogEl);

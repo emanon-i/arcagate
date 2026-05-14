@@ -6,6 +6,45 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* audit 2026-05-14 Q3: Tailwind @layer base preset (6 alias)。
+   重複 class cluster (focus-visible:ring-2 / text-[var(--ag-text-*)] / transition-[...] /
+   bg-[var(--ag-surface-3)] 等) を 110+ 箇所で繰返している noise + bundle size + token 変更時
+   漏れ risk を解消。 機会的 cleanup PR で既存 callsite を alias に置換 (mass-replace PR は禁止)。 */
+@layer components {
+  /* (1) focus-visible ring: 110+ 件で `focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-[var(--ag-accent)]` を 1 alias に。 */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)];
+  }
+
+  /* (2) interactive button-ish: 50+ 件で `transition-[color,background-color,border-color,transform]
+        duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none` を集約。 */
+  .btn-interactive {
+    @apply transition-[color,background-color,border-color,transform]
+           duration-[var(--ag-duration-fast)]
+           ease-[var(--ag-ease-in-out)]
+           motion-reduce:transition-none
+           active:scale-[0.97];
+  }
+
+  /* (3-5) text token alias: text-[var(--ag-text-*)] 562 件を意味別 alias に。 */
+  .text-default-primary {
+    color: var(--ag-text-primary);
+  }
+  .text-default-muted {
+    color: var(--ag-text-muted);
+  }
+  .text-default-secondary {
+    color: var(--ag-text-secondary);
+  }
+
+  /* (6) card-std: `rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)]`
+        を 12+ 箇所で繰返してる card pattern。 */
+  .card-std {
+    @apply rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)];
+  }
+}
+
 :root {
   color-scheme: light;
   /* ag-* bridge: arcagate-theme.css の変数を shadcn トークンに透過 */

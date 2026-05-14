@@ -2,7 +2,7 @@ use rusqlite::{params, Connection};
 
 use crate::models::item::Item;
 use crate::models::workspace::{UpdateWidgetPositionInput, Workspace, WorkspaceWidget};
-use crate::utils::error::AppError;
+use crate::utils::error::{AppError, ToAppError};
 
 // --- Workspace CRUD ---
 
@@ -15,16 +15,13 @@ pub fn insert_workspace(conn: &Connection, ws: &Workspace) -> Result<(), AppErro
 }
 
 pub fn find_workspace_by_id(conn: &Connection, id: &str) -> Result<Workspace, AppError> {
-    let result = conn.query_row(
+    // audit F9: ToAppError trait 経由。
+    conn.query_row(
         "SELECT id, name, sort_order, wallpaper_path, wallpaper_opacity, wallpaper_blur, created_at, updated_at FROM workspaces WHERE id = ?1",
         params![id],
         Workspace::from_row,
-    );
-    match result {
-        Ok(ws) => Ok(ws),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
-        Err(e) => Err(AppError::Database(e)),
-    }
+    )
+    .to_not_found(id)
 }
 
 pub fn find_all_workspaces(conn: &Connection) -> Result<Vec<Workspace>, AppError> {
@@ -95,17 +92,14 @@ pub fn insert_widget(conn: &Connection, w: &WorkspaceWidget) -> Result<(), AppEr
 }
 
 pub fn find_widget_by_id(conn: &Connection, id: &str) -> Result<WorkspaceWidget, AppError> {
-    let result = conn.query_row(
+    // audit F9: ToAppError trait 経由。
+    conn.query_row(
         "SELECT id, workspace_id, widget_type, position_x, position_y, width, height, config, created_at, updated_at
          FROM workspace_widgets WHERE id = ?1",
         params![id],
         WorkspaceWidget::from_row,
-    );
-    match result {
-        Ok(w) => Ok(w),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
-        Err(e) => Err(AppError::Database(e)),
-    }
+    )
+    .to_not_found(id)
 }
 
 pub fn find_widgets_by_workspace(
