@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Search, X as XIcon } from '@lucide/svelte';
+import { t } from '$lib/i18n.svelte';
 
 /**
  * Library 検索 input。
@@ -54,7 +55,7 @@ function focusInput() {
 	<input
 		type="text"
 		class="flex-1 bg-transparent text-sm text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
-		placeholder="ライブラリを検索"
+		placeholder={t('library.search_placeholder')}
 		autocomplete="off"
 		bind:value
 		bind:this={inputEl}
