@@ -74,15 +74,15 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 <!-- Stat cards -->
 {#if itemStore.libraryStats}
 	<div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
-		<StatCard label="総アイテム" value={itemStore.libraryStats.total_items} />
-		<StatCard label="タグ" value={itemStore.libraryStats.total_tags} />
-		<StatCard label="今週の起動" value={itemStore.libraryStats.recent_launch_count} />
+		<StatCard label={t('library.stats.total')} value={itemStore.libraryStats.total_items} />
+		<StatCard label={t('library.stats.tags')} value={itemStore.libraryStats.total_tags} />
+		<StatCard label={t('library.stats.recent')} value={itemStore.libraryStats.recent_launch_count} />
 	</div>
 {/if}
 
 <!-- Card grid / list -->
 {#if itemStore.loading && itemStore.items.length === 0}
-	<LoadingState description="ライブラリを読み込み中..." testId="library-loading" />
+	<LoadingState description={t('library.loading')} testId="library-loading" />
 {:else if viewMode === 'list'}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
@@ -111,11 +111,11 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 				<EmptyState
 					icon={Package}
 					title={t('library.empty_title')}
-					description="アプリ・フォルダ・URL などのショートカットを追加できます"
+					description={t('library.empty_description')}
 					actions={[
-						{ label: 'アイテムを追加', onClick: () => onAddItem?.(), variant: 'default' },
+						{ label: t('library.add_item'), onClick: () => onAddItem?.(), variant: 'default' },
 						{
-							label: 'ヘルプを見る',
+							label: t('library.see_help'),
 							onClick: () => helpStore.open(),
 							variant: 'outline',
 							icon: HelpCircle,
@@ -163,8 +163,8 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 					<EmptyState
 						icon={Package}
 						title={t('library.empty_title')}
-						description="アプリ・フォルダ・URL などのショートカットを追加できます"
-						action={{ label: 'アイテムを追加', onClick: () => onAddItem?.() }}
+						description={t('library.empty_description')}
+						action={{ label: t('library.add_item'), onClick: () => onAddItem?.() }}
 						testId="library-empty-state-grid"
 					/>
 				</div>
