@@ -1,4 +1,5 @@
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { t } from '$lib/i18n.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { launchItem, searchItems } from '$lib/ipc/launch';
 import { getFrecencyItems } from '$lib/ipc/workspace';
@@ -161,12 +162,12 @@ async function launch(entry: PaletteEntry): Promise<void> {
 				break;
 			case 'calc':
 				await writeText(entry.result);
-				toastStore.add('計算結果をクリップボードにコピーしました', 'success');
+				toastStore.add(t('toast.calc_copied_to_clipboard'), 'success');
 				close();
 				break;
 			case 'clipboard':
 				await writeText(entry.text);
-				toastStore.add('クリップボードにコピーしました', 'success');
+				toastStore.add(t('toast.copied_to_clipboard'), 'success');
 				close();
 				break;
 		}

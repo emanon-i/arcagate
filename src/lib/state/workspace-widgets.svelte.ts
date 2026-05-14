@@ -20,6 +20,7 @@
  *   workspace-config.activeWorkspaceId を **method body 内**で読む構成で問題なし。
  */
 
+import { t } from '$lib/i18n.svelte';
 import { getWatchedPaths, removeWatchedPath } from '$lib/ipc/watched_paths';
 import * as workspaceIpc from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -242,11 +243,11 @@ class WorkspaceWidgets {
 			// (未指定時のみ DEFAULT_GRID_COLS、負/0 は最低 1 で sanity guard)。
 			const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
 			if (x + w > effectiveCols || y + h > DEFAULT_MAX_ROW + 1) {
-				toastStore.add('グリッド範囲外のため配置できません', 'error');
+				toastStore.add(t('toast.grid_out_of_bounds_place'), 'error');
 				return;
 			}
 			if (wouldOverlapAt(x, y, w, h, widgetsToRects(this.widgets))) {
-				toastStore.add('他のウィジェットと重なるため配置できません', 'error');
+				toastStore.add(t('toast.widgets_overlap_place'), 'error');
 				return;
 			}
 			const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
@@ -482,7 +483,7 @@ class WorkspaceWidgets {
 			x + target.width > effectiveCols ||
 			y + target.height > DEFAULT_MAX_ROW + 1
 		) {
-			toastStore.add('グリッド範囲外のため移動できません', 'error');
+			toastStore.add(t('toast.grid_out_of_bounds_move'), 'error');
 			return;
 		}
 
@@ -490,7 +491,7 @@ class WorkspaceWidgets {
 		// (user fb 「単純に重ならない」)。
 		const others = widgetsToRects(this.widgets, id);
 		if (wouldOverlapAt(x, y, target.width, target.height, others)) {
-			toastStore.add('他のウィジェットと重なるため移動できません', 'error');
+			toastStore.add(t('toast.widgets_overlap_move'), 'error');
 			return;
 		}
 
@@ -536,47 +537,52 @@ class WorkspaceWidgets {
 			const w = this.widgets.find((x) => x.id === m.id);
 			return w ? { src: w, toX: m.toX, toY: m.toY } : null;
 		});
-		if (targets.some((t) => t === null)) return;
+		if (targets.some((tg) => tg === null)) return;
 		const ts = targets as Array<{ src: WorkspaceWidget; toX: number; toY: number }>;
 
 		const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
 		// 1) 範囲内チェック
-		for (const t of ts) {
+		for (const tg of ts) {
 			if (
-				t.toX < 0 ||
-				t.toY < 0 ||
-				t.toX + t.src.width > effectiveCols ||
-				t.toY + t.src.height > DEFAULT_MAX_ROW + 1
+				tg.toX < 0 ||
+				tg.toY < 0 ||
+				tg.toX + tg.src.width > effectiveCols ||
+				tg.toY + tg.src.height > DEFAULT_MAX_ROW + 1
 			) {
-				toastStore.add('グリッド範囲外のため移動できません', 'error');
+				toastStore.add(t('toast.grid_out_of_bounds_move'), 'error');
 				return;
 			}
 		}
 		// 2) overlap チェック (移動 widget 群同士の衝突 + 非移動 widget との衝突)
-		const movingIds = new Set(ts.map((t) => t.src.id));
+		const movingIds = new Set(ts.map((tg) => tg.src.id));
 		const stationaryRects = this.widgets
 			.filter((w) => !movingIds.has(w.id))
 			.map((w) => ({ x: w.position_x, y: w.position_y, w: w.width, h: w.height }));
 		// 各 target が stationary と衝突しないか
-		for (const t of ts) {
-			if (wouldOverlapAt(t.toX, t.toY, t.src.width, t.src.height, stationaryRects)) {
-				toastStore.add('他のウィジェットと重なるため移動できません', 'error');
+		for (const tg of ts) {
+			if (wouldOverlapAt(tg.toX, tg.toY, tg.src.width, tg.src.height, stationaryRects)) {
+				toastStore.add(t('toast.widgets_overlap_move'), 'error');
 				return;
 			}
 		}
 		// 移動先同士の衝突
-		const targetRects = ts.map((t) => ({ x: t.toX, y: t.toY, w: t.src.width, h: t.src.height }));
+		const targetRects = ts.map((tg) => ({
+			x: tg.toX,
+			y: tg.toY,
+			w: tg.src.width,
+			h: tg.src.height,
+		}));
 		for (let i = 0; i < targetRects.length; i++) {
 			const cur = targetRects[i];
 			const others = targetRects.filter((_, j) => j !== i);
 			if (wouldOverlapAt(cur.x, cur.y, cur.w, cur.h, others)) {
-				toastStore.add('選択 widget 同士が重なるため移動できません', 'error');
+				toastStore.add(t('toast.selected_widgets_overlap_move'), 'error');
 				return;
 			}
 		}
 
 		// Optimistic local update
-		const updateMap = new Map(ts.map((t) => [t.src.id, { x: t.toX, y: t.toY }]));
+		const updateMap = new Map(ts.map((tg) => [tg.src.id, { x: tg.toX, y: tg.toY }]));
 		this.widgets = this.widgets.map((w) => {
 			const u = updateMap.get(w.id);
 			return u ? { ...w, position_x: u.x, position_y: u.y } : w;
@@ -584,22 +590,22 @@ class WorkspaceWidgets {
 		try {
 			// audit 2026-05-13 G3a: sequential await → Promise.all 並列化 (multi-widget move)。
 			await Promise.all(
-				ts.map((t) =>
-					workspaceIpc.updateWidgetPosition(t.src.id, t.toX, t.toY, t.src.width, t.src.height),
+				ts.map((tg) =>
+					workspaceIpc.updateWidgetPosition(tg.src.id, tg.toX, tg.toY, tg.src.width, tg.src.height),
 				),
 			);
 			const moveEntries: SimpleHistoryEntry[] = ts
-				.filter((t) => t.src.position_x !== t.toX || t.src.position_y !== t.toY)
-				.map((t) => ({
+				.filter((tg) => tg.src.position_x !== tg.toX || tg.src.position_y !== tg.toY)
+				.map((tg) => ({
 					kind: 'move',
-					widgetId: t.src.id,
+					widgetId: tg.src.id,
 					before: {
-						x: t.src.position_x,
-						y: t.src.position_y,
-						w: t.src.width,
-						h: t.src.height,
+						x: tg.src.position_x,
+						y: tg.src.position_y,
+						w: tg.src.width,
+						h: tg.src.height,
 					},
-					after: { x: t.toX, y: t.toY, w: t.src.width, h: t.src.height },
+					after: { x: tg.toX, y: tg.toY, w: tg.src.width, h: tg.src.height },
 				}));
 			if (moveEntries.length > 0) {
 				workspaceHistory.record({ kind: 'batch', entries: moveEntries });
@@ -608,8 +614,8 @@ class WorkspaceWidgets {
 			this.error = getErrorMessage(e);
 			// IPC 失敗時 rollback (全 target 戻す)
 			this.widgets = this.widgets.map((w) => {
-				const t = ts.find((x) => x.src.id === w.id);
-				return t ? { ...w, position_x: t.src.position_x, position_y: t.src.position_y } : w;
+				const tg = ts.find((x) => x.src.id === w.id);
+				return tg ? { ...w, position_x: tg.src.position_x, position_y: tg.src.position_y } : w;
 			});
 		}
 	}

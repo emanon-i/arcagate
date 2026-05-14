@@ -3,6 +3,7 @@ import { Bookmark, Loader2 } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { CreateItemInput } from '$lib/types/item';
@@ -46,7 +47,7 @@ async function pickAndParse() {
 		parsed = list;
 		selected = new Set(list.map((_, i) => i)); // default 全選択
 		if (list.length === 0) {
-			toastStore.add('URL が見つかりませんでした', 'info');
+			toastStore.add(t('toast.url_not_found'), 'info');
 		}
 	} catch (e) {
 		toastStore.add(`読み込み失敗: ${getErrorMessage(e)}`, 'error');

@@ -13,6 +13,7 @@
  */
 import { Check, Settings2 } from '@lucide/svelte';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
+import { t } from '$lib/i18n.svelte';
 import { updateItem } from '$lib/ipc/items';
 import { launchWithOpener, type Opener } from '$lib/ipc/opener';
 import { openersStore } from '$lib/state/openers.svelte';
@@ -132,7 +133,7 @@ async function handleSelect(opener: Opener) {
 			role="menuitem"
 			class="mt-1 flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
 			onclick={() => {
-				toastStore.add('Settings > ライブラリ > Openers から登録できます', 'info');
+				toastStore.add(t('toast.opener_register_hint'), 'info');
 				onClose();
 			}}
 		>

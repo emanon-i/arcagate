@@ -2,6 +2,7 @@
 import { CheckCircle2, Download, RefreshCw } from '@lucide/svelte';
 import { check, type Update } from '@tauri-apps/plugin-updater';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 
@@ -23,7 +24,7 @@ async function handleCheck() {
 		if (update) {
 			toastStore.add(`新バージョン ${update.version} が利用可能です`, 'info');
 		} else {
-			toastStore.add('最新バージョンです', 'success');
+			toastStore.add(t('toast.version_up_to_date'), 'success');
 		}
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: 'アップデート確認' }, e), 'error');
@@ -44,9 +45,9 @@ async function handleInstall() {
 		// downloadAndInstall: download + 適用 + 自動再起動
 		await available.downloadAndInstall((event) => {
 			if (event.event === 'Started') {
-				toastStore.add('ダウンロード開始', 'info');
+				toastStore.add(t('toast.download_started'), 'info');
 			} else if (event.event === 'Finished') {
-				toastStore.add('ダウンロード完了、再起動します', 'success');
+				toastStore.add(t('toast.download_complete_restart'), 'success');
 			}
 		});
 	} catch (e: unknown) {

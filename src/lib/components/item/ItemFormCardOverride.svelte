@@ -3,6 +3,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import type { Opener } from '$lib/ipc/opener';
 import {
 	configStore,
@@ -96,13 +97,13 @@ function enableOverride(): void {
 		style: configStore.libraryCard.style,
 	});
 	void itemStore.updateItem(item.id, { card_override_json: current });
-	toastStore.add('このカードだけ個別調整を開始しました', 'success');
+	toastStore.add(t('toast.card_override_started'), 'success');
 }
 
 function resetOverride(): void {
 	resetConfirmOpen = false;
 	void itemStore.updateItem(item.id, { card_override_json: null });
-	toastStore.add('個別調整を解除しました', 'success');
+	toastStore.add(t('toast.card_override_cleared'), 'success');
 }
 
 // G-6 (2026-05-09 user 検収): ItemForm からアイコン編集を移植。
@@ -115,13 +116,13 @@ async function selectIcon(): Promise<void> {
 	});
 	if (selected) {
 		await itemStore.updateItem(item.id, { icon_path: selected as string });
-		toastStore.add('アイコンを変更しました', 'success');
+		toastStore.add(t('toast.icon_changed'), 'success');
 	}
 }
 
 async function clearIcon(): Promise<void> {
 	await itemStore.updateItem(item.id, { icon_path: null });
-	toastStore.add('アイコンを削除しました', 'info');
+	toastStore.add(t('toast.icon_removed'), 'info');
 }
 </script>
 
