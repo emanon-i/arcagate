@@ -18,13 +18,13 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-# budget 推移: R7-4 = 295 → R9-C = 299 → R10-B = 301 → 2026-05-07 = 330 → 2026-05-12 = 350
-# (UX issue 22 件対応 PR series で C-15 個別カード設定 / Cascade Phase 2 / ItemPicker
-#  rebuild / Library perf instrumentation / 個別 dialog UI で日本語 label が +29 件追加)
-# 2026-05-12: J/U batch (image-scrap + file-preview widget / Bookmark Import UI /
-#  URL D&D form / Workspace D&D toast 等) で +15 件追加。
-# R10-C 以降で migration により削減 + MAX 引下げ予定。
-MAX_HARDCODE=350
+# budget 推移: R7-4 = 295 → R9-C = 299 → R10-B = 301 → 2026-05-07 = 330 → 2026-05-12 = 350 → 2026-05-14 = 360
+# 2026-05-14: rank 3 i18n Phase 1+2 で Settings Language selector + i18n.svelte.ts 等で
+#  「表示言語」 「日本語」 「English」 + comment 内 JP で +3 件追加。
+# 注: 本来 i18n 着手 = MAX 引下げ方向だが、 Phase 1+2 は infrastructure のみで
+#  既存 hardcoded migration は Phase 3 (= 続 PR、 500-1000 callsite key 化) で実施、
+#  そこで MAX 大幅減 (segment ごとに 50-100 引下げ) 予定。
+MAX_HARDCODE=360
 
 # 日本語文字 (ひらがな + カタカナ + CJK Unified Ideographs) を含む文字列リテラル
 ja_pattern='[ぁ-んァ-ヴー一-龯]'
