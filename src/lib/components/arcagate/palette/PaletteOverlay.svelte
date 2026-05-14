@@ -167,7 +167,7 @@ function handleKeydown(e: KeyboardEvent) {
 								{/each}
 								{#if paletteStore.results.length === 0}
 									<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">
-										{searchQuery ? t('palette.no_match') : t('palette.no_recent')}
+										{searchQuery ? t('common.no_match') : t('palette.no_recent')}
 									</div>
 								{/if}
 							</div>

@@ -21,22 +21,21 @@
 		"change": "変更",
 		"back": "戻る",
 		"next": "次へ",
-		"loading": "読み込み中..."
+		"loading": "Loading…",
+		"no_match": "No match"
 	},
 	"library": {
 		"add_item": "アイテムを追加",
-		"empty_title": "ライブラリが空です",
-		"no_match": "一致する結果がありません",
+		"empty_title": "Library is empty",
 		"search_placeholder": "ライブラリを検索"
 	},
 	"workspace": {
-		"empty_title": "Workspace が空です",
+		"empty_title": "Workspace is empty",
 		"wallpaper_set": "このワークスペースの壁紙を設定"
 	},
 	"palette": {
 		"search_placeholder": "検索...",
-		"no_recent": "最近の起動履歴がありません",
-		"no_match": "一致する結果がありません"
+		"no_recent": "No recent items"
 	},
 	"settings": {
 		"category_label": "設定カテゴリ",
