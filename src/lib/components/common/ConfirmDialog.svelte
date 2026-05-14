@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import BaseDialog from './BaseDialog.svelte';
 
 /**
@@ -24,16 +25,19 @@ interface Props {
 	onCancel: () => void;
 }
 
+// audit 2026-05-14 i18n Phase 3 common: default cancelLabel を t('common.cancel') 経由化、
+// caller が個別 label 指定すれば override、 default は locale 連動。
 let {
 	open,
 	title,
 	description,
 	confirmLabel,
-	cancelLabel = 'キャンセル',
+	cancelLabel,
 	confirmVariant = 'default',
 	onConfirm,
 	onCancel,
 }: Props = $props();
+let resolvedCancelLabel = $derived(cancelLabel ?? t('common.cancel'));
 </script>
 
 <!-- Enter → onConfirm: BaseDialog 内の Escape listener とは独立した別 window listener。 -->
@@ -61,7 +65,7 @@ let {
 	</p>
 	<div class="flex justify-end gap-2">
 		<Button type="button" variant="outline" size="sm" onclick={onCancel}>
-			{cancelLabel}
+			{resolvedCancelLabel}
 		</Button>
 		<Button
 			type="button"
