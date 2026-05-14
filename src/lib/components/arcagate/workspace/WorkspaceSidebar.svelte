@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Grip, PanelLeftClose } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WidgetType } from '$lib/types/workspace';
@@ -61,7 +62,7 @@ const groupedWidgets: { key: GroupKey; label: string; items: AvailableWidget[] }
 	})),
 	{
 		key: 'other' as const,
-		label: 'その他',
+		label: t('workspace.sidebar.other_category'),
 		items: availableWidgets
 			.filter((w) => w.category === 'other')
 			.sort((a, b) => a.label.localeCompare(b.label, 'ja')),
@@ -106,14 +107,14 @@ function keyboardAdd(e: KeyboardEvent, widgetType: WidgetType) {
 		<span
 			class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]"
 		>
-			ウィジェットを追加
+			{t('workspace.add_widget')}
 		</span>
 		{#if onClose}
 			<button
 				type="button"
 				class="rounded p-0.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-				aria-label="ウィジェットパネルを閉じる"
-				title="閉じる"
+				aria-label={t('workspace.tooltip.close_panel')}
+				title={t('common.close')}
 				onclick={onClose}
 			>
 				<PanelLeftClose class="h-4 w-4" />
@@ -141,8 +142,8 @@ function keyboardAdd(e: KeyboardEvent, widgetType: WidgetType) {
 						class:cursor-grabbing={isDragging}
 						class:opacity-50={isDragging}
 						data-widget-type={aw.type}
-						aria-label="{aw.label} を追加"
-						title="クリック or Enter で追加 / ドラッグで配置"
+						aria-label={t('workspace.sidebar.add_label', { label: aw.label })}
+						title={t('workspace.sidebar.add_hint')}
 						onpointerdown={(e) => startDrag(e, aw.type)}
 						onkeydown={(e) => keyboardAdd(e, aw.type)}
 					>

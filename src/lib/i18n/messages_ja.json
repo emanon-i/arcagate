@@ -1,6 +1,6 @@
 {
 	"$schema": "./messages.schema.json",
-	"$comment": "i18n policy 準拠 (`docs/l2_foundation/i18n-policy.md`)。 key naming: `<area>.<sub>.<name>`。 4 分類 (A literal keep / B ja===en / C 翻訳 / D icon-only)、 common.* = 2+ file 重複 dedup 集約。",
+	"$comment": "i18n policy 準拠 (`docs/l2_foundation/i18n-policy.md`)。 key naming: `<area>.<sub>.<name>`。 4 分類 (A literal keep / B ja===en / C 翻訳 / D icon-only)、 common.* = 2+ file 重複 dedup 集約。 vars 補間は `{name}` placeholder。",
 	"app": {
 		"name": "Arcagate"
 	},
@@ -31,7 +31,62 @@
 	},
 	"workspace": {
 		"empty_title": "Workspace is empty",
-		"wallpaper_set": "このワークスペースの壁紙を設定"
+		"wallpaper_set": "このワークスペースの壁紙を設定",
+		"add_widget": "ウィジェットを追加",
+		"tooltip": {
+			"open_panel": "ウィジェットパネルを開く",
+			"close_panel": "ウィジェットパネルを閉じる",
+			"undo": "元に戻す",
+			"undo_full": "元に戻す (Ctrl+Z)",
+			"redo": "やり直し",
+			"redo_full": "やり直し (Ctrl+Y / Ctrl+Shift+Z)",
+			"reset_zoom": "拡大率を 100% にリセット",
+			"reset_zoom_short": "100% にリセット (Ctrl+0)",
+			"current_zoom": "現在の拡大率 (Ctrl+wheel で変更)",
+			"fit_selected": "選択 widget を表示",
+			"fit_selected_n": "選択中 {count} 個を表示 (Ctrl+Shift+1)",
+			"fit_all": "全体を表示",
+			"fit_all_full": "全体を表示 (Ctrl+Shift+1)"
+		},
+		"sidebar": {
+			"other_category": "その他",
+			"add_label": "{label} を追加",
+			"add_hint": "クリック or Enter で追加 / ドラッグで配置"
+		},
+		"hint": {
+			"selected_one": "1 件選択中",
+			"delete": "削除",
+			"deselect": "選択解除",
+			"zoom": "拡大縮小",
+			"fit_all": "全体",
+			"undo": "取り消し",
+			"pan": "パン"
+		},
+		"rename": {
+			"title": "ワークスペース名を変更",
+			"placeholder": "ワークスペース名"
+		},
+		"wallpaper": {
+			"title": "「{name}」の壁紙",
+			"image_filter": "画像",
+			"pick_title": "壁紙画像を選択",
+			"preview_alt": "壁紙プレビュー",
+			"none": "壁紙未設定",
+			"opacity": "透明度",
+			"blur": "ぼかし",
+			"clear_button": "壁紙を解除",
+			"change_button": "画像を変更",
+			"pick_button": "画像を選択",
+			"op_set": "壁紙の設定",
+			"op_adjust": "壁紙の透明度・ぼかし更新",
+			"op_clear": "壁紙の解除"
+		},
+		"undo_snackbar": {
+			"deleted": "「{label}」を削除しました",
+			"seconds_remaining": "{n}秒",
+			"undo_button_label": "削除を取り消す",
+			"close": "snackbar を閉じる"
+		}
 	},
 	"palette": {
 		"search_placeholder": "検索...",
@@ -53,6 +108,9 @@
 	"toast": {
 		"saved": "保存しました",
 		"deleted": "削除しました",
-		"error": "エラーが発生しました"
+		"error": "エラーが発生しました",
+		"widget_deleted": "ウィジェットを削除しました",
+		"wallpaper_updated": "壁紙を更新しました",
+		"wallpaper_cleared": "壁紙を解除しました"
 	}
 }
