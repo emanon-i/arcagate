@@ -3,6 +3,7 @@ import { Command } from '@lucide/svelte';
 import { cubicOut } from 'svelte/easing';
 import { fade, fly } from 'svelte/transition';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
+import { t } from '$lib/i18n.svelte';
 import { paletteStore } from '$lib/state/palette.svelte';
 import PaletteKeyGuide from './PaletteKeyGuide.svelte';
 import PaletteQuickContext from './PaletteQuickContext.svelte';
@@ -166,7 +167,7 @@ function handleKeydown(e: KeyboardEvent) {
 								{/each}
 								{#if paletteStore.results.length === 0}
 									<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">
-										{searchQuery ? '一致する結果がありません' : '最近の起動履歴がありません'}
+										{searchQuery ? t('palette.no_match') : t('palette.no_recent')}
 									</div>
 								{/if}
 							</div>
@@ -188,7 +189,7 @@ function handleKeydown(e: KeyboardEvent) {
 								/>
 							{/each}
 							{#if paletteStore.results.length === 0}
-								<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">最近の起動履歴がありません</div>
+								<div class="py-4 text-center text-sm text-[var(--ag-text-muted)]">{t('palette.no_recent')}</div>
 							{/if}
 						</div>
 					{/if}

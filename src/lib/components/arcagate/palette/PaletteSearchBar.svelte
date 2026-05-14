@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Search, X as XIcon } from '@lucide/svelte';
+import { t } from '$lib/i18n.svelte';
 
 interface Props {
 	query?: string;
@@ -28,7 +29,7 @@ function handleInput(e: Event) {
 		<input
 			type="text"
 			class="flex-1 bg-transparent text-base text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
-			placeholder="検索..."
+			placeholder={t('palette.search_placeholder')}
 			autocomplete="off"
 			autofocus
 			aria-label="コマンドを検索"
