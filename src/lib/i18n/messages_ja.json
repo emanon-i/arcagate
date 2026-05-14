@@ -35,7 +35,27 @@
 	},
 	"palette": {
 		"search_placeholder": "検索...",
-		"no_recent": "No recent items"
+		"no_recent": "No recent items",
+		"search_aria_label": "コマンドを検索",
+		"clear_search": "検索をクリア",
+		"launch_hint": "Enter で起動",
+		"keyguide": {
+			"move": "移動",
+			"detail": "詳細",
+			"calculator": "電卓",
+			"hidden_items": "非表示アイテム"
+		},
+		"context": {
+			"preview": "プレビュー",
+			"tags": "タグ",
+			"aliases": "別名",
+			"last_launched": "最終起動",
+			"launch_count": "起動回数",
+			"calculator": "電卓",
+			"clipboard": "クリップボード",
+			"empty_hint": "検索するか矢印キーで選択してください",
+			"tip": "ショートカットや別名を登録すると、数文字で目的のアプリに到達できます。"
+		}
 	},
 	"settings": {
 		"category_label": "設定カテゴリ",

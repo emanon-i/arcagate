@@ -1,5 +1,6 @@
 <script lang="ts">
 import KeyHint from '$lib/components/arcagate/common/KeyHint.svelte';
+import { t } from '$lib/i18n.svelte';
 
 /**
  * overlay-palette cleanup (2026-05-13) Palette フッター hint bar 集約。
@@ -21,8 +22,8 @@ import KeyHint from '$lib/components/arcagate/common/KeyHint.svelte';
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
-	<KeyHint keys="↑ ↓" description="移動" />
-	<KeyHint keys="Tab" description="詳細" />
-	<KeyHint keys="=" description="電卓" />
-	<KeyHint keys="Ctrl+H" description="非表示アイテム" />
+	<KeyHint keys="↑ ↓" description={t('palette.keyguide.move')} />
+	<KeyHint keys="Tab" description={t('palette.keyguide.detail')} />
+	<KeyHint keys="=" description={t('palette.keyguide.calculator')} />
+	<KeyHint keys="Ctrl+H" description={t('palette.keyguide.hidden_items')} />
 </div>

@@ -32,7 +32,7 @@ function handleInput(e: Event) {
 			placeholder={t('palette.search_placeholder')}
 			autocomplete="off"
 			autofocus
-			aria-label="コマンドを検索"
+			aria-label={t('palette.search_aria_label')}
 			aria-autocomplete="list"
 			aria-controls="palette-results"
 			bind:value={query}
@@ -43,7 +43,7 @@ function handleInput(e: Event) {
 			<button
 				type="button"
 				class="rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
-				aria-label="検索をクリア"
+				aria-label={t('palette.clear_search')}
 				onclick={() => { query = ''; onSearch?.(''); inputEl?.focus(); }}
 			>
 				<XIcon class="h-4 w-4" />
