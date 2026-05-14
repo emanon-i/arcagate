@@ -10,6 +10,7 @@
  */
 import { Settings } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 
 interface MenuItem {
 	label: string;
@@ -20,7 +21,7 @@ interface MenuItem {
 /** widget の Settings dialog を開く共通 menu item。 */
 export function settingsMenuItem(onOpen: () => void): MenuItem {
 	return {
-		label: '設定',
+		label: t('common.settings'),
 		icon: Settings,
 		onclick: onOpen,
 	};

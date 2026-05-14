@@ -21,6 +21,7 @@
 		"change": "変更",
 		"back": "戻る",
 		"next": "次へ",
+		"settings": "設定",
 		"loading": "Loading…",
 		"no_match": "No match"
 	},
@@ -147,6 +148,13 @@
 				"pick_button": "選択",
 				"clear_label": "{label}を解除"
 			}
+		},
+		"category": {
+			"library": "ライブラリ系",
+			"watch": "フォルダ監視",
+			"memo": "メモ・タスク",
+			"tool": "ツール",
+			"info": "情報・状態"
 		}
 	},
 	"toast": {

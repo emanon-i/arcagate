@@ -55,7 +55,7 @@ type GroupKey = AvailableWidget['category'];
 const groupedWidgets: { key: GroupKey; label: string; items: AvailableWidget[] }[] = [
 	...WIDGET_CATEGORIES.map((c) => ({
 		key: c.key,
-		label: c.label,
+		label: t(c.labelKey),
 		items: availableWidgets
 			.filter((w) => w.category === c.key)
 			.sort((a, b) => a.categoryOrder - b.categoryOrder || a.label.localeCompare(b.label, 'ja')),
