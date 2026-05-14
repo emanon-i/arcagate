@@ -3,8 +3,39 @@
 > **目的**: hardcoded string を migration する時に **「英語 keep / 翻訳 / icon 化 / dedup」 を即決判断** できる rule + decision tree。
 > **対象**: 全 frontend developer / agent / refactor 担当。
 > **永続性**: design system の中核、 i18n 着手時の判定基準、 button-usage.md と並ぶ L2 design doc。
-> **status**: 2026-05-15 制定 (= 既 merged i18n PR #456-#464 の audit と同時)。
+> **status**: 2026-05-15 制定 (初版) / 2026-05-15 refined rule (= 認知負荷 boundary を追加、 user 確定)。
 > **背景**: motivation.md (= JP-only → Microsoft Store + 海外展開対応 update 済) で i18n architecture 確定、 ただし「英語のまま OK」 「過剰翻訳」 「dedup 漏れ」 「中途半端な英語残し」 が起きやすい。 構造的に防ぐため本 doc を明文化。
+
+---
+
+## 0. 核 boundary: **「読解が要るか」 = 認知負荷 で英語 / 日本語 を分ける** (user 確定 2026-05-15)
+
+英語表示 OK の条件:
+
+1. **短い** (= 1-3 word の名詞 / 動詞 / 名詞句)
+2. **structural** (= app の構造を表す term、 nav 系 / category 系)
+3. **universal** (= 全 locale で意味が通じる、 brand / 技術略語)
+4. **status は英語短文 OK** (= 「Library is empty」 「No items」 「Loading…」 等、 短く universal)
+
+日本語必須の条件:
+
+1. **読解が要る** (= 1 文以上の instructional / 説明的内容)
+2. **domain 固有** (= widget 名 / app 内 concept、 英語だと「何のことか」 が伝わらない)
+3. **長い / complex sentence** (= 「○○ したら △△ できます」 系の指示文)
+4. **error / toast / form label / 選択肢** (= 必ず日本語、 user 操作の文脈で正確に伝える)
+
+---
+
+## 0-b. user 確定 5 分類 (= 言語選択 table)
+
+| 分類                                               | 言語                           | 例                                                                           | category         |
+| -------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------- | ---------------- |
+| **nav structural terms**                           | **英語**                       | Library / Workspace / Settings / Help                                        | (B) ja===en      |
+| **brand / 技術略語 / hotkey / file ext / version** | **英語 literal**               | Arcagate / CPU / Ctrl+Z / .exe / v1.0.0                                      | (A) literal keep |
+| **widget 名**                                      | **日本語必須** (= domain 意味) | 「フォルダ監視」 「クリップボード履歴」 「システムモニタ」 「スニペット」 等 | (C) 翻訳         |
+| **短い status / state message**                    | **英語短文 OK**                | "Library is empty" / "No items" / "Loading…" / "No match"                    | (B) ja===en      |
+| **長い説明文 / instructional text** (= 1 文以上)   | **日本語必須** (= 読解要)      | 「ファイルをドロップして登録できます」 「ここから widget を追加できます」    | (C) 翻訳         |
+| **error / toast / form label / 選択肢**            | **日本語必須**                 | 「保存に失敗しました」 「タイトル」 「組み込み」                             | (C) 翻訳         |
 
 ---
 
@@ -120,7 +151,7 @@ PR review 時に **既 messages_ja.json に同 value (= 同 JP 文言) を別 ke
 
 ---
 
-## 4. Decision Tree (= 即決 flow)
+## 4. Decision Tree (= 即決 flow、 §0 認知負荷 boundary 反映済)
 
 ```
 1. これ literal な技術 fact / brand / hotkey / file ext / version か?
@@ -129,13 +160,26 @@ PR review 時に **既 messages_ja.json に同 value (= 同 JP 文言) を別 ke
 2. universal recognition の操作 icon が存在するか?
    YES → (D) icon-only 化、 visible text 撤去、 aria-label={t('common.X')}
    NO  → 次
-3. UI 文脈で英語維持決定したものか?
-   YES → (B) ja===en で key 化 (= messages_{ja,en}.json 同 value)
+3. これ widget 名 / domain 固有 / instructional 説明文 (= 1 文以上) / error / form label か?
+   YES → (C) 日本語翻訳必須、 t() 化 (= 読解要、 domain 意味伝達要)
    NO  → 次
-4. 2 箇所以上で同 JP 文言が出るか?
-   YES → (C) 翻訳対象、 `t('common.X')` に dedup 集約
-   NO  → (C) 翻訳対象、 `t('<area>.sub.name')` に area-specific key
+4. これ nav term / short status (= 1-3 word) / universal 英語語句 か?
+   YES → (B) ja===en で key 化 (= 短く universal、 英語表示で読解可)
+   NO  → 次
+5. 2 箇所以上で同 JP 文言が出るか?
+   YES → (C) `t('common.X')` に dedup 集約
+   NO  → (C) `t('<area>.sub.name')` に area-specific key
 ```
+
+### 判定例
+
+- 「Library is empty」 (= 3 word status) → step 4 → **(B) ja===en**
+- 「ファイルをドロップして登録できます」 (= instructional 1 文) → step 3 → **(C) 日本語翻訳**
+- 「フォルダ監視」 (= widget 名) → step 3 → **(C) 日本語翻訳** (英語だと folder monitoring = domain 意味薄)
+- 「Loading…」 (= short status) → step 4 → **(B) ja===en**
+- 「読み込み中…」 が既存 (C) common.loading で JP の場合 → status は **(B) 短英語に統一推奨**、 ただし既存 dedup と user 体感で判断
+- 「Ctrl+Z」 → step 1 → **(A) literal keep**
+- 「×」 (close button) → step 2 → **(D) icon-only**
 
 ---
 
@@ -151,8 +195,16 @@ PR review 時に **既 messages_ja.json に同 value (= 同 JP 文言) を別 ke
    - 例: `library.cancel` + `workspace.cancel` + `settings.cancel` = 全部 `common.cancel` に集約すべき
 4. **icon 化漏れ** = universal icon あるのに text-only button のまま
    - 例: ✕ close button に visible 「閉じる」 text + `t('common.close')` (= icon-only `aria-label={t('common.close')}` が正)
-5. **混在中途半端** = 同 area / 同 widget 内で一部翻訳、 一部英語残しで不整合
-   - 例: nav tab で 「Library」 (英語 keep) + 「設定」 (JP) + 「Workspace」 (英語) + 「ヘルプ」 (JP) → 4 件全部統一する (全英語 or 全 JP) か (B) ja===en で 経路一貫化
+5. **混在中途半端** = 同 area / 同 widget 内で一部翻訳、 一部英語残しで **rule なしの無意識** な不整合
+   - 例: nav tab で 「Library」 (英語 keep) + 「設定」 (JP) + 「Workspace」 (英語) + 「ヘルプ」 (JP) で **rule 不在** の場合 → 4 件統一 (全英語 or 全 JP)
+
+### ⚠️ 「rule-based 混在」 は OK (= 意図的、 anti-pattern §5 該当せず) — user 確定 2026-05-15
+
+§0 認知負荷 boundary に基づく **意図的な混在は OK**:
+
+- nav (英語) + widget 名 (日本語) + status (英語短文) + 説明文 (日本語) の **mixed UI** は **rule-based** で意図的 → anti-pattern ではない
+- 例: settings panel で `Settings` (= nav term 英語) header + 「自動起動の設定」 (= 日本語 form label) + 「Ctrl+Shift+Space」 (= literal keep) + 「変更」 button (= 短英語に統一 or 日本語、 area 内一貫すれば OK) の組合せ
+- 判定: **rule §0/§0-b に従っているか** が決定打、 「なんとなく」 「無意識」 が NG、 「rule で説明できる」 が OK
 
 ### ✅ Good patterns
 
