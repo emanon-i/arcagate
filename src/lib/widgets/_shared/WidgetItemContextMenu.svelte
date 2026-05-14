@@ -2,6 +2,7 @@
 import { Copy, EyeOff, FolderOpen, Play, Settings2, Trash2 } from '@lucide/svelte';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
+import { t } from '$lib/i18n.svelte';
 import { deleteItem } from '$lib/ipc/items';
 import { revealInExplorer } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
@@ -46,7 +47,7 @@ async function handleCopyPath(): Promise<void> {
 	if (!path) return;
 	try {
 		await writeText(path);
-		toastStore.add('パスをコピーしました', 'success');
+		toastStore.add(t('toast.path_copied'), 'success');
 	} catch (e: unknown) {
 		toastStore.add(`コピー失敗: ${getErrorMessage(e)}`, 'error');
 	} finally {
@@ -104,7 +105,7 @@ async function handleHideFromWidget(): Promise<void> {
 	if (!widgetId || !path) return;
 	try {
 		await widgetItemHidesStore.add(widgetId, path);
-		toastStore.add('この widget から外しました', 'info');
+		toastStore.add(t('toast.removed_from_widget'), 'info');
 	} catch (e: unknown) {
 		toastStore.add(`非表示にできませんでした: ${getErrorMessage(e)}`, 'error');
 	} finally {

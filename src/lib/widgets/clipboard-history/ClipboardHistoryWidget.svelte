@@ -3,6 +3,7 @@ import { ClipboardList, Search, X } from '@lucide/svelte';
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -77,7 +78,7 @@ $effect(() => {
 async function copyEntry(entry: ClipboardEntry) {
 	try {
 		await writeText(entry.text);
-		toastStore.add('クリップボードにコピーしました', 'success');
+		toastStore.add(t('toast.copied_to_clipboard'), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: 'クリップボードへのコピー' }, e), 'error');
 	}

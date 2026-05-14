@@ -12,6 +12,7 @@
 import { Pencil, Plus, Trash2 } from '@lucide/svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { deleteOpener, type Opener, type SaveOpenerInput, saveOpener } from '$lib/ipc/opener';
 import { openersStore } from '$lib/state/openers.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -68,7 +69,7 @@ async function handleSubmit(e: Event) {
 	e.preventDefault();
 	const trimmedName = formName.trim();
 	if (!trimmedName) {
-		toastStore.add('名前を入力してください', 'error');
+		toastStore.add(t('toast.name_required'), 'error');
 		return;
 	}
 	if (!formCommand.includes('<path>')) {

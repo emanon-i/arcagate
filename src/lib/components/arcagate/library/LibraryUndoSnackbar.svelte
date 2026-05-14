@@ -9,6 +9,7 @@
  */
 import { Undo2, X } from '@lucide/svelte';
 import { fade, fly } from 'svelte/transition';
+import { t } from '$lib/i18n.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 
@@ -45,9 +46,9 @@ $effect(() => {
 async function handleUndo() {
 	const ok = await libraryHistory.undo();
 	if (ok) {
-		toastStore.add('削除を取り消しました', 'success');
+		toastStore.add(t('toast.undo_succeeded'), 'success');
 	} else {
-		toastStore.add('取り消しに失敗しました', 'error');
+		toastStore.add(t('toast.undo_failed'), 'error');
 	}
 }
 </script>

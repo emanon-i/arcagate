@@ -5,6 +5,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { t } from '$lib/i18n.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -108,7 +109,7 @@ async function cancelCurrent() {
 	const id = currentSearchId;
 	const cancelled = await invoke<boolean>('cmd_cancel_file_search', { searchId: id });
 	if (cancelled) {
-		toastStore.add('検索を中止しました', 'info');
+		toastStore.add(t('toast.search_aborted'), 'info');
 	}
 }
 

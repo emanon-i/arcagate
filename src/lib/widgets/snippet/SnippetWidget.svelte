@@ -27,6 +27,7 @@
 import { Check, Clipboard, Pencil, Plus, X } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -94,7 +95,7 @@ function saveCompose() {
 	const label = composeLabel.trim();
 	const body = composeBody;
 	if (!label || !body) {
-		toastStore.add('ラベルと本文の両方を入力してください', 'error');
+		toastStore.add(t('toast.snippet_label_body_required'), 'error');
 		return;
 	}
 	let next: Snippet[];

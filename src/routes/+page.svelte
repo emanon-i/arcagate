@@ -104,7 +104,7 @@ function focusExistingWidget(widgetId: string): void {
 	// workspace-selection で widget を選択状態にする (highlight + scroll target)。
 	// 完全な viewport scroll は Ctrl+Shift+1 で実行可能と toast で案内。
 	workspaceSelection.setSingle(widgetId);
-	toastStore.add('既存 widget を選択しました (Ctrl+Shift+1 で表示中央へ)', 'info');
+	toastStore.add(t('toast.widget_existed_selected'), 'info');
 }
 
 /**
@@ -144,7 +144,7 @@ async function addImageScrapWidget(sourcePath: string): Promise<void> {
 			JSON.stringify({ path: saved, source_path: sourcePath }),
 		);
 	}
-	toastStore.add('画像 widget を配置しました', 'success');
+	toastStore.add(t('toast.image_widget_placed'), 'success');
 }
 
 async function addFilePreviewWidget(path: string): Promise<void> {
@@ -154,7 +154,7 @@ async function addFilePreviewWidget(path: string): Promise<void> {
 	if (last) {
 		await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path }));
 	}
-	toastStore.add('ファイルプレビュー widget を配置しました', 'success');
+	toastStore.add(t('toast.file_preview_widget_placed'), 'success');
 }
 
 let unlistenDragDrop: (() => void) | null = null;
@@ -361,10 +361,10 @@ async function openFloatingPalette() {
 async function handleFormSubmit(input: CreateItemInput | UpdateItemInput) {
 	if (editingItem) {
 		await itemStore.updateItem(editingItem.id, input as UpdateItemInput);
-		toastStore.add('アイテムを更新しました', 'success');
+		toastStore.add(t('toast.item_updated'), 'success');
 	} else {
 		await itemStore.createItem(input as CreateItemInput);
-		toastStore.add('アイテムを作成しました', 'success');
+		toastStore.add(t('toast.item_created'), 'success');
 	}
 	showItemForm = false;
 	editingItem = null;

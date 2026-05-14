@@ -2,6 +2,7 @@
 import { Trash2 } from '@lucide/svelte';
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
@@ -36,10 +37,10 @@ let SettingsContent = $derived(widgetRegistry[widget.widget_type]?.SettingsConte
 async function handleSave() {
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(config));
-		toastStore.add('設定を保存しました', 'success');
+		toastStore.add(t('toast.settings_saved'), 'success');
 		onClose();
 	} catch {
-		toastStore.add('保存に失敗しました', 'error');
+		toastStore.add(t('toast.save_failed'), 'error');
 	}
 }
 
@@ -47,7 +48,7 @@ async function handleSave() {
 // 検収 #2: toast 文言から「Ctrl+Z で戻せます」を削除。
 function handleDelete() {
 	void workspaceStore.removeWidget(widget.id);
-	toastStore.add('ウィジェットを削除しました', 'info');
+	toastStore.add(t('toast.widget_deleted'), 'info');
 	onClose();
 }
 </script>
