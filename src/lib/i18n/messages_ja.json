@@ -25,7 +25,7 @@
 		"add_item": "アイテムを追加",
 		"empty_title": "ライブラリが空です",
 		"no_match": "一致する結果がありません",
-		"search_placeholder": "検索 (label / target / 別名)"
+		"search_placeholder": "ライブラリを検索"
 	},
 	"workspace": {
 		"empty_title": "Workspace が空です",

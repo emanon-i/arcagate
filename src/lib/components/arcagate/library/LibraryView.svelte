@@ -4,6 +4,7 @@ import { onDestroy, onMount } from 'svelte';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
+import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -109,7 +110,7 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 			{#if !searchQuery && !activeTag && itemStore.items.length === 0}
 				<EmptyState
 					icon={Package}
-					title="ライブラリが空です"
+					title={t('library.empty_title')}
 					description="アプリ・フォルダ・URL などのショートカットを追加できます"
 					actions={[
 						{ label: 'アイテムを追加', onClick: () => onAddItem?.(), variant: 'default' },
@@ -161,7 +162,7 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 				<div class="col-span-full">
 					<EmptyState
 						icon={Package}
-						title="ライブラリが空です"
+						title={t('library.empty_title')}
 						description="アプリ・フォルダ・URL などのショートカットを追加できます"
 						action={{ label: 'アイテムを追加', onClick: () => onAddItem?.() }}
 						testId="library-empty-state-grid"
