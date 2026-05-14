@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Component } from 'svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
+import { t } from '$lib/i18n.svelte';
 import { NAV_SETTINGS, type NavSettingsId } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
 import AboutSection from './AboutSection.svelte';
@@ -60,7 +61,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 	<div
 		class="flex w-44 shrink-0 flex-col gap-0.5 border-r border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-3"
 		role="tablist"
-		aria-label="設定カテゴリ"
+		aria-label={t('settings.category_label')}
 		aria-orientation="vertical"
 		onkeydown={handleNavKeydown}
 	>
@@ -87,7 +88,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 	<!-- 右: コンテンツ — PH-issue-014: scrollbar-gutter:stable で scroll 出てもコンテンツが移動しない -->
 	<div class="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
 		{#if configStore.loading}
-			<LoadingState description="設定を読み込み中..." testId="settings-loading" />
+			<LoadingState description={t('settings.loading')} testId="settings-loading" />
 		{:else if activeCategory === 'general'}
 			<SettingsGeneralPane />
 		{:else if activeCategory === 'library'}
