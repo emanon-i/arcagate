@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 
 use crate::models::tag::{Tag, TagWithCount};
-use crate::utils::error::AppError;
+use crate::utils::error::{AppError, ToAppError};
 
 pub fn insert(conn: &Connection, tag: &Tag) -> Result<(), AppError> {
     conn.execute(
@@ -21,17 +21,14 @@ pub fn insert(conn: &Connection, tag: &Tag) -> Result<(), AppError> {
 }
 
 pub fn find_by_id(conn: &Connection, id: &str) -> Result<Tag, AppError> {
-    let result = conn.query_row(
+    // audit F9: ToAppError trait 経由。
+    conn.query_row(
         "SELECT id, name, is_hidden, is_system, prefix, icon, sort_order, created_at
          FROM tags WHERE id = ?1",
         params![id],
         Tag::from_row,
-    );
-    match result {
-        Ok(tag) => Ok(tag),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
-        Err(e) => Err(AppError::Database(e)),
-    }
+    )
+    .to_not_found(id)
 }
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Tag>, AppError> {
@@ -104,16 +101,14 @@ pub fn find_system_tags(conn: &Connection) -> Result<Vec<Tag>, AppError> {
 
 /// システムタグでないことを検証。システムタグなら InvalidInput を返す。
 fn guard_not_system(conn: &Connection, id: &str) -> Result<(), AppError> {
+    // audit F9: ToAppError trait 経由 (map_err match block 撤去)。
     let is_system: i64 = conn
         .query_row(
             "SELECT is_system FROM tags WHERE id = ?1",
             params![id],
             |row| row.get(0),
         )
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => AppError::NotFound(id.to_string()),
-            _ => AppError::Database(e),
-        })?;
+        .to_not_found(id)?;
     if is_system != 0 {
         return Err(AppError::InvalidInput(
             "system tags cannot be modified".to_string(),

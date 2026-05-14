@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 
 use crate::models::item::{Item, LibraryStats, UpdateItemInput};
-use crate::utils::error::AppError;
+use crate::utils::error::{AppError, ToAppError};
 
 pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
     let aliases_json = serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
@@ -28,17 +28,14 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
 }
 
 pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
-    let result = conn.query_row(
+    // audit 2026-05-14 F9: ToAppError trait で 4-5 行 match → 1 行に集約。
+    conn.query_row(
         "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
          FROM items WHERE id = ?1",
         params![id],
         Item::from_row,
-    );
-    match result {
-        Ok(item) => Ok(item),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound(id.to_string())),
-        Err(e) => Err(AppError::Database(e)),
-    }
+    )
+    .to_not_found(id)
 }
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {

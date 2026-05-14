@@ -74,6 +74,42 @@ impl AppError {
     }
 }
 
+/// audit 2026-05-14 F9: rusqlite result → AppError 変換 trait。
+///
+/// 24 件の repository file で繰返してた `match result { Err(QueryReturnedNoRows) => NotFound,
+/// Err(e) => Database } ` boilerplate (~96 LOC) を 1 行に集約:
+///
+/// ```rust,ignore
+/// // 旧 (4-5 行):
+/// match conn.query_row(...) {
+///     Ok(item) => Ok(item),
+///     Err(rusqlite::Error::QueryReturnedNoRows) => Err(AppError::NotFound("item".into())),
+///     Err(e) => Err(AppError::Database(e)),
+/// }
+///
+/// // 新 (1 行):
+/// conn.query_row(...).to_not_found("item")
+/// ```
+///
+/// Codex pitfall #7 (Select unification prop 爆発) との trade-off: 本 trait は schema-identical
+/// な error 変換 1 種類のみで scope 限定、 prop 爆発 risk なし。 「duplication is far cheaper than
+/// wrong abstraction」 (Sandi Metz) との折衷: 24 件で十分 Rule of Three 超 (= 「3 度目以降」 該当)、
+/// trait abstraction は適切なタイミングで導入。
+pub trait ToAppError<T> {
+    /// `rusqlite::Error::QueryReturnedNoRows` を `AppError::NotFound(label.into())` に変換、
+    /// その他は `AppError::Database(e)` 経由。
+    fn to_not_found(self, label: impl Into<String>) -> Result<T, AppError>;
+}
+
+impl<T> ToAppError<T> for Result<T, rusqlite::Error> {
+    fn to_not_found(self, label: impl Into<String>) -> Result<T, AppError> {
+        self.map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => AppError::NotFound(label.into()),
+            other => AppError::Database(other),
+        })
+    }
+}
+
 impl serde::Serialize for AppError {
     /// PH-429: 構造化 serialize 形式 `{ code, message }`。
     /// フロント側 catch で `e.code` / `e.message` でアクセス可能。

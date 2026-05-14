@@ -9,6 +9,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # audit 2026-05-14 CI 短縮 rank 1: Rust incremental + sccache 効果見込み (build cache 改善)。
+  # debug build (PR) で incremental 有効化、 cargo build の再 link / 再 compile を最小化。
+  CARGO_INCREMENTAL: 1
 
 jobs:
   # lint + test を 1 job に統合（setup 重複排除、batch-68 PH-295）
