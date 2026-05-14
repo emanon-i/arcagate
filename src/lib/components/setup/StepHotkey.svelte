@@ -1,5 +1,6 @@
 <script lang="ts">
 import HotkeyInput from '$lib/components/settings/HotkeyInput.svelte';
+import { Button } from '$lib/components/ui/button';
 import { configStore } from '$lib/state/config.svelte';
 
 let { onNext }: { onNext: () => void } = $props();
@@ -11,13 +12,8 @@ let { onNext }: { onNext: () => void } = $props();
     どこからでもアプリを呼び出すホットキーを設定してください。
   </p>
   <HotkeyInput value={configStore.hotkey} onChange={(v) => configStore.saveHotkey(v)} />
+  <!-- audit 2026-05-14 rank 11: 「次へ」 = primary (form proceed action)。 -->
   <div class="mt-8 flex justify-end">
-    <button
-      type="button"
-      class="rounded-md bg-[var(--ag-accent)] px-4 py-2 text-sm font-medium text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-90"
-      onclick={onNext}
-    >
-      次へ
-    </button>
+    <Button type="button" variant="default" onclick={onNext}>次へ</Button>
   </div>
 </div>
