@@ -1,0 +1,124 @@
+{
+	"$schema": "./messages.schema.json",
+	"$comment": "English locale messages. mechanical policy 準拠 (docs/l2_foundation/i18n-policy.md)。 messages_ja.json と key parity 必須、 (B) ja===en な key は ja value をそのまま keep。 vars 補間 `{name}` は ja 同様。",
+	"app": {
+		"name": "Arcagate"
+	},
+	"nav": {
+		"library": "Library",
+		"workspace": "Workspace",
+		"settings": "Settings",
+		"help": "Help"
+	},
+	"common": {
+		"cancel": "Cancel",
+		"confirm": "OK",
+		"save": "Save",
+		"delete": "Delete",
+		"close": "Close",
+		"add": "Add",
+		"edit": "Edit",
+		"change": "Change",
+		"back": "Back",
+		"next": "Next",
+		"loading": "Loading…",
+		"no_match": "No match"
+	},
+	"library": {
+		"add_item": "Add item",
+		"empty_title": "Library is empty",
+		"empty_description": "You can add shortcuts to apps, folders, URLs, and more",
+		"search_placeholder": "Search library",
+		"loading": "Loading library…",
+		"see_help": "See help",
+		"stats": {
+			"total": "Total items",
+			"tags": "Tags",
+			"recent": "Launches this week"
+		}
+	},
+	"workspace": {
+		"empty_title": "Workspace is empty",
+		"wallpaper_set": "Set wallpaper for this workspace",
+		"add_widget": "Add widget",
+		"tooltip": {
+			"open_panel": "Open widget panel",
+			"close_panel": "Close widget panel",
+			"undo": "Undo",
+			"undo_full": "Undo (Ctrl+Z)",
+			"redo": "Redo",
+			"redo_full": "Redo (Ctrl+Y / Ctrl+Shift+Z)",
+			"reset_zoom": "Reset zoom to 100%",
+			"reset_zoom_short": "Reset to 100% (Ctrl+0)",
+			"current_zoom": "Current zoom (Ctrl+wheel to change)",
+			"fit_selected": "Fit selected widget",
+			"fit_selected_n": "Fit {count} selected (Ctrl+Shift+1)",
+			"fit_all": "Fit all",
+			"fit_all_full": "Fit all (Ctrl+Shift+1)"
+		},
+		"sidebar": {
+			"other_category": "Other",
+			"add_label": "Add {label}",
+			"add_hint": "Click or Enter to add / Drag to place"
+		},
+		"hint": {
+			"selected_one": "1 selected",
+			"delete": "Delete",
+			"deselect": "Deselect",
+			"zoom": "Zoom",
+			"fit_all": "Fit all",
+			"undo": "Undo",
+			"pan": "Pan"
+		},
+		"rename": {
+			"title": "Rename workspace",
+			"placeholder": "Workspace name"
+		},
+		"wallpaper": {
+			"title": "Wallpaper for \"{name}\"",
+			"image_filter": "Image",
+			"pick_title": "Choose wallpaper image",
+			"preview_alt": "Wallpaper preview",
+			"none": "No wallpaper set",
+			"opacity": "Opacity",
+			"blur": "Blur",
+			"clear_button": "Clear wallpaper",
+			"change_button": "Change image",
+			"pick_button": "Choose image",
+			"op_set": "Set wallpaper",
+			"op_adjust": "Update wallpaper opacity / blur",
+			"op_clear": "Clear wallpaper"
+		},
+		"undo_snackbar": {
+			"deleted": "\"{label}\" deleted",
+			"seconds_remaining": "{n}s",
+			"undo_button_label": "Undo delete",
+			"close": "Close snackbar"
+		}
+	},
+	"palette": {
+		"search_placeholder": "Search…",
+		"no_recent": "No recent items"
+	},
+	"settings": {
+		"category_label": "Settings category",
+		"loading": "Loading settings…",
+		"hotkey": {
+			"label": "Hotkey display",
+			"press_key": "Press a key…",
+			"change": "Change hotkey"
+		}
+	},
+	"dialog": {
+		"confirm_delete": "Delete?",
+		"unsaved_changes": "You have unsaved changes"
+	},
+	"toast": {
+		"saved": "Saved",
+		"deleted": "Deleted",
+		"error": "An error occurred",
+		"widget_deleted": "Widget deleted",
+		"wallpaper_updated": "Wallpaper updated",
+		"wallpaper_cleared": "Wallpaper cleared"
+	}
+}

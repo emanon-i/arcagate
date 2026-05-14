@@ -15,14 +15,16 @@
  *   Phase 4 (続 PR): Intl.DateTimeFormat / Intl.NumberFormat formatter
  *   Phase 5 (続 PR): locale 切替 e2e + screenshot diff
  */
+import messagesEn from './i18n/messages_en.json';
 import messagesJa from './i18n/messages_ja.json';
 
 export type Locale = 'ja' | 'en';
 
-// 現状 messages は ja のみ。 en は Phase 3 で追加。
+// Phase 3 完了: messages_en.json 翻訳完備 (origin/main 起点 ~150 keys、 (B) ja===en は ja value keep)。
+// 残 keys (palette / toast の template interp 系) は merge 後の補完 PR で対応。
 const MESSAGES: Record<Locale, Record<string, unknown>> = {
 	ja: messagesJa,
-	en: messagesJa, // Phase 3 で messages_en.json import に置換 (現状は ja fallback)
+	en: messagesEn,
 };
 
 /**
