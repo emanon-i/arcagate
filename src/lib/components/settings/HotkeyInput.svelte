@@ -1,4 +1,6 @@
 <script lang="ts">
+import { t } from '$lib/i18n.svelte';
+
 let {
 	value,
 	onChange,
@@ -50,19 +52,19 @@ function handleBlur() {
       ? 'border-[var(--ag-accent)] ring-2 ring-[var(--ag-accent)]/40 text-[var(--ag-text-faint)]'
       : ''}"
     readonly
-    value={recording ? "キーを押してください..." : value}
+    value={recording ? t('settings.hotkey.press_key') : value}
     onkeydown={handleKeyDown}
     onblur={handleBlur}
-    aria-label="ホットキー表示"
+    aria-label={t('settings.hotkey.label')}
   />
   <button
     type="button"
     class="rounded-md border px-3 py-2 text-sm transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {recording
       ? 'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20'
       : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-4)]'}"
-    title={recording ? 'キャンセル' : 'ホットキーを変更'}
+    title={recording ? t('common.cancel') : t('settings.hotkey.change')}
     onclick={recording ? cancelRecording : startRecording}
   >
-    {recording ? "キャンセル" : "変更"}
+    {recording ? t('common.cancel') : t('common.change')}
   </button>
 </div>

@@ -1,6 +1,6 @@
 {
 	"$schema": "./messages.schema.json",
-	"$comment": "audit 2026-05-14 rank 3 Phase 1: ja message dictionary。 key naming: `<area>.<sub>.<name>` (例: 'nav.library', 'dialog.confirm.delete'). 将来 messages_en.json で同 key で英訳。",
+	"$comment": "audit 2026-05-14 rank 3 Phase 1+: ja message dictionary。 key naming: `<area>.<sub>.<name>`。 common.* = 2+ file 共通 (dedup 厳守)、 area-specific = その画面固有。",
 	"app": {
 		"name": "Arcagate"
 	},
@@ -18,8 +18,10 @@
 		"close": "閉じる",
 		"add": "追加",
 		"edit": "編集",
+		"change": "変更",
 		"back": "戻る",
-		"next": "次へ"
+		"next": "次へ",
+		"loading": "読み込み中..."
 	},
 	"library": {
 		"add_item": "アイテムを追加",
@@ -35,6 +37,15 @@
 		"search_placeholder": "検索...",
 		"no_recent": "最近の起動履歴がありません",
 		"no_match": "一致する結果がありません"
+	},
+	"settings": {
+		"category_label": "設定カテゴリ",
+		"loading": "設定を読み込み中...",
+		"hotkey": {
+			"label": "ホットキー表示",
+			"press_key": "キーを押してください...",
+			"change": "ホットキーを変更"
+		}
 	},
 	"dialog": {
 		"confirm_delete": "削除しますか?",
