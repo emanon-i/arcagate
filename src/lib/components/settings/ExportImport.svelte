@@ -1,5 +1,6 @@
 <script lang="ts">
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { Button } from '$lib/components/ui/button';
 import * as exportIpc from '$lib/ipc/export';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -50,21 +51,27 @@ async function handleImport() {
 <div class="space-y-4">
   <h3 class="text-sm font-medium">データのバックアップ</h3>
   <p class="text-xs text-muted-foreground">アイテム・設定を JSON ファイルに保存します。起動ログは含まれません。</p>
+  <!-- audit 2026-05-14 rank 11 phase 2: ExportImport の 2 raw button を shadcn Button に migration。
+       「エクスポート」 = primary (= rubric (a))、 「インポート」 = secondary (= (b))。 -->
   <div class="flex gap-2">
-    <button
+    <Button
+      type="button"
+      variant="default"
+      size="sm"
       onclick={handleExport}
       disabled={exporting || importing}
-      class="rounded-md bg-[var(--ag-accent)] px-3 py-1.5 text-sm text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:opacity-50 hover:opacity-90"
     >
       {exporting ? "エクスポート中..." : "エクスポート"}
-    </button>
-    <button
+    </Button>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
       onclick={handleImport}
       disabled={exporting || importing}
-      class="rounded-md border border-[var(--ag-border)] px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:opacity-50 hover:bg-[var(--ag-surface-4)]"
     >
       {importing ? "インポート中..." : "インポート"}
-    </button>
+    </Button>
   </div>
   {#if message}
     <p class="text-sm text-muted-foreground">{message}</p>
