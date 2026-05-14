@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Maximize2, PanelLeftOpen, Redo2, RotateCcw as ResetIcon, Undo2 } from '@lucide/svelte';
+import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
@@ -100,7 +101,7 @@ function consumeDeleteConfirm(id: string | null) {
 function instantDeleteWidget(id: string) {
 	// 検収 #2: toast 文言から「Ctrl+Z で戻せます」を削除。Undo は標準操作なので説明不要。
 	void workspaceStore.removeWidget(id);
-	toastStore.add('ウィジェットを削除しました', 'info');
+	toastStore.add(t('toast.widget_deleted'), 'info');
 }
 
 // canvas size tracking (Sidebar の widget 配置 bound と Grid の canvas size 両方で必要)
@@ -208,8 +209,8 @@ function confirmRename(name: string) {
 		<button
 			type="button"
 			class="flex h-full w-7 shrink-0 items-center justify-center border-r border-[var(--ag-border)] bg-[var(--ag-surface-2)] text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-			aria-label="ウィジェットパネルを開く"
-			title="ウィジェットを追加"
+			aria-label={t('workspace.tooltip.open_panel')}
+			title={t('workspace.add_widget')}
 			onclick={() => (sidebarOpen = true)}
 		>
 			<PanelLeftOpen class="h-4 w-4" />
@@ -258,8 +259,8 @@ function confirmRename(name: string) {
 		<button
 			type="button"
 			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			aria-label="元に戻す"
-			title="元に戻す (Ctrl+Z)"
+			aria-label={t('workspace.tooltip.undo')}
+			title={t('workspace.tooltip.undo_full')}
 			disabled={!workspaceHistory.canUndo}
 			onclick={() => void workspaceStore.undo()}
 		>
@@ -268,8 +269,8 @@ function confirmRename(name: string) {
 		<button
 			type="button"
 			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			aria-label="やり直し"
-			title="やり直し (Ctrl+Y / Ctrl+Shift+Z)"
+			aria-label={t('workspace.tooltip.redo')}
+			title={t('workspace.tooltip.redo_full')}
 			disabled={!workspaceHistory.canRedo}
 			onclick={() => void workspaceStore.redo()}
 		>
@@ -281,8 +282,8 @@ function confirmRename(name: string) {
 		<button
 			type="button"
 			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			aria-label="拡大率を 100% にリセット"
-			title="100% にリセット (Ctrl+0)"
+			aria-label={t('workspace.tooltip.reset_zoom')}
+			title={t('workspace.tooltip.reset_zoom_short')}
 			onclick={() => zoom.resetZoom()}
 		>
 			<ResetIcon class="h-4 w-4" />
@@ -290,17 +291,19 @@ function confirmRename(name: string) {
 		<span
 			class="select-none px-1 text-xs tabular-nums text-[var(--ag-text-muted)]"
 			data-testid="zoom-percent"
-			title="現在の拡大率 (Ctrl+wheel で変更)"
+			title={t('workspace.tooltip.current_zoom')}
 		>
 			{configStore.widgetZoom}%
 		</span>
 		<button
 			type="button"
 			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			aria-label={workspaceSelection.size > 0 ? '選択 widget を表示' : '全体を表示'}
+			aria-label={workspaceSelection.size > 0
+				? t('workspace.tooltip.fit_selected')
+				: t('workspace.tooltip.fit_all')}
 			title={workspaceSelection.size > 0
-				? `選択中 ${workspaceSelection.size} 個を表示 (Ctrl+Shift+1)`
-				: '全体を表示 (Ctrl+Shift+1)'}
+				? t('workspace.tooltip.fit_selected_n', { count: workspaceSelection.size })
+				: t('workspace.tooltip.fit_all_full')}
 			onclick={() => {
 				// U-8 (2026-05-12 user 検収): 選択中 widget があればその範囲だけ fit、
 				// 無ければ全 widget を fit (既存挙動)。

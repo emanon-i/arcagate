@@ -44,10 +44,15 @@ export function setLocale(next: Locale): void {
  * 例: t('nav.library') → 'Library' (ja) / 'Library' (en)
  *     t('common.cancel') → 'キャンセル' (ja) / 'Cancel' (en)
  *
- * Phase 1 では fallback chain は単純: 該当 locale → 'ja' default → key そのもの。
- * vars 補間は Phase 3 以降で `{name}` placeholder 対応 (現状 plain string のみ)。
+ * 第 2 引数 vars で `{name}` placeholder 補間に対応 (Phase 3 で本格化)。
+ *   例: t('workspace.tooltip.fit_selected_n', { count: 3 })
+ *       template: '選択中 {count} 個を表示 (Ctrl+Shift+1)'
+ *       → '選択中 3 個を表示 (Ctrl+Shift+1)'
+ *
+ * fallback chain: 該当 locale → 'ja' default → key そのもの (= 翻訳漏れ可視化)。
+ * 未提供の placeholder は `{name}` のまま残す (debug 容易)。
  */
-export function t(key: string): string {
+export function t(key: string, vars?: Record<string, string | number>): string {
 	const messages = MESSAGES[currentLocaleState] ?? MESSAGES.ja;
 	const parts = key.split('.');
 	let cursor: unknown = messages;
@@ -61,13 +66,25 @@ export function t(key: string): string {
 				if (typeof fallback === 'object' && fallback !== null && p in fallback) {
 					fallback = (fallback as Record<string, unknown>)[p];
 				} else {
-					return key; // 最終 fallback: key そのもの (= 翻訳漏れ可視化)
+					return key;
 				}
 			}
-			return typeof fallback === 'string' ? fallback : key;
+			return typeof fallback === 'string' ? interpolate(fallback, vars) : key;
 		}
 	}
-	return typeof cursor === 'string' ? cursor : key;
+	return typeof cursor === 'string' ? interpolate(cursor, vars) : key;
+}
+
+/**
+ * `{name}` placeholder を vars[name] で置換。
+ * vars 未指定 / key 不在の placeholder は原文のまま残す。
+ */
+function interpolate(template: string, vars?: Record<string, string | number>): string {
+	if (!vars) return template;
+	return template.replace(/\{(\w+)\}/g, (match, name: string) => {
+		const value = vars[name];
+		return value !== undefined ? String(value) : match;
+	});
 }
 
 /**

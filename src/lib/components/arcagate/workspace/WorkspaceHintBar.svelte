@@ -1,6 +1,7 @@
 <script lang="ts">
 import { cubicOut } from 'svelte/easing';
 import { fade, fly } from 'svelte/transition';
+import { t } from '$lib/i18n.svelte';
 
 /**
  * PH-issue-002 で編集モードを撤廃したため、HintBar は常時 Workspace で表示される。
@@ -42,21 +43,21 @@ const dNormal = rm ? 0 : 200;
 		class:border-l-[var(--ag-accent)]={selectedWidgetId}
 	>
 		{#if selectedWidgetId}
-			<span class="font-medium text-[var(--ag-accent-text)]">1 件選択中</span>
+			<span class="font-medium text-[var(--ag-accent-text)]">{t('workspace.hint.selected_one')}</span>
 			<span class="text-[var(--ag-text-faint)]">·</span>
 			<span class="inline-flex items-center gap-1">
 				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono">Del</kbd>
-				削除
+				{t('workspace.hint.delete')}
 			</span>
 			<span class="text-[var(--ag-text-faint)]">·</span>
 			<span class="inline-flex items-center gap-1">
 				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono">Esc</kbd>
-				選択解除
+				{t('workspace.hint.deselect')}
 			</span>
 		{:else}
 			<span class="inline-flex items-center gap-1">
 				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono">Ctrl+wheel</kbd>
-				拡大縮小
+				{t('workspace.hint.zoom')}
 			</span>
 			<span class="text-[var(--ag-text-faint)]">·</span>
 			<span class="inline-flex items-center gap-1">
@@ -66,17 +67,17 @@ const dNormal = rm ? 0 : 200;
 			<span class="text-[var(--ag-text-faint)]">·</span>
 			<span class="inline-flex items-center gap-1">
 				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono">Ctrl+Shift+1</kbd>
-				全体
+				{t('workspace.hint.fit_all')}
 			</span>
 			<span class="text-[var(--ag-text-faint)]">·</span>
 			<span class="inline-flex items-center gap-1">
 				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono">Ctrl+Z</kbd>
-				取り消し
+				{t('workspace.hint.undo')}
 			</span>
 			<span class="text-[var(--ag-text-faint)]">·</span>
 			<span class="inline-flex items-center gap-1">
 				<kbd class="rounded bg-[var(--ag-surface-4)] px-1.5 py-0.5 font-mono">Space+drag</kbd>
-				パン
+				{t('workspace.hint.pan')}
 			</span>
 		{/if}
 	</div>

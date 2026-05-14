@@ -1,5 +1,6 @@
 <script lang="ts">
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 
 /**
  * ワークスペース名変更 dialog。BaseDialog rewrite (Dialog wrapper unify Phase 2)。
@@ -28,7 +29,7 @@ $effect(() => {
 
 <BaseDialog {open} onClose={onCancel} size="sm">
 	<h3 class="mb-4 text-lg font-semibold text-[var(--ag-text-primary)]">
-		ワークスペース名を変更
+		{t('workspace.rename.title')}
 	</h3>
 	<form
 		onsubmit={(e) => {
@@ -41,7 +42,7 @@ $effect(() => {
 			type="text"
 			class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
 			bind:value={renameValue}
-			placeholder="ワークスペース名"
+			placeholder={t('workspace.rename.placeholder')}
 			autofocus
 		/>
 		<div class="mt-4 flex justify-end gap-2">
@@ -50,13 +51,13 @@ $effect(() => {
 				class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
 				onclick={onCancel}
 			>
-				キャンセル
+				{t('common.cancel')}
 			</button>
 			<button
 				type="submit"
 				class="rounded-lg bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-90"
 			>
-				変更
+				{t('common.change')}
 			</button>
 		</div>
 	</form>

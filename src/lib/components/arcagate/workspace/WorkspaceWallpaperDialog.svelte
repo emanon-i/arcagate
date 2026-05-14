@@ -3,6 +3,7 @@ import { Image as ImageIcon, Trash2, Upload } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { saveWallpaperFile, setWorkspaceWallpaper } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -60,8 +61,10 @@ async function pickAndApply() {
 		const selected = await openDialog({
 			multiple: false,
 			directory: false,
-			filters: [{ name: '画像', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
-			title: '壁紙画像を選択',
+			filters: [
+				{ name: t('workspace.wallpaper.image_filter'), extensions: ['png', 'jpg', 'jpeg', 'webp'] },
+			],
+			title: t('workspace.wallpaper.pick_title'),
 		});
 		if (!selected || Array.isArray(selected)) {
 			saving = false;
@@ -76,9 +79,9 @@ async function pickAndApply() {
 		});
 		// store の workspaces 配列を更新 (active workspace の派生 state 反映)
 		workspaceStore.replaceWorkspace(updated);
-		toastStore.add('壁紙を更新しました', 'success');
+		toastStore.add(t('toast.wallpaper_updated'), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: '壁紙の設定' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('workspace.wallpaper.op_set') }, e), 'error');
 	} finally {
 		saving = false;
 	}
@@ -95,7 +98,7 @@ async function applySliderChange() {
 		});
 		workspaceStore.replaceWorkspace(updated);
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: '壁紙の透明度・ぼかし更新' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('workspace.wallpaper.op_adjust') }, e), 'error');
 	}
 }
 
@@ -110,9 +113,9 @@ async function clearWallpaper() {
 			blur: blurPx,
 		});
 		workspaceStore.replaceWorkspace(updated);
-		toastStore.add('壁紙を解除しました', 'success');
+		toastStore.add(t('toast.wallpaper_cleared'), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: '壁紙の解除' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('workspace.wallpaper.op_clear') }, e), 'error');
 	} finally {
 		saving = false;
 	}
@@ -131,7 +134,7 @@ async function clearWallpaper() {
 			class="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--ag-text-primary)]"
 		>
 			<ImageIcon class="h-5 w-5 text-[var(--ag-text-muted)]" />
-			「{workspace.name}」の壁紙
+			{t('workspace.wallpaper.title', { name: workspace.name })}
 		</h3>
 
 			<!-- プレビュー -->
@@ -141,13 +144,13 @@ async function clearWallpaper() {
 				{#if previewUrl}
 					<img
 						src={previewUrl}
-						alt="壁紙プレビュー"
+						alt={t('workspace.wallpaper.preview_alt')}
 						class="h-full w-full object-cover motion-reduce:!filter-none"
 						style="opacity: {opacityPct / 100}; filter: blur({blurPx}px);"
 					/>
 				{:else}
 					<div class="flex h-full w-full items-center justify-center text-xs text-[var(--ag-text-muted)]">
-						壁紙未設定
+						{t('workspace.wallpaper.none')}
 					</div>
 				{/if}
 			</div>
@@ -156,7 +159,7 @@ async function clearWallpaper() {
 			<div class="mb-3">
 				<div class="mb-1 flex items-center justify-between">
 					<label for="wallpaper-opacity" class="text-sm text-[var(--ag-text-secondary)]">
-						透明度
+						{t('workspace.wallpaper.opacity')}
 					</label>
 					<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{opacityPct}%</span>
 				</div>
@@ -177,7 +180,7 @@ async function clearWallpaper() {
 			<div class="mb-4">
 				<div class="mb-1 flex items-center justify-between">
 					<label for="wallpaper-blur" class="text-sm text-[var(--ag-text-secondary)]">
-						ぼかし
+						{t('workspace.wallpaper.blur')}
 					</label>
 					<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{blurPx}px</span>
 				</div>
@@ -203,7 +206,7 @@ async function clearWallpaper() {
 					disabled={!workspace.wallpaper_path || saving}
 				>
 					<Trash2 class="h-4 w-4" />
-					壁紙を解除
+					{t('workspace.wallpaper.clear_button')}
 				</button>
 				<div class="flex items-center gap-2">
 					<button
@@ -211,7 +214,7 @@ async function clearWallpaper() {
 						class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 						onclick={onClose}
 					>
-						閉じる
+						{t('common.close')}
 					</button>
 					<button
 						type="button"
@@ -220,7 +223,9 @@ async function clearWallpaper() {
 						disabled={saving}
 					>
 						<Upload class="h-4 w-4" />
-						{workspace.wallpaper_path ? '画像を変更' : '画像を選択'}
+						{workspace.wallpaper_path
+							? t('workspace.wallpaper.change_button')
+							: t('workspace.wallpaper.pick_button')}
 					</button>
 				</div>
 			</div>
