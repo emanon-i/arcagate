@@ -133,6 +133,22 @@
 		"confirm_delete": "削除しますか?",
 		"unsaved_changes": "保存されていない変更があります"
 	},
+	"widgets": {
+		"common": {
+			"max_items_label": "表示件数 (1〜100)",
+			"sort_field_label": "並び順",
+			"sort_default": "デフォルト(IPC 順)",
+			"sort_name_az": "名前順 (A-Z)",
+			"folder": {
+				"label": "監視フォルダ",
+				"placeholder": "例: D:\\Tools",
+				"picker_title": "監視するフォルダを選択",
+				"none": "未選択",
+				"pick_button": "選択",
+				"clear_label": "{label}を解除"
+			}
+		}
+	},
 	"toast": {
 		"saved": "保存しました",
 		"deleted": "削除しました",

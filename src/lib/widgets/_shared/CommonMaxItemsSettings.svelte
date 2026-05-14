@@ -2,6 +2,8 @@
 /**
  * PH-issue-026 (Issue 23): CommonMaxItemsSettings polish — clamp 統一 (1〜100)。
  */
+import { t } from '$lib/i18n.svelte';
+
 interface Props {
 	config: { max_items?: number; sort_field?: 'default' | 'name' };
 }
@@ -13,7 +15,7 @@ let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数 (1〜100)</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">{t('widgets.common.max_items_label')}</label>
 	<input
 		id="ws-max-items"
 		type="number"
@@ -35,7 +37,7 @@ let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
 </div>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sort-field">並び順</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-sort-field">{t('widgets.common.sort_field_label')}</label>
 	<select
 		id="ws-sort-field"
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
@@ -47,7 +49,7 @@ let sortField = $derived<'default' | 'name'>(config.sort_field ?? 'default');
 			};
 		}}
 	>
-		<option value="default">デフォルト（IPC 順）</option>
-		<option value="name">名前順（A-Z）</option>
+		<option value="default">{t('widgets.common.sort_default')}</option>
+		<option value="name">{t('widgets.common.sort_name_az')}</option>
 	</select>
 </div>
