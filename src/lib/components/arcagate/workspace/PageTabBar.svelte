@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Image as ImageIcon } from '@lucide/svelte';
+import { t } from '$lib/i18n.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 
 interface Props {
@@ -95,7 +96,7 @@ function handleKeydown(e: KeyboardEvent) {
 		<button
 			type="button"
 			class="ml-auto flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-transparent px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			aria-label="このワークスペースの壁紙を設定"
+			aria-label={t('workspace.wallpaper_set')}
 			onclick={() => onEditWallpaper()}
 		>
 			<ImageIcon class="h-3.5 w-3.5" />
