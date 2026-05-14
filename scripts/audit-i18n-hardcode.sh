@@ -1,29 +1,32 @@
 #!/usr/bin/env bash
 # audit-i18n-hardcode.sh
 #
-# 多言語化準備 (i18n readiness) 用 audit。日本語 hard-code 文字列の数を計測、
-# baseline 記録 + 増加検出 (R9-C で budget gate 化)。
+# 多言語化準備 (i18n readiness) 用 audit。日本語 hard-code 文字列の数を計測 + i18n key parity check。
 #
 # Phase 1 (R7-4): informational のみ
-# Phase 2 (R9-C 本 PR): **budget gate** — 現 baseline ≤ MAX_HARDCODE で regression 防止
-# Phase 3 (L4): 段階的に MAX_HARDCODE を下げる (実 strings を i18n key へ migrate)
-# Phase 4 (L4 完了): hardcoded 0、t() 経由のみ
+# Phase 2 (R9-C): **budget gate** — 現 baseline ≤ MAX_HARDCODE で regression 防止
+# Phase 3 (2026-05-14〜): 統合戦略 area 1-9 で 大量 callsite を t() 化、 MAX を段階的に引下げ
+# Phase 4 (2026-05-15 本 PR): + messages_{ja,en}.json key parity check 追加
+# Phase 5 (今後): hardcoded 0 を目指す (全文字列 t() 経由)
 #
 # 計測対象:
 #   - svelte / ts のうち user-facing 文字列に該当する行
-#   - aria-label="..." / title="..." / >...</tag> 内の日本語
+#   - aria-label="..." / title="..." / placeholder="..." / >...</tag> 内の日本語
 #   - import / class / data-* 等は除外
+#
+# key parity check:
+#   - messages_ja.json と messages_en.json で key 一致を機械的に検証
+#   - どちらかにしか存在しない key を検出 (= 翻訳漏れ / stale key)
 
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
 # budget 推移: R7-4 = 295 → R9-C = 299 → R10-B = 301 → 2026-05-07 = 330 → 2026-05-12 = 350 → 2026-05-14 = 360
-# 2026-05-14: rank 3 i18n Phase 1+2 で Settings Language selector + i18n.svelte.ts 等で
-#  「表示言語」 「日本語」 「English」 + comment 内 JP で +3 件追加。
-# 注: 本来 i18n 着手 = MAX 引下げ方向だが、 Phase 1+2 は infrastructure のみで
-#  既存 hardcoded migration は Phase 3 (= 続 PR、 500-1000 callsite key 化) で実施、
-#  そこで MAX 大幅減 (segment ごとに 50-100 引下げ) 予定。
+# 2026-05-14: rank 3 i18n Phase 1+2 で Settings Language selector + i18n.svelte.ts 等で +3 件。
+# 2026-05-15: 統合戦略 area 1-9 で大量 callsite t() 化、 実測 ~328-347 範囲で安定。
+#   今後 #470 / #471 / #472 / #474 が全 merge されると更に減少予定 (workspace template / palette / toast 反映)。
+# 注: Phase 5 (= 完全 0) は dialog 内 form label / widget settings 大量変更が必要、 段階移行で。
 MAX_HARDCODE=360
 
 # 日本語文字 (ひらがな + カタカナ + CJK Unified Ideographs) を含む文字列リテラル
@@ -70,4 +73,50 @@ if [ "$total" -gt "$MAX_HARDCODE" ]; then
 fi
 
 echo "✓ audit-i18n-hardcode: budget OK ($total ≤ $MAX_HARDCODE)"
+echo ""
+
+# Phase 4 (2026-05-15): messages_{ja,en}.json key parity check。
+# どちらかにしか存在しない key (= 翻訳漏れ / stale) を機械的に検出。
+ja_file="src/lib/i18n/messages_ja.json"
+en_file="src/lib/i18n/messages_en.json"
+
+if [ ! -f "$ja_file" ]; then
+	echo "(messages_ja.json not found — key parity check skipped)"
+elif [ ! -f "$en_file" ]; then
+	echo "(messages_en.json not found — key parity check skipped、 Phase 3 完了後に活性化)"
+else
+	# jq でフラット化した dot-notation key 一覧を比較。 $schema / $comment は除外。
+	if command -v jq >/dev/null 2>&1; then
+		ja_keys=$(jq -r 'paths(strings) | select(.[0] | startswith("$") | not) | join(".")' "$ja_file" 2>/dev/null | sort -u)
+		en_keys=$(jq -r 'paths(strings) | select(.[0] | startswith("$") | not) | join(".")' "$en_file" 2>/dev/null | sort -u)
+
+		only_ja=$(comm -23 <(echo "$ja_keys") <(echo "$en_keys"))
+		only_en=$(comm -13 <(echo "$ja_keys") <(echo "$en_keys"))
+
+		ja_count=$(echo "$ja_keys" | grep -c .)
+		en_count=$(echo "$en_keys" | grep -c .)
+
+		echo "i18n key parity (Phase 4):"
+		echo "  messages_ja.json keys:  $ja_count"
+		echo "  messages_en.json keys:  $en_count"
+
+		if [ -n "$only_ja" ]; then
+			echo ""
+			echo "  WARN: ja のみに存在する key (= en 翻訳漏れ):"
+			echo "$only_ja" | sed 's/^/    /'
+		fi
+		if [ -n "$only_en" ]; then
+			echo ""
+			echo "  WARN: en のみに存在する key (= stale / ja 同期漏れ):"
+			echo "$only_en" | sed 's/^/    /'
+		fi
+
+		if [ -z "$only_ja" ] && [ -z "$only_en" ]; then
+			echo "  ✓ key parity OK (ja / en 完全一致)"
+		fi
+	else
+		echo "(jq not installed — key parity check skipped)"
+	fi
+fi
+
 exit 0
