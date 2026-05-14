@@ -17,7 +17,15 @@ const TAURI_EXE = join(process.cwd(), 'src-tauri', 'target', 'debug', 'arcagate.
 const DB_DIR = join(process.cwd(), 'tmp');
 const DB_PATH = join(DB_DIR, `test-${Date.now()}.db`);
 
-async function waitForCdp(port: number, maxRetries = 60): Promise<void> {
+/**
+ * Windows runner で WebView2 cold start が 30s 内に CDP を開けない flake が頻発
+ * (2026-05-15 #471-#475 全 5 PR で再現)。 timeout を 60s に延長して infra flake を吸収。
+ *
+ * 引用元: .claude/skills/e2e-tauri-webview2 「CI で Vite 起動タイムアウト → webServer.timeout
+ * を 60_000 に延長」 と同方針 (CDP 側も同じく cold start 緩衝が必要)。
+ */
+async function waitForCdp(port: number, maxRetries = 120): Promise<void> {
+	const timeoutSec = (maxRetries * 500) / 1000;
 	for (let i = 0; i < maxRetries; i++) {
 		try {
 			const res = await fetch(`http://localhost:${port}/json/version`);
@@ -27,7 +35,7 @@ async function waitForCdp(port: number, maxRetries = 60): Promise<void> {
 		}
 		await new Promise((r) => setTimeout(r, 500));
 	}
-	throw new Error(`CDP port ${port} did not become available within 30s`);
+	throw new Error(`CDP port ${port} did not become available within ${timeoutSec}s`);
 }
 
 export default async function globalSetup(): Promise<void> {
