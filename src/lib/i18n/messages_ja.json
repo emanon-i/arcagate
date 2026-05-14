@@ -7,8 +7,8 @@
 	"nav": {
 		"library": "Library",
 		"workspace": "Workspace",
-		"settings": "設定",
-		"help": "ヘルプ"
+		"settings": "Settings",
+		"help": "Help"
 	},
 	"common": {
 		"cancel": "キャンセル",
