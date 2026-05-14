@@ -1,6 +1,6 @@
 {
 	"$schema": "./messages.schema.json",
-	"$comment": "audit 2026-05-14 rank 3 Phase 1+: ja message dictionary。 key naming: `<area>.<sub>.<name>`。 common.* = 2+ file 共通 (dedup 厳守)、 area-specific = その画面固有。",
+	"$comment": "i18n policy 準拠 (`docs/l2_foundation/i18n-policy.md`)。 key naming: `<area>.<sub>.<name>`。 4 分類 (A literal keep / B ja===en / C 翻訳 / D icon-only)、 common.* = 2+ file 重複 dedup 集約。",
 	"app": {
 		"name": "Arcagate"
 	},
