@@ -1,132 +1,150 @@
 # i18n Policy
 
-> **目的**: hardcoded string を migration する時に **「英語 keep / 翻訳 / icon 化 / dedup」 を即決判断** できる rule + decision tree。
+> **目的**: hardcoded string を migration する時に **「2 人が適用しても同じ答え」 になる mechanical 判定**で 「英語 keep / 翻訳 / icon 化 / dedup」 を即決判断。
 > **対象**: 全 frontend developer / agent / refactor 担当。
 > **永続性**: design system の中核、 i18n 着手時の判定基準、 button-usage.md と並ぶ L2 design doc。
-> **status**: 2026-05-15 制定 (初版) / 2026-05-15 refined rule (= 認知負荷 boundary を追加、 user 確定)。
-> **背景**: motivation.md (= JP-only → Microsoft Store + 海外展開対応 update 済) で i18n architecture 確定、 ただし「英語のまま OK」 「過剰翻訳」 「dedup 漏れ」 「中途半端な英語残し」 が起きやすい。 構造的に防ぐため本 doc を明文化。
+> **status**: 2026-05-15 制定 (初版) / 2026-05-15 refined rule (= 認知負荷 boundary) / 2026-05-15 mechanical 3 基準 全面 refine (= 「2 人が同じ答え」 を満たす objective 判定 確立、 user 確定)。
+> **背景**: motivation.md (= JP-only → Microsoft Store + 海外展開対応 update 済) で i18n architecture 確定。 「英語のまま OK」 「過剰翻訳」 「dedup 漏れ」 「中途半端な英語残し」 を **subjective でなく mechanical** に判定する rule が必要。
 
 ---
 
-## 0. 核 boundary: **「読解が要るか」 = 認知負荷 で英語 / 日本語 を分ける** (user 確定 2026-05-15)
+## 0. 核 mechanical 3 基準 (= 「2 人が同じ答え」 を満たす objective 判定)
 
-英語表示 OK の条件:
+旧 「認知負荷」 「読解が要るか」 表現は subjective、 本 doc では **「配置場所」 「文法構造」 「文字数」 の 3 基準で objective 化**。 適用順は §1 decision tree 参照。
 
-1. **短い** (= 1-3 word の名詞 / 動詞 / 名詞句)
-2. **structural** (= app の構造を表す term、 nav 系 / category 系)
-3. **universal** (= 全 locale で意味が通じる、 brand / 技術略語)
-4. **status は英語短文 OK** (= 「Library is empty」 「No items」 「Loading…」 等、 短く universal)
+### 基準 1: 配置場所 (location-based) — 最も mechanical
 
-日本語必須の条件:
+UI slot ごとに **言語を固定**。 配置場所がわかれば言語が一意に決まる。
 
-1. **読解が要る** (= 1 文以上の instructional / 説明的内容)
-2. **domain 固有** (= widget 名 / app 内 concept、 英語だと「何のことか」 が伝わらない)
-3. **長い / complex sentence** (= 「○○ したら △△ できます」 系の指示文)
-4. **error / toast / form label / 選択肢** (= 必ず日本語、 user 操作の文脈で正確に伝える)
+| UI slot (= 配置場所)                                          | 言語                        | category         | 根拠                                                            |
+| ------------------------------------------------------------- | --------------------------- | ---------------- | --------------------------------------------------------------- |
+| **nav menu item** (TitleAction / page tab)                    | 英語                        | (B) ja===en      | Library / Workspace / Settings / Help — 構造ラベル              |
+| **widget registry 名** (`WIDGET_LABELS`)                      | 日本語                      | (C) 翻訳         | domain 名、 英語 「Folder Watch」 では意味伝達薄                |
+| **widget settings dialog 内 label**                           | 日本語                      | (C) 翻訳         | form label                                                      |
+| **empty-state title** (= 1 行 status)                         | 英語短文                    | (B) ja===en      | "No items" / "Library is empty"                                 |
+| **empty-state description** (= title 下の説明文)              | 日本語                      | (C) 翻訳         | instructional                                                   |
+| **tooltip** (= hover で出る補助 text)                         | 日本語                      | (C) 翻訳         | 補助説明、 文                                                   |
+| **button label** (= visible text on `<Button>`)               | button-usage.md rubric 準拠 | —                | (a)-(d) で個別判定、 (e) icon は visible なし → aria-label のみ |
+| **button aria-label** (= 不可視、 screen reader が読む)       | 日本語                      | (C) 翻訳         | a11y、 完全文で意図伝達                                         |
+| **error message** (toast / alert)                             | 日本語                      | (C) 翻訳         | 操作失敗の正確伝達                                              |
+| **toast** (success / info / error 通知)                       | 日本語                      | (C) 翻訳         | UI 文脈                                                         |
+| **form label** (= input / select 横の名前)                    | 日本語                      | (C) 翻訳         | form                                                            |
+| **placeholder** (= input/select の空時 hint)                  | 日本語                      | (C) 翻訳         | instructional hint                                              |
+| **選択肢 label** (radio / select option / chip)               | 日本語                      | (C) 翻訳         | 選択意図                                                        |
+| **brand 名** (Arcagate / Steam / GitHub / VS Code / Tauri 等) | 英語 literal                | (A) literal keep | 固有名詞                                                        |
+| **技術略語** (CPU / RAM / API / JSON / SQL / URL 等)          | 英語 literal                | (A) literal keep | universal 技術 fact                                             |
+| **hotkey 表示** (Ctrl+Z / Esc / Tab 等)                       | 英語 literal                | (A) literal keep | OS 慣習                                                         |
+| **file 拡張子** (.exe / .md / .json)                          | 英語 literal                | (A) literal keep | universal                                                       |
+| **file 名 / version** (README.md / v1.0.0 / MIT)              | 英語 literal                | (A) literal keep | universal                                                       |
+| **universal icon-only ボタン** (close / settings / more 等)   | (D) icon-only               | —                | visible text 撤去、 aria-label のみ (C) 翻訳                    |
+
+### 基準 2: 文法構造 (= location で迷う場合の fallback、 mechanical)
+
+location table で該当 slot 不明な場合、 **文法的判定** で言語決定:
+
+| 文法的特徴                                                                                                   | 言語                   |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| **述語 (動詞 / 形容詞 / です・ます) を含む** (例: 「できます」 「あります」 「失敗しました」 「保存します」) | **日本語必須** (C)     |
+| **助詞 (を / が / に / へ / で / と / は / も / の) を含む**                                                 | **日本語必須** (C)     |
+| **名詞 / 名詞句のみ** (= 述語なし、 助詞なし)                                                                | **英語化候補** (B / D) |
+
+例:
+
+- 「ファイルをドロップして登録できます」 = 助詞「を」 + 述語「できます」 → **日本語必須 (C)**
+- 「ライブラリを検索」 = 助詞「を」 + 述語「検索」 → **日本語必須 (C)**
+- 「設定」 = 名詞のみ → **英語化候補** ("Settings")
+- 「リスト表示」 = 名詞句のみ → **英語化候補** ("List view") or icon 化 (☰)
+- 「No items」 = 名詞のみ status → **英語短文 OK (B)**
+
+### 基準 3: 文字数 tiebreaker (= 名詞句が長い場合の補助)
+
+基準 2 で英語化候補と判定された名詞句が、 **英語化すると長くなる** 場合は再考:
+
+- **英語にして 3 単語以内 / 25 文字以内** → 英語化 (B / D) OK
+- **3 単語超 / 25 文字超** → 日本語のまま (C) (= 長英語は読みづらい)
+
+例:
+
+- 「設定」 → "Settings" (= 1 word, 8 char) ✓ 英語化
+- 「リスト表示」 → "List view" (= 2 word, 9 char) ✓ 英語化 or icon
+- 「ファイルプレビュー」 → 仮に "File preview" (= 2 word, 12 char) は 英語化候補だが、 これは widget 名 (§0 基準 1 で「widget registry 名 → 日本語」 で確定) → **基準 1 が優先**、 文字数判定不要
 
 ---
 
-## 0-b. user 確定 5 分類 (= 言語選択 table)
-
-| 分類                                               | 言語                           | 例                                                                           | category         |
-| -------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------- | ---------------- |
-| **nav structural terms**                           | **英語**                       | Library / Workspace / Settings / Help                                        | (B) ja===en      |
-| **brand / 技術略語 / hotkey / file ext / version** | **英語 literal**               | Arcagate / CPU / Ctrl+Z / .exe / v1.0.0                                      | (A) literal keep |
-| **widget 名**                                      | **日本語必須** (= domain 意味) | 「フォルダ監視」 「クリップボード履歴」 「システムモニタ」 「スニペット」 等 | (C) 翻訳         |
-| **短い status / state message**                    | **英語短文 OK**                | "Library is empty" / "No items" / "Loading…" / "No match"                    | (B) ja===en      |
-| **長い説明文 / instructional text** (= 1 文以上)   | **日本語必須** (= 読解要)      | 「ファイルをドロップして登録できます」 「ここから widget を追加できます」    | (C) 翻訳         |
-| **error / toast / form label / 選択肢**            | **日本語必須**                 | 「保存に失敗しました」 「タイトル」 「組み込み」                             | (C) 翻訳         |
-
----
-
-## 1. 4 分類 + decision tree
-
-### 判定 question (= この文字列、 どう扱う?)
+## 1. Decision Tree (= 即決 flow、 mechanical 3 基準準拠)
 
 ```
-hardcoded string を見たら →
-│
-├─ universal な技術 fact (brand / 技術略語 / hotkey / file ext / version / file 名)
-│   → (A) literal keep
-│      = i18n を通さない、 hardcoded のまま
-│
-├─ UI 表示の universal な英語語 (= 既英語 UI label、 future も英語維持決定)
-│   → (B) ja===en key 化
-│      = messages_{ja,en}.json で同 value、 翻訳 work 0 だが key 化で経路一貫
-│
-├─ universal recognition の操作 (close × / settings ⚙ / search 🔍 / 表示切替 等)
-│   → (D) icon-only 化
-│      = visible text 撤去、 `<Button size="icon">` + `aria-label={t('common.X')}` のみ
-│
-└─ app 固有概念 / 説明 / error / form label / 選択肢 / toast 等
-    → (C) 翻訳対象 t() 化
-       = messages_ja.json に key 追加、 messages_en.json で英訳
+1. これ brand / 技術略語 / hotkey / file 拡張子 / file 名 / version か?
+   → YES: (A) literal keep、 i18n 通さない、 hardcoded literal のまま
+   → NO: 次
+
+2. これ universal icon (close × / settings ⚙ / etc) で text 不要か?
+   → YES: (D) icon-only 化、 visible text 撤去、 aria-label のみ t(common.X)
+   → NO: 次
+
+3. §0 基準 1 「配置場所 table」 で言語が一意に決まるか?
+   → YES: table の言語に従う (= 場所が決まれば言語は一意、 基準 2/3 バイパス)
+   → NO: 次
+
+4. §0 基準 2 「文法構造」: 述語 or 助詞 を含むか?
+   → YES: (C) 日本語必須、 t() 化
+   → NO (= 名詞 / 名詞句のみ): 次
+
+5. §0 基準 3 「文字数」: 英語化して 3 単語以内 / 25 文字以内か?
+   → YES: (B) ja===en で英語化
+   → NO: (C) 日本語のまま、 t() 化
+
+6. (C) 確定後、 2 箇所以上で同 JP 文言か?
+   → YES: `t('common.X')` に dedup
+   → NO: `t('<area>.sub.name')` で area-specific
 ```
+
+### 判定例 (= 2 人が同じ答えになる verify)
+
+| 文字列                                             | step                                                     | category                                       |
+| -------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------- |
+| 「Ctrl+Shift+Space」                               | 1 (hotkey)                                               | (A) literal keep                               |
+| 「×」 close button                                 | 2 (universal icon)                                       | (D) icon-only、 aria-label = t('common.close') |
+| 「Library」 (nav tab)                              | 3 (table: nav menu item → 英語)                          | (B) "Library"                                  |
+| 「フォルダ監視」 widget 名                         | 3 (table: widget registry 名 → 日本語)                   | (C) "フォルダ監視"                             |
+| 「Library is empty」 empty-state title             | 3 (table: empty-state title → 英語短文)                  | (B) "Library is empty"                         |
+| 「ファイルをドロップして登録できます」             | 4 (助詞「を」 + 述語「できます」)                        | (C) 日本語必須                                 |
+| 「ライブラリを検索」 placeholder                   | 3 (table: placeholder → 日本語)                          | (C) 日本語必須                                 |
+| 「設定」 (panel header、 nav 以外で見つかった場合) | 4 NO (名詞) → 5 YES (英 "Settings" 1 word)               | (B) "Settings"                                 |
+| 「リスト表示」                                     | 4 NO (名詞句) → 5 YES (英 "List view" 2 word)            | (B) or 2 (D) icon                              |
+| 「キャンセル」 form button                         | 3 (table: button label → rubric 準拠 form action は (C)) | (C) common.cancel                              |
+
+→ 「step 3 (location)」 が最強、 location で決まったら基準 2/3 はバイパスされる。
 
 ---
 
-## 2. 各分類の判定 rule
+## 2. 各 category の詳細 (= mechanical 判定後の実装)
 
 ### (A) literal keep (= i18n を通さない)
 
-**該当**:
+**該当**: §0 基準 1 の 「brand / 技術略語 / hotkey / file ext / file 名 / version」 slot
 
-- **brand 名**: `Arcagate` / `Steam` / `GitHub` / `VS Code` / `Tauri` / `Svelte` / `Microsoft Store` / `Epic Games` 等
-- **技術略語**: `CPU` / `RAM` / `GPU` / `OS` / `API` / `JSON` / `SQL` / `URL` / `UUID` / `HTTP` 等
-- **hotkey 表示**: `Ctrl+Shift+Space` / `Ctrl+Z` / `Ctrl+0` / `Esc` / `Del` / `Tab` / `Space+drag` 等
-- **file 拡張子**: `.exe` / `.md` / `.json` / `.bat` / `.png` / `.svg` 等
-- **file 名**: `README.md` / `package.json` / `Cargo.toml` 等
-- **バージョン / metadata**: `Version` / `License` / `MIT` / `v1.0.0` 等
-
-**理由**: universal な技術 fact で localize する意味なし、 全 locale で英語表示が natural、 user 体験は brand / 技術用語の英語維持が一般的。
-
-**実装**: hardcoded literal のまま、 messages_ja.json にも入れない、 lint (audit-i18n-hardcode.sh) は **これらを除外する pattern を入れる** (= 翻訳漏れ誤検出を防ぐ)。
+**実装**: hardcoded literal のまま、 messages_ja.json に入れない、 lint (audit-i18n-hardcode.sh) で **これらを除外する pattern 必要** (= 翻訳漏れ誤検出防止、 別 PR で script 拡張予定)。
 
 ### (B) ja===en key 化 (= 翻訳 work 0、 経路一貫)
 
-**該当**:
+**該当**: §0 基準 1 の 「nav menu / empty-state title」 + 基準 2/3 で英語化判定された名詞句 (3 word / 25 char 以内)
 
-- UI 文脈で **「現状英語表示、 future も英語維持決定」** のもの
-- 例: `Library` / `Workspace` (nav tab label)、 `Desktop Overlay Palette` (palette title)、 `Open with…` (= macOS 慣習尊重の英語表記)、 `English` (locale 選択 option label)
-
-**理由**: i18n の経路は通すが翻訳 work は 0 (= ja===en)、 future の locale 追加時 fallback chain 一貫、 「なんとなく英語のまま」 を **明示的に**「英語維持 (= 意図的)」 と marker。
-
-**実装**: messages_ja.json + messages_en.json で **同 value** で key 化、 `t('nav.library')` 経由で参照。
+**実装**: messages_ja.json + messages_en.json で **同 value** で key 化、 `t('nav.X')` 経由で参照。
 
 ### (C) 翻訳対象 (= 通常の i18n、 ja → en 翻訳必要)
 
-**該当**:
+**該当**: §0 基準 1 の 「widget 名 / form / error / toast / aria-label / tooltip / placeholder / 説明 / 選択肢」 + 基準 2 で述語/助詞含む文 + 基準 3 で英語化したら長すぎる名詞句
 
-- **UI label**: 「保存」 「キャンセル」 「ライブラリが空です」 等の操作 / 状態表示
-- **説明文**: 「アプリ・フォルダ・URL などのショートカットを追加できます」 等
-- **error / toast**: 「保存に失敗しました」 「読み込み中エラー」 等
-- **form label**: 「タイトル」 「説明 (任意)」 「タグ名」 等
-- **選択肢 label**: 「フラット ダーク」 「組み込み」 等
-
-**理由**: app 固有 / 操作意図 / state 表示等、 user の言語で表現すべきもの。
-
-**実装**: `t('area.sub.name')` で migration、 messages_ja.json + messages_en.json で別 value。 **dedup 厳守** (= 後述 §3)。
+**実装**: `t('area.sub.name')` で migration、 messages_ja.json + messages_en.json で別 value、 dedup 厳守 (= §3)。
 
 ### (D) icon-only 化 (= text 撤去、 aria-label のみ翻訳対象)
 
-**該当 (= button-usage.md rubric (e) icon-only と整合)**:
+**該当**: §0 基準 1 の 「universal icon-only ボタン」 slot
 
-- **close** (×、 `X` icon)
-- **settings** (⚙、 `Settings` icon)
-- **search / search clear** (🔍 / × in search box)
-- **add / new** (+、 `Plus` icon、 context あり時)
-- **delete / trash** (🗑、 `Trash2` icon)
-- **edit** (✏、 `Pencil` icon)
-- **copy** (📋、 `Copy` icon)
-- **more / overflow** (... 、 `MoreHorizontal` icon)
-- **expand / collapse** (▼▲、 `ChevronUp/Down` icon)
-- **view mode toggle** (grid ▦ / list ☰、 `Grid3x3` / `LayoutList` icon)
-- **back / next** (← →、 `ChevronLeft/Right` icon)
-- **refresh / reload** (🔄、 `RefreshCw` icon)
-- **external link** (↗、 `ExternalLink` icon)
-- **undo** (↩、 `Undo2` icon)
+**判定**: button-usage.md rubric (e) icon-only と整合、 universal recognition の icon が存在する操作:
 
-**理由**: universal recognition で text なしでも操作意図伝達可能、 visible text 削減 = 視覚 noise 削減 + 翻訳 work 削減。
+- close (`X`) / settings (`Settings`) / search clear (`X` in search box) / add (`Plus`) / delete (`Trash2`) / edit (`Pencil`) / copy (`Copy`) / more (`MoreHorizontal`) / expand-collapse (`ChevronUp/Down`) / view mode (`Grid3x3` / `LayoutList`) / back-next (`ChevronLeft/Right`) / refresh (`RefreshCw`) / external link (`ExternalLink`) / undo (`Undo2`)
 
 **実装**: `<Button variant="ghost" size="icon">` + icon component + `aria-label={t('common.X')}` (= visible text 撤去、 a11y のみ翻訳)。
 
@@ -137,7 +155,7 @@ hardcoded string を見たら →
 ### 判定: **2 箇所以上で同一文言** → `common.*` に昇格
 
 - `common.cancel` (= 「キャンセル」 が 3+ file で使用)
-- `common.save` / `common.delete` / `common.close` / `common.edit` / `common.change` / `common.add` / `common.back` / `common.next` / `common.loading` / etc.
+- `common.save` / `common.delete` / `common.close` / `common.edit` / `common.change` / `common.add` / `common.back` / `common.next` / `common.loading` / `common.no_match` / etc.
 
 ### area-specific namespace は **その画面固有** のみ
 
@@ -145,152 +163,85 @@ hardcoded string を見たら →
 - `palette.no_recent` (= palette でのみ)
 - `settings.hotkey.label` (= settings でのみ)
 
-### 重複検知 lint
+### 重複検知
 
 PR review 時に **既 messages_ja.json に同 value (= 同 JP 文言) を別 key で追加してないか** grep audit。
 
 ---
 
-## 4. Decision Tree (= 即決 flow、 §0 認知負荷 boundary 反映済)
+## 4. Anti-pattern (= 構造的に防ぐ NG patterns)
 
-```
-1. これ literal な技術 fact / brand / hotkey / file ext / version か?
-   YES → (A) literal keep、 i18n 通さない
-   NO  → 次
-2. universal recognition の操作 icon が存在するか?
-   YES → (D) icon-only 化、 visible text 撤去、 aria-label={t('common.X')}
-   NO  → 次
-3. これ widget 名 / domain 固有 / instructional 説明文 (= 1 文以上) / error / form label か?
-   YES → (C) 日本語翻訳必須、 t() 化 (= 読解要、 domain 意味伝達要)
-   NO  → 次
-4. これ nav term / short status (= 1-3 word) / universal 英語語句 か?
-   YES → (B) ja===en で key 化 (= 短く universal、 英語表示で読解可)
-   NO  → 次
-5. 2 箇所以上で同 JP 文言が出るか?
-   YES → (C) `t('common.X')` に dedup 集約
-   NO  → (C) `t('<area>.sub.name')` に area-specific key
-```
+### ❌ NG
 
-### 判定例
-
-- 「Library is empty」 (= 3 word status) → step 4 → **(B) ja===en**
-- 「ファイルをドロップして登録できます」 (= instructional 1 文) → step 3 → **(C) 日本語翻訳**
-- 「フォルダ監視」 (= widget 名) → step 3 → **(C) 日本語翻訳** (英語だと folder monitoring = domain 意味薄)
-- 「Loading…」 (= short status) → step 4 → **(B) ja===en**
-- 「読み込み中…」 が既存 (C) common.loading で JP の場合 → status は **(B) 短英語に統一推奨**、 ただし既存 dedup と user 体感で判断
-- 「Ctrl+Z」 → step 1 → **(A) literal keep**
-- 「×」 (close button) → step 2 → **(D) icon-only**
-
----
-
-## 5. Anti-pattern (= 「中途半端な英語残し」 を構造的に防ぐ)
-
-### ❌ NG patterns
-
-1. **「なんとなく英語のまま」** = 明確 category (A/B) で説明できない英語 hardcoded
-   - 例: 何の根拠もなく「Loading...」 残してる (= (C) で `t('common.loading')` 化すべき)
-2. **過剰翻訳** = 本来 (A) literal keep すべき brand / 技術略語を t() 化
-   - 例: `t('app.cpu_label')` = "CPU" (= literal 「CPU」 keep が natural)
+1. **「なんとなく英語のまま」** = §0 基準 1-3 で説明できない英語 hardcoded
+2. **過剰翻訳** = (A) literal keep すべき brand / 略語を t() 化
 3. **dedup 漏れ** = 同 JP 文言を area-specific key で個別作成
-   - 例: `library.cancel` + `workspace.cancel` + `settings.cancel` = 全部 `common.cancel` に集約すべき
-4. **icon 化漏れ** = universal icon あるのに text-only button のまま
-   - 例: ✕ close button に visible 「閉じる」 text + `t('common.close')` (= icon-only `aria-label={t('common.close')}` が正)
-5. **混在中途半端** = 同 area / 同 widget 内で一部翻訳、 一部英語残しで **rule なしの無意識** な不整合
-   - 例: nav tab で 「Library」 (英語 keep) + 「設定」 (JP) + 「Workspace」 (英語) + 「ヘルプ」 (JP) で **rule 不在** の場合 → 4 件統一 (全英語 or 全 JP)
+4. **icon 化漏れ** = §0 基準 1 「universal icon-only」 該当なのに text-only button
+5. **混在中途半端** = 同 area / 同 slot で **rule なしの無意識** 不整合
+   - 例: nav 4 item で「Library / Workspace / 設定 / ヘルプ」 (= rule 不在の 2:2 混在)
 
-### ⚠️ 「rule-based 混在」 は OK (= 意図的、 anti-pattern §5 該当せず) — user 確定 2026-05-15
+### ✅ OK: 「rule-based 混在」 は意図的
 
-§0 認知負荷 boundary に基づく **意図的な混在は OK**:
+§0 基準 1 配置場所 table に従う **意図的な混在は OK**:
 
-- nav (英語) + widget 名 (日本語) + status (英語短文) + 説明文 (日本語) の **mixed UI** は **rule-based** で意図的 → anti-pattern ではない
-- 例: settings panel で `Settings` (= nav term 英語) header + 「自動起動の設定」 (= 日本語 form label) + 「Ctrl+Shift+Space」 (= literal keep) + 「変更」 button (= 短英語に統一 or 日本語、 area 内一貫すれば OK) の組合せ
-- 判定: **rule §0/§0-b に従っているか** が決定打、 「なんとなく」 「無意識」 が NG、 「rule で説明できる」 が OK
-
-### ✅ Good patterns
-
-- 各 hardcoded string に **明確な category 判定根拠** がある
-- area / 同 component 内で **category 一貫** (= 全 JP / 全英語 / 全 icon 等の方針が見える)
-- dedup で **真の messages_ja.json key 数を最小化** (= ~150-200 key)
+- nav (英語) + widget 名 (日本語) + status (英語短文) + 説明文 (日本語) の組合せ → **基準 1 で説明できる** rule-based mix
+- 判定: **§0 基準 1-3 で説明できる** が OK、 「なんとなく」 が NG
 
 ---
 
-## 6. 現 messages_ja.json structure review (2026-05-15 audit)
+## 5. 既 messages_ja.json (post #466/#467) audit (= mechanical 基準 適用)
 
-### 問題: nav 内で英語 / JP 混在
+| key                                                           | value                            | slot (§0 基準 1)            | 文法 (§0 基準 2)                | 文字数 (§0 基準 3) | 判定                                              |
+| ------------------------------------------------------------- | -------------------------------- | --------------------------- | ------------------------------- | ------------------ | ------------------------------------------------- |
+| `app.name`                                                    | "Arcagate"                       | brand 名 → 英語 literal     | —                               | —                  | (A) literal だが key 化済 OK                      |
+| `nav.{library,workspace,settings,help}`                       | 英語                             | nav menu item → 英語        | —                               | —                  | (B) ja===en ✓ (PR #466)                           |
+| `common.{cancel,save,delete,close,edit,change,add,back,next}` | JP                               | form button → 日本語        | 名詞                            | —                  | (C) 翻訳 dedup ✓ (基準 1 で form button = JP fix) |
+| `common.loading`                                              | "Loading…"                       | empty-state status → 英短文 | 名詞                            | 1 word             | (B) ✓ (PR #467)                                   |
+| `common.no_match`                                             | "No match"                       | empty-state status → 英短文 | 名詞句                          | 2 word             | (B) ✓ (PR #467)                                   |
+| `library.add_item`                                            | "アイテムを追加"                 | form action button label    | 助詞「を」 + 述語「追加」       | —                  | (C) 翻訳 ✓ (基準 2 で日本語確定)                  |
+| `library.empty_title`                                         | "Library is empty"               | empty-state title           | 名詞句 status                   | 3 word             | (B) ✓ (PR #467)                                   |
+| `library.search_placeholder`                                  | "ライブラリを検索"               | placeholder                 | 助詞「を」 + 述語「検索」       | —                  | (C) ✓ (基準 1 placeholder = JP、 基準 2 でも JP)  |
+| `workspace.empty_title`                                       | "Workspace is empty"             | empty-state title           | 名詞句 status                   | 3 word             | (B) ✓ (PR #467)                                   |
+| `workspace.wallpaper_set`                                     | "このワークスペースの壁紙を設定" | aria-label / tooltip        | 助詞「の」「を」 + 述語「設定」 | —                  | (C) 翻訳 ✓                                        |
+| `palette.search_placeholder`                                  | "検索..."                        | placeholder                 | 名詞 + 省略記号                 | —                  | (C) ✓ (基準 1 placeholder = JP)                   |
+| `palette.no_recent`                                           | "No recent items"                | empty-state status          | 名詞句                          | 3 word             | (B) ✓ (PR #467)                                   |
+| `settings.category_label`                                     | "設定カテゴリ"                   | aria-label                  | 名詞句                          | —                  | (C) ✓ (基準 1 aria-label = JP)                    |
+| `settings.loading`                                            | "設定を読み込み中..."            | loading status              | 助詞「を」 + 述語「中」         | —                  | (C) ✓ (基準 2)                                    |
+| `settings.hotkey.label`                                       | "ホットキー表示"                 | aria-label                  | 名詞句                          | —                  | (C) ✓ (基準 1 aria-label)                         |
+| `settings.hotkey.press_key`                                   | "キーを押してください..."        | input value (instructional) | 助詞「を」 + 述語「ください」   | —                  | (C) ✓                                             |
+| `settings.hotkey.change`                                      | "ホットキーを変更"               | tooltip / title             | 助詞「を」 + 述語「変更」       | —                  | (C) ✓                                             |
+| `dialog.confirm_delete`                                       | "削除しますか?"                  | confirm question            | 述語「ます」                    | —                  | (C) ✓                                             |
+| `dialog.unsaved_changes`                                      | "保存されていない変更があります" | error / warning             | 助詞 + 述語                     | —                  | (C) ✓                                             |
+| `toast.{saved,deleted,error}`                                 | JP                               | toast → 日本語              | 述語                            | —                  | (C) ✓                                             |
 
-```json
-"nav": {
-  "library": "Library",       // (B) ja===en、 英語 keep 意図
-  "workspace": "Workspace",   // (B) 同上
-  "settings": "設定",          // (C) JP 翻訳
-  "help": "ヘルプ"            // (C) JP 翻訳
-}
-```
-
-**判定**: 4 件全部 (B) ja===en または全部 (C) 翻訳 で統一すべき。 現状の 2:2 混在は **anti-pattern §5 「混在中途半端」 該当**。
-
-**是正方針 (推奨)**: **全 (B) ja===en**、 = 「Library / Workspace / Settings / Help」 で全英語統一 (= brand decision、 Microsoft Store + 海外展開で英語 fluent が前提)。 ただし user 体感 / 既存 UI の慣性を考慮し、 user に最終判断委ねる:
-
-- **option 1: 全英語** (= "Library" / "Workspace" / "Settings" / "Help")
-- **option 2: 全 JP** (= "ライブラリ" / "ワークスペース" / "設定" / "ヘルプ")
-- **option 3: nav は brand decision として全 (A) literal keep** (= i18n 通さない、 全英語固定)
-
-### その他の現 messages_ja.json key audit
-
-| key                                       | value      | category                  | 整合性          |
-| ----------------------------------------- | ---------- | ------------------------- | --------------- |
-| `app.name`                                | "Arcagate" | (A) literal だが key 化済 | OK (brand keep) |
-| `nav.library` / `nav.workspace`           | English    | (B) ja===en               | 上記参照        |
-| `nav.settings` / `nav.help`               | JP         | (C) 翻訳                  | 上記参照        |
-| `common.*` (cancel/save/...)              | JP         | (C) 翻訳 dedup            | OK              |
-| `library.*` / `workspace.*` / `palette.*` | JP         | (C) 翻訳 area-specific    | OK              |
-| `settings.hotkey.*`                       | JP         | (C) area-specific         | OK              |
-| `dialog.confirm_delete` 等                | JP         | (C) 翻訳                  | OK              |
-| `toast.saved/deleted/error`               | JP         | (C) 翻訳                  | OK              |
-
-### 既 merged PR #456-#464 audit 結果
-
-- ✅ **dedup**: common.* に 11 key 集約、 area-specific key 重複なし
-- ⚠️ **混在中途半端**: nav の 2:2 英語/JP 混在は anti-pattern §5
-- ✅ **literal keep**: brand / 技術略語 (CPU 等) は messages_ja.json に入ってない (= 正)
-- ✅ **icon 化**: 既 PR では icon 化対象なし (= icon 化 audit は本 policy 制定後の rank 11 統合 PR で実施)
-- ⚠️ **過剰翻訳**: なし (= app.name = "Arcagate" は key 化済だが (B) ja===en で OK)
+**全 key が §0 基準 1-3 で mechanical に説明可能** = anti-pattern §4-5 「rule なしの無意識混在」 0 件、 「2 人が同じ答え」 を満たす状態に到達。 mechanical 判定 verify 完了。
 
 ---
 
-## 7. 是正 action (= 本 policy 制定後の audit 結果)
+## 6. 適用 procedure (= 続 PR で守る flow)
 
-| # | issue                                                                                                                                     | 是正                                                                  |
-| - | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| 1 | nav 4 key の英語 / JP 混在                                                                                                                | 続 PR で **全 (B) ja===en 統一** (option 1: 全英語) — user 確認後実施 |
-| 2 | `messages_ja.json` $comment を policy 参照に update                                                                                       | 本 PR で                                                              |
-| 3 | audit-i18n-hardcode.sh script に **(A) literal keep 除外 pattern** 追加 (= brand / 技術略語 / hotkey / file ext を翻訳漏れ誤検出から除外) | 別 PR (= script 拡張、 後続)                                          |
-
----
-
-## 8. 適用 procedure (= 続 PR で守る flow)
-
-1. **hardcoded string を見たら** §4 decision tree で判定
-2. **PR description で category 明示**: 「(A) literal keep: N 件 / (B) ja===en: M 件 / (C) 翻訳: K 件 / (D) icon 化: L 件」
-3. **(C) 翻訳で `messages_ja.json` 追加時**, dedup audit (= 既存 key に同 value あれば集約)
-4. **(D) icon 化で button 変更時**, button-usage.md rubric §2-3 と整合
-5. **review**: 「§5 anti-pattern 該当ないか」 を self-check
-6. lint pass: `audit-i18n-hardcode.sh` budget within (= 不要な hardcoded が増えてない)
+1. **hardcoded string を見たら** §1 decision tree で判定 (= 6 step)
+2. **PR description で category 明示**: 「(A) literal: N 件 / (B) ja===en: M 件 / (C) 翻訳: K 件 / (D) icon 化: L 件」 + **各 string の判定 path (step 番号 + slot 名 or 文法判定)** を 1 行記録
+3. **(C) 翻訳追加時** dedup audit (= 既存 key に同 value あれば集約)
+4. **(D) icon 化時** button-usage.md rubric §2-3 と整合
+5. **review**: 各 string が §0 基準 1-3 で説明できるか self-check
+6. lint pass: `audit-i18n-hardcode.sh` budget within
 
 ---
 
-## 9. 参照
+## 7. 参照
 
 - `src/lib/i18n.svelte.ts` — i18n infrastructure (= `t(key)` / `setLocale()` / `detectOsLocale()`)
 - `src/lib/i18n/messages_ja.json` — ja messages (本 doc rule で構造化)
 - `src/lib/i18n/messages_en.json` — en messages (Phase 3 後半で整備)
 - `scripts/audit-i18n-hardcode.sh` — hardcoded JP budget gate (lefthook pre-commit)
 - `docs/l2_foundation/button-usage.md` — button rubric (= icon-only 化判定と整合)
-- `docs/l0_ideas/motivation.md` (2026-05-14 update) — Microsoft Store + 海外展開対応 (= i18n 着手 driver)
-- `E:/tmp/arcagate-refactor-audit-2026-05-13.md` — i18n Phase 1-5 plan
+- `docs/l0_ideas/motivation.md` — Microsoft Store + 海外展開対応
 
 ---
 
 **変更履歴**:
 
-- 2026-05-15: 初版制定 (audit 進行中の 「中途半端な英語残し」 問題を構造的に防ぐため)、 4 分類 (A/B/C/D) + decision tree + dedup rule + anti-pattern 明文化、 既 merged PR #456-#464 audit 結果 + 是正 action 記録
+- 2026-05-15: 初版制定 (4 分類 (A/B/C/D) + decision tree + dedup rule + anti-pattern)
+- 2026-05-15: refined rule (= 認知負荷 boundary、 user 確定 5 分類)
+- **2026-05-15: mechanical 3 基準で全面 refine** (= 「配置場所 table」 + 「文法構造 (述語/助詞)」 + 「文字数 tiebreaker (3 word / 25 char)」 で objective 判定、 「2 人が適用しても同じ答え」 を満たす)、 既 messages_ja.json 全 22 key を mechanical 基準で audit (= 整合性 verify 完了、 anti-pattern 該当 0 件)
