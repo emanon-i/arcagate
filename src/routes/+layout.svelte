@@ -1,6 +1,7 @@
 <script lang="ts">
 import '../app.css';
 import { onDestroy, onMount } from 'svelte';
+import { detectOsLocale, setLocale } from '$lib/i18n.svelte';
 import { installErrorMonitor, uninstallErrorMonitor } from '$lib/state/error-monitor.svelte';
 import { installLongtaskObserver, installResourceObserver } from '$lib/utils/perf';
 
@@ -14,6 +15,9 @@ onMount(() => {
 	installErrorMonitor();
 	installLongtaskObserver();
 	installResourceObserver();
+	// audit 2026-05-14 rank 3 Phase 2: OS locale auto detect で初期 locale 設定
+	// (ja / en、 default ja)。 user が Settings Language selector で override 可。
+	setLocale(detectOsLocale());
 });
 onDestroy(() => {
 	uninstallErrorMonitor();

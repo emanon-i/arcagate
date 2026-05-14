@@ -1,0 +1,48 @@
+{
+	"$schema": "./messages.schema.json",
+	"$comment": "audit 2026-05-14 rank 3 Phase 1: ja message dictionary。 key naming: `<area>.<sub>.<name>` (例: 'nav.library', 'dialog.confirm.delete'). 将来 messages_en.json で同 key で英訳。",
+	"app": {
+		"name": "Arcagate"
+	},
+	"nav": {
+		"library": "Library",
+		"workspace": "Workspace",
+		"settings": "設定",
+		"help": "ヘルプ"
+	},
+	"common": {
+		"cancel": "キャンセル",
+		"confirm": "OK",
+		"save": "保存",
+		"delete": "削除",
+		"close": "閉じる",
+		"add": "追加",
+		"edit": "編集",
+		"back": "戻る",
+		"next": "次へ"
+	},
+	"library": {
+		"add_item": "アイテムを追加",
+		"empty_title": "ライブラリが空です",
+		"no_match": "一致する結果がありません",
+		"search_placeholder": "検索 (label / target / 別名)"
+	},
+	"workspace": {
+		"empty_title": "Workspace が空です",
+		"wallpaper_set": "このワークスペースの壁紙を設定"
+	},
+	"palette": {
+		"search_placeholder": "検索...",
+		"no_recent": "最近の起動履歴がありません",
+		"no_match": "一致する結果がありません"
+	},
+	"dialog": {
+		"confirm_delete": "削除しますか?",
+		"unsaved_changes": "保存されていない変更があります"
+	},
+	"toast": {
+		"saved": "保存しました",
+		"deleted": "削除しました",
+		"error": "エラーが発生しました"
+	}
+}
