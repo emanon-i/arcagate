@@ -16,6 +16,7 @@ import ItemFormDialog from '$lib/components/item/ItemFormDialog.svelte';
 import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 import OnboardingTour from '$lib/components/setup/OnboardingTour.svelte';
 import SetupWizard from '$lib/components/setup/SetupWizard.svelte';
+import { t } from '$lib/i18n.svelte';
 import { NAV_TOP } from '$lib/nav-items';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
@@ -422,11 +423,11 @@ function handleFormClose() {
 	>
 		<div class="relative flex h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
 			<div class="flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
-				<h2 class="text-base font-semibold text-[var(--ag-text-primary)]">設定</h2>
+				<h2 class="text-base font-semibold text-[var(--ag-text-primary)]">{t('nav.settings')}</h2>
 				<button
 					type="button"
 					class="rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
-					aria-label="設定を閉じる"
+					aria-label={t('nav.settings') + 'を閉じる'}
 					onclick={() => (showSettings = false)}
 				>
 					<X class="h-4 w-4" />
@@ -463,7 +464,7 @@ function handleFormClose() {
 			/>
 			<TitleAction
 				icon={HelpCircle}
-				label="ヘルプ"
+				label={t('nav.help')}
 				onclick={() => helpStore.open()}
 			/>
 			<TitleAction
