@@ -105,7 +105,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 				class="space-y-4 px-6 py-5"
 			>
 				<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-					このアプリについて
+					{t('settings.about.heading')}
 				</h3>
 				<AboutSection />
 			</div>

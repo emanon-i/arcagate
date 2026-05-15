@@ -1,29 +1,38 @@
 // WidgetType は src-tauri の Rust enum から ts-rs で自動生成（batch-79 PH-352）
+
 import type { WidgetType } from '$lib/bindings/WidgetType';
+import { t } from '$lib/i18n.svelte';
 
 export type { WidgetType };
 
-// WIDGET_LABELS は batch-79 で widget-registry に統合予定（後方互換のため当面残す）
-// Library 側「お気に入り」と統一 (PH-416 H4 一貫性)
-// 5/01 user 判断: clock 廃止 — `WidgetType` 自体から除去済 (Rust enum + ts-rs binding)。
-export const WIDGET_LABELS: Record<WidgetType, string> = {
-	favorites: 'お気に入り',
-	recent: '最近起動',
-	// PH-issue-039 / 検収項目 #12: 「ウォッチフォルダー」→「フォルダ監視」 (内容と名称の整合)。
-	projects: 'フォルダ監視',
-	item: 'アイテム',
-	stats: 'よく使うもの',
-	quick_note: 'メモ',
-	exe_folder: 'Exe フォルダ監視',
-	daily_task: 'デイリータスク',
-	snippet: 'スニペット',
-	clipboard_history: 'クリップボード履歴',
-	file_search: 'ファイル検索',
-	system_monitor: 'システムモニタ',
-	// U-5 / U-6 (2026-05-12): screens-and-flows.md Workspace § 画像 / テキストファイル D&D widget。
-	image_scrap: '画像',
-	file_preview: 'ファイルプレビュー',
-};
+/**
+ * K-1 (2026-05-15): widget 表示名を i18n 化。 旧 `WIDGET_LABELS` static map は
+ * locale 切替時に reactivity が無く EN locale でも JP 表示が残る regression が
+ * あった (user 報告)。 `widgetLabel(type)` を呼び出す形式に統一、 t() を経由して
+ * 現在 locale に追従。 `WIDGET_LABELS` は backward-compat の readonly Proxy として
+ * 残置 (新規 callsite は `widgetLabel()` を使う)。
+ */
+export function widgetLabel(type: WidgetType): string {
+	// K-1 follow-up (2026-05-16): i18n key path は `widgets.widget_label.*` (messages JSON 構造に合わせ)。
+	// 旧 path `workspace.widget_label.*` は messages JSON に存在しないため t() fallback でキー文字列が
+	// 返り、 widget 名表示が壊れていた (e2e #498 dialog-pin が `hasText: 'の設定'` で失敗した root cause)。
+	return t(`widgets.widget_label.${type}`);
+}
+
+/**
+ * Backward-compat: 旧 callsite が `WIDGET_LABELS[type]` で参照していたものに対応。
+ * 各 access 毎に t() を呼ぶので locale 切替に追従する。
+ *
+ * 新規実装では `widgetLabel(type)` を直接使用すること。
+ */
+export const WIDGET_LABELS: Record<WidgetType, string> = new Proxy(
+	{} as Record<WidgetType, string>,
+	{
+		get(_target, prop: string) {
+			return widgetLabel(prop as WidgetType);
+		},
+	},
+);
 
 export interface Workspace {
 	id: string;

@@ -129,6 +129,20 @@
 			"press_key": "Press a key…",
 			"change": "Change hotkey"
 		},
+		"general": {
+			"heading": "General",
+			"hotkey_label": "Global hotkey",
+			"hotkey_desc": "Shortcut to open the command palette",
+			"autostart_label": "Autostart",
+			"autostart_desc": "Launch automatically on login",
+			"autostart_aria_on": "Enable autostart",
+			"autostart_aria_off": "Disable autostart",
+			"language_label": "Display language / 表示言語",
+			"language_desc": "UI display language"
+		},
+		"about": {
+			"heading": "About"
+		},
 		"data": {
 			"heading": "Data",
 			"reset_label": "Reset settings",
@@ -165,7 +179,25 @@
 			"memo": "Memo / tasks",
 			"tool": "Tools",
 			"info": "Info / status"
-		}
+		},
+		"widget_label": {
+			"favorites": "Favorites",
+			"recent": "Recent",
+			"projects": "Folder watch",
+			"item": "Item",
+			"stats": "Frequently used",
+			"quick_note": "Note",
+			"exe_folder": "Exe folder watch",
+			"daily_task": "Daily tasks",
+			"snippet": "Snippet",
+			"clipboard_history": "Clipboard history",
+			"file_search": "File search",
+			"system_monitor": "System monitor",
+			"image_scrap": "Image",
+			"file_preview": "File preview"
+		},
+		"settings_dialog_title": "{label} settings",
+		"no_settings": "This widget has no settings."
 	},
 	"toast": {
 		"saved": "Saved",
