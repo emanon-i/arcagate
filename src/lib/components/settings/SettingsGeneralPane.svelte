@@ -68,7 +68,13 @@ let locale = $derived(currentLocale());
 				class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 				aria-label="表示言語"
 				value={locale}
-				onchange={(e) => setLocale((e.currentTarget as HTMLSelectElement).value as Locale)}
+				onchange={(e) => {
+					const next = (e.currentTarget as HTMLSelectElement).value as Locale;
+					// 永続化 + 再 mount で全 t() callsite に反映 (= reactive 連鎖) +
+					// 次回起動時に localStorage 経由で復元 (= +layout の resolveInitialLocale)。
+					if (typeof localStorage !== 'undefined') localStorage.setItem('arcagate.locale', next);
+					void setLocale(next);
+				}}
 			>
 				<option value="ja">日本語</option>
 				<option value="en">English</option>
