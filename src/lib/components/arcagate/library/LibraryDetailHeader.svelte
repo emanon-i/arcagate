@@ -2,6 +2,7 @@
 import { X as XIcon } from '@lucide/svelte';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
+import { Button } from '$lib/components/ui/button';
 import { typeLabel } from '$lib/constants/item-type';
 import type { Item } from '$lib/types/item';
 
@@ -33,13 +34,14 @@ let { item, moreMenuItems, onClose }: Props = $props();
 		<!-- refactor (Chip 既存活用): type badge を Chip.svelte (accent tone) で render。 -->
 		<Chip tone="accent">{typeLabel[item.item_type]}</Chip>
 		<MoreMenu items={moreMenuItems} ariaLabel="アイテム操作メニュー" />
-		<button
+		<Button
 			type="button"
-			class="rounded-lg p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
+			variant="ghost"
+			size="icon-sm"
 			aria-label="パネルを閉じる"
 			onclick={() => onClose?.()}
 		>
 			<XIcon class="h-4 w-4" />
-		</button>
+		</Button>
 	</div>
 </div>
