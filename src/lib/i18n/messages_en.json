@@ -128,6 +128,16 @@
 			"label": "Hotkey display",
 			"press_key": "Press a key…",
 			"change": "Change hotkey"
+		},
+		"data": {
+			"heading": "Data",
+			"reset_label": "Reset settings",
+			"reset_desc": "Restore hotkey, autostart, library card display, sort, language, zoom and other preferences to defaults. Workspaces, library items, themes and wallpapers are preserved.",
+			"reset_button": "Reset settings",
+			"resetting": "Resetting…",
+			"reset_confirm": "All settings will be restored to defaults. Workspaces and library items are preserved, but hotkey, autostart and display preferences will all return to defaults. Continue?",
+			"reset_done": "Settings have been reset",
+			"reset_failed": "Reset failed: {error}"
 		}
 	},
 	"dialog": {

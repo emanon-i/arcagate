@@ -128,6 +128,16 @@
 			"label": "ホットキー表示",
 			"press_key": "キーを押してください...",
 			"change": "ホットキーを変更"
+		},
+		"data": {
+			"heading": "データ",
+			"reset_label": "設定をリセット",
+			"reset_desc": "ホットキー / 自動起動 / Library カード表示 / 並び順 / 言語 / 拡大率などの設定を初期値に戻します。 ワークスペース / Library アイテム / テーマ / 壁紙は保持されます。",
+			"reset_button": "設定をリセット",
+			"resetting": "リセット中...",
+			"reset_confirm": "全設定を初期値に戻します。 ワークスペースや Library アイテムは消えませんが、 ホットキー / 自動起動 / 表示設定などはすべて default に戻ります。続けますか?",
+			"reset_done": "設定をリセットしました",
+			"reset_failed": "リセットに失敗しました: {error}"
 		}
 	},
 	"dialog": {
