@@ -1,7 +1,6 @@
 <script lang="ts">
 import { MoreHorizontal } from '@lucide/svelte';
 import type { Component, Snippet } from 'svelte';
-import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 
 interface MenuItem {
@@ -58,23 +57,27 @@ let btnClass =
 			     font-semibold + text-primary は維持 (header 内で識別性は確保)、icon / button は header 全体ではなく title のみ変更。 -->
 			<div class="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--ag-text-primary)]">{title}</div>
 		</div>
-		{#if menuItems.length === 1}
-			{@const sole = menuItems[0]}
-			{@const SoleIcon = sole.icon ?? MoreHorizontal}
-			<button type="button" class={btnClass} aria-label={sole.label} onclick={sole.onclick}>
-				<SoleIcon class="h-3.5 w-3.5" />
-			</button>
-		{:else if menuItems.length > 1}
-			<DropdownMenu.Root>
-				<DropdownMenu.Trigger class={btnClass} aria-label="{title} メニュー">
-					<MoreHorizontal class="h-3.5 w-3.5" />
-				</DropdownMenu.Trigger>
-				<DropdownMenu.Content>
-					{#each menuItems as item}
-						<DropdownMenu.Item onclick={item.onclick}>{item.label}</DropdownMenu.Item>
-					{/each}
-				</DropdownMenu.Content>
-			</DropdownMenu.Root>
+		{#if menuItems.length > 0}
+			<!-- K-12 (2026-05-16 user 検収): file-preview 等 multi-action widget の「右上に
+			     dropdown menu (...) ではなく inline icon buttons」 を全 widget 共通仕様に。
+			     旧実装は 2+ item で DropdownMenu の MoreHorizontal trigger を出していたが、
+			     widget 識別性が低下 + 「設定 button が他 widget と不統一」 (user 報告 K-12)。
+			     新: menuItems を icon 横並びで render、 settings は常に「最後 = 右端」 と
+			     呼出側で固定して全 widget の「右上 = 歯車」 統一を担保する。 -->
+			<div class="flex shrink-0 items-center gap-1">
+				{#each menuItems as item (item.label)}
+					{@const ItemIcon = item.icon ?? MoreHorizontal}
+					<button
+						type="button"
+						class={btnClass}
+						aria-label={item.label}
+						title={item.label}
+						onclick={item.onclick}
+					>
+						<ItemIcon class="h-3.5 w-3.5" />
+					</button>
+				{/each}
+			</div>
 		{/if}
 	</div>
 
