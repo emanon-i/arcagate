@@ -223,6 +223,58 @@ async function completeSetup(): Promise<void> {
 	}
 }
 
+/**
+ * K-4 (2026-05-15): 全設定を default 値に reset。
+ *
+ * **対象 (= ユーザー preference)**:
+ *   - hotkey → Ctrl+Shift+Space (DEFAULT_HOTKEY)
+ *   - autostart → false
+ *   - itemSize → 'M'
+ *   - libraryCard → DEFAULT_LIBRARY_CARD
+ *   - librarySort → { field: 'name', order: 'asc' }
+ *   - libraryShowHidden → false
+ *   - widgetZoom → 100% (RESET_ZOOM)
+ *   - locale 保存値 → 削除 (= 次回起動で OS auto-detect)
+ *
+ * **非対象 (= ユーザー data、 残す)**:
+ *   - workspaces / widgets / wallpapers
+ *   - Library items / tags / openers / themes
+ *
+ * UI 経由の destructive action なので caller (SettingsDataPane) で必ず confirm 経由。
+ */
+async function resetAllSettings(): Promise<void> {
+	loading = true;
+	error = null;
+	try {
+		await Promise.all([
+			configIpc.setHotkey('Ctrl+Shift+Space'),
+			configIpc.setAutostart(false),
+			configIpc.setConfig('item_size', 'M'),
+		]);
+		hotkey = 'Ctrl+Shift+Space';
+		autostart = false;
+		itemSize = 'M';
+		// localStorage 系を一括 reset。 直接書き戻すと load 時 default に合致せず壊れる
+		// 可能性があるため localStorage.removeItem で「キーごと消す」 → 次回 load で default。
+		libraryCard = structuredClone(DEFAULT_LIBRARY_CARD);
+		saveJSON(LIBRARY_CARD_STORAGE_KEY, libraryCard);
+		librarySort = { field: 'name', order: 'asc' };
+		saveJSON(LIBRARY_SORT_STORAGE_KEY, librarySort);
+		libraryShowHidden = false;
+		saveBool(LIBRARY_SHOW_HIDDEN_KEY, false);
+		widgetZoom = RESET_ZOOM;
+		saveNumber(ZOOM_STORAGE_KEY, RESET_ZOOM);
+		if (typeof localStorage !== 'undefined') {
+			localStorage.removeItem('arcagate.locale');
+		}
+	} catch (e) {
+		error = getErrorMessage(e);
+		throw e;
+	} finally {
+		loading = false;
+	}
+}
+
 export const configStore = {
 	get hotkey() {
 		return hotkey;
@@ -264,4 +316,5 @@ export const configStore = {
 	setLibraryCardStyle,
 	setLibrarySort,
 	setLibraryShowHidden,
+	resetAllSettings,
 };
