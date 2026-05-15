@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Maximize2, PanelLeftOpen, Redo2, RotateCcw as ResetIcon, Undo2 } from '@lucide/svelte';
+import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -256,38 +257,41 @@ function confirmRename(name: string) {
 		class="absolute bottom-4 right-4 z-30 flex items-center gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 shadow-[var(--ag-shadow-md,0_4px_12px_rgba(0,0,0,0.15))]"
 		data-testid="canvas-toolbar"
 	>
-		<button
+		<Button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			variant="ghost"
+			size="icon-sm"
 			aria-label={t('workspace.tooltip.undo')}
 			title={t('workspace.tooltip.undo_full')}
 			disabled={!workspaceHistory.canUndo}
 			onclick={() => void workspaceStore.undo()}
 		>
 			<Undo2 class="h-4 w-4" />
-		</button>
-		<button
+		</Button>
+		<Button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			variant="ghost"
+			size="icon-sm"
 			aria-label={t('workspace.tooltip.redo')}
 			title={t('workspace.tooltip.redo_full')}
 			disabled={!workspaceHistory.canRedo}
 			onclick={() => void workspaceStore.redo()}
 		>
 			<Redo2 class="h-4 w-4" />
-		</button>
+		</Button>
 
 		<div class="mx-1 h-5 w-px bg-[var(--ag-border)]" aria-hidden="true"></div>
 
-		<button
+		<Button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			variant="ghost"
+			size="icon-sm"
 			aria-label={t('workspace.tooltip.reset_zoom')}
 			title={t('workspace.tooltip.reset_zoom_short')}
 			onclick={() => zoom.resetZoom()}
 		>
 			<ResetIcon class="h-4 w-4" />
-		</button>
+		</Button>
 		<span
 			class="select-none px-1 text-xs tabular-nums text-[var(--ag-text-muted)]"
 			data-testid="zoom-percent"
@@ -295,9 +299,10 @@ function confirmRename(name: string) {
 		>
 			{configStore.widgetZoom}%
 		</span>
-		<button
+		<Button
 			type="button"
-			class="rounded p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			variant="ghost"
+			size="icon-sm"
 			aria-label={workspaceSelection.size > 0
 				? t('workspace.tooltip.fit_selected')
 				: t('workspace.tooltip.fit_all')}
@@ -315,7 +320,7 @@ function confirmRename(name: string) {
 			}}
 		>
 			<Maximize2 class="h-4 w-4" />
-		</button>
+		</Button>
 	</div>
 </div>
 
