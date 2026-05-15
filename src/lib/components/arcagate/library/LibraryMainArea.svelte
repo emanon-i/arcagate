@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { bulkAddTag, bulkDeleteItems, getItemTags, searchItemsInTag } from '$lib/ipc/items';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -266,7 +267,7 @@ async function deleteWithUndo(item: import('$lib/types/item').Item) {
 function handleLaunch(item: import('$lib/types/item').Item) {
 	// C-15 #10 + #19: card_override.opener_id があれば opener 経由起動、無ければ既存 cmd_launch_item。
 	void launchItemWithCascade(item)
-		.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+		.then(() => toastStore.add(t('toast.launched_label', { label: item.label }), 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
 }
 

@@ -193,6 +193,8 @@
 		"widgets_overlap_place": "Cannot place: overlaps with other widgets",
 		"grid_out_of_bounds_move": "Cannot move: out of grid bounds",
 		"widgets_overlap_move": "Cannot move: overlaps with other widgets",
-		"selected_widgets_overlap_move": "Cannot move: selected widgets overlap each other"
+		"selected_widgets_overlap_move": "Cannot move: selected widgets overlap each other",
+		"launched_label": "\"{label}\" launched",
+		"opener_launched": "Launched {item} with {opener}"
 	}
 }

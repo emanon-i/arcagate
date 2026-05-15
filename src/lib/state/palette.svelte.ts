@@ -157,7 +157,7 @@ async function launch(entry: PaletteEntry): Promise<void> {
 		switch (entry.kind) {
 			case 'item':
 				await launchItem(entry.item.id);
-				toastStore.add(`${entry.item.label} を起動しました`, 'success');
+				toastStore.add(t('toast.launched_label', { label: entry.item.label }), 'success');
 				close();
 				break;
 			case 'calc':

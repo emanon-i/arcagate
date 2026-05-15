@@ -193,6 +193,8 @@
 		"widgets_overlap_place": "他のウィジェットと重なるため配置できません",
 		"grid_out_of_bounds_move": "グリッド範囲外のため移動できません",
 		"widgets_overlap_move": "他のウィジェットと重なるため移動できません",
-		"selected_widgets_overlap_move": "選択 widget 同士が重なるため移動できません"
+		"selected_widgets_overlap_move": "選択 widget 同士が重なるため移動できません",
+		"launched_label": "「{label}」を起動しました",
+		"opener_launched": "{opener} で {item} を起動しました"
 	}
 }

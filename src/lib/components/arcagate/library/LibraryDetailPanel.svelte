@@ -3,6 +3,7 @@ import { Settings2 } from '@lucide/svelte';
 import { ask, open } from '@tauri-apps/plugin-dialog';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { countItemReferences, createTag, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { configStore } from '$lib/state/config.svelte';
@@ -122,7 +123,7 @@ function handleLaunch() {
 	if (!selectedItem) return;
 	const label = selectedItem.label;
 	void launchItem(selectedItem.id)
-		.then(() => toastStore.add(`${label} を起動しました`, 'success'))
+		.then(() => toastStore.add(t('toast.launched_label', { label }), 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(label, e), 'error'));
 }
 

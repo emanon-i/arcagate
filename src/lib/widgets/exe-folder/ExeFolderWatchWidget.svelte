@@ -12,6 +12,7 @@ import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { t } from '$lib/i18n.svelte';
 import { registerExeItemsBulk } from '$lib/ipc/items';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -267,15 +268,15 @@ async function launchEntry(entry: ExeFolderEntry) {
 	const item = itemStore.items.find((i) => i.target === exePath);
 	if (item) {
 		void launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })
-			.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
+			.then(() => toastStore.add(t('toast.launched_label', { label: entry.folderName }), 'success'))
 			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
 	} else if (config.default_opener_id) {
 		void launchTargetWithCascade(exePath, { widgetDefaultOpenerId: config.default_opener_id })
-			.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
+			.then(() => toastStore.add(t('toast.launched_label', { label: entry.folderName }), 'success'))
 			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
 	} else {
 		void invoke('cmd_open_path', { path: exePath })
-			.then(() => toastStore.add(`${entry.folderName} を起動しました`, 'success'))
+			.then(() => toastStore.add(t('toast.launched_label', { label: entry.folderName }), 'success'))
 			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));
 	}
 }
