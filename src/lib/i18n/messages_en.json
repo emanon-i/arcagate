@@ -21,6 +21,7 @@
 		"change": "Change",
 		"back": "Back",
 		"next": "Next",
+		"settings": "Settings",
 		"loading": "Loading…",
 		"no_match": "No match"
 	},
@@ -98,7 +99,27 @@
 	},
 	"palette": {
 		"search_placeholder": "Search…",
-		"no_recent": "No recent items"
+		"no_recent": "No recent items",
+		"search_aria_label": "Search commands",
+		"clear_search": "Clear search",
+		"launch_hint": "Press Enter to launch",
+		"keyguide": {
+			"move": "Move",
+			"detail": "Detail",
+			"calculator": "Calculator",
+			"hidden_items": "Hidden items"
+		},
+		"context": {
+			"preview": "Preview",
+			"tags": "Tags",
+			"aliases": "Aliases",
+			"last_launched": "Last launched",
+			"launch_count": "Launch count",
+			"calculator": "Calculator",
+			"clipboard": "Clipboard",
+			"empty_hint": "Search or use arrow keys to select",
+			"tip": "Register shortcuts and aliases to reach apps in just a few characters."
+		}
 	},
 	"settings": {
 		"category_label": "Settings category",
@@ -113,12 +134,65 @@
 		"confirm_delete": "Delete?",
 		"unsaved_changes": "You have unsaved changes"
 	},
+	"widgets": {
+		"common": {
+			"max_items_label": "Items to display (1-100)",
+			"sort_field_label": "Sort order",
+			"sort_default": "Default (IPC order)",
+			"sort_name_az": "By name (A-Z)",
+			"folder": {
+				"label": "Watched folder",
+				"placeholder": "e.g. D:\\Tools",
+				"picker_title": "Choose folder to watch",
+				"none": "Not selected",
+				"pick_button": "Choose",
+				"clear_label": "Clear {label}"
+			}
+		},
+		"category": {
+			"library": "Library",
+			"watch": "Folder watch",
+			"memo": "Memo / tasks",
+			"tool": "Tools",
+			"info": "Info / status"
+		}
+	},
 	"toast": {
 		"saved": "Saved",
 		"deleted": "Deleted",
 		"error": "An error occurred",
 		"widget_deleted": "Widget deleted",
 		"wallpaper_updated": "Wallpaper updated",
-		"wallpaper_cleared": "Wallpaper cleared"
+		"wallpaper_cleared": "Wallpaper cleared",
+		"copied_to_clipboard": "Copied to clipboard",
+		"calc_copied_to_clipboard": "Calculation copied to clipboard",
+		"image_widget_placed": "Image widget placed",
+		"file_preview_widget_placed": "File preview widget placed",
+		"widget_existed_selected": "Existing widget selected (Ctrl+Shift+1 to center)",
+		"item_updated": "Item updated",
+		"item_created": "Item created",
+		"card_override_started": "Per-card customization started",
+		"card_override_cleared": "Per-card customization cleared",
+		"icon_changed": "Icon changed",
+		"icon_removed": "Icon removed",
+		"version_up_to_date": "Up to date",
+		"download_started": "Download started",
+		"download_complete_restart": "Download complete, restarting",
+		"path_copied": "Path copied",
+		"removed_from_widget": "Removed from this widget",
+		"settings_saved": "Settings saved",
+		"save_failed": "Failed to save",
+		"search_aborted": "Search aborted",
+		"undo_succeeded": "Delete undone",
+		"undo_failed": "Failed to undo",
+		"url_not_found": "No URLs found",
+		"opener_register_hint": "Register at Settings > Library > Openers",
+		"name_required": "Please enter a name",
+		"snippet_label_body_required": "Please enter both label and body",
+		"grid_out_of_bounds_place": "Cannot place: out of grid bounds",
+		"widgets_overlap_place": "Cannot place: overlaps with other widgets",
+		"grid_out_of_bounds_move": "Cannot move: out of grid bounds",
+		"widgets_overlap_move": "Cannot move: overlaps with other widgets",
+		"selected_widgets_overlap_move": "Cannot move: selected widgets overlap each other"
 	}
 }
