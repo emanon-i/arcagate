@@ -1,6 +1,7 @@
 <script lang="ts">
 import { File, Folder } from '@lucide/svelte';
 import { open } from '@tauri-apps/plugin-dialog';
+import { Button } from '$lib/components/ui/button';
 import type { ItemType } from '$lib/types/item';
 import DropZone from './DropZone.svelte';
 
@@ -130,26 +131,30 @@ async function handlePickFolder(): Promise<void> {
 				placeholder="C:\path\to\file.exe または ドラッグ＆ドロップ"
 			/>
 			<!-- E-5: file picker buttons (Tauri native dialog)。直接入力 + drag&drop と並行。 -->
-			<button
+			<Button
 				type="button"
-				class="flex shrink-0 items-center gap-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-2 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+				variant="outline"
+				size="sm"
+				class="shrink-0"
 				aria-label="ファイルを参照"
 				title="ファイルを選択"
 				onclick={() => void handlePickFile()}
 			>
 				<File class="h-3.5 w-3.5" />
 				ファイル
-			</button>
-			<button
+			</Button>
+			<Button
 				type="button"
-				class="flex shrink-0 items-center gap-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-2 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
+				variant="outline"
+				size="sm"
+				class="shrink-0"
 				aria-label="フォルダを参照"
 				title="フォルダを選択"
 				onclick={() => void handlePickFolder()}
 			>
 				<Folder class="h-3.5 w-3.5" />
 				フォルダ
-			</button>
+			</Button>
 		</div>
 		<p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス。直接入力 / drag&drop / 参照ボタンのいずれも可</p>
 	{/if}

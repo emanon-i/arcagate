@@ -2,6 +2,7 @@
 import { X as XIcon } from '@lucide/svelte';
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
 import ItemFormCardOverride from '$lib/components/item/ItemFormCardOverride.svelte';
+import { Button } from '$lib/components/ui/button';
 import type { Item } from '$lib/types/item';
 
 /**
@@ -40,14 +41,15 @@ let { open, item, onClose }: Props = $props();
 		>
 			カード個別設定
 		</h2>
-		<button
+		<Button
 			type="button"
-			class="rounded-lg p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
+			variant="ghost"
+			size="icon-sm"
 			aria-label="閉じる"
 			onclick={onClose}
 		>
 			<XIcon class="h-4 w-4" />
-		</button>
+		</Button>
 	</div>
 
 	<ItemFormCardOverride {item} />
