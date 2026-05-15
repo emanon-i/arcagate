@@ -8,6 +8,7 @@ import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
 import { loadJSON, saveJSON } from '$lib/utils/local-storage';
 import {
+	BOTTOM_RESERVE,
 	bufferOffsetPx,
 	computeBoundingBox,
 	computeFitScroll,
@@ -156,8 +157,15 @@ let bufferPx = $derived(bufferOffsetPx(configStore.widgetZoom));
 let canvasW = $derived(
 	Math.max(containerWidth, bufferPx.x + dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING),
 );
+// K-6 fix (2026-05-15): 旧 canvasH は FLEX_PADDING のみで bottom reserve なし → 最下段 widget が
+// floating bottom toolbar (Undo / Zoom / Fit) の裏に隠れ、 scroll で逃せなかった (user 報告)。
+// canvasH に BOTTOM_RESERVE を加算 → 最下段 widget の下に reserve 分の scroll-able 空白を確保、
+// 全 widget が toolbar 上に出るまで scroll できる。
 let canvasH = $derived(
-	Math.max(containerHeight, bufferPx.y + maxRow * (zoom.widgetH + GRID_GAP) + FLEX_PADDING),
+	Math.max(
+		containerHeight,
+		bufferPx.y + maxRow * (zoom.widgetH + GRID_GAP) + FLEX_PADDING + BOTTOM_RESERVE,
+	),
 );
 
 const widgetComponents = Object.fromEntries(
