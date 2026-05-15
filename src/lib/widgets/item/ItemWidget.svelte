@@ -20,6 +20,7 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -104,7 +105,7 @@ async function setViewMode(mode: 'grid' | 'list') {
 async function handleLaunch(item: Item) {
 	// C-15 #19: cascade resolve (card override → widget default → system)
 	void launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })
-		.then(() => toastStore.add(`${item.label} を起動しました`, 'success'))
+		.then(() => toastStore.add(t('toast.launched_label', { label: item.label }), 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
 }
 

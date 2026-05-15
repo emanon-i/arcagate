@@ -80,7 +80,10 @@ async function handleSelect(opener: Opener) {
 		}
 		// 起動は default 設定の有無に関わらず実行
 		await launchWithOpener(opener.id, item.target);
-		toastStore.add(`${opener.name} で ${item.label} を起動しました`, 'success');
+		toastStore.add(
+			t('toast.opener_launched', { opener: opener.name, item: item.label }),
+			'success',
+		);
 	} catch (e: unknown) {
 		toastStore.add(formatLaunchError(item.label, e), 'error');
 	} finally {

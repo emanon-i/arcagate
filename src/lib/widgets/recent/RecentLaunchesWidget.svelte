@@ -3,6 +3,7 @@ import { Clock3 } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetItemList from '$lib/components/arcagate/workspace/WidgetItemList.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getRecentItems } from '$lib/ipc/workspace';
 import { configStore } from '$lib/state/config.svelte';
@@ -60,7 +61,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 async function handleLaunch(id: string) {
 	const item = recentItems.find((i) => i.id === id);
 	await launchItem(id)
-		.then(() => toastStore.add(`${item?.label ?? id} を起動しました`, 'success'))
+		.then(() => toastStore.add(t('toast.launched_label', { label: item?.label ?? id }), 'success'))
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item?.label ?? id, e), 'error'));
 }
 

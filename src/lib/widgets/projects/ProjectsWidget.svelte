@@ -27,6 +27,7 @@ import { listen } from '@tauri-apps/api/event';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { t } from '$lib/i18n.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
 import { getFolderItems, getGitStatusesBatch } from '$lib/ipc/workspace';
@@ -233,7 +234,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 async function handleLaunch(item: Item) {
 	try {
 		await launchItem(item.id);
-		toastStore.add(`${item.label} を起動しました`, 'success');
+		toastStore.add(t('toast.launched_label', { label: item.label }), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatLaunchError(item.label, e), 'error');
 	}
