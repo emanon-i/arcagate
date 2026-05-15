@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { Button } from '$lib/components/ui/button';
 import ErrorState from './ErrorState.svelte';
 
 // PH-425 / Codex Q4 推奨 #7: 横断耐障害性
@@ -39,13 +40,15 @@ function handleReload() {
 			retry={{ label: '再読み込み', onClick: handleReload }}
 			testId="error-boundary-fallback"
 		/>
-		<button
+		<Button
 			type="button"
-			class="mx-auto mt-2 block text-xs text-[var(--ag-text-muted)] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)]"
+			variant="link"
+			size="sm"
+			class="mx-auto mt-2 block"
 			onclick={reset}
 			data-testid="error-boundary-reset"
 		>
 			この画面で再試行
-		</button>
+		</Button>
 	{/snippet}
 </svelte:boundary>
