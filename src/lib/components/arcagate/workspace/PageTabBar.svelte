@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Image as ImageIcon } from '@lucide/svelte';
+import { Image as ImageIcon, X } from '@lucide/svelte';
 import { t } from '$lib/i18n.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 
@@ -43,6 +43,24 @@ function handleKeydown(e: KeyboardEvent) {
 		cancelAdd();
 	}
 }
+
+// K-5 fix (2026-05-15): user 報告「workspace スロット (名前つけるとこ) 消せなかった」。
+// 旧実装は workspace 削除 UI が一切無く、 user 作成 tab を消す方法がなかった。
+// 修正: hover で × icon を表示、 click で confirm → deleteWorkspace。 1 件しか
+// 残っていない場合 (= default だけ) は × を非表示にして「最後の workspace は消せない」
+// 安全弁を備える (user 仕様: 「Home 等のデフォルト workspace は削除不可で OK」)。
+function handleDelete(id: string, name: string, ev: MouseEvent): void {
+	ev.stopPropagation();
+	if (workspaceStore.workspaces.length <= 1) return;
+	if (
+		!window.confirm(
+			`ワークスペース「${name}」を削除しますか? (widget も全て削除されます、 元に戻せません)`,
+		)
+	) {
+		return;
+	}
+	void workspaceStore.deleteWorkspace(id);
+}
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
@@ -52,22 +70,38 @@ function handleKeydown(e: KeyboardEvent) {
 	     (Industrial Yellow 自身) に切替。透明 bg でも dark 背景で潰れず可読、yellow 強調。 -->
 	{#each workspaceStore.workspaces as ws (ws.id)}
 		{@const isActive = ws.id === workspaceStore.activeWorkspaceId}
-		<button
-			type="button"
-			class="rounded-full border bg-transparent px-3.5 py-1.5 text-xs transition-[color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			class:border-[var(--ag-accent-border)]={isActive}
-			class:text-[var(--ag-accent)]={isActive}
-			class:font-medium={isActive}
-			class:border-[var(--ag-border)]={!isActive}
-			class:text-[var(--ag-text-secondary)]={!isActive}
-			class:hover:text-[var(--ag-text-primary)]={!isActive}
-			class:hover:border-[var(--ag-border-strong)]={!isActive}
-			onclick={() => onSelectWorkspace?.(ws.id)}
-			ondblclick={isActive ? () => onRenameActive?.() : undefined}
-			data-testid="workspace-tab-{ws.id}"
-		>
-			{ws.name}
-		</button>
+		{@const canDelete = workspaceStore.workspaces.length > 1}
+		<div class="group relative inline-flex">
+			<button
+				type="button"
+				class="rounded-full border bg-transparent text-xs transition-[color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {canDelete ? 'pl-3.5 pr-7 py-1.5' : 'px-3.5 py-1.5'}"
+				class:border-[var(--ag-accent-border)]={isActive}
+				class:text-[var(--ag-accent)]={isActive}
+				class:font-medium={isActive}
+				class:border-[var(--ag-border)]={!isActive}
+				class:text-[var(--ag-text-secondary)]={!isActive}
+				class:hover:text-[var(--ag-text-primary)]={!isActive}
+				class:hover:border-[var(--ag-border-strong)]={!isActive}
+				onclick={() => onSelectWorkspace?.(ws.id)}
+				ondblclick={isActive ? () => onRenameActive?.() : undefined}
+				data-testid="workspace-tab-{ws.id}"
+			>
+				{ws.name}
+			</button>
+			{#if canDelete}
+				<!-- K-5: hover で × 表示。 active / inactive 問わず削除可、 confirm 経由。 -->
+				<button
+					type="button"
+					class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-[opacity,color,background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-error-text)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					aria-label={`${ws.name} を削除`}
+					title="削除"
+					onclick={(e) => handleDelete(ws.id, ws.name, e)}
+					data-testid="workspace-tab-{ws.id}-delete"
+				>
+					<X class="h-3 w-3" />
+				</button>
+			{/if}
+		</div>
 	{/each}
 	{#if isAdding}
 		<!-- svelte-ignore a11y_autofocus -->
