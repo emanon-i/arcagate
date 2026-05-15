@@ -31,6 +31,7 @@ const MIGRATION_027: &str = include_str!("../../migrations/027_workspace_system_
 const MIGRATION_028: &str = include_str!("../../migrations/028_drop_widget_item_settings.sql");
 const MIGRATION_029: &str = include_str!("../../migrations/029_widget_item_hides.sql");
 const MIGRATION_030: &str = include_str!("../../migrations/030_backfill_sys_type_tags.sql");
+const MIGRATION_031: &str = include_str!("../../migrations/031_widget_grid_square_finer.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -64,6 +65,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_028),
         M::up(MIGRATION_029),
         M::up(MIGRATION_030),
+        M::up(MIGRATION_031),
     ])
 }
 

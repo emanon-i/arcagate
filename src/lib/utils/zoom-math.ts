@@ -14,8 +14,14 @@
  * 数値検証可能な pure function に分離して widget-zoom.svelte.ts から呼ぶ。
  */
 
-export const BASE_W = 240;
-export const BASE_H = 135;
+// K-10 part 2 (2026-05-16): 旧 240×135 (16:9 rect) → **120×120 (1:1 square + 半分 finer)**。
+// user 報告 K-10:
+//   1. 「縦と横の移動量が違う」 → square cell で move/resize step 同一に (両軸 cellStride 136px)
+//   2. 「1 段階細かく」 → 旧 BASE_W=240 の半分で 1 段階細かい配置可能
+// 既存 widget cell 座標は migration 031_widget_grid_square_finer.sql で
+// pixel 視覚位置を概ね preserve するよう scale 済 (x*=2, y*=9/8, w*=2, h*=9/8)。
+export const BASE_W = 120;
+export const BASE_H = 120;
 export const GRID_GAP = 16;
 export const INNER_PAD = 20; // p-5 (flex container の padding)
 export const MIN_ZOOM = 25;
