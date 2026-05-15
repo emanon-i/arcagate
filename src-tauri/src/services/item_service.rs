@@ -404,12 +404,25 @@ pub fn register_exe_item(
     label: Option<String>,
     workspace_id: Option<&str>,
 ) -> Result<Item, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    register_exe_item_on_conn(&conn, path, label, workspace_id)
+}
+
+/// Mutex lock 取得済の `Connection` (or `Transaction`) を共有して 1 件分の exe item 登録処理を行う。
+///
+/// 直接呼出は `register_exe_items_bulk` のみ (1 回の lock + transaction で N 件処理する目的)。
+/// 単発 `register_exe_item` は thin wrapper として lock を取って本 fn に委譲する。
+fn register_exe_item_on_conn(
+    conn: &rusqlite::Connection,
+    path: &str,
+    label: Option<String>,
+    workspace_id: Option<&str>,
+) -> Result<Item, AppError> {
     let p = std::path::Path::new(path);
     if !p.is_file() {
         return Err(AppError::InvalidInput(format!("Not a file: {}", path)));
     }
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    if let Some(existing) = item_repository::find_by_target(&conn, path)? {
+    if let Some(existing) = item_repository::find_by_target(conn, path)? {
         return Ok(existing);
     }
     let derived_label = p
@@ -450,9 +463,9 @@ pub fn register_exe_item(
         created_at: String::new(),
         updated_at: String::new(),
     };
-    item_repository::insert(&conn, &item)?;
+    item_repository::insert(conn, &item)?;
     let sys_tag_id = crate::models::tag::sys_type_tag_id(&item_type);
-    item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+    item_repository::add_system_tag(conn, &id, &sys_tag_id)?;
     // U-7: widget 経由 (workspace_id 指定時) は workspace 名 system tag を自動付与。
     if let Some(ws_id) = workspace_id {
         let ws_tag_id = format!("sys-ws-{}", ws_id);
@@ -464,10 +477,10 @@ pub fn register_exe_item(
             )
             .unwrap_or(false);
         if exists {
-            item_repository::add_system_tag(&conn, &id, &ws_tag_id)?;
+            item_repository::add_system_tag(conn, &id, &ws_tag_id)?;
         }
     }
-    item_repository::find_by_id(&conn, &id)
+    item_repository::find_by_id(conn, &id)
 }
 
 /// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録。1 件ずつ register_exe_item と同等の処理。
@@ -482,6 +495,14 @@ pub fn register_exe_items_bulk(
     paths: Vec<String>,
     workspace_id: Option<&str>,
 ) -> Result<Vec<Item>, AppError> {
+    // K-3 perf fix (2026-05-15): 旧実装は paths を 1 件ずつ register_exe_item で処理し、
+    // ループ毎に Mutex<Connection> を取り直し + auto-commit fsync が走っていたため、
+    // 500 paths 規模で WAL fsync N 回 + Library 等の並行 IPC との Mutex 競合により
+    // 50 秒級の freeze を発生させていた (user 報告 K-3、 EXE folder watch + Library 遷移)。
+    // 修正: 1 回の lock + 1 transaction で N 件まとめて処理。Path 単位の InvalidInput は
+    // best-effort で skip (scan が stale path を返した場合に bulk 全体を巻き戻さない)。
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
     let mut out = Vec::with_capacity(paths.len());
     for path in &paths {
         let label = std::path::Path::new(path)
@@ -489,9 +510,15 @@ pub fn register_exe_items_bulk(
             .and_then(|p| p.file_name())
             .and_then(|n| n.to_str())
             .map(|s| s.to_string());
-        let item = register_exe_item(db, path, label, workspace_id)?;
-        out.push(item);
+        match register_exe_item_on_conn(&tx, path, label, workspace_id) {
+            Ok(item) => out.push(item),
+            // 単一 path の「ファイル不在」 等は scan の race で起こりうるため skip。
+            // それ以外の DB error (lock / SQL) は伝播させ、 transaction Drop で rollback。
+            Err(AppError::InvalidInput(_)) => continue,
+            Err(e) => return Err(e),
+        }
     }
+    tx.commit()?;
     Ok(out)
 }
 
@@ -847,6 +874,53 @@ mod tests {
             matches!(result, Err(AppError::InvalidInput(_))),
             "should return InvalidInput for non-directory"
         );
+    }
+
+    /// K-3 (2026-05-15) perf regression test: bulk 登録は 1 transaction で完了し、
+    /// 単一 path の InvalidInput (= scan が stale path を返した想定) は skip され、
+    /// 残りの正常 path は最後まで commit されること (transaction-wrap で巻き戻されない)。
+    #[test]
+    fn test_register_exe_items_bulk_skips_invalid_paths() {
+        let db = initialize_in_memory();
+        // tmp に exe 拡張子の dummy file を 2 つ作る (1 つは存在しない path を混ぜる)
+        let tmp = std::env::temp_dir().join(format!("arcagate_k3_{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("AppA")).unwrap();
+        std::fs::create_dir_all(tmp.join("AppB")).unwrap();
+        let a_exe = tmp.join("AppA").join("a.exe");
+        let b_exe = tmp.join("AppB").join("b.exe");
+        std::fs::write(&a_exe, b"MZ").unwrap();
+        std::fs::write(&b_exe, b"MZ").unwrap();
+        let ghost = tmp.join("AppC").join("ghost.exe"); // 親ディレクトリ無し → is_file()=false
+
+        let paths = vec![
+            a_exe.to_string_lossy().to_string(),
+            ghost.to_string_lossy().to_string(),
+            b_exe.to_string_lossy().to_string(),
+        ];
+        let registered = register_exe_items_bulk(&db, paths, None).unwrap();
+
+        assert_eq!(registered.len(), 2, "valid 2 paths should be registered");
+        let items = list_items(&db).unwrap();
+        assert_eq!(items.len(), 2, "DB should have 2 items (ghost skipped)");
+        let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+        assert!(labels.contains(&"AppA"));
+        assert!(labels.contains(&"AppB"));
+
+        // 2 回目: 既存 paths は find_by_target で skip insert、 結果には同じ Item を返す
+        let again = register_exe_items_bulk(
+            &db,
+            vec![
+                a_exe.to_string_lossy().to_string(),
+                b_exe.to_string_lossy().to_string(),
+            ],
+            None,
+        )
+        .unwrap();
+        assert_eq!(again.len(), 2);
+        let items_after = list_items(&db).unwrap();
+        assert_eq!(items_after.len(), 2, "no duplicate insertion");
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 
     // PH-444 (batch-101): bulk tag operations のテスト
