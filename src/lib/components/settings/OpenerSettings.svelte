@@ -185,22 +185,25 @@ async function handleDelete(o: Opener) {
 								<p class="truncate text-sm text-[var(--ag-text-primary)]">{o.name}</p>
 								<p class="truncate font-mono text-xs text-[var(--ag-text-muted)]">{o.command_template}</p>
 							</div>
-							<button
+							<Button
 								type="button"
-								class="shrink-0 rounded p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
+								variant="ghost"
+								size="icon-sm"
 								aria-label="{o.name} を編集"
 								onclick={() => startEdit(o)}
 							>
 								<Pencil class="h-4 w-4" />
-							</button>
-							<button
+							</Button>
+							<Button
 								type="button"
-								class="shrink-0 rounded p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive hover:bg-destructive/10 hover:text-destructive"
+								variant="ghost"
+								size="icon-sm"
+								class="text-[var(--ag-text-muted)] hover:bg-destructive/10 hover:text-destructive"
 								aria-label="{o.name} を削除"
 								onclick={() => void handleDelete(o)}
 							>
 								<Trash2 class="h-4 w-4" />
-							</button>
+							</Button>
 						</li>
 					{/each}
 				</ul>
