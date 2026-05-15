@@ -151,8 +151,8 @@ async function performImport() {
 					{parsed.length} 件中 <strong class="text-[var(--ag-text-primary)]">{selected.size}</strong> 件選択中
 				</span>
 				<div class="flex gap-1">
-					<button type="button" class="rounded px-2 py-0.5 hover:bg-[var(--ag-surface-3)]" onclick={selectAll}>すべて</button>
-					<button type="button" class="rounded px-2 py-0.5 hover:bg-[var(--ag-surface-3)]" onclick={selectNone}>解除</button>
+					<Button type="button" variant="ghost" size="sm" onclick={selectAll}>すべて</Button>
+					<Button type="button" variant="ghost" size="sm" onclick={selectNone}>解除</Button>
 				</div>
 			</div>
 
