@@ -1,3 +1,4 @@
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from './toast.svelte';
 
 /**
@@ -53,7 +54,7 @@ function handleUnhandledRejection(ev: PromiseRejectionEvent): void {
 	const message = formatReason(ev.reason);
 	console.error('[error-monitor] unhandledrejection', ev.reason);
 	if (!shouldSuppress(`reject:${message}`)) {
-		toastStore.add(`予期しないエラー: ${message}`, 'error');
+		toastStore.add(t('toast.unexpected_error', { message }), 'error');
 	}
 }
 
@@ -61,7 +62,7 @@ function handleWindowError(ev: ErrorEvent): void {
 	const message = ev.message || formatReason(ev.error);
 	console.error('[error-monitor] window error', ev.error ?? ev.message);
 	if (!shouldSuppress(`error:${message}`)) {
-		toastStore.add(`予期しないエラー: ${message}`, 'error');
+		toastStore.add(t('toast.unexpected_error', { message }), 'error');
 	}
 }
 

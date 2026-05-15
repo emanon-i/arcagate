@@ -4,6 +4,7 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
@@ -52,7 +53,7 @@ async function handleDblClick(): Promise<void> {
 	try {
 		await invoke('cmd_open_path', { path: target });
 	} catch (e) {
-		toastStore.add(`画像を開けませんでした: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.image_open_failed', { error: getErrorMessage(e) }), 'error');
 	}
 }
 </script>

@@ -259,7 +259,7 @@ function formatBytes(n: number): string {
 async function launchEntry(entry: ExeFolderEntry) {
 	const exePath = resolveExe(entry);
 	if (!exePath) {
-		toastStore.add(`${entry.folderName}: 起動可能な exe が見つかりません`, 'error');
+		toastStore.add(t('toast.exe_not_found_folder', { folder: entry.folderName }), 'error');
 		return;
 	}
 	// C-15 #19: cascade resolve (card override → widget default_opener_id → system)。

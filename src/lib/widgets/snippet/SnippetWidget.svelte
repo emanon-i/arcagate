@@ -118,7 +118,7 @@ function saveCompose() {
 async function copySnippet(snip: Snippet) {
 	try {
 		await navigator.clipboard.writeText(snip.body);
-		toastStore.add(`「${snip.label}」をコピーしました`, 'success');
+		toastStore.add(t('toast.snippet_copied', { label: snip.label }), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: 'クリップボードへのコピー' }, e), 'error');
 	}

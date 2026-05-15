@@ -106,10 +106,10 @@ async function handleCreateAndAttachTag(name: string) {
 		await itemStore.updateItem(selectedItem.id, { tag_ids: [...currentIds, created.id] });
 		itemTags = await getItemTags(selectedItem.id);
 		await itemStore.loadTagWithCounts();
-		toastStore.add(`タグ「${trimmed}」を作成しました`, 'success');
+		toastStore.add(t('toast.tag_created', { tag: trimmed }), 'success');
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
-		toastStore.add(`タグ作成失敗: ${msg}`, 'error');
+		toastStore.add(t('toast.tag_create_failed', { error: msg }), 'error');
 	}
 }
 

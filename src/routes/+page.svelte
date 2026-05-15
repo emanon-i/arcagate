@@ -183,7 +183,7 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 			try {
 				await addImageScrapWidget(path);
 			} catch (e) {
-				toastStore.add(`画像の配置に失敗: ${getErrorMessage(e)}`, 'error');
+				toastStore.add(t('toast.placement_failed', { error: getErrorMessage(e) }), 'error');
 			}
 			return;
 		}
@@ -200,7 +200,7 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 			try {
 				await addFilePreviewWidget(path);
 			} catch (e) {
-				toastStore.add(`ファイルの配置に失敗: ${getErrorMessage(e)}`, 'error');
+				toastStore.add(t('toast.preview_placement_failed', { error: getErrorMessage(e) }), 'error');
 			}
 			return;
 		}
@@ -235,7 +235,7 @@ async function handleDupSecondary(): Promise<void> {
 		try {
 			await action();
 		} catch (e) {
-			toastStore.add(`widget 追加に失敗: ${getErrorMessage(e)}`, 'error');
+			toastStore.add(t('toast.widget_add_failed', { error: getErrorMessage(e) }), 'error');
 		}
 	}
 }
@@ -319,7 +319,7 @@ $effect(() => {
 // パス消失イベントリスナー
 let unlistenPathNotFound: (() => void) | null = null;
 listen<string>('item://path-not-found', (e) => {
-	toastStore.add(`パスが見つかりません: ${e.payload}`, 'error');
+	toastStore.add(t('toast.path_not_found', { path: String(e.payload) }), 'error');
 }).then((fn) => {
 	unlistenPathNotFound = fn;
 });

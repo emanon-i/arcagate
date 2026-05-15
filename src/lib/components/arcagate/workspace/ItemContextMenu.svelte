@@ -48,7 +48,7 @@ $effect(() => {
 			openers = list;
 		})
 		.catch((e: unknown) => {
-			toastStore.add(`Opener 一覧取得に失敗: ${getErrorMessage(e)}`, 'error');
+			toastStore.add(t('toast.opener_list_failed', { error: getErrorMessage(e) }), 'error');
 		})
 		.finally(() => {
 			loading = false;
@@ -76,7 +76,10 @@ async function handleSelect(opener: Opener) {
 		if (setAsDefault) {
 			const updated = await updateItem(item.id, { default_app: opener.id });
 			if (updated && onItemUpdated) onItemUpdated(updated);
-			toastStore.add(`${item.label} の既定の Opener を ${opener.name} に設定しました`, 'success');
+			toastStore.add(
+				t('toast.opener_set_default', { item: item.label, opener: opener.name }),
+				'success',
+			);
 		}
 		// 起動は default 設定の有無に関わらず実行
 		await launchWithOpener(opener.id, item.target);
