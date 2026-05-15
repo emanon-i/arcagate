@@ -5,7 +5,7 @@ import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
-import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
+import { type WorkspaceWidget, widgetLabel } from '$lib/types/workspace';
 import { widgetRegistry } from '$lib/widgets';
 
 let {
@@ -68,7 +68,7 @@ function handleDelete() {
 		id="widget-settings-title"
 		class="flex-none border-b border-[var(--ag-border)] px-6 pb-4 pt-6 text-base font-semibold text-[var(--ag-text-primary)]"
 	>
-		{WIDGET_LABELS[widget.widget_type] ?? 'ウィジェット'} の設定
+		{t('workspace.settings_dialog_title', { label: widgetLabel(widget.widget_type) })}
 	</h3>
 	<form
 		class="flex min-h-0 flex-1 flex-col"
@@ -81,7 +81,7 @@ function handleDelete() {
 			{#if SettingsContent}
 				<SettingsContent bind:config />
 			{:else}
-				<p class="text-sm text-[var(--ag-text-secondary)]">このウィジェットには設定項目がありません。</p>
+				<p class="text-sm text-[var(--ag-text-secondary)]">{t('workspace.no_settings')}</p>
 			{/if}
 		</div>
 

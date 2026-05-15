@@ -129,6 +129,20 @@
 			"press_key": "キーを押してください...",
 			"change": "ホットキーを変更"
 		},
+		"general": {
+			"heading": "一般",
+			"hotkey_label": "グローバルホットキー",
+			"hotkey_desc": "コマンドパレットを開くショートカット",
+			"autostart_label": "自動起動",
+			"autostart_desc": "ログイン時に自動的に起動する",
+			"autostart_aria_on": "自動起動を有効にする",
+			"autostart_aria_off": "自動起動を無効にする",
+			"language_label": "表示言語 / Language",
+			"language_desc": "UI の表示言語"
+		},
+		"about": {
+			"heading": "このアプリについて"
+		},
 		"data": {
 			"heading": "データ",
 			"reset_label": "設定をリセット",
@@ -165,7 +179,25 @@
 			"memo": "メモ・タスク",
 			"tool": "ツール",
 			"info": "情報・状態"
-		}
+		},
+		"widget_label": {
+			"favorites": "お気に入り",
+			"recent": "最近起動",
+			"projects": "フォルダ監視",
+			"item": "アイテム",
+			"stats": "よく使うもの",
+			"quick_note": "メモ",
+			"exe_folder": "Exe フォルダ監視",
+			"daily_task": "デイリータスク",
+			"snippet": "スニペット",
+			"clipboard_history": "クリップボード履歴",
+			"file_search": "ファイル検索",
+			"system_monitor": "システムモニタ",
+			"image_scrap": "画像",
+			"file_preview": "ファイルプレビュー"
+		},
+		"settings_dialog_title": "{label} の設定",
+		"no_settings": "このウィジェットには設定項目がありません。"
 	},
 	"toast": {
 		"saved": "保存しました",
