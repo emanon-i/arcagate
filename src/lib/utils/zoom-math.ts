@@ -57,14 +57,18 @@ export const BUFFER_ROWS_TOP = 64;
  *
  * J-4 (2026-05-12 user 検収): viewport ギリギリまで攻める、隙間必ず確保 (8-16px)。
  * 旧値 (TOP/BOTTOM=80, SIDE=40) は chrome 高さに余裕を持ちすぎ、fit 後 widget が viewport 中央寄り。
- * 新値: 実 chrome 高さ + 約 12px の安全マージンに圧縮、視覚的に viewport ギリギリまで fit。
+ *
+ * K-6 (2026-05-15 user 検収): 下部 toolbar (Undo / Redo / Zoom% / Reset / Fit) は実体 ~56px
+ * (bottom-4 16 + icon-sm 32 + py-1 8 = 56) で BOTTOM_RESERVE=40 だと 16px 食い込み → widget が
+ * 裏に隠れる + Fit-to-content が下に偏る (visualCenterY 計算が下にずれる) bug。
+ * 新値: BOTTOM_RESERVE=72 → 実 chrome 56px + 16px safety margin、 widget が toolbar 裏に潜らない。
  *
  * - SIDE_RESERVE = 16 → page padding (p-5 = 20px) と重なるので最小値、実 gap は INNER_PAD + 16 = 36px 程度
  * - TOP_RESERVE = 56 → tab bar 約 44px + 12px safety margin
- * - BOTTOM_RESERVE = 40 → zoom toolbar 約 28px + 12px safety margin
+ * - BOTTOM_RESERVE = 72 → floating toolbar 実体 56px + 16px safety (K-6 fix)
  */
 export const TOP_RESERVE = 56;
-export const BOTTOM_RESERVE = 40;
+export const BOTTOM_RESERVE = 72;
 export const SIDE_RESERVE = 16;
 
 /** viewport の `cellPx + gap`（zoom % 込み）。grid 描画と同じ Math.round() を使う。 */
