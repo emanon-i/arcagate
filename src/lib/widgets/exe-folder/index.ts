@@ -11,8 +11,8 @@ export const meta: WidgetMeta = {
 	label: 'Exe フォルダ監視',
 	defaultConfig: { scan_depth: 2 },
 	// J-2 (2026-05-12): folder list 多数を縦に流すため W:H=3:6 で高さ重視。
-	defaultSize: { w: 3, h: 6 },
-	minViableSize: { w: 2, h: 4 },
+	defaultSize: { w: 2, h: 2 },
+	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'watch',
 	categoryOrder: 2,
