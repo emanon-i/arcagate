@@ -141,14 +141,18 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	 *     極端値で widget が読めない UX 問題が発生した (user "極端な値、テストしてないだろう")。
 	 *   - v3 は MIN_ZOOM_FIT=5 に引き上げ。BB が MIN で overflow する時は **BB top-left を
 	 *     viewport visual top-left に align** する scroll fallback を再導入 (= F-8 v1 の挙動)。
-	 *   - 上限は RESET_ZOOM=100% (fit は拡大しない、Figma / Excalidraw 業界標準)。
 	 *   - **BB は widget の position_x/y/width/height だけで計算** (canvas buffer 領域は不参照)。
 	 *
-	 *   挙動 matrix:
+	 * K-8 (2026-05-16): 上限を **RESET_ZOOM=100% → MAX_ZOOM=200%** に変更。 旧 100% 縛りで
+	 * 小 BB (1-4 widget) は Fit しても画面いっぱいにならず buffer 領域が視覚的優位になり
+	 * 「左に寄る + 小さい」 user 体感の root cause だった。 200% 上限で widget は viewport を
+	 * 適切に埋めるようになり、 BB 中央配置の視覚的整合性が改善する。
+	 *
+	 *   挙動 matrix (K-8 後):
 	 *     - 空 workspace                  → 100% + canvas 中央 scroll
-	 *     - 1 widget (small)              → 100% (上限) + widget center
-	 *     - 2-3 widgets 離散              → 30-80% 想定 + BB center
-	 *     - 多数広域 (BB 大)              → 5-20% 想定 + BB center
+	 *     - 1 widget (small)              → 200% (上限) + widget center
+	 *     - 2-3 widgets 離散              → 80-200% 想定 + BB center
+	 *     - 多数広域 (BB 大)              → 5-100% 想定 + BB center
 	 *     - 極端 (BB が 5% でも入らない)  → 5% + BB top-left align
 	 */
 	function fitToContent(widgets: WorkspaceWidget[]) {
