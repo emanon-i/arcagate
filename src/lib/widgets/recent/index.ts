@@ -11,8 +11,8 @@ export const meta: WidgetMeta = {
 	label: '最近起動',
 	defaultConfig: { max_items: 10 },
 	// J-2 (2026-05-12): item list 縦長で max_items=10 視認。
-	defaultSize: { w: 3, h: 5 },
-	minViableSize: { w: 2, h: 3 },
+	defaultSize: { w: 2, h: 2 },
+	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'library',
 	categoryOrder: 2,

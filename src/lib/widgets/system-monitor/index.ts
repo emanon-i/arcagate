@@ -16,8 +16,8 @@ export const meta: WidgetMeta = {
 		show_disk: false,
 	},
 	// J-2 (2026-05-12): chart 系で横幅広め (W:H=4:3)、CPU/RAM/Disk 3 metric 横並び。
-	defaultSize: { w: 4, h: 3 },
-	minViableSize: { w: 3, h: 3 },
+	defaultSize: { w: 2, h: 2 },
+	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'info',
 	categoryOrder: 2,

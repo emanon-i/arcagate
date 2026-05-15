@@ -12,8 +12,8 @@ export const meta: WidgetMeta = {
 	defaultConfig: { max_items: 20, poll_interval_ms: 1500 },
 	// J-2 (2026-05-12 user 検収): defaultSize を縦長 (W:H=3:5) に再設計。
 	// 履歴 list の縦スクロールが基本動作、高さ確保で 8-10 件視認できる目安。
-	defaultSize: { w: 3, h: 5 },
-	minViableSize: { w: 2, h: 3 },
+	defaultSize: { w: 2, h: 2 },
+	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'tool',
 	categoryOrder: 1,
