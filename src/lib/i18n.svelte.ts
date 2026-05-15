@@ -19,11 +19,22 @@ import messagesJa from './i18n/messages_ja.json';
 
 export type Locale = 'ja' | 'en';
 
-// 現状 messages は ja のみ。 en は Phase 3 で追加。
+// Phase 3 完了: messages_en.json は **lazy import** で 'en' locale 切替時のみ load。
+// 起動時 bundle に en を含めない (= ja default の hot path 性能影響 0)。
+// e2e 検証で eager import が WebView2 起動遅延 → page closed 連鎖を引き起こしたため、 lazy 採用。
 const MESSAGES: Record<Locale, Record<string, unknown>> = {
 	ja: messagesJa,
-	en: messagesJa, // Phase 3 で messages_en.json import に置換 (現状は ja fallback)
+	en: messagesJa, // 初期は ja fallback、 setLocale('en') で動的 load
 };
+
+let enLoaded = false;
+
+async function ensureEnLoaded(): Promise<void> {
+	if (enLoaded) return;
+	const mod = await import('./i18n/messages_en.json');
+	MESSAGES.en = mod.default;
+	enLoaded = true;
+}
 
 /**
  * 現在の locale。 $state で reactive、 Settings Language selector or OS auto detect で更新される。
@@ -35,7 +46,8 @@ export function currentLocale(): Locale {
 	return currentLocaleState;
 }
 
-export function setLocale(next: Locale): void {
+export async function setLocale(next: Locale): Promise<void> {
+	if (next === 'en') await ensureEnLoaded();
 	currentLocaleState = next;
 }
 
