@@ -7,6 +7,7 @@ import { getItemStats } from '$lib/ipc/launch';
 import { paletteStore } from '$lib/state/palette.svelte';
 import type { ItemStats } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
+import { formatNumber, formatRelative } from '$lib/utils/intl-formatter.svelte';
 
 let itemTags = $state<Tag[]>([]);
 let stats = $state<ItemStats | null>(null);
@@ -36,19 +37,8 @@ $effect(() => {
 	}
 });
 
-// TODO Phase 4 (Intl formatter): Intl.RelativeTimeFormat 経由で locale 別 format。
-// 本 PR では format function 内 string は keep (Phase 4 移行 reserve)、
-// label / heading / tip 等の他文字列のみ t() 化。
-function formatRelativeTime(iso: string): string {
-	const diff = Date.now() - new Date(iso).getTime();
-	const minutes = Math.floor(diff / 60000);
-	if (minutes < 1) return 'たった今';
-	if (minutes < 60) return `${minutes}分前`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}時間前`;
-	const days = Math.floor(hours / 24);
-	return `${days}日前`;
-}
+// Phase 4 完遂: 旧 ad-hoc formatRelativeTime (ja hardcode) を `formatRelative` (Intl.RelativeTimeFormat 経由) に置換。
+// locale 別 format に追従、 「2 人が同じ format」 mechanical 基準を満たす。
 </script>
 
 <div class="space-y-4 rounded-[24px] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4" role="region" aria-label="選択アイテムの詳細">
@@ -66,10 +56,10 @@ function formatRelativeTime(iso: string): string {
 				<DetailRow label={t('palette.context.aliases')} value={selected.item.aliases.join(' / ')} />
 			{/if}
 			{#if stats?.last_launched_at}
-				<DetailRow label={t('palette.context.last_launched')} value={formatRelativeTime(stats.last_launched_at)} />
+				<DetailRow label={t('palette.context.last_launched')} value={formatRelative(stats.last_launched_at)} />
 			{/if}
 			{#if stats}
-				<DetailRow label={t('palette.context.launch_count')} value={String(stats.launch_count)} />
+				<DetailRow label={t('palette.context.launch_count')} value={formatNumber(stats.launch_count)} />
 			{/if}
 		</div>
 	{:else if selected?.kind === 'calc'}
