@@ -161,13 +161,39 @@ describe('computeFitScroll (buffer 込み)', () => {
 });
 
 describe('computeFitZoom', () => {
-	it('BB が viewport より小さければ 100% (RESET) を超えない値を返す', () => {
+	it('BB が viewport より小さければ viewport を埋めるよう拡大 (K-8: 100% 縛り撤廃)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 2, maxY: 2 };
 		// BB 100% pixel: 2*240 + 16 = 496W, 2*135 + 16 = 286H
-		// viewport (1920x1080) で十分収まる → 100% 以上だが clampZoom で 200 max
+		// viewport (1920x1080) で十分小さい → 100% 超 (= MAX_ZOOM 200% に飽和の可能性)
 		const z = computeFitZoom(bb, { clientWidth: 1920, clientHeight: 1080 });
 		expect(z).toBeGreaterThanOrEqual(MIN_ZOOM);
 		expect(z).toBeLessThanOrEqual(MAX_ZOOM);
+		// K-8: 小 BB は 100% を超えて拡大される
+		expect(z).toBeGreaterThan(100);
+	});
+
+	it('K-8: 1 widget の Fit は MAX_ZOOM (200%) まで拡大、 画面いっぱい体感', () => {
+		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 1 };
+		// BB: 240x135 in viewport 1200x800 → ratio min(1168/240, 672/135) = min(4.87, 4.98) = 4.87
+		// 487% → clamp to 200%
+		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
+		expect(z).toBe(200); // MAX_ZOOM clamp
+	});
+
+	it('K-8: 2 縦 widget の Fit も MAX_ZOOM まで拡大', () => {
+		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 2 };
+		// BB: 240W x 286H (= 2*135+16). viewport 1200x800: ratio min(1168/240, 672/286)
+		// = min(4.87, 2.35) = 2.35 → 235% → clamp 200%
+		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
+		expect(z).toBe(200);
+	});
+
+	it('K-8: 4 widget 2x2 の Fit も MAX_ZOOM まで拡大', () => {
+		const bb = { minX: 0, minY: 0, maxX: 2, maxY: 2 };
+		// BB: 496W x 286H. viewport 1200x800: ratio min(1168/496, 672/286) = min(2.35, 2.35) = 2.35
+		// → 235% → clamp 200%
+		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
+		expect(z).toBe(200);
 	});
 
 	it('BB が viewport より大きければ縮小 (< 100%)', () => {
@@ -182,5 +208,44 @@ describe('computeFitZoom', () => {
 	it('BB が 0 サイズなら RESET (100)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 		expect(computeFitZoom(bb, { clientWidth: 1920, clientHeight: 1080 })).toBe(100);
+	});
+});
+
+describe('computeFitScroll - K-8 multi-widget centering', () => {
+	it('1 widget at (0,0): BB center が viewport center に来る scroll を返す', () => {
+		const origin = { cellX: 0.5, cellY: 0.5 };
+		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
+		const sx = cellStrideX(200);
+		const sy = cellStrideY(200);
+		const buf = bufferOffsetPx(200);
+		const originPxX = INNER_PAD + buf.x + origin.cellX * sx - GRID_GAP / 2;
+		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
+		const visualCenterX = 1200 / 2;
+		const visualCenterY = 56 + (800 - 56 - 72) / 2;
+		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - visualCenterX), 0);
+		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - visualCenterY), 0);
+	});
+
+	it('2 縦 widgets at (0,0)+(0,1): X は 1 widget と同じ center scroll、 Y は下方向にシフト', () => {
+		const origin1 = { cellX: 0.5, cellY: 0.5 };
+		const origin2 = { cellX: 0.5, cellY: 1.0 };
+		const v = { clientWidth: 1200, clientHeight: 800 };
+		const r1 = computeFitScroll(origin1, 200, v);
+		const r2 = computeFitScroll(origin2, 200, v);
+		// X scroll は origin.cellX が同じなので同一
+		expect(r2.scrollLeft).toBe(r1.scrollLeft);
+		// Y scroll は origin.cellY が +0.5 大きいので 0.5 * sy 大きい
+		expect(r2.scrollTop - r1.scrollTop).toBeCloseTo(0.5 * cellStrideY(200), 0);
+	});
+
+	it('4 widget 2x2: BB center origin (1, 1) が viewport visual center に来る', () => {
+		const origin = { cellX: 1, cellY: 1 };
+		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
+		const sx = cellStrideX(200);
+		const buf = bufferOffsetPx(200);
+		const originPxX = INNER_PAD + buf.x + 1 * sx - GRID_GAP / 2;
+		// scroll 後 BB center が viewport visualCenterX に来ること
+		const visualCenterX = 1200 / 2;
+		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - visualCenterX), 0);
 	});
 });

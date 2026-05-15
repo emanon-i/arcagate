@@ -85,12 +85,26 @@ export function clampZoom(zoom: number): number {
 }
 
 /**
- * fit-to-content 専用 clamp。下限 MIN_ZOOM_FIT (=1)、**上限 RESET_ZOOM (=100)**。
- * 上限 1.0 で「fit は 100% を超えて拡大しない」(Figma / Excalidraw 業界標準)。
- * 下限 1% で BB が巨大な場合でも全 widget が viewport に収まる scale を返せる。
+ * fit-to-content 専用 clamp。 下限 MIN_ZOOM_FIT、 **上限 MAX_ZOOM (=200)**。
+ *
+ * K-8 (2026-05-16 user 検収): 旧上限 RESET_ZOOM (100%) は user 報告
+ * 「画面いっぱいにならない」 の root cause。 widget 1 個 / 2 縦 / 4 個 等 BB が
+ * 小さいケースで本来 viewport を埋められるはずの拡大率 (例: 235%) が 100% に
+ * clamp され、 widget は viewport 中央に小さく配置され buffer 領域が大きく見える
+ * 結果 「左に寄る」 視覚錯覚も併発した (BB は数学的に中央配置だが周辺の
+ * empty buffer が視覚的優位)。
+ *
+ * 新上限 = MAX_ZOOM (200%): 小 BB は拡大されて画面いっぱいに近づく。
+ *   - 1 widget: 240×135 → viewport 1200×800 で 235% 計算 → 200 (clamp) → 480×270 表示
+ *   - 2 縦: 240×286 → 235% → 200 → 480×572 表示
+ *   - 4 個 2×2: 496×286 → 235% → 200 → 992×572 表示
+ * 大 BB は今まで通り MIN_ZOOM_FIT まで縮小 fallback。
+ *
+ * Figma / Excalidraw 等の Fit も「viewport を埋めるよう拡大する」 が業界標準で、
+ * 「100% 縛り」 は本実装の誤解 (元 v3 v2 comment) だった。
  */
 export function clampZoomFit(zoom: number): number {
-	return Math.max(MIN_ZOOM_FIT, Math.min(RESET_ZOOM, Math.round(zoom)));
+	return Math.max(MIN_ZOOM_FIT, Math.min(MAX_ZOOM, Math.round(zoom)));
 }
 
 /**
@@ -254,10 +268,14 @@ export function computeOrigin(bb: BoundingBox): { cellX: number; cellY: number }
  * 入らず scale 飽和 → top-left align fallback に逃げて user 視覚的には fit が機能していない**
  * ように見える状態だった。
  *
- * 修正: `clampZoomFit` で **下限 MIN_ZOOM_FIT=1 / 上限 RESET_ZOOM=100** に変更:
- *   - 下限 1%: BB が幾ら巨大でも必ず収まる scale を返せる (= overflow fallback 不要に)
- *   - 上限 100%: fit は拡大しない (Figma / Excalidraw 業界標準)。1 個だけ widget があるとき
- *     200% に飛ぶと user は混乱する。
+ * K-8 (2026-05-16 user 検収): 旧 v3 の **上限 100%** が「画面いっぱいにならない / 左に寄る」
+ * の root cause だった。 widget BB が小さい (1 個 / 2 縦 / 4 個 2x2 等) ケースで Fit が viewport
+ * を埋めきれず、 周辺の buffer 領域が視覚的に優位になり「左偏り + 小さい」 と知覚されていた。
+ *
+ * 修正: `clampZoomFit` で **下限 MIN_ZOOM_FIT / 上限 MAX_ZOOM (=200%)** に変更:
+ *   - 下限 5% (= MIN_ZOOM_FIT): BB 巨大でも必ず収まる
+ *   - 上限 200% (= MAX_ZOOM): 小 BB は viewport を埋めるよう拡大、 業界標準 Figma / Excalidraw
+ *     の Fit と一致 (旧 comment「100% 縛り」 は誤解、 実際の Figma は viewport いっぱい拡大する)
  */
 export function computeFitZoom(
 	bb: BoundingBox,
