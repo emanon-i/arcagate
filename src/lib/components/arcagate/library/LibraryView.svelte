@@ -91,7 +91,7 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			{#key item.card_override_json}
+			{#key `${item.card_override_json ?? ''}|${item.icon_path ?? ''}`}
 				<LibraryCard
 					{item}
 					{viewMode}
@@ -143,7 +143,7 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			{#key item.card_override_json}
+			{#key `${item.card_override_json ?? ''}|${item.icon_path ?? ''}`}
 				<LibraryCard
 					{item}
 					{sizeClasses}
