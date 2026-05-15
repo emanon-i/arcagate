@@ -11,6 +11,7 @@
 import { X } from '@lucide/svelte';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 
 interface Props {
 	value: string;
@@ -26,9 +27,9 @@ interface Props {
 let {
 	value,
 	onChange,
-	label = '監視フォルダ',
-	placeholder = '例: D:\\Tools',
-	pickerTitle = '監視するフォルダを選択',
+	label = t('widgets.common.folder.label'),
+	placeholder = t('widgets.common.folder.placeholder'),
+	pickerTitle = t('widgets.common.folder.picker_title'),
 	id = 'ws-watch-folder',
 	allowManualInput = false,
 }: Props = $props();
@@ -62,10 +63,10 @@ function handleClear() {
 				class="min-w-0 flex-1 truncate rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-secondary)]"
 				title={value}
 			>
-				{value || '未選択'}
+				{value || t('widgets.common.folder.none')}
 			</div>
 		{/if}
-		<Button type="button" variant="outline" size="sm" onclick={handlePick}>選択</Button>
+		<Button type="button" variant="outline" size="sm" onclick={handlePick}>{t('widgets.common.folder.pick_button')}</Button>
 		{#if value}
 			<Button
 				type="button"
@@ -73,7 +74,7 @@ function handleClear() {
 				size="sm"
 				class="text-destructive hover:bg-destructive/10 hover:text-destructive"
 				onclick={handleClear}
-				aria-label="{label}を解除"
+				aria-label={t('widgets.common.folder.clear_label', { label })}
 			>
 				<X class="h-3.5 w-3.5" />
 			</Button>
