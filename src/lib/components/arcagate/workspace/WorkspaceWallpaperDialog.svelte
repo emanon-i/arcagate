@@ -3,6 +3,7 @@ import { Image as ImageIcon, Trash2, Upload } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
+import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { saveWallpaperFile, setWorkspaceWallpaper } from '$lib/ipc/workspace';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -199,26 +200,23 @@ async function clearWallpaper() {
 
 			<!-- アクション -->
 			<div class="flex flex-wrap items-center justify-between gap-2">
-				<button
+				<Button
 					type="button"
-					class="flex items-center gap-1.5 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+					variant="destructive"
+					size="sm"
 					onclick={() => void clearWallpaper()}
 					disabled={!workspace.wallpaper_path || saving}
 				>
 					<Trash2 class="h-4 w-4" />
 					{t('workspace.wallpaper.clear_button')}
-				</button>
+				</Button>
 				<div class="flex items-center gap-2">
-					<button
-						type="button"
-						class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-sm text-[var(--ag-text-secondary)] transition-[background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-						onclick={onClose}
-					>
+					<Button type="button" variant="outline" size="sm" onclick={onClose}>
 						{t('common.close')}
-					</button>
-					<button
+					</Button>
+					<Button
 						type="button"
-						class="flex items-center gap-1.5 rounded-lg bg-[var(--ag-accent-bg)] px-3 py-2 text-sm text-[var(--ag-accent-text)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+						size="sm"
 						onclick={() => void pickAndApply()}
 						disabled={saving}
 					>
@@ -226,7 +224,7 @@ async function clearWallpaper() {
 						{workspace.wallpaper_path
 							? t('workspace.wallpaper.change_button')
 							: t('workspace.wallpaper.pick_button')}
-					</button>
+					</Button>
 				</div>
 			</div>
 	{/if}

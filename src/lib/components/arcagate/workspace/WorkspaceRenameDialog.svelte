@@ -1,5 +1,6 @@
 <script lang="ts">
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
+import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 
 /**
@@ -46,19 +47,12 @@ $effect(() => {
 			autofocus
 		/>
 		<div class="mt-4 flex justify-end gap-2">
-			<button
-				type="button"
-				class="rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-2 text-sm text-[var(--ag-text-secondary)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-				onclick={onCancel}
-			>
+			<Button type="button" variant="outline" size="sm" onclick={onCancel}>
 				{t('common.cancel')}
-			</button>
-			<button
-				type="submit"
-				class="rounded-lg bg-[var(--ag-accent)] px-4 py-2 text-sm text-white transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-90"
-			>
+			</Button>
+			<Button type="submit" size="sm">
 				{t('common.change')}
-			</button>
+			</Button>
 		</div>
 	</form>
 </BaseDialog>
