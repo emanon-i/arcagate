@@ -226,7 +226,16 @@ export function useWorkspaceInput(opts: InputOpts) {
 				const top = Math.min(boxStart.y, boxCurrent.y);
 				const right = Math.max(boxStart.x, boxCurrent.x);
 				const bottom = Math.max(boxStart.y, boxCurrent.y);
-				if (right - left < 4 && bottom - top < 4) return; // tap-only は無視
+				// K-2 fix (2026-05-15): 旧実装は tap-only (< 4px drag) を early return で
+				// 黙殺していたため、 empty canvas を「ただクリックした」 操作で widget 選択が
+				// 解除されない bug (user 報告: 「workspace 画面クリックしても選択が外れない」)。
+				// 修正: tap-only でも selection を clear して desktop 標準 (Explorer / Finder)
+				// と整合させる。 drag した時は従来通り intersected widgets を selectMany。
+				if (right - left < 4 && bottom - top < 4) {
+					workspaceSelection.clear();
+					opts.setSelectedId(null);
+					return;
+				}
 				const widgetEls = container.querySelectorAll<HTMLElement>('[data-widget-id]');
 				const containerRect = container.getBoundingClientRect();
 				const intersected: string[] = [];
