@@ -90,7 +90,7 @@ async function handleSubmit(e: Event) {
 		await saveOpener(input);
 		// audit G4: CRUD 後 invalidate (Codex pitfall P3 必須)、 store consumer も次回 fresh 取得。
 		openersStore.invalidate();
-		toastStore.add(`${trimmedName} を保存しました`, 'success');
+		toastStore.add(t('toast.opener_saved', { name: trimmedName }), 'success');
 		cancelForm();
 		await refresh();
 	} catch (e: unknown) {
@@ -104,7 +104,7 @@ async function handleDelete(o: Opener) {
 		await deleteOpener(o.id);
 		// audit G4: CRUD 後 invalidate (Codex pitfall P3 必須)。
 		openersStore.invalidate();
-		toastStore.add(`${o.name} を削除しました`, 'info');
+		toastStore.add(t('toast.opener_deleted', { name: o.name }), 'info');
 		if (editing?.id === o.id) cancelForm();
 		await refresh();
 	} catch (e: unknown) {

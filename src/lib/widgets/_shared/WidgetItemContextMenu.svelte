@@ -49,7 +49,7 @@ async function handleCopyPath(): Promise<void> {
 		await writeText(path);
 		toastStore.add(t('toast.path_copied'), 'success');
 	} catch (e: unknown) {
-		toastStore.add(`コピー失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.copy_failed', { error: getErrorMessage(e) }), 'error');
 	} finally {
 		onClose();
 	}
@@ -60,7 +60,7 @@ async function handleRevealInExplorer(): Promise<void> {
 	try {
 		await revealInExplorer(path);
 	} catch (e: unknown) {
-		toastStore.add(`Explorer で開く失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.explorer_failed', { error: getErrorMessage(e) }), 'error');
 	} finally {
 		onClose();
 	}
@@ -72,9 +72,9 @@ async function handleDeleteItem(): Promise<void> {
 	try {
 		await deleteItem(itemId);
 		await itemStore.loadItems();
-		toastStore.add(`${label} を削除しました`, 'info');
+		toastStore.add(t('toast.deleted_label', { label }), 'info');
 	} catch (e: unknown) {
-		toastStore.add(`削除失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.delete_failed', { error: getErrorMessage(e) }), 'error');
 	} finally {
 		onClose();
 	}
@@ -94,7 +94,7 @@ async function handleLaunchDefault(): Promise<void> {
 	try {
 		await launchItemWithCascade(item);
 	} catch (e: unknown) {
-		toastStore.add(`起動に失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.launch_failed', { error: getErrorMessage(e) }), 'error');
 	} finally {
 		onClose();
 	}
@@ -107,7 +107,7 @@ async function handleHideFromWidget(): Promise<void> {
 		await widgetItemHidesStore.add(widgetId, path);
 		toastStore.add(t('toast.removed_from_widget'), 'info');
 	} catch (e: unknown) {
-		toastStore.add(`非表示にできませんでした: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.hide_failed', { error: getErrorMessage(e) }), 'error');
 	} finally {
 		onClose();
 	}

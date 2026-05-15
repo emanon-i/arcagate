@@ -22,7 +22,7 @@ async function handleCheck() {
 		available = update;
 		lastChecked = new Date();
 		if (update) {
-			toastStore.add(`新バージョン ${update.version} が利用可能です`, 'info');
+			toastStore.add(t('toast.version_available', { version: update.version }), 'info');
 		} else {
 			toastStore.add(t('toast.version_up_to_date'), 'success');
 		}

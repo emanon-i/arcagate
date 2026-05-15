@@ -94,7 +94,7 @@ async function persistConfig(next: ItemWidgetConfig) {
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
-		toastStore.add(`設定保存失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.config_save_failed', { error: getErrorMessage(e) }), 'error');
 	}
 }
 
@@ -122,9 +122,9 @@ async function pickerSelectMany(items: Item[]) {
 	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next };
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
-		toastStore.add(`${added} 件のアイテムを追加しました`, 'success');
+		toastStore.add(t('toast.items_added_n', { count: added }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(`設定保存失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.config_save_failed', { error: getErrorMessage(e) }), 'error');
 	}
 }
 
@@ -139,9 +139,9 @@ async function pickerSelectSingle(item: Item) {
 	};
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
-		toastStore.add(`${item.label} を追加しました`, 'success');
+		toastStore.add(t('toast.item_added_label', { label: item.label }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(`設定保存失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.config_save_failed', { error: getErrorMessage(e) }), 'error');
 	}
 }
 

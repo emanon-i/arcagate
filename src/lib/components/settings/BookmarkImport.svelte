@@ -50,7 +50,7 @@ async function pickAndParse() {
 			toastStore.add(t('toast.url_not_found'), 'info');
 		}
 	} catch (e) {
-		toastStore.add(`読み込み失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.bookmark_read_failed', { error: getErrorMessage(e) }), 'error');
 	} finally {
 		parsing = false;
 	}

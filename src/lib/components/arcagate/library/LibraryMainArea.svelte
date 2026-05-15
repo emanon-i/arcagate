@@ -84,7 +84,7 @@ async function handleBulkStar() {
 	try {
 		const ids = Array.from(selectedIds);
 		const count = await bulkAddTag(ids, 'sys-starred');
-		toastStore.add(`${count} 件をお気に入りに追加しました`, 'success');
+		toastStore.add(t('toast.favorites_added_n', { count }), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括お気に入り追加' }, e), 'error');
 		return;
@@ -106,7 +106,7 @@ async function handleBulkExport() {
 	const items = itemStore.items.filter((i) => ids.includes(i.id));
 	try {
 		await navigator.clipboard.writeText(JSON.stringify(items, null, 2));
-		toastStore.add(`${items.length} 件を JSON で clipboard にコピーしました`, 'success');
+		toastStore.add(t('toast.json_copied_n', { count: items.length }), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: 'JSON書き出し' }, e), 'error');
 	}
@@ -118,7 +118,7 @@ async function handleBulkDelete() {
 	try {
 		const ids = Array.from(selectedIds);
 		const count = await bulkDeleteItems(ids);
-		toastStore.add(`${count} 件を削除しました`, 'success');
+		toastStore.add(t('toast.items_deleted_n', { count }), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: '一括削除' }, e), 'error');
 		return;

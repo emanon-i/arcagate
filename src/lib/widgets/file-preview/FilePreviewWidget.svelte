@@ -5,6 +5,7 @@ import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
@@ -90,7 +91,7 @@ async function handleDblClick(): Promise<void> {
 	try {
 		await invoke('cmd_open_path', { path: config.path });
 	} catch (e) {
-		toastStore.add(`ファイルを開けませんでした: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.file_open_failed', { error: getErrorMessage(e) }), 'error');
 	}
 }
 

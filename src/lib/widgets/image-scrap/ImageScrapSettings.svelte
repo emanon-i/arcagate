@@ -2,6 +2,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { getErrorMessage } from '$lib/utils/format-error';
 
@@ -25,7 +26,7 @@ async function pickFile(): Promise<void> {
 		const saved = await invoke<string>('cmd_save_image_scrap', { sourcePath: selected as string });
 		config = { ...config, path: saved };
 	} catch (e) {
-		toastStore.add(`画像の保存に失敗: ${getErrorMessage(e)}`, 'error');
+		toastStore.add(t('toast.image_save_failed', { error: getErrorMessage(e) }), 'error');
 	} finally {
 		saving = false;
 	}
