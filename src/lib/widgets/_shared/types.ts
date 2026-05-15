@@ -50,15 +50,21 @@ export interface WidgetMeta {
 /**
  * 4/30 user 検収: Sidebar palette のカテゴリラベル + 表示順序。
  * 「これ何順ですか？」 user fb に答えるための明示的グルーピング。
+ *
+ * audit 2026-05-15 rank 3 Phase 3 (i18n): label を i18n key (= labelKey) に変更、
+ * 表示側 (Sidebar) で `t(labelKey)` で解決。 const 定義箇所では top-level で `t()` を呼べない
+ * ため key の参照のみを持つ。
  */
-export const WIDGET_CATEGORIES: Array<{ key: NonNullable<WidgetMeta['category']>; label: string }> =
-	[
-		{ key: 'library', label: 'ライブラリ系' },
-		{ key: 'watch', label: 'フォルダ監視' },
-		{ key: 'memo', label: 'メモ・タスク' },
-		{ key: 'tool', label: 'ツール' },
-		{ key: 'info', label: '情報・状態' },
-	];
+export const WIDGET_CATEGORIES: Array<{
+	key: NonNullable<WidgetMeta['category']>;
+	labelKey: string;
+}> = [
+	{ key: 'library', labelKey: 'widgets.category.library' },
+	{ key: 'watch', labelKey: 'widgets.category.watch' },
+	{ key: 'memo', labelKey: 'widgets.category.memo' },
+	{ key: 'tool', labelKey: 'widgets.category.tool' },
+	{ key: 'info', labelKey: 'widgets.category.info' },
+];
 
 /** widgets/<name>/index.ts の export 形式（auto-collect 用） */
 export interface WidgetModule {
