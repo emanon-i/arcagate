@@ -174,24 +174,24 @@ describe('computeFitZoom', () => {
 
 	it('K-8: 1 widget の Fit は MAX_ZOOM (200%) まで拡大、 画面いっぱい体感', () => {
 		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 1 };
-		// BB: 240x135 in viewport 1200x800 → ratio min(1168/240, 672/135) = min(4.87, 4.98) = 4.87
-		// 487% → clamp to 200%
+		// K-10 part 2 後: BB 120×120 in viewport 1200×800 → ratio min(1168/120, 672/120)
+		// = min(9.73, 5.6) = 5.6 → 560% → clamp to 200%
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
 		expect(z).toBe(200); // MAX_ZOOM clamp
 	});
 
 	it('K-8: 2 縦 widget の Fit も MAX_ZOOM まで拡大', () => {
 		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 2 };
-		// BB: 240W x 286H (= 2*135+16). viewport 1200x800: ratio min(1168/240, 672/286)
-		// = min(4.87, 2.35) = 2.35 → 235% → clamp 200%
+		// K-10 part 2 後: BB 120W × 256H (= 2*120+16). viewport 1200x800:
+		// ratio min(1168/120, 672/256) = min(9.73, 2.625) = 2.625 → 262% → clamp 200%
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
 		expect(z).toBe(200);
 	});
 
 	it('K-8: 4 widget 2x2 の Fit も MAX_ZOOM まで拡大', () => {
 		const bb = { minX: 0, minY: 0, maxX: 2, maxY: 2 };
-		// BB: 496W x 286H. viewport 1200x800: ratio min(1168/496, 672/286) = min(2.35, 2.35) = 2.35
-		// → 235% → clamp 200%
+		// K-10 part 2 後: BB 256W × 256H. viewport 1200x800:
+		// ratio min(1168/256, 672/256) = min(4.56, 2.625) = 2.625 → 262% → clamp 200%
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
 		expect(z).toBe(200);
 	});
