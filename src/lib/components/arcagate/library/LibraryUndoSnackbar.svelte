@@ -9,6 +9,7 @@
  */
 import { Undo2, X } from '@lucide/svelte';
 import { fade, fly } from 'svelte/transition';
+import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -67,16 +68,17 @@ async function handleUndo() {
 		>
 			<span class="font-medium">「{libraryHistory.pendingUndo.itemSnapshot.label}」を削除しました</span>
 			<span class="text-xs text-[var(--ag-text-muted)]">{secondsLeft}秒</span>
-			<button
+			<Button
 				type="button"
-				class="flex items-center gap-1 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2.5 py-1 text-xs font-medium transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
+				variant="outline"
+				size="sm"
 				data-testid="library-undo-button"
 				aria-label="削除を取り消す"
 				onclick={() => void handleUndo()}
 			>
 				<Undo2 class="h-3.5 w-3.5" />
 				元に戻す
-			</button>
+			</Button>
 			<button
 				type="button"
 				class="rounded-full p-0.5 text-[var(--ag-text-muted)] transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)]"
