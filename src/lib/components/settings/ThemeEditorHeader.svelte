@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Check, Pencil, Trash2 } from '@lucide/svelte';
+import { Button } from '$lib/components/ui/button';
 
 /**
  * ThemeEditor のヘッダー (theme info preview + name edit + save / delete buttons + status)。
@@ -85,23 +86,25 @@ function handleNameKeydown(e: KeyboardEvent) {
 			<span class="text-xs text-[var(--ag-success-text)]">✓ 保存しました</span>
 		{/if}
 		{#if !isBuiltin}
-			<button
+			<Button
 				type="button"
-				class="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-[var(--ag-error-text)] transition-colors hover:bg-[var(--ag-error-bg)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
+				variant="ghost"
+				size="sm"
+				class="text-[var(--ag-error-text)] hover:bg-[var(--ag-error-bg)]"
 				onclick={onDelete}
 			>
 				<Trash2 class="h-3.5 w-3.5" />
 				{confirmDelete ? '本当に削除' : '削除'}
-			</button>
+			</Button>
 		{/if}
-		<button
+		<Button
 			type="button"
+			size="sm"
 			disabled={saving || !isDirty}
-			class="flex items-center gap-1.5 rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 			onclick={onSave}
 		>
 			<Check class="h-3.5 w-3.5" />
 			{saving ? '保存中…' : '保存'}
-		</button>
+		</Button>
 	</div>
 </div>
