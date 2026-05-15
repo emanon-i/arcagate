@@ -136,6 +136,32 @@ pub fn run() {
                 .expect("failed to resolve app data dir");
             std::fs::create_dir_all(&app_data_dir)?;
 
+            // K-7 fix (2026-05-16): tauri.conf.json の static assetProtocol scope
+            // (`$APPDATA/icons/**` 等) は app_data_dir が起動時に未作成の場合や
+            // `$APPDATA` 展開と canonicalize_parent walk-up の組合せで Windows 上で
+            // `\\?\` 付き canonical path への glob match が抜ける既知の問題があり、
+            // 結果 wallpaper / image-scrap widget で 403 (`asset protocol not
+            // configured to allow the path`) を起こしていた (user 報告 K-7)。
+            //
+            // 修正: 必須 subdir を起動直後に必ず作成し、 `asset_protocol_scope().
+            // allow_directory(<dir>, true)` で **canonical 後の絶対 path** をその場で
+            // pattern に追加する。 これは dir 存在前提なので canonicalize が確実に成功し、
+            // glob match が漏れない (static scope の保険として併用)。
+            for sub in ["icons", "wallpapers", "image-scraps"] {
+                let dir = app_data_dir.join(sub);
+                if let Err(e) = std::fs::create_dir_all(&dir) {
+                    log::warn!("failed to ensure {} dir: {}", sub, e);
+                    continue;
+                }
+                if let Err(e) = app.asset_protocol_scope().allow_directory(&dir, true) {
+                    log::warn!(
+                        "failed to register asset protocol scope for {:?}: {}",
+                        dir,
+                        e
+                    );
+                }
+            }
+
             // E2E テスト時は ARCAGATE_DB_PATH 環境変数で DB パスを上書きできる
             let db_path = std::env::var("ARCAGATE_DB_PATH")
                 .map(std::path::PathBuf::from)
