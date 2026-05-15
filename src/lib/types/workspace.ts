@@ -13,7 +13,10 @@ export type { WidgetType };
  * 残置 (新規 callsite は `widgetLabel()` を使う)。
  */
 export function widgetLabel(type: WidgetType): string {
-	return t(`workspace.widget_label.${type}`);
+	// K-1 follow-up (2026-05-16): i18n key path は `widgets.widget_label.*` (messages JSON 構造に合わせ)。
+	// 旧 path `workspace.widget_label.*` は messages JSON に存在しないため t() fallback でキー文字列が
+	// 返り、 widget 名表示が壊れていた (e2e #498 dialog-pin が `hasText: 'の設定'` で失敗した root cause)。
+	return t(`widgets.widget_label.${type}`);
 }
 
 /**

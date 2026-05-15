@@ -68,7 +68,7 @@ function handleDelete() {
 		id="widget-settings-title"
 		class="flex-none border-b border-[var(--ag-border)] px-6 pb-4 pt-6 text-base font-semibold text-[var(--ag-text-primary)]"
 	>
-		{t('workspace.settings_dialog_title', { label: widgetLabel(widget.widget_type) })}
+		{t('widgets.settings_dialog_title', { label: widgetLabel(widget.widget_type) })}
 	</h3>
 	<form
 		class="flex min-h-0 flex-1 flex-col"
@@ -81,7 +81,7 @@ function handleDelete() {
 			{#if SettingsContent}
 				<SettingsContent bind:config />
 			{:else}
-				<p class="text-sm text-[var(--ag-text-secondary)]">{t('workspace.no_settings')}</p>
+				<p class="text-sm text-[var(--ag-text-secondary)]">{t('widgets.no_settings')}</p>
 			{/if}
 		</div>
 
