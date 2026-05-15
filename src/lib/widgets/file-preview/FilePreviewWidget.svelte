@@ -9,6 +9,7 @@ import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { parseFrontmatterPairs } from '$lib/utils/frontmatter';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
 
@@ -95,6 +96,9 @@ async function handleDblClick(): Promise<void> {
 	}
 }
 
+// K-12 (2026-05-16 user 検収): 全 widget 共通の「右上 = 歯車 (= settings)」 統一に合わせ
+// 再読み込み icon を **歯車 の左** に配置。 WidgetShell が menuItems を inline icon 並び
+// で render するので、 配列順 [refresh, settings] でそのまま左→右の見た目になる。
 let menuItems = $derived([
 	{
 		label: '再読み込み',
@@ -105,6 +109,13 @@ let menuItems = $derived([
 	},
 	...widgetMenuItems(widget, () => (settingsOpen = true)),
 ]);
+
+// K-9 (2026-05-16 user 検収): frontmatter を Obsidian Properties 風の key-value 表示に
+// (Obsidian Properties は key を muted label 左寄せ / value を通常 text、 input field 風
+// の border / bg は出さない)。 raw YAML 文字列を行単位 split → "key: value" を分解。
+// パース失敗行 (multi-line value / array literal 等) は無視 (best-effort: 単純な
+// scalar value のみ表示、 非対応は frontmatter raw として fallback 表示)。
+let frontmatterPairs = $derived(preview ? parseFrontmatterPairs(preview.frontmatter) : []);
 
 let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ?? 'ファイル');
 </script>
@@ -152,26 +163,36 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 				{/if}
 			</div>
 
-			<!-- Markdown frontmatter (任意)。
-			     audit batch (2026-05-13) #2.2 / #2.3: frontmatter は backend で content から
-			     strip 済 (二重表示防止)。 ここでは raw YAML のみ表示、 select-text 許可。 -->
+			<!-- K-9 (2026-05-16 user 検収): frontmatter を Obsidian Properties 風の
+			     key-value 表示に。 旧 `<pre class="border bg-surface-2">` は「入力欄っぽい
+			     見た目」 で user 違和感、 Obsidian Properties 仕様: key を muted label
+			     (左) / value を通常 text (右)、 border / 入力欄 bg 無し、 軽い区切りのみ。
+			     非対応な multi-line value / array 等は raw YAML を fallback で表示。 -->
 			{#if preview.frontmatter}
-				<div>
-					<div class="mb-1 text-xs font-medium text-[var(--ag-text-secondary)]">フロントマター</div>
-					<pre class="select-text whitespace-pre-wrap break-all rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 font-mono text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
+				<div class="space-y-0.5">
+					{#if frontmatterPairs.length > 0}
+						{#each frontmatterPairs as p (p.key)}
+							<div class="flex items-baseline gap-3 text-xs">
+								<span class="shrink-0 min-w-[5rem] text-[var(--ag-text-muted)]">{p.key}</span>
+								<span class="min-w-0 flex-1 text-[var(--ag-text-primary)] break-all">{p.value}</span>
+							</div>
+						{/each}
+					{:else}
+						<!-- parser 非対応 (multi-line / nested 等) は raw YAML を最小装飾で表示 -->
+						<pre class="select-text whitespace-pre-wrap break-all font-mono text-xs text-[var(--ag-text-primary)]">{preview.frontmatter}</pre>
+					{/if}
 				</div>
+				<!-- 軽い区切り (= 入力欄 border ではなく hairline divider) -->
+				<div class="my-2 border-t border-[var(--ag-border)]"></div>
 			{/if}
 
 			<!-- 内容プレビュー。
-			     audit batch (2026-05-13) #2.7: read-only affordance を明示するため
-			     「読み取り専用」 badge を header に追加 (編集できそうな見た目を回避)。
-			     #2.8: select-text class でテキスト選択を明示許可 (一部 OS で pre が user-select:none) -->
+			     K-9 (2026-05-16): user 指摘「読み取り専用 label / 注記は不要、 入力欄っぽく
+			     見えないようにするだけ」 を反映。 旧「読み取り専用」 Chip + bg-surface-2 +
+			     border の入力欄風表示を撤去、 prose-like な最小装飾で「読み物」 風に。
+			     truncated / binary の状態 chip は維持 (= 機能上の警告は必要)。 -->
 			<div>
-				<!-- audit batch deferred (2026-05-13) #5: inline badge span を Chip 共通 component に。
-				     image-scrap / Library detail header と同 design tokens で見た目統一。 -->
 				<div class="mb-1 flex items-center gap-2 text-xs font-medium text-[var(--ag-text-secondary)]">
-					<span>内容</span>
-					<Chip tone="default">読み取り専用</Chip>
 					{#if preview.truncated}
 						<Chip tone="warm">先頭 256KB のみ</Chip>
 					{/if}
@@ -182,8 +203,10 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 				{#if preview.isBinary}
 					<p class="text-xs text-[var(--ag-text-muted)]">バイナリファイルのため表示できません。</p>
 				{:else}
-					<!-- audit batch deferred (2026-05-13) #10: 本文は font-content (serif 系) で読み物としての可読性を上げる。 -->
-					<pre class="select-text whitespace-pre-wrap break-words rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1.5 font-content text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
+					<!-- K-9: 旧 border + bg-surface-2 の「入力欄」 style を撤去。 monospace
+					     じゃなく font-content (serif 系) で「読み物」 感に統一、 装飾は
+					     padding と font 設定のみ。 select-text は維持 (= テキスト選択可能)。 -->
+					<pre class="select-text whitespace-pre-wrap break-words py-1 font-content text-xs text-[var(--ag-text-primary)]" data-testid="file-preview-content">{preview.content}</pre>
 				{/if}
 			</div>
 		</div>
