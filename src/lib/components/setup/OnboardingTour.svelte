@@ -88,15 +88,16 @@ function handleNext() {
 				<p class="text-xs uppercase tracking-wider text-[var(--ag-text-muted)]">
 					{currentStep + 1} / {STEPS.length}
 				</p>
-				<button
+				<Button
 					type="button"
-					class="rounded p-1 text-[var(--ag-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)]"
+					variant="ghost"
+					size="icon-sm"
 					aria-label="ツアーをスキップ"
 					data-testid="onboarding-skip"
 					onclick={() => void handleClose()}
 				>
 					<XIcon class="h-4 w-4" />
-				</button>
+				</Button>
 			</div>
 
 			{#each [STEPS[currentStep]] as step (currentStep)}
@@ -115,13 +116,14 @@ function handleNext() {
 			{/each}
 
 			<div class="flex items-center justify-between gap-2 pt-2">
-				<button
+				<Button
 					type="button"
-					class="text-xs text-[var(--ag-text-muted)] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)]"
+					variant="link"
+					size="sm"
 					onclick={() => void handleClose()}
 				>
 					もう表示しない
-				</button>
+				</Button>
 				<Button
 					type="button"
 					variant="default"
