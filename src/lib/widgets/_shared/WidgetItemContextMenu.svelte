@@ -68,7 +68,7 @@ async function handleRevealInExplorer(): Promise<void> {
 
 async function handleDeleteItem(): Promise<void> {
 	if (!itemId) return;
-	const label = item?.label ?? 'アイテム';
+	const label = item?.label ?? t('widgets.context_menu.item_fallback');
 	try {
 		await deleteItem(itemId);
 		await itemStore.loadItems();
@@ -139,7 +139,7 @@ async function handleHideFromWidget(): Promise<void> {
 			onclick={() => void handleLaunchDefault()}
 		>
 			<Play class="h-3.5 w-3.5" />
-			Default app で開く
+			{t('widgets.context_menu.open_default_app')}
 		</button>
 	{/if}
 
@@ -152,7 +152,7 @@ async function handleHideFromWidget(): Promise<void> {
 			onclick={() => void handleCopyPath()}
 		>
 			<Copy class="h-3.5 w-3.5" />
-			パスをコピー
+			{t('widgets.context_menu.copy_path')}
 		</button>
 		<button
 			type="button"
@@ -162,7 +162,7 @@ async function handleHideFromWidget(): Promise<void> {
 			onclick={() => void handleRevealInExplorer()}
 		>
 			<FolderOpen class="h-3.5 w-3.5" />
-			Explorer で開く
+			{t('widgets.context_menu.reveal_in_explorer')}
 		</button>
 	{/if}
 
@@ -179,7 +179,7 @@ async function handleHideFromWidget(): Promise<void> {
 			onclick={() => void handleHideFromWidget()}
 		>
 			<EyeOff class="h-3.5 w-3.5" />
-			この widget から外す
+			{t('widgets.context_menu.hide_from_widget')}
 		</button>
 	{/if}
 
@@ -195,7 +195,7 @@ async function handleHideFromWidget(): Promise<void> {
 			onclick={() => void handleDeleteItem()}
 		>
 			<Trash2 class="h-3.5 w-3.5" />
-			アイテムを削除 (Library から)
+			{t('widgets.context_menu.delete_item')}
 		</button>
 	{/if}
 
@@ -211,7 +211,7 @@ async function handleHideFromWidget(): Promise<void> {
 			onclick={handleOpenSettings}
 		>
 			<Settings2 class="h-3.5 w-3.5" />
-			ウィジェット設定を開く
+			{t('widgets.context_menu.open_settings')}
 		</button>
 	{/if}
 </ContextMenu>

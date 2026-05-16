@@ -5,6 +5,7 @@
  * C-15 #19: default_opener_id field 追加 (cascade で widget レベルの起動アプリ default)。
  */
 import { onMount } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 import type { Opener } from '$lib/ipc/opener';
 import { openersStore } from '$lib/state/openers.svelte';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
@@ -51,15 +52,13 @@ onMount(() => {
 	onChange={(v) => {
 		config = { ...config, watch_path: v };
 	}}
-	label="監視フォルダ"
-	pickerTitle="監視するフォルダを選択"
 	id="ws-watch-path"
 	allowManualInput={true}
 />
 
 <!-- 2. スキャン挙動 -->
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-scan-depth">スキャン階層 (1〜3)</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-scan-depth">{t('widgets.exe_folder.scan_depth_label')}</label>
 	<input
 		id="ws-scan-depth"
 		type="number"
@@ -79,12 +78,12 @@ onMount(() => {
 
 <!-- 3. タイトル + 説明 (Projects と同順) -->
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-title">{t('widgets.common.title_label')}</label>
 	<input
 		id="ws-exe-title"
 		type="text"
 		autocomplete="off"
-		placeholder="Exe フォルダ監視"
+		placeholder={t('widgets.widget_label.exe_folder')}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={exeFolderTitle}
 		oninput={(e) => {
@@ -95,7 +94,7 @@ onMount(() => {
 
 <div class="space-y-1">
 	<div class="flex items-center justify-between">
-		<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-description">説明 (任意)</label>
+		<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-description">{t('widgets.common.description_optional_label')}</label>
 		<span
 			class="text-xs tabular-nums {exeDescription.length >= DESCRIPTION_MAX
 				? 'text-[var(--ag-error-text)]'
@@ -108,7 +107,7 @@ onMount(() => {
 		id="ws-exe-description"
 		type="text"
 		autocomplete="off"
-		placeholder="このウィジェットの目的"
+		placeholder={t('widgets.common.description_placeholder')}
 		maxlength={DESCRIPTION_MAX}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={exeDescription}
@@ -121,7 +120,7 @@ onMount(() => {
 <!-- C-15 #19: widget レベルの起動アプリ default。 -->
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-exe-default-opener">
-		デフォルト起動アプリ
+		{t('widgets.common.default_opener_label')}
 	</label>
 	<select
 		id="ws-exe-default-opener"
@@ -132,12 +131,12 @@ onMount(() => {
 			config = { ...config, default_opener_id: v || null };
 		}}
 	>
-		<option value="">既定 (system) / item.default_app に従う</option>
+		<option value="">{t('widgets.common.default_opener_system')}</option>
 		{#each openers as op (op.id)}
-			<option value={op.id}>{op.name}{op.is_builtin ? ' (組み込み)' : ''}</option>
+			<option value={op.id}>{op.name}{op.is_builtin ? t('widgets.common.builtin_suffix') : ''}</option>
 		{/each}
 	</select>
 	<p class="text-xs text-[var(--ag-text-muted)]">
-		この widget からの起動でこの Opener を使う。Library カード個別設定が指定されてればそちらが優先。
+		{t('widgets.common.default_opener_desc')}
 	</p>
 </div>

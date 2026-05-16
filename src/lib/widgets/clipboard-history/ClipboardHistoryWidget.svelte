@@ -97,11 +97,11 @@ function previewText(text: string): string {
 }
 </script>
 
-<WidgetShell title={config.title || 'クリップボード履歴'} icon={ClipboardList} {menuItems}>
+<WidgetShell title={config.title || t('widgets.clipboard_history.default_title')} icon={ClipboardList} {menuItems}>
 	{#if history.length === 0}
 		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-xs text-[var(--ag-text-muted)]">
-			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">履歴は空です</p>
-			<p>テキストをコピーすると ここに溜まり、クリックで再コピーできます。</p>
+			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">{t('widgets.clipboard_history.empty_title')}</p>
+			<p>{t('widgets.clipboard_history.empty_desc')}</p>
 		</div>
 	{:else}
 		<div class="mb-2 flex items-center gap-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2">
@@ -109,7 +109,7 @@ function previewText(text: string): string {
 			<input
 				type="text"
 				class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
-				placeholder="履歴を検索..."
+				placeholder={t('widgets.clipboard_history.search_placeholder')}
 				autocomplete="off"
 				bind:value={query}
 				data-testid="clipboard-history-search"
@@ -118,7 +118,7 @@ function previewText(text: string): string {
 				<button
 					type="button"
 					class="rounded p-0.5 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-					aria-label="検索クエリをクリア"
+					aria-label={t('widgets.clipboard_history.clear_search_aria')}
 					onclick={() => (query = '')}
 				>
 					<X class="h-3 w-3" />
@@ -127,11 +127,11 @@ function previewText(text: string): string {
 		</div>
 		{#if query}
 			<p class="mb-1 text-xs text-[var(--ag-text-muted)]">
-				{history.length} 件中 {filteredHistory.length} 件表示
+				{t('widgets.clipboard_history.filter_count', { total: history.length, shown: filteredHistory.length })}
 			</p>
 		{/if}
 		{#if filteredHistory.length === 0}
-			<p class="text-xs text-[var(--ag-text-muted)]">「{query}」に一致する履歴はありません</p>
+			<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.clipboard_history.no_match', { query })}</p>
 		{:else}
 		<!-- PH-widget-polish: list-row に min-w-0、active:scale-[0.97] で再コピー触覚フィードバック、
 		     title 属性で全文 tooltip (長文クリップボードは preview しか出ないため重要) -->
@@ -141,7 +141,7 @@ function previewText(text: string): string {
 					<button
 						type="button"
 						class="min-w-0 flex-1 rounded-md px-2 py-1 text-left text-xs transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-						aria-label="クリップボードに再コピー"
+						aria-label={t('widgets.clipboard_history.recopy_aria')}
 						title={entry.text}
 						onclick={() => void copyEntry(entry)}
 					>
@@ -150,7 +150,7 @@ function previewText(text: string): string {
 					<button
 						type="button"
 						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
-						aria-label="履歴から削除"
+						aria-label={t('widgets.clipboard_history.delete_entry_aria')}
 						onclick={() => deleteEntry(entry.id)}
 					>
 						<X class="h-3 w-3" />

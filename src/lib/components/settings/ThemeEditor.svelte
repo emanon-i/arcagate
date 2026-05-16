@@ -1,4 +1,5 @@
 <script lang="ts">
+import { t } from '$lib/i18n.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import type { Theme } from '$lib/types/theme';
 import ThemeEditorHeader from './ThemeEditorHeader.svelte';
@@ -174,7 +175,7 @@ async function handleSave() {
 			savedSuccess = false;
 		}, 2000);
 	} else {
-		saveError = themeStore.error ?? '保存に失敗しました';
+		saveError = themeStore.error ?? t('settings.appearance.save_failed');
 	}
 }
 
@@ -205,7 +206,8 @@ const GROUP_ORDER = [
 ];
 
 const grouped = $derived.by(() => {
-	const groups: Record<string, VarEntry[]> = { その他: [] };
+	const otherKey = t('settings.appearance.token_group_other');
+	const groups: Record<string, VarEntry[]> = { [otherKey]: [] };
 	for (const g of GROUP_ORDER) {
 		groups[g] = [];
 	}
@@ -218,7 +220,7 @@ const grouped = $derived.by(() => {
 				break;
 			}
 		}
-		if (!matched) groups.その他.push(entry);
+		if (!matched) groups[otherKey].push(entry);
 	}
 	return Object.entries(groups).filter(([, vs]) => vs.length > 0);
 });

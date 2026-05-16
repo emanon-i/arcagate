@@ -25,9 +25,11 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 # budget 推移: R7-4 = 295 → R9-C = 299 → R10-B = 301 → 2026-05-07 = 330 → 2026-05-12 = 350 → 2026-05-14 = 360
 # 2026-05-14: rank 3 i18n Phase 1+2 で Settings Language selector + i18n.svelte.ts 等で +3 件。
 # 2026-05-15: 統合戦略 area 1-9 で大量 callsite t() 化、 実測 ~328-347 範囲で安定。
-#   今後 #470 / #471 / #472 / #474 が全 merge されると更に減少予定 (workspace template / palette / toast 反映)。
-# 注: Phase 5 (= 完全 0) は dialog 内 form label / widget settings 大量変更が必要、 段階移行で。
-MAX_HARDCODE=360
+# 2026-05-17 (K i18n 完遂): 全 callsite t() 化完了、 実測 13。 残 13 は全て非対象:
+#   (a) byte 単位 grep の誤検出 (`·` / `↑↓` / `…` / `✓` 等の非日本語 multibyte 文字)
+#   (b) (A) literal keep (`<option>日本語</option>` = locale 自己表記、 font preview の `あ`)
+#   (c) comment 内文字列。 → 実 UI 文字列の未訳は 0 件。 budget を 360 → 15 に厳格化。
+MAX_HARDCODE=15
 
 # 日本語文字 (ひらがな + カタカナ + CJK Unified Ideographs) を含む文字列リテラル
 ja_pattern='[ぁ-んァ-ヴー一-龯]'
@@ -45,11 +47,12 @@ titleCount=0
 placeholderCount=0
 visibleCount=0
 
-# grep -c 各 pattern を一括 (file ごとループより速い)、結果を集約
-ariaCount=$(printf '%s\n' $src_targets | xargs -r grep -cE "aria-label=\"[^\"]*$ja_pattern" 2>/dev/null | awk -F: '{s+=$NF} END {print s+0}')
-titleCount=$(printf '%s\n' $src_targets | xargs -r grep -cE "title=\"[^\"]*$ja_pattern" 2>/dev/null | awk -F: '{s+=$NF} END {print s+0}')
-placeholderCount=$(printf '%s\n' $src_targets | xargs -r grep -cE "placeholder=\"[^\"]*$ja_pattern" 2>/dev/null | awk -F: '{s+=$NF} END {print s+0}')
-visibleCount=$(printf '%s\n' $src_targets | xargs -r grep -cE ">[^<>]*$ja_pattern[^<>]*<" 2>/dev/null | awk -F: '{s+=$NF} END {print s+0}')
+# grep -c 各 pattern を一括 (file ごとループより速い)、結果を集約。
+# 注: grep -c は 0 一致時 exit 1 → xargs exit 123 → pipefail で abort するため `|| true` で吸収。
+ariaCount=$(printf '%s\n' $src_targets | { xargs -r grep -cE "aria-label=\"[^\"]*$ja_pattern" 2>/dev/null || true; } | awk -F: '{s+=$NF} END {print s+0}')
+titleCount=$(printf '%s\n' $src_targets | { xargs -r grep -cE "title=\"[^\"]*$ja_pattern" 2>/dev/null || true; } | awk -F: '{s+=$NF} END {print s+0}')
+placeholderCount=$(printf '%s\n' $src_targets | { xargs -r grep -cE "placeholder=\"[^\"]*$ja_pattern" 2>/dev/null || true; } | awk -F: '{s+=$NF} END {print s+0}')
+visibleCount=$(printf '%s\n' $src_targets | { xargs -r grep -cE ">[^<>]*$ja_pattern[^<>]*<" 2>/dev/null || true; } | awk -F: '{s+=$NF} END {print s+0}')
 
 total=$((ariaCount + titleCount + placeholderCount + visibleCount))
 

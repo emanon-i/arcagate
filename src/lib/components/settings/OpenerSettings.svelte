@@ -73,10 +73,7 @@ async function handleSubmit(e: Event) {
 		return;
 	}
 	if (!formCommand.includes('<path>')) {
-		toastStore.add(
-			'コマンドに <path> プレースホルダーを含めてください (例: code "<path>")',
-			'error',
-		);
+		toastStore.add(t('settings.opener.cmd_placeholder_required'), 'error');
 		return;
 	}
 	const input: SaveOpenerInput = {
@@ -99,7 +96,7 @@ async function handleSubmit(e: Event) {
 }
 
 async function handleDelete(o: Opener) {
-	if (!confirm(`${o.name} を削除しますか?`)) return;
+	if (!confirm(t('settings.opener.delete_confirm', { name: o.name }))) return;
 	try {
 		await deleteOpener(o.id);
 		// audit G4: CRUD 後 invalidate (Codex pitfall P3 必須)。
@@ -117,10 +114,10 @@ async function handleDelete(o: Opener) {
 	<div class="flex items-start justify-between gap-3">
 		<div>
 			<p class="text-sm font-medium text-[var(--ag-text-primary)]">
-				Openers (起動アプリ)
+				{t('settings.opener.heading')}
 			</p>
 			<p class="text-xs text-[var(--ag-text-muted)]">
-				Folder アイテム起動時に使うアプリを登録します。右クリックの「Open with…」 から選択できます。
+				{t('settings.opener.desc')}
 			</p>
 		</div>
 		<Button
@@ -132,17 +129,17 @@ async function handleDelete(o: Opener) {
 			data-testid="opener-add"
 		>
 			<Plus class="h-3.5 w-3.5" />
-			追加
+			{t('common.add')}
 		</Button>
 	</div>
 
 	{#if loading}
-		<p class="text-xs text-[var(--ag-text-muted)]">読み込み中…</p>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('common.loading')}</p>
 	{:else}
 		<!-- builtin (read-only) -->
 		<section class="space-y-2">
 			<p class="text-xs font-medium text-[var(--ag-text-secondary)]">
-				組み込み ({builtins.length})
+				{t('settings.opener.builtin_heading', { count: builtins.length })}
 			</p>
 			<ul class="space-y-1">
 				{#each builtins as o (o.id)}
@@ -155,7 +152,7 @@ async function handleDelete(o: Opener) {
 							<p class="truncate font-mono text-xs text-[var(--ag-text-muted)]">{o.command_template}</p>
 						</div>
 						<span class="shrink-0 rounded bg-[var(--ag-surface-3)] px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)]">
-							組み込み
+							{t('settings.opener.builtin_badge')}
 						</span>
 					</li>
 				{/each}
@@ -165,13 +162,13 @@ async function handleDelete(o: Opener) {
 		<!-- custom -->
 		<section class="space-y-2">
 			<p class="text-xs font-medium text-[var(--ag-text-secondary)]">
-				カスタム ({customs.length})
+				{t('settings.opener.custom_heading', { count: customs.length })}
 			</p>
 			{#if customs.length === 0 && !isCreating}
 				<EmptyState
 					icon={Plus}
-					title="カスタム Opener なし"
-					description="Cursor / Vim / Sublime など、追加の起動アプリを登録できます。"
+					title={t('settings.opener.custom_empty_title')}
+					description={t('settings.opener.custom_empty_desc')}
 					testId="opener-custom-empty"
 				/>
 			{:else}
@@ -189,7 +186,7 @@ async function handleDelete(o: Opener) {
 								type="button"
 								variant="ghost"
 								size="icon-sm"
-								aria-label="{o.name} を編集"
+								aria-label={t('settings.opener.edit_aria', { name: o.name })}
 								onclick={() => startEdit(o)}
 							>
 								<Pencil class="h-4 w-4" />
@@ -199,7 +196,7 @@ async function handleDelete(o: Opener) {
 								variant="ghost"
 								size="icon-sm"
 								class="text-[var(--ag-text-muted)] hover:bg-destructive/10 hover:text-destructive"
-								aria-label="{o.name} を削除"
+								aria-label={t('settings.opener.delete_aria', { name: o.name })}
 								onclick={() => void handleDelete(o)}
 							>
 								<Trash2 class="h-4 w-4" />
@@ -219,13 +216,13 @@ async function handleDelete(o: Opener) {
 			data-testid="opener-form"
 		>
 			<p class="text-xs font-medium text-[var(--ag-text-secondary)]">
-				{editing ? `${editing.name} を編集` : '新しい Opener'}
+				{editing ? t('settings.opener.form_edit_heading', { name: editing.name }) : t('settings.opener.form_new_heading')}
 			</p>
 			<div>
 				<label
 					for="opener-name"
 					class="mb-1 block text-xs text-[var(--ag-text-muted)]"
-				>名前</label>
+				>{t('settings.opener.name_label')}</label>
 				<input
 					id="opener-name"
 					type="text"
@@ -241,7 +238,7 @@ async function handleDelete(o: Opener) {
 					for="opener-cmd"
 					class="mb-1 block text-xs text-[var(--ag-text-muted)]"
 				>
-					コマンド (<code class="rounded bg-[var(--ag-surface-3)] px-1">&lt;path&gt;</code> がパスに置換される)
+					{t('settings.opener.cmd_label')} (<code class="rounded bg-[var(--ag-surface-3)] px-1">&lt;path&gt;</code> {t('settings.opener.cmd_label_suffix')})
 				</label>
 				<input
 					id="opener-cmd"
@@ -254,8 +251,8 @@ async function handleDelete(o: Opener) {
 				/>
 			</div>
 			<div class="flex items-center justify-end gap-2 pt-1">
-				<Button type="button" variant="ghost" size="sm" onclick={cancelForm}>キャンセル</Button>
-				<Button type="submit" variant="default" size="sm">保存</Button>
+				<Button type="button" variant="ghost" size="sm" onclick={cancelForm}>{t('common.cancel')}</Button>
+				<Button type="submit" variant="default" size="sm">{t('common.save')}</Button>
 			</div>
 		</form>
 	{/if}

@@ -76,7 +76,7 @@ function focusInput() {
 		<button
 			type="button"
 			class="rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
-			aria-label="検索をクリア"
+			aria-label={t('palette.clear_search')}
 			onclick={() => {
 				value = '';
 				focusInput();

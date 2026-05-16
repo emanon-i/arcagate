@@ -2,6 +2,7 @@
 import { ArrowRight, HelpCircle, Settings as SettingsIcon, X as XIcon, Zap } from '@lucide/svelte';
 import { fade, fly } from 'svelte/transition';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { isOnboardingComplete, markOnboardingComplete } from '$lib/ipc/onboarding';
 import { configStore } from '$lib/state/config.svelte';
 
@@ -16,33 +17,33 @@ const dNormal = rm ? 0 : 200;
 
 interface Step {
 	icon: typeof Zap;
-	title: string;
-	description: string;
+	titleKey: string;
+	descriptionKey: string;
 }
 
-const STEPS: Step[] = [
+const STEP_DEFS: Step[] = [
 	{
 		icon: Zap,
-		title: 'Ctrl+Shift+Space でパレットを開く',
-		description:
-			'どこからでもグローバルホットキーでコマンドパレットが開きます。検索 → Enter で起動。',
+		titleKey: 'setup.onboarding.step1_title',
+		descriptionKey: 'setup.onboarding.step1_desc',
 	},
 	{
 		icon: HelpCircle,
-		title: '? キーでヘルプを開く',
-		description:
-			'画面別の操作リファレンスとホットキー一覧が表示されます。困ったらいつでも `?` キー。',
+		titleKey: 'setup.onboarding.step2_title',
+		descriptionKey: 'setup.onboarding.step2_desc',
 	},
 	{
 		icon: SettingsIcon,
-		title: 'Settings で見た目をカスタマイズ',
-		description:
-			'右上の歯車アイコンから設定パネル。テーマ・取り込みフォルダ・ライブラリ表示等を変更できます。',
+		titleKey: 'setup.onboarding.step3_title',
+		descriptionKey: 'setup.onboarding.step3_desc',
 	},
 ];
 
 let isOpen = $state(false);
 let currentStep = $state(0);
+let STEPS = $derived(
+	STEP_DEFS.map((s) => ({ icon: s.icon, title: t(s.titleKey), description: t(s.descriptionKey) })),
+);
 
 $effect(() => {
 	// SetupWizard が完走 (configStore.setupComplete) してから判定
@@ -92,7 +93,7 @@ function handleNext() {
 					type="button"
 					variant="ghost"
 					size="icon-sm"
-					aria-label="ツアーをスキップ"
+					aria-label={t('setup.onboarding.skip_aria')}
 					data-testid="onboarding-skip"
 					onclick={() => void handleClose()}
 				>
@@ -122,7 +123,7 @@ function handleNext() {
 					size="sm"
 					onclick={() => void handleClose()}
 				>
-					もう表示しない
+					{t('setup.onboarding.no_more')}
 				</Button>
 				<Button
 					type="button"
@@ -131,7 +132,7 @@ function handleNext() {
 					onclick={handleNext}
 					data-testid="onboarding-next"
 				>
-					{currentStep < STEPS.length - 1 ? '次へ' : '始める'}
+					{currentStep < STEPS.length - 1 ? t('common.next') : t('setup.complete.start_button')}
 					<ArrowRight class="h-3.5 w-3.5" />
 				</Button>
 			</div>

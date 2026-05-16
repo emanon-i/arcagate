@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Check, Pencil, Trash2 } from '@lucide/svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 
 /**
  * ThemeEditor のヘッダー (theme info preview + name edit + save / delete buttons + status)。
@@ -59,7 +60,7 @@ function handleNameKeydown(e: KeyboardEvent) {
 			<input
 				type="text"
 				bind:value={nameValue}
-				aria-label="テーマ名"
+				aria-label={t('settings.appearance.theme_name_aria')}
 				onblur={() => onCommitNameEdit()}
 				onkeydown={handleNameKeydown}
 				class="rounded border border-[var(--ag-accent)] bg-[var(--ag-surface-2)] px-2 py-0.5 text-sm font-semibold text-[var(--ag-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
@@ -67,23 +68,23 @@ function handleNameKeydown(e: KeyboardEvent) {
 		{:else}
 			<button
 				type="button"
-				title="クリックして名前を変更"
+				title={t('settings.appearance.theme_name_edit_hint')}
 				onclick={onStartNameEdit}
 				class="flex items-center gap-1.5 rounded px-1 py-0.5 text-sm font-semibold text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 			>
-				{themeName} を編集
+				{t('settings.appearance.edit_theme_button', { name: themeName })}
 				<Pencil class="h-3 w-3 opacity-50" />
 			</button>
 		{/if}
 		{#if isDirty}
 			<span class="rounded px-1.5 py-0.5 text-xs font-medium text-[var(--ag-warm-text)]">
-				● 未保存
+				● {t('settings.appearance.unsaved')}
 			</span>
 		{/if}
 	</div>
 	<div class="flex items-center gap-2">
 		{#if savedSuccess}
-			<span class="text-xs text-[var(--ag-success-text)]">✓ 保存しました</span>
+			<span class="text-xs text-[var(--ag-success-text)]">✓ {t('toast.saved')}</span>
 		{/if}
 		{#if !isBuiltin}
 			<Button
@@ -94,7 +95,7 @@ function handleNameKeydown(e: KeyboardEvent) {
 				onclick={onDelete}
 			>
 				<Trash2 class="h-3.5 w-3.5" />
-				{confirmDelete ? '本当に削除' : '削除'}
+				{confirmDelete ? t('settings.appearance.delete_confirm_button') : t('common.delete')}
 			</Button>
 		{/if}
 		<Button
@@ -104,7 +105,7 @@ function handleNameKeydown(e: KeyboardEvent) {
 			onclick={onSave}
 		>
 			<Check class="h-3.5 w-3.5" />
-			{saving ? '保存中…' : '保存'}
+			{saving ? t('settings.appearance.saving') : t('common.save')}
 		</Button>
 	</div>
 </div>

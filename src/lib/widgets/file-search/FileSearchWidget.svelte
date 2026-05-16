@@ -177,7 +177,7 @@ async function pickRoot() {
 	const selected = await openDialog({
 		directory: true,
 		multiple: false,
-		title: '検索ルートを選択',
+		title: t('widgets.file_search.picker_title'),
 	});
 	if (!selected || Array.isArray(selected)) return;
 	// config 直接更新は workspaceStore 経由（settings dialog と同じ振る舞い）
@@ -192,15 +192,15 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 <!-- Lateral sweep (2026-05-12): root path を WidgetShell に渡し、 body 右クリック menu で
      「検索 root のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。 -->
-<WidgetShell title={config.title || 'ファイル検索'} icon={FileSearch} {menuItems} path={root}>
+<WidgetShell title={config.title || t('widgets.file_search.default_title')} icon={FileSearch} {menuItems} path={root}>
 	{#if !root}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
 		<EmptyState
 			icon={FolderOpen}
-			title="検索ルートを選んでください"
-			description="選んだフォルダ以下のファイルを部分一致でフィルタして開けます。"
+			title={t('widgets.file_search.empty_title')}
+			description={t('widgets.file_search.empty_desc')}
 			action={{
-				label: 'ルートを選択',
+				label: t('widgets.file_search.pick_root_button'),
 				icon: FolderOpen,
 				onClick: () => void pickRoot(),
 			}}
@@ -214,7 +214,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				<input
 					type="text"
 					class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
-					placeholder="ファイル名でフィルタ (↑↓ Enter)"
+					placeholder={t('widgets.file_search.filter_placeholder')}
 					autocomplete="off"
 					bind:value={query}
 					onkeydown={handleSearchKeydown}
@@ -225,23 +225,23 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		</div>
 		{#if loading}
 			<div class="flex items-center justify-between gap-2">
-				<p class="text-xs text-[var(--ag-text-muted)]">検索中...</p>
+				<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.file_search.searching')}</p>
 				<button
 					type="button"
 					class="flex items-center gap-1 rounded border border-[var(--ag-border)] px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-					aria-label="検索を中止"
+					aria-label={t('widgets.file_search.cancel_aria')}
 					data-testid="file-search-cancel"
 					onclick={() => void cancelCurrent()}
 				>
 					<XIcon class="h-3 w-3" />
-					中止
+					{t('widgets.file_search.cancel_button')}
 				</button>
 			</div>
 		{:else if lastError}
 			<p class="text-xs text-[var(--ag-text-warning,red)]">{lastError}</p>
 		{:else if filtered.length === 0}
 			<p class="text-xs text-[var(--ag-text-muted)]">
-				{query ? '一致するファイルがありません' : 'ファイルがありません'}
+				{query ? t('widgets.file_search.no_match') : t('widgets.file_search.no_files')}
 			</p>
 		{:else}
 			<ul class="space-y-1">
@@ -256,7 +256,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {isSelected && searchActive
 								? 'bg-[var(--ag-surface-3)] ring-1 ring-inset ring-[var(--ag-accent)]'
 								: ''}"
-							aria-label="{entry.name} を開く"
+							aria-label={t('widgets.file_search.open_aria', { name: entry.name })}
 							aria-selected={isSelected}
 							onclick={() => {
 								selectedIndex = idx;

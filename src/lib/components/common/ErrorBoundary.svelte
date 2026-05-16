@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import ErrorState from './ErrorState.svelte';
 
 // PH-425 / Codex Q4 推奨 #7: 横断耐障害性
@@ -15,11 +16,10 @@ interface Props {
 	fallbackDescription?: string;
 }
 
-let {
-	children,
-	fallbackTitle = '予期しないエラーが発生しました',
-	fallbackDescription = '再読み込みすると復旧する場合があります。',
-}: Props = $props();
+let { children, fallbackTitle, fallbackDescription }: Props = $props();
+
+let resolvedTitle = $derived(fallbackTitle ?? t('common.error_boundary_title'));
+let resolvedDescription = $derived(fallbackDescription ?? t('common.error_boundary_description'));
 
 function reportError(error: unknown) {
 	console.error('[ErrorBoundary] caught', error);
@@ -35,9 +35,9 @@ function handleReload() {
 
 	{#snippet failed(error, reset)}
 		<ErrorState
-			title={fallbackTitle}
-			description={`${fallbackDescription}\n${error instanceof Error ? error.message : String(error)}`}
-			retry={{ label: '再読み込み', onClick: handleReload }}
+			title={resolvedTitle}
+			description={`${resolvedDescription}\n${error instanceof Error ? error.message : String(error)}`}
+			retry={{ label: t('common.reload'), onClick: handleReload }}
 			testId="error-boundary-fallback"
 		/>
 		<Button
@@ -48,7 +48,7 @@ function handleReload() {
 			onclick={reset}
 			data-testid="error-boundary-reset"
 		>
-			この画面で再試行
+			{t('common.retry_screen')}
 		</Button>
 	{/snippet}
 </svelte:boundary>

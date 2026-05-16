@@ -18,6 +18,7 @@ import { Activity } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { bufferToSparklinePath, pushBuffer } from '$lib/utils/history-buffer';
 import { widgetMenuItems } from '../_shared/menu-items';
@@ -274,19 +275,19 @@ function gaugePath(pct: number, cx = 24, cy = 24, r = 18): string {
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
-<WidgetShell title={config.title || 'システムモニタ'} icon={Activity} {menuItems}>
+<WidgetShell title={config.title || t('widgets.system_monitor.default_title')} icon={Activity} {menuItems}>
 	{#if degraded}
 		<!-- Codex Medium #5: 連続失敗時 degraded UI badge。stale data も表示し続けるが
 		     user に「取得できていない」事実を見せる。silent failure 解消。 -->
 		<p
 			class="mb-2 truncate rounded border border-[var(--ag-warm-text)]/30 bg-[var(--ag-warm-text)]/10 px-2 py-1 text-xs text-[var(--ag-warm-text)]"
-			title="cmd_get_system_stats など telemetry IPC が連続失敗中"
+			title={t('widgets.system_monitor.degraded_hint')}
 		>
-			取得失敗中 ({consecutiveFailures}回連続)
+			{t('widgets.system_monitor.degraded', { count: consecutiveFailures })}
 		</p>
 	{/if}
 	{#if !stats}
-		<p class="text-xs text-[var(--ag-text-muted)]">取得中...</p>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.system_monitor.loading')}</p>
 	{:else}
 		<!-- @container で widget サイズに応じて密度調整 (#30) -->
 		<div class="@container space-y-2 text-xs">
@@ -329,7 +330,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				{@const memColor = pctColorVar(memPercent)}
 				<div class="space-y-0.5">
 					<div class="flex items-baseline justify-between text-[var(--ag-text-primary)]">
-						<span class="text-[var(--ag-text-muted)]">メモリ</span>
+						<span class="text-[var(--ag-text-muted)]">{t('widgets.system_monitor.memory')}</span>
 						<span class="tabular-nums" style="color: {memColor}">
 							{formatBytes(stats.memUsedBytes)} / {formatBytes(stats.memTotalBytes)}
 						</span>
@@ -364,7 +365,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			{/if}
 			{#if showDisk && disks.length > 0}
 				<div class="space-y-1 border-t border-[var(--ag-border)] pt-1">
-					<span class="text-[var(--ag-text-muted)]">ディスク</span>
+					<span class="text-[var(--ag-text-muted)]">{t('widgets.system_monitor.disk')}</span>
 					<!-- audit batch deferred (2026-05-13) #3: gauge mode は responsive grid で
 					     コンパクト 横並び / 折返し。 sparkline / bar は従来通り縦 stack (横幅必要)。 -->
 					{#if diskChartType === 'gauge'}
@@ -420,7 +421,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			     bar (rx/tx スループット bar) / sparkline (rx 履歴) / text (数値のみ、既定) を切替 -->
 			{#if showNetwork && networks.length > 0}
 				<div class="space-y-1 border-t border-[var(--ag-border)] pt-1">
-					<span class="text-[var(--ag-text-muted)]">ネットワーク</span>
+					<span class="text-[var(--ag-text-muted)]">{t('widgets.system_monitor.network')}</span>
 					{#each networks as n (n.interface)}
 						{@const rate = netRates[n.interface]}
 						{#if rate && (rate.rxBps > 0 || rate.txBps > 0)}

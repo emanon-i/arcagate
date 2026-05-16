@@ -173,7 +173,7 @@ async function launch(entry: PaletteEntry): Promise<void> {
 		}
 	} catch (e) {
 		lastError = getErrorMessage(e);
-		const label = entry.kind === 'item' ? entry.item.label : 'アイテム';
+		const label = entry.kind === 'item' ? entry.item.label : t('widgets.widget_label.item');
 		toastStore.add(formatLaunchError(label, e), 'error');
 	}
 }

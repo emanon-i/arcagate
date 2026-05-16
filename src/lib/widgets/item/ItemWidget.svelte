@@ -147,9 +147,7 @@ async function pickerSelectSingle(item: Item) {
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
-let title = $derived(
-	pinnedItems.length === 1 ? pinnedItems[0].label : (WIDGET_LABELS.item ?? 'アイテム'),
-);
+let title = $derived(pinnedItems.length === 1 ? pinnedItems[0].label : WIDGET_LABELS.item);
 </script>
 
 <WidgetShell {title} icon={Package} {menuItems}>
@@ -158,11 +156,11 @@ let title = $derived(
 		<button
 			type="button"
 			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
-			aria-label="このウィジェットにアイテムを追加"
+			aria-label={t('widgets.item.add_aria')}
 			onclick={() => (pickerOpen = true)}
 		>
 			<Plus class="h-6 w-6" />
-			<span class="text-xs">アイテムを追加</span>
+			<span class="text-xs">{t('library.add_item')}</span>
 		</button>
 	{:else}
 		<!-- 5/03 user 検収 (C): toolbar に view-mode toggle (grid / list)。複数 item 時のみ。 -->
@@ -176,8 +174,8 @@ let title = $derived(
 					'grid'
 						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
 						: 'text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
-					aria-label="グリッド表示"
-					title="グリッド表示"
+					aria-label={t('widgets.item.grid_view')}
+					title={t('widgets.item.grid_view')}
 					onclick={() => void setViewMode('grid')}
 				>
 					<Grid3x3 class="h-3 w-3" />
@@ -188,8 +186,8 @@ let title = $derived(
 					'list'
 						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
 						: 'text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
-					aria-label="リスト表示"
-					title="リスト表示"
+					aria-label={t('widgets.item.list_view')}
+					title={t('widgets.item.list_view')}
 					onclick={() => void setViewMode('list')}
 				>
 					<LayoutList class="h-3 w-3" />
@@ -206,7 +204,7 @@ let title = $derived(
 							<button
 								type="button"
 								class="flex w-full min-w-0 items-center gap-2 rounded-[var(--ag-radius-card)] border border-transparent px-2 py-1.5 text-left transition-[background-color,border-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-border)] hover:bg-[var(--ag-surface-3)]"
-								aria-label="{item.label} を起動"
+								aria-label={t('widgets.common.launch_label', { label: item.label })}
 								title={item.label}
 								onclick={() => void handleLaunch(item)}
 								oncontextmenu={(e) => handleItemContext(item, e)}
@@ -235,7 +233,7 @@ let title = $derived(
 						<button
 							type="button"
 							class="flex flex-col items-center gap-1 rounded-[var(--ag-radius-card)] border border-transparent p-1.5 text-center transition-[background-color,border-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-border)] hover:bg-[var(--ag-surface-3)]"
-							aria-label="{item.label} を起動"
+							aria-label={t('widgets.common.launch_with_context', { label: item.label })}
 							title={item.label}
 							onclick={() => void handleLaunch(item)}
 							oncontextmenu={(e) => handleItemContext(item, e)}

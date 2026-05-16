@@ -4,6 +4,7 @@ import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import MoreMenu from '$lib/components/arcagate/common/MoreMenu.svelte';
 import { Button } from '$lib/components/ui/button';
 import { typeLabel } from '$lib/constants/item-type';
+import { t } from '$lib/i18n.svelte';
 import type { Item } from '$lib/types/item';
 
 /**
@@ -33,12 +34,12 @@ let { item, moreMenuItems, onClose }: Props = $props();
 	<div class="flex shrink-0 items-center gap-2">
 		<!-- refactor (Chip 既存活用): type badge を Chip.svelte (accent tone) で render。 -->
 		<Chip tone="accent">{typeLabel[item.item_type]}</Chip>
-		<MoreMenu items={moreMenuItems} ariaLabel="アイテム操作メニュー" />
+		<MoreMenu items={moreMenuItems} ariaLabel={t('library.detail.more_menu_label')} />
 		<Button
 			type="button"
 			variant="ghost"
 			size="icon-sm"
-			aria-label="パネルを閉じる"
+			aria-label={t('library.detail.close_panel')}
 			onclick={() => onClose?.()}
 		>
 			<XIcon class="h-4 w-4" />

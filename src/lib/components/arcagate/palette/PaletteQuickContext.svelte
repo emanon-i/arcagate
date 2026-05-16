@@ -41,7 +41,7 @@ $effect(() => {
 // locale 別 format に追従、 「2 人が同じ format」 mechanical 基準を満たす。
 </script>
 
-<div class="space-y-4 rounded-[24px] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4" role="region" aria-label="選択アイテムの詳細">
+<div class="space-y-4 rounded-[24px] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-4" role="region" aria-label={t('palette.context.detail_aria')}>
 	{#if selected?.kind === 'item'}
 		<div>
 			<div class="text-xs uppercase tracking-[0.16em] text-[var(--ag-text-muted)]">{t('palette.context.preview')}</div>

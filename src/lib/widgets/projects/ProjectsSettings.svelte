@@ -6,6 +6,7 @@
  * 似た機能は似た UI に。順序: 監視対象 → スキャン挙動 → 表示パラメータ → タイトル → 説明。
  */
 import Switch from '$lib/components/common/Switch.svelte';
+import { t } from '$lib/i18n.svelte';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
 
 const DESCRIPTION_MAX = 120;
@@ -37,26 +38,24 @@ let autoAdd = $derived(config.auto_add ?? false);
 	onChange={(v) => {
 		config = { ...config, watched_folder: v };
 	}}
-	label="監視フォルダ"
-	pickerTitle="監視対象フォルダを選択"
 	id="ws-watched-folder"
 />
 
 <!-- 2. スキャン挙動: 配下自動追加 (ExeFolder の scan_depth 相当の挙動 toggle) -->
 <div class="flex items-center justify-between gap-3 text-sm">
-	<span class="text-[var(--ag-text-primary)]">配下フォルダの自動追加</span>
+	<span class="text-[var(--ag-text-primary)]">{t('widgets.projects.auto_add_label')}</span>
 	<Switch
 		checked={autoAdd}
 		onChange={(v) => {
 			config = { ...config, auto_add: v };
 		}}
-		aria-label="配下フォルダを自動的に追加する"
+		aria-label={t('widgets.projects.auto_add_aria')}
 	/>
 </div>
 
 <!-- 3. 表示パラメータ -->
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">表示件数 (1〜100)</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">{t('widgets.common.max_items_label')}</label>
 	<input
 		id="ws-max-items"
 		type="number"
@@ -75,7 +74,7 @@ let autoAdd = $derived(config.auto_add ?? false);
 </div>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-git-poll">Git ポーリング間隔（秒、10〜600）</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-git-poll">{t('widgets.projects.git_poll_label')}</label>
 	<input
 		id="ws-git-poll"
 		type="number"
@@ -95,12 +94,12 @@ let autoAdd = $derived(config.auto_add ?? false);
 
 <!-- 4. タイトル + 説明 (ExeFolderSettings と同順) -->
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-title">{t('widgets.common.title_label')}</label>
 	<input
 		id="ws-title"
 		type="text"
 		autocomplete="off"
-		placeholder="フォルダ監視"
+		placeholder={t('widgets.widget_label.projects')}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={wsTitle}
 		oninput={(e) => {
@@ -111,7 +110,7 @@ let autoAdd = $derived(config.auto_add ?? false);
 
 <div class="space-y-1">
 	<div class="flex items-center justify-between">
-		<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-description">説明 (任意)</label>
+		<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-description">{t('widgets.common.description_optional_label')}</label>
 		<span
 			class="text-xs tabular-nums {wsDescription.length >= DESCRIPTION_MAX
 				? 'text-[var(--ag-error-text)]'
@@ -124,7 +123,7 @@ let autoAdd = $derived(config.auto_add ?? false);
 		id="ws-description"
 		type="text"
 		autocomplete="off"
-		placeholder="このウィジェットの目的"
+		placeholder={t('widgets.common.description_placeholder')}
 		maxlength={DESCRIPTION_MAX}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={wsDescription}

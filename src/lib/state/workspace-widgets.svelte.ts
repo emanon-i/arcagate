@@ -200,10 +200,7 @@ class WorkspaceWidgets {
 				? findFreePositionNear(seedCell.x, seedCell.y, w, h, rects, effectiveCols, DEFAULT_MAX_ROW)
 				: findFreePosition(w, h, rects, effectiveCols, DEFAULT_MAX_ROW);
 			if (pos === null) {
-				toastStore.add(
-					'空きスペースがありません。既存ウィジェットを縮小・削除してください',
-					'error',
-				);
+				toastStore.add(t('toast.widget_no_space'), 'error');
 				return;
 			}
 			const widget = await workspaceIpc.addWidget(activeWorkspaceId, widgetType);
@@ -296,7 +293,7 @@ class WorkspaceWidgets {
 				);
 				if (pos === null) {
 					toastStore.add(
-						`空きスペースがないため ${itemIds.length - placed} 個の追加を停止しました`,
+						t('toast.widget_no_space_stopped', { count: itemIds.length - placed }),
 						'error',
 					);
 					break;

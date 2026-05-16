@@ -1,6 +1,7 @@
 <script lang="ts">
 import { ChevronRight, Search, X as XIcon } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
+import { t } from '$lib/i18n.svelte';
 import type { Item } from '$lib/types/item';
 import type { WidgetSortField } from '$lib/types/widget-configs';
 
@@ -22,7 +23,7 @@ let {
 	showTarget = false,
 	onLaunch,
 	onContext,
-	emptyMessage = 'アイテムがありません',
+	emptyMessage = '',
 }: Props = $props();
 
 let searchQuery = $state('');
@@ -54,7 +55,7 @@ function toggleSearch() {
 			<input
 				type="text"
 				class="min-w-0 flex-1 bg-transparent text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-faint)]"
-				placeholder="絞り込み..."
+				placeholder={t('workspace.item_list.filter_placeholder')}
 				autofocus
 				autocomplete="off"
 				bind:value={searchQuery}
@@ -63,7 +64,7 @@ function toggleSearch() {
 				type="button"
 				class="rounded p-0.5 text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none"
 				onclick={toggleSearch}
-				aria-label="検索を閉じる"
+				aria-label={t('workspace.item_list.close_search')}
 			>
 				<XIcon class="h-3 w-3" />
 			</button>
@@ -74,7 +75,7 @@ function toggleSearch() {
 				type="button"
 				class="rounded p-0.5 text-[var(--ag-text-faint)] transition-colors duration-[var(--ag-duration-fast)] hover:text-[var(--ag-text-muted)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 				onclick={toggleSearch}
-				aria-label="絞り込み検索"
+				aria-label={t('workspace.item_list.search_aria')}
 			>
 				<Search class="h-3.5 w-3.5" />
 			</button>
@@ -97,7 +98,7 @@ function toggleSearch() {
 				<button
 					type="button"
 					class="group/row flex w-full min-w-0 items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
-					aria-label="{item.label} を起動 (右クリックで詳細)"
+					aria-label={t('workspace.item_list.launch_label', { label: item.label })}
 					title={showTarget ? item.target : item.label}
 					onclick={() => onLaunch(item.id)}
 					oncontextmenu={(e) => {
@@ -122,7 +123,7 @@ function toggleSearch() {
 			{/each}
 			{#if displayItems.length === 0}
 				<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">
-					{searchQuery ? '一致するアイテムがありません' : emptyMessage}
+					{searchQuery ? t('workspace.item_list.no_match') : (emptyMessage || t('workspace.item_list.no_items'))}
 				</div>
 			{/if}
 		</div>

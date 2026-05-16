@@ -2,6 +2,7 @@
 import { CheckSquare, ChevronDown, ChevronRight, Plus, X } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { widgetMenuItems } from '../_shared/menu-items';
@@ -71,7 +72,7 @@ function deleteTask(id: string) {
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
-<WidgetShell title={config.title || 'タスク'} icon={CheckSquare} {menuItems}>
+<WidgetShell title={config.title || t('widgets.daily_task.default_title')} icon={CheckSquare} {menuItems}>
 	<!-- PH-widget-polish: input は text-sm に拡大 (text-xs は §4-4「12px 以下注意」)、
 	     submit button は disabled 時 cursor-not-allowed + opacity 明示、
 	     button に title「Enter で追加」hint、active:scale-[0.95] 触覚 feedback。 -->
@@ -85,15 +86,15 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		<input
 			type="text"
 			class="min-w-0 flex-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:border-[var(--ag-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
-			placeholder="タスクを追加 (Enter)"
+			placeholder={t('widgets.daily_task.add_placeholder')}
 			autocomplete="off"
 			bind:value={newTaskInput}
 		/>
 		<button
 			type="submit"
 			class="rounded bg-[var(--ag-accent-bg)] p-1.5 text-[var(--ag-accent-text)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-accent-active-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[var(--ag-accent-bg)]"
-			aria-label="タスクを追加"
-			title="追加 (Enter)"
+			aria-label={t('widgets.daily_task.add_aria')}
+			title={t('widgets.daily_task.add_title')}
 			disabled={!newTaskInput.trim()}
 		>
 			<Plus class="h-3.5 w-3.5" />
@@ -101,9 +102,9 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	</form>
 	<!-- PH-issue-013: 未完了 (上、text-base font-medium) -->
 	{#if pendingTasks.length === 0 && completedTasks.length === 0}
-		<p class="text-xs text-[var(--ag-text-muted)]">タスクなし</p>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.daily_task.no_tasks')}</p>
 	{:else if pendingTasks.length === 0}
-		<p class="text-xs text-[var(--ag-text-muted)]">未完了のタスクなし</p>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.daily_task.no_pending')}</p>
 	{:else}
 		<ul class="space-y-1">
 			{#each pendingTasks as task (task.id)}
@@ -120,7 +121,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					<button
 						type="button"
 						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
-						aria-label="タスクを削除"
+						aria-label={t('widgets.daily_task.delete_aria')}
 						onclick={() => deleteTask(task.id)}
 					>
 						<X class="h-4 w-4" />
@@ -145,7 +146,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				{:else}
 					<ChevronRight class="h-3 w-3 shrink-0" />
 				{/if}
-				<span>完了済 ({completedTasks.length})</span>
+				<span>{t('widgets.daily_task.completed_count', { count: completedTasks.length })}</span>
 			</button>
 			{#if completedExpanded}
 				<ul id="completed-tasks-list" class="mt-1 space-y-1">
@@ -165,7 +166,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 							<button
 								type="button"
 								class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:opacity-100 group-hover:opacity-100"
-								aria-label="タスクを削除"
+								aria-label={t('widgets.daily_task.delete_aria')}
 								onclick={() => deleteTask(task.id)}
 							>
 								<X class="h-3 w-3" />

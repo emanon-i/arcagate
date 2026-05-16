@@ -107,7 +107,10 @@ async function setSort(field: WidgetSortField) {
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: '設定の保存' }, e), 'error');
+		toastStore.add(
+			formatIpcError({ operation: t('widgets.common.operation_save_settings') }, e),
+			'error',
+		);
 	}
 }
 
@@ -246,22 +249,22 @@ async function handleLaunch(item: Item) {
 		<!-- PH-issue-039 / 検収項目 #16: ExeFolder と同じ EmptyState で「設定を開く」誘導 -->
 		<EmptyState
 			icon={FolderKanban}
-			title="監視フォルダを設定してください"
-			description="設定モーダルで監視ルートを選ぶと、配下のフォルダがここに表示されます。"
+			title={t('widgets.projects.empty_title')}
+			description={t('widgets.projects.empty_description')}
 			action={{
-				label: '設定を開く',
+				label: t('widgets.common.open_settings'),
 				icon: Settings,
 				onClick: () => (settingsOpen = true),
 			}}
 			testId="projects-empty-state"
 		/>
 	{:else if scanning}
-		<p class="text-sm text-[var(--ag-text-muted)]">スキャン中…</p>
+		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.common.scanning')}</p>
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-text-error)]">エラー: {scanError}</p>
+		<p class="text-sm text-[var(--ag-text-error)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
 	{:else if folderItems.length === 0}
 		<p class="text-sm text-[var(--ag-text-muted)]">
-			指定フォルダ内にサブフォルダがありません。
+			{t('widgets.projects.no_subfolders')}
 		</p>
 	{:else}
 		<!-- B-7 #9: Settings description は info icon + hover tooltip に変更 (widget 領域圧迫防止) -->
@@ -269,13 +272,13 @@ async function handleLaunch(item: Item) {
 			<div class="mb-3 flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
 				<button
 					type="button"
-					aria-label="説明を表示"
+					aria-label={t('widgets.common.show_description')}
 					class="flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 					title={config.description}
 				>
 					<Info class="h-3.5 w-3.5" />
 				</button>
-				<span class="truncate">説明</span>
+				<span class="truncate">{t('widgets.common.description_label')}</span>
 			</div>
 		{/if}
 		<!-- I-4 (2026-05-10 user 検収): 並び替え toolbar (ExeFolder I-3 と同じ sticky pattern)。
@@ -283,7 +286,7 @@ async function handleLaunch(item: Item) {
 		<div
 			class="sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-4 pb-1.5 pt-1 text-xs"
 		>
-			<span class="text-[var(--ag-text-muted)]">並び替え:</span>
+			<span class="text-[var(--ag-text-muted)]">{t('widgets.common.sort_label')}</span>
 			<button
 				type="button"
 				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
@@ -291,13 +294,13 @@ async function handleLaunch(item: Item) {
 					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
 					: 'text-[var(--ag-text-secondary)]'}"
 				onclick={() => void setSort('name')}
-				aria-label="名前で並び替え{sortField === 'name'
+				aria-label="{t('widgets.common.sort_by_name')}{sortField === 'name'
 					? sortOrder === 'asc'
-						? ' (現在 昇順)'
-						: ' (現在 降順)'
+						? t('widgets.common.sort_current_asc')
+						: t('widgets.common.sort_current_desc')
 					: ''}"
 			>
-				名前
+				{t('widgets.common.sort_name')}
 				{#if sortField === 'name'}
 					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
 							class="h-3 w-3"
@@ -311,13 +314,13 @@ async function handleLaunch(item: Item) {
 					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
 					: 'text-[var(--ag-text-secondary)]'}"
 				onclick={() => void setSort('mtime')}
-				aria-label="更新日時で並び替え{sortField === 'mtime'
+				aria-label="{t('widgets.common.sort_by_mtime')}{sortField === 'mtime'
 					? sortOrder === 'asc'
-						? ' (現在 古い順)'
-						: ' (現在 新しい順)'
+						? t('widgets.common.sort_current_oldest')
+						: t('widgets.common.sort_current_newest')
 					: ''}"
 			>
-				更新日時
+				{t('widgets.common.sort_mtime')}
 				{#if sortField === 'mtime'}
 					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
 							class="h-3 w-3"
@@ -337,7 +340,7 @@ async function handleLaunch(item: Item) {
 					<button
 						type="button"
 						class="rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-3 text-left transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-						aria-label="{item.label} を起動 (右クリックで詳細)"
+						aria-label={t('widgets.common.launch_with_context', { label: item.label })}
 						title={item.target}
 						onclick={() => void handleLaunch(item)}
 						oncontextmenu={(e) => {
@@ -363,7 +366,7 @@ async function handleLaunch(item: Item) {
 								{#if gs.has_changes}
 									<span
 										class="flex shrink-0 items-center gap-0.5 text-[var(--ag-warm-text)]"
-										title="{gs.changed_count} 件の変更"
+										title={t('widgets.projects.changed_count', { count: gs.changed_count })}
 									>
 										<CircleDot class="h-3 w-3" />
 										{gs.changed_count}

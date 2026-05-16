@@ -112,7 +112,12 @@ function resetOverride(): void {
 async function selectIcon(): Promise<void> {
 	const selected = await open({
 		multiple: false,
-		filters: [{ name: 'アイコン画像', extensions: ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'] }],
+		filters: [
+			{
+				name: t('item.card_override.filter_icon_image'),
+				extensions: ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'],
+			},
+		],
 	});
 	if (selected) {
 		await itemStore.updateItem(item.id, { icon_path: selected as string });
@@ -129,15 +134,15 @@ async function clearIcon(): Promise<void> {
 <!-- G-6 (2026-05-09 user 検収): icon 編集 UI を ItemForm から移植。
      override toggle の上 (常時 visible) に配置し、いつでも item.icon_path を変更可能。 -->
 <div class="space-y-2">
-	<span class="text-sm font-medium text-[var(--ag-text-primary)]">アイコン</span>
+	<span class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.card_override.icon_label')}</span>
 	<div class="flex items-center gap-3">
 		<div
 			class="flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]"
 		>
 			{#if item.icon_path}
-				<ItemIcon iconPath={item.icon_path} alt="アイコン" class="h-16 w-16 object-contain" />
+				<ItemIcon iconPath={item.icon_path} alt={t('item.card_override.icon_label')} class="h-16 w-16 object-contain" />
 			{:else}
-				<span class="text-xs text-[var(--ag-text-muted)]">なし</span>
+				<span class="text-xs text-[var(--ag-text-muted)]">{t('item.card_override.icon_none')}</span>
 			{/if}
 		</div>
 		<button
@@ -146,7 +151,7 @@ async function clearIcon(): Promise<void> {
 			data-testid="card-override-icon-select"
 			onclick={() => void selectIcon()}
 		>
-			アイコンを選択
+			{t('item.card_override.icon_select')}
 		</button>
 		{#if item.icon_path}
 			<button
@@ -154,7 +159,7 @@ async function clearIcon(): Promise<void> {
 				class="text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:text-destructive"
 				onclick={() => void clearIcon()}
 			>
-				削除
+				{t('common.delete')}
 			</button>
 		{/if}
 	</div>
@@ -164,20 +169,20 @@ async function clearIcon(): Promise<void> {
 	<div class="flex items-start justify-between gap-3">
 		<div class="min-w-0 flex-1">
 			<div class="flex items-center gap-2">
-				<p class="text-sm font-medium text-[var(--ag-text-primary)]">カード表示</p>
+				<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.card_override.card_display_label')}</p>
 				{#if item.card_override_json}
 					<span
 						class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-xs font-medium text-[var(--ag-accent-text)]"
 						data-testid="card-override-badge"
 					>
-						個別調整中
+						{t('item.card_override.badge_active')}
 					</span>
 				{/if}
 			</div>
 			<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
 				{item.card_override_json
-					? 'このカードのみグローバル設定とは独立した表示が適用されています。'
-					: 'Settings > Library のグローバル設定が適用されています。'}
+					? t('item.card_override.desc_overriding')
+					: t('item.card_override.desc_global')}
 			</p>
 		</div>
 		{#if item.card_override_json}
@@ -185,27 +190,27 @@ async function clearIcon(): Promise<void> {
 				type="button"
 				data-testid="card-override-reset"
 				class="shrink-0 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-				aria-label="個別調整を解除してグローバル設定に戻す"
+				aria-label={t('item.card_override.reset_aria')}
 				onclick={() => (resetConfirmOpen = true)}
 			>
-				グローバル設定に戻す
+				{t('item.card_override.reset_button')}
 			</button>
 		{:else}
 			<button
 				type="button"
 				data-testid="card-override-enable"
 				class="shrink-0 rounded-lg border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-accent-active-bg)]"
-				aria-label="このカードだけ個別調整を有効化"
+				aria-label={t('item.card_override.enable_aria')}
 				onclick={enableOverride}
 			>
-				このカードだけ個別調整
+				{t('item.card_override.enable_button')}
 			</button>
 		{/if}
 	</div>
 	{#if item.card_override_json}
 		<div class="mt-3 space-y-2 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-opener">
-				起動アプリ (Opener override)
+				{t('item.card_override.opener_label')}
 			</label>
 			<select
 				id="card-opener"
@@ -213,19 +218,19 @@ async function clearIcon(): Promise<void> {
 				value={currentOpenerId}
 				onchange={(e) => void setOpenerId((e.currentTarget as HTMLSelectElement).value)}
 			>
-				<option value="">既定 (system) / item.default_app に従う</option>
+				<option value="">{t('item.card_override.opener_default')}</option>
 				{#each openers as op (op.id)}
-					<option value={op.id}>{op.name}{op.is_builtin ? ' (組み込み)' : ''}</option>
+					<option value={op.id}>{op.name}{op.is_builtin ? ` (${t('item.card_override.opener_builtin')})` : ''}</option>
 				{/each}
 			</select>
 			<p class="text-xs text-[var(--ag-text-muted)]">
-				このカードのみ指定 Opener で起動。Library / Workspace 両方の click 起動に効く。
+				{t('item.card_override.opener_desc')}
 			</p>
 		</div>
 		<div class="mt-3 space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<div class="space-y-1">
 				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-bg-mode">
-					背景モード
+					{t('item.card_override.bg_mode_label')}
 				</label>
 				<select
 					id="card-bg-mode"
@@ -238,15 +243,15 @@ async function clearIcon(): Promise<void> {
 							},
 						})}
 				>
-					<option value="image">画像 (アイコンを全面表示)</option>
-					<option value="fill">塗りつぶし (背景色 + 中央アイコン)</option>
-					<option value="none">なし (グラデーション)</option>
+					<option value="image">{t('item.card_override.bg_mode_image')}</option>
+					<option value="fill">{t('item.card_override.bg_mode_fill')}</option>
+					<option value="none">{t('item.card_override.bg_mode_none')}</option>
 				</select>
 			</div>
 			{#if bg.mode === 'image'}
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-focal-x">画像位置 X</label>
+						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-focal-x">{t('item.card_override.focal_x_label')}</label>
 						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.focalX}%</span>
 					</div>
 					<input
@@ -265,7 +270,7 @@ async function clearIcon(): Promise<void> {
 				</div>
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-focal-y">画像位置 Y</label>
+						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-focal-y">{t('item.card_override.focal_y_label')}</label>
 						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.focalY}%</span>
 					</div>
 					<input
@@ -284,7 +289,7 @@ async function clearIcon(): Promise<void> {
 				</div>
 			{:else if bg.mode === 'fill'}
 				<div class="space-y-1">
-					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-fill-bg">背景色</label>
+					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-fill-bg">{t('item.card_override.fill_bg_color_label')}</label>
 					<input
 						id="card-fill-bg"
 						type="color"
@@ -297,7 +302,7 @@ async function clearIcon(): Promise<void> {
 					/>
 				</div>
 				<div class="space-y-1">
-					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-fill-icon">アイコン色</label>
+					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-fill-icon">{t('item.card_override.fill_icon_color_label')}</label>
 					<input
 						id="card-fill-icon"
 						type="color"
@@ -311,7 +316,7 @@ async function clearIcon(): Promise<void> {
 				</div>
 			{/if}
 			<div class="space-y-1">
-				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-text-color">ラベル文字色</label>
+				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-text-color">{t('item.card_override.text_color_label')}</label>
 				<input
 					id="card-text-color"
 					type="color"
@@ -333,7 +338,7 @@ async function clearIcon(): Promise<void> {
 							style: { overlayEnabled: (e.currentTarget as HTMLInputElement).checked },
 						})}
 				/>
-				<span>下部にグラデーションオーバーレイを表示</span>
+				<span>{t('item.card_override.overlay_label')}</span>
 			</label>
 			<label class="flex cursor-pointer items-center gap-2 text-xs text-[var(--ag-text-secondary)]">
 				<input
@@ -345,11 +350,11 @@ async function clearIcon(): Promise<void> {
 							style: { strokeEnabled: (e.currentTarget as HTMLInputElement).checked },
 						})}
 				/>
-				<span>ラベル文字に縁取りを付ける</span>
+				<span>{t('item.card_override.stroke_label')}</span>
 			</label>
 			{#if style.strokeEnabled}
 				<div class="space-y-1">
-					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-stroke-color">縁取り色</label>
+					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-stroke-color">{t('item.card_override.stroke_color_label')}</label>
 					<input
 						id="card-stroke-color"
 						type="color"
@@ -368,9 +373,9 @@ async function clearIcon(): Promise<void> {
 
 <ConfirmDialog
 	open={resetConfirmOpen}
-	title="個別調整を解除しますか？"
-	description="このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。"
-	confirmLabel="解除する"
+	title={t('item.card_override.confirm_reset_title')}
+	description={t('item.card_override.confirm_reset_desc')}
+	confirmLabel={t('item.card_override.confirm_reset_button')}
 	confirmVariant="destructive"
 	onConfirm={resetOverride}
 	onCancel={() => (resetConfirmOpen = false)}

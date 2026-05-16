@@ -139,11 +139,17 @@ async function handleDelete() {
 	// Phase 3 (2026-05-12 user 検収): delete dialog 文言を強化。
 	// 「user タグ / 起動履歴も消える」 を明示、 widget 参照件数 + 関連 tag 数を表示。
 	const userTagCount = itemTags.filter((t) => !t.is_system).length;
-	const widgetLine = refCount > 0 ? `\n• ウィジェット参照: ${refCount} 個` : '';
-	const userTagLine = userTagCount > 0 ? `\n• ユーザータグ紐付け: ${userTagCount} 個` : '';
-	const message = `「${selectedItem.label}」を完全に削除しますか？\n\n以下も一緒に削除されます (元に戻せません):${widgetLine}${userTagLine}\n• 起動履歴 / 起動回数\n• お気に入り / システムタグ紐付け\n\n5 秒以内なら通知から「元に戻す」 で復元可能です。`;
+	const widgetLine =
+		refCount > 0 ? `\n• ${t('library.detail.delete_widget_line', { count: refCount })}` : '';
+	const userTagLine =
+		userTagCount > 0 ? `\n• ${t('library.detail.delete_tag_line', { count: userTagCount })}` : '';
+	const message = t('library.detail.delete_confirm_body', {
+		label: selectedItem.label,
+		widgetLine,
+		userTagLine,
+	});
 	const confirmed = await ask(message, {
-		title: '完全削除の確認',
+		title: t('library.detail.delete_confirm_title'),
 		kind: 'warning',
 	});
 	if (confirmed) {
@@ -159,7 +165,7 @@ function handleDuplicate() {
 	if (!selectedItem) return;
 	void itemStore.createItem({
 		item_type: selectedItem.item_type,
-		label: `${selectedItem.label} (コピー)`,
+		label: `${selectedItem.label}${t('library.detail.duplicate_suffix')}`,
 		target: selectedItem.target,
 		args: selectedItem.args,
 		working_dir: selectedItem.working_dir,
@@ -190,8 +196,8 @@ async function handlePickDefaultApp() {
 let moreMenuItems = $derived.by(() => {
 	if (!selectedItem) return [];
 	return [
-		{ label: '複製', onclick: handleDuplicate },
-		{ label: 'JSONコピー', onclick: handleExportItem },
+		{ label: t('library.detail.menu_duplicate'), onclick: handleDuplicate },
+		{ label: t('library.detail.menu_json_copy'), onclick: handleExportItem },
 	];
 });
 
@@ -209,11 +215,11 @@ function handleCardOverrideToggle(enable: boolean): void {
 			style: configStore.libraryCard.style,
 		});
 		void itemStore.updateItem(selectedItem.id, { card_override_json: initial });
-		toastStore.add('このカードだけ個別調整を開始しました', 'success');
+		toastStore.add(t('toast.card_override_started'), 'success');
 	} else {
 		// reset: 個別調整解除
 		void itemStore.updateItem(selectedItem.id, { card_override_json: null });
-		toastStore.add('個別調整を解除しました', 'info');
+		toastStore.add(t('toast.card_override_cleared'), 'info');
 	}
 }
 </script>
@@ -252,7 +258,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 					onchange={(e) =>
 						handleCardOverrideToggle((e.currentTarget as HTMLInputElement).checked)}
 				/>
-				<span>カード個別調整</span>
+				<span>{t('library.detail.card_override_label')}</span>
 			</label>
 			<Button
 				type="button"
@@ -263,7 +269,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 				onclick={() => (cardOverrideDialogOpen = true)}
 			>
 				<Settings2 class="h-3.5 w-3.5" />
-				個別設定を開く
+				{t('library.detail.card_override_open')}
 			</Button>
 		</div>
 
@@ -289,7 +295,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 	{:else}
 		<!-- Placeholder -->
 		<div class="flex h-full items-center justify-center">
-			<p class="text-sm text-[var(--ag-text-muted)]">アイテムを選択してください</p>
+			<p class="text-sm text-[var(--ag-text-muted)]">{t('library.detail.select_placeholder')}</p>
 		</div>
 	{/if}
 </aside>

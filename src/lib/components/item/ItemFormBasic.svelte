@@ -1,4 +1,6 @@
 <script lang="ts">
+import { t } from '$lib/i18n.svelte';
+
 /**
  * ItemForm の識別フィールド (label / aliases)。
  *
@@ -19,7 +21,7 @@ let { label = $bindable(''), aliasesText = $bindable('') }: Props = $props();
 
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-label"
-		>ラベル <span class="text-destructive">*</span></label
+		>{t('item.form.label_field')} <span class="text-destructive">*</span></label
 	>
 	<!-- svelte-ignore a11y_autofocus -->
 	<input
@@ -30,13 +32,13 @@ let { label = $bindable(''), aliasesText = $bindable('') }: Props = $props();
 		bind:value={label}
 		required
 		autofocus
-		placeholder="表示名"
+		placeholder={t('item.form.label_placeholder')}
 	/>
 </div>
 
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-aliases"
-		>エイリアス（カンマ区切り）</label
+		>{t('item.form.aliases_field')}</label
 	>
 	<input
 		id="item-aliases"

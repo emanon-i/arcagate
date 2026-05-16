@@ -48,12 +48,6 @@ export function sortItems(items: Item[], spec: SortSpec): Item[] {
 	return sorted;
 }
 
-export const SORT_FIELD_LABELS: Record<SortField, string> = {
-	name: '名前',
-	created: '追加日',
-	updated: '最終更新',
-};
-
 export function isValidSortField(v: string): v is SortField {
 	return v === 'name' || v === 'created' || v === 'updated';
 }

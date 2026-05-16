@@ -91,7 +91,7 @@ function handleItemContext(id: string, ev?: MouseEvent): void {
 		iconClass={widgetIconClass}
 		onLaunch={handleLaunch}
 		onContext={handleItemContext}
-		emptyMessage="★ のついたアイテムがここに表示されます"
+		emptyMessage={t('widgets.favorites.empty_message')}
 	/>
 </WidgetShell>
 

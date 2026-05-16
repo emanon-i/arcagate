@@ -2,6 +2,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 import { onDestroy } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 
 let {
 	onDrop,
@@ -37,10 +38,10 @@ async function handleClickFile() {
 		multiple: false,
 		filters: [
 			{
-				name: '実行ファイル',
+				name: t('item.dropzone.filter_executable'),
 				extensions: ['exe', 'msi', 'com', 'ps1', 'bat', 'cmd', 'sh', 'py', 'js'],
 			},
-			{ name: 'すべて', extensions: ['*'] },
+			{ name: t('item.dropzone.filter_all'), extensions: ['*'] },
 		],
 	});
 	if (selected) {
@@ -66,9 +67,9 @@ async function handleClickFolder() {
 >
   <p class="text-sm text-muted-foreground">
     {#if isDragging}
-      ここにドロップ
+      {t('item.dropzone.drag_here')}
     {:else}
-      ここにファイルをドロップ、またはクリックして選択
+      {t('item.dropzone.drop_or_click')}
     {/if}
   </p>
   <div class="flex gap-2">
@@ -77,14 +78,14 @@ async function handleClickFolder() {
       class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
       onclick={handleClickFile}
     >
-      ファイルを選択
+      {t('item.dropzone.select_file')}
     </button>
     <button
       type="button"
       class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-4)]"
       onclick={handleClickFolder}
     >
-      フォルダを選択
+      {t('item.dropzone.select_folder')}
     </button>
   </div>
 </div>

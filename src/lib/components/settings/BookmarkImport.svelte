@@ -36,8 +36,8 @@ async function pickAndParse() {
 	const path = await openDialog({
 		multiple: false,
 		filters: [
-			{ name: 'ブックマーク (HTML)', extensions: ['html', 'htm'] },
-			{ name: 'すべて', extensions: ['*'] },
+			{ name: t('settings.bookmark.filter_html'), extensions: ['html', 'htm'] },
+			{ name: t('settings.bookmark.filter_all'), extensions: ['*'] },
 		],
 	});
 	if (!path) return;
@@ -107,8 +107,8 @@ async function performImport() {
 		}
 		toastStore.add(
 			failed === 0
-				? `${success} 件のブックマークをインポートしました`
-				: `${success} 件成功 / ${failed} 件失敗`,
+				? t('settings.bookmark.import_success', { count: success })
+				: t('settings.bookmark.import_partial', { success, failed }),
 			failed === 0 ? 'success' : 'info',
 		);
 		// 全成功時のみ状態リセット (失敗あったら user が状況確認できるよう残す)
@@ -126,21 +126,20 @@ async function performImport() {
 <div class="space-y-4" data-testid="bookmark-import">
 	<div>
 		<h4 class="mb-1 text-sm font-medium text-[var(--ag-text-primary)]">
-			ブックマークから取り込み
+			{t('settings.bookmark.heading')}
 		</h4>
 		<p class="text-xs text-[var(--ag-text-muted)]">
-			ブラウザのブックマーク HTML (Chrome / Firefox / Edge のエクスポート形式) を選んで、
-			URL をまとめて Library に登録できます。 取り込み時にタグを付与可能です。
+			{t('settings.bookmark.desc')}
 		</p>
 	</div>
 
 	<Button type="button" variant="outline" size="sm" disabled={parsing} onclick={() => void pickAndParse()}>
 		{#if parsing}
 			<Loader2 class="h-4 w-4 animate-spin" />
-			解析中...
+			{t('settings.bookmark.parsing')}
 		{:else}
 			<Bookmark class="h-4 w-4" />
-			ブックマーク HTML を選ぶ
+			{t('settings.bookmark.pick_button')}
 		{/if}
 	</Button>
 
@@ -148,11 +147,11 @@ async function performImport() {
 		<div class="space-y-3 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<div class="flex items-center justify-between text-xs text-[var(--ag-text-secondary)]">
 				<span>
-					{parsed.length} 件中 <strong class="text-[var(--ag-text-primary)]">{selected.size}</strong> 件選択中
+					{t('settings.bookmark.selection_status', { total: parsed.length, selected: selected.size })}
 				</span>
 				<div class="flex gap-1">
-					<Button type="button" variant="ghost" size="sm" onclick={selectAll}>すべて</Button>
-					<Button type="button" variant="ghost" size="sm" onclick={selectNone}>解除</Button>
+					<Button type="button" variant="ghost" size="sm" onclick={selectAll}>{t('settings.bookmark.select_all')}</Button>
+					<Button type="button" variant="ghost" size="sm" onclick={selectNone}>{t('settings.bookmark.select_none')}</Button>
 				</div>
 			</div>
 
@@ -165,7 +164,7 @@ async function performImport() {
 							class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--ag-accent-text)]"
 							checked={selected.has(i)}
 							onchange={() => toggle(i)}
-							aria-label={`${bm.title} を選択`}
+							aria-label={t('settings.bookmark.item_select_aria', { title: bm.title })}
 						/>
 						<div class="min-w-0 flex-1">
 							<div class="truncate font-medium text-[var(--ag-text-primary)]" title={bm.title}>{bm.title}</div>
@@ -179,7 +178,7 @@ async function performImport() {
 			{#if userTags.length > 0}
 				<div>
 					<div class="mb-1.5 text-xs font-medium text-[var(--ag-text-secondary)]">
-						取り込み時にタグを付与 (任意)
+						{t('settings.bookmark.tag_label')}
 					</div>
 					<div class="flex flex-wrap gap-1.5">
 						{#each userTags as tag (tag.id)}
@@ -207,9 +206,9 @@ async function performImport() {
 				>
 					{#if importing}
 						<Loader2 class="h-4 w-4 animate-spin" />
-						インポート中...
+						{t('settings.bookmark.importing')}
 					{:else}
-						{selected.size} 件をインポート
+						{t('settings.bookmark.import_button', { count: selected.size })}
 					{/if}
 				</Button>
 			</div>

@@ -5,6 +5,7 @@
  * AppError::code() ベースで分類し、操作名 + 復旧導線を組み合わせる。
  */
 
+import { t } from '$lib/i18n.svelte';
 import { getErrorCode, getErrorMessage } from './format-error';
 
 interface FormatOptions {
@@ -25,26 +26,26 @@ export function formatIpcError(opts: FormatOptions, error: unknown): string {
 
 	switch (code) {
 		case 'db.lock':
-			return `${op}に失敗しました — DB アクセスが競合しています。少し待って再試行してください。`;
+			return t('error.ipc.db_lock', { op });
 		case 'not_found':
-			return `${op}に失敗しました — 対象が見つかりません。一覧を再読み込みしてください。`;
+			return t('error.ipc.not_found', { op });
 		case 'invalid_input':
-			return `${op}に失敗しました — 入力内容を確認してください: ${msg}`;
+			return t('error.ipc.invalid_input', { op, msg });
 		case 'validation':
-			return `${op}に失敗しました — 入力検証エラー: ${msg}`;
+			return t('error.ipc.validation', { op, msg });
 		case 'permission':
-			return `${op}に失敗しました — 権限がありません。アクセス権を確認してください。`;
+			return t('error.ipc.permission', { op });
 		case 'cancelled':
-			return `${op}を中止しました。`;
+			return t('error.ipc.cancelled', { op });
 		case 'watch.failed':
-			return `${op}に失敗しました — フォルダ監視を開始できませんでした: ${msg}`;
+			return t('error.ipc.watch_failed', { op, msg });
 		case 'zip':
-			return `${op}に失敗しました — ZIP 処理エラー: ${msg}`;
+			return t('error.ipc.zip', { op, msg });
 		case 'db.error':
-			return `${op}に失敗しました — DB エラーが発生しました: ${msg}`;
+			return t('error.ipc.db_error', { op, msg });
 		case 'io.error':
-			return `${op}に失敗しました — ファイル I/O エラー: ${msg}`;
+			return t('error.ipc.io_error', { op, msg });
 		default:
-			return `${op}に失敗しました — ${msg}`;
+			return t('error.ipc.generic', { op, msg });
 	}
 }

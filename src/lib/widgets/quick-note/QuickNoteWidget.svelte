@@ -2,6 +2,7 @@
 import { StickyNote } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { QUICK_NOTE_DEFAULTS, type QuickNoteFontSize } from '$lib/types/widget-configs';
@@ -65,7 +66,10 @@ async function saveNote() {
 		}, 2000);
 	} catch (e: unknown) {
 		saveStatus = 'idle';
-		toastStore.add(formatIpcError({ operation: 'メモの保存' }, e), 'error');
+		toastStore.add(
+			formatIpcError({ operation: t('widgets.quick_note.operation_save') }, e),
+			'error',
+		);
 	}
 }
 
@@ -77,7 +81,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		<!-- audit batch deferred (2026-05-13) #10: メモ本文は font-content (serif 系) で読み物寄せ。 -->
 		<textarea
 			class="h-0 w-full flex-1 resize-none rounded-lg bg-[var(--ag-surface-2)] p-2 font-content {FONT_SIZE_CLASS[config.font_size]} text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
-			placeholder="メモを入力..."
+			placeholder={t('widgets.quick_note.placeholder')}
 			value={noteText}
 			oninput={handleInput}
 			maxlength={MAX_CHARS}
@@ -92,11 +96,11 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				aria-live="polite"
 			>
 				{#if saveStatus === 'pending'}
-					保存待機...
+					{t('widgets.quick_note.save_pending')}
 				{:else if saveStatus === 'saving'}
-					保存中...
+					{t('widgets.quick_note.save_saving')}
 				{:else if saveStatus === 'saved'}
-					✓ 保存済み
+					{t('widgets.quick_note.save_saved')}
 				{:else}&nbsp;{/if}
 			</span>
 			{#if noteText.length > MAX_CHARS - 50}

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import BaseDialog from './BaseDialog.svelte';
 
 /**
@@ -31,16 +32,17 @@ let {
 	onPrimary,
 	secondaryLabel,
 	onSecondary,
-	cancelLabel = 'キャンセル',
+	cancelLabel,
 	onClose,
 }: Props = $props();
+let resolvedCancelLabel = $derived(cancelLabel ?? t('common.cancel'));
 </script>
 
 <BaseDialog {open} {onClose} size="md">
 	<h2 class="mb-2 text-base font-semibold text-[var(--ag-text-primary)]">{title}</h2>
 	<p class="mb-4 whitespace-pre-wrap text-sm text-[var(--ag-text-secondary)]">{message}</p>
 	<div class="flex justify-end gap-2">
-		<Button type="button" variant="outline" onclick={onClose}>{cancelLabel}</Button>
+		<Button type="button" variant="outline" onclick={onClose}>{resolvedCancelLabel}</Button>
 		<Button type="button" variant="outline" onclick={onSecondary}>{secondaryLabel}</Button>
 		<Button type="button" variant="default" onclick={onPrimary} autofocus>{primaryLabel}</Button>
 	</div>

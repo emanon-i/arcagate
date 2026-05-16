@@ -20,6 +20,7 @@ import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import type { Opener } from '$lib/ipc/opener';
 import { itemStore } from '$lib/state/items.svelte';
 import { openersStore } from '$lib/state/openers.svelte';
@@ -118,24 +119,24 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 	<button
 		type="button"
 		class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-8 text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
-		aria-label="アイテムを追加"
+		aria-label={t('library.add_item')}
 		onclick={() => (pickerOpen = true)}
 	>
 		<Package class="h-6 w-6" />
-		<span class="text-sm font-medium">アイテムを追加</span>
+		<span class="text-sm font-medium">{t('library.add_item')}</span>
 		<span class="px-3 text-xs leading-relaxed text-[var(--ag-text-faint)]">
-			ライブラリから 1 件以上のアイテムを選択
+			{t('widgets.item.picker_hint')}
 		</span>
 	</button>
 {:else}
 	<div class="space-y-2">
 		<div class="flex items-center justify-between">
 			<p class="text-sm font-medium text-[var(--ag-text-primary)]">
-				紐付いたアイテム ({pinnedItems.length} 件)
+				{t('widgets.item.pinned_count', { count: pinnedItems.length })}
 			</p>
 			<Button type="button" variant="outline" size="sm" onclick={clearAll}>
 				<X class="h-3.5 w-3.5" />
-				全解除
+				{t('widgets.item.clear_all')}
 			</Button>
 		</div>
 		<ul class="space-y-1">
@@ -157,14 +158,14 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 						<button
 							type="button"
 							class="rounded p-0.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] disabled:opacity-30"
-							aria-label="{item.label} を上に移動"
+							aria-label={t('widgets.item.move_up', { label: item.label })}
 							disabled={index === 0}
 							onclick={() => moveUp(index)}
 						>↑</button>
 						<button
 							type="button"
 							class="rounded p-0.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] disabled:opacity-30"
-							aria-label="{item.label} を下に移動"
+							aria-label={t('widgets.item.move_down', { label: item.label })}
 							disabled={index === pinnedItems.length - 1}
 							onclick={() => moveDown(index)}
 						>↓</button>
@@ -172,7 +173,7 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 					<button
 						type="button"
 						class="rounded p-0.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-error-border)] hover:bg-[var(--ag-error-bg)] hover:text-[var(--ag-error-text)]"
-						aria-label="{item.label} を解除"
+						aria-label={t('widgets.item.remove', { label: item.label })}
 						onclick={() => removeAt(index)}
 					>
 						<X class="h-3.5 w-3.5" />
@@ -185,14 +186,14 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 	<div class="flex items-center gap-2">
 		<Button type="button" variant="outline" size="sm" onclick={() => (pickerOpen = true)}>
 			<Plus class="h-3.5 w-3.5" />
-			さらに追加
+			{t('widgets.item.add_more')}
 		</Button>
 	</div>
 
 	<!-- 並び順 select は 2 件以上で意味がある -->
 	{#if pinnedItems.length >= 2}
 		<div class="space-y-1">
-			<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-item-sort">並び順</label>
+			<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-item-sort">{t('widgets.item.sort_label')}</label>
 			<select
 				id="ws-item-sort"
 				class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
@@ -200,9 +201,9 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 				onchange={(e) =>
 					setSort((e.currentTarget as HTMLSelectElement).value as 'manual' | 'name' | 'recent')}
 			>
-				<option value="manual">手動 (↑↓ で並べ替え)</option>
-				<option value="name">名前順 (昇順)</option>
-				<option value="recent">最近起動した順 (将来対応)</option>
+				<option value="manual">{t('widgets.item.sort_manual')}</option>
+				<option value="name">{t('widgets.item.sort_name')}</option>
+				<option value="recent">{t('widgets.item.sort_recent')}</option>
 			</select>
 		</div>
 	{/if}
@@ -210,7 +211,7 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 	<!-- C-15 #19: widget レベルの起動アプリ default (cascade で card override の下、system の上) -->
 	<div class="space-y-1">
 		<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-item-default-opener">
-			デフォルト起動アプリ
+			{t('widgets.common.default_opener_label')}
 		</label>
 		<select
 			id="ws-item-default-opener"
@@ -221,13 +222,13 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 				config = { ...config, default_opener_id: v || null };
 			}}
 		>
-			<option value="">既定 (system) / item.default_app に従う</option>
+			<option value="">{t('widgets.common.default_opener_system')}</option>
 			{#each openers as op (op.id)}
-				<option value={op.id}>{op.name}{op.is_builtin ? ' (組み込み)' : ''}</option>
+				<option value={op.id}>{op.name}{op.is_builtin ? t('widgets.common.builtin_suffix') : ''}</option>
 			{/each}
 		</select>
 		<p class="text-xs text-[var(--ag-text-muted)]">
-			この widget からの起動でこの Opener を使う。Library カード個別設定が指定されてればそちらが優先。
+			{t('widgets.common.default_opener_desc')}
 		</p>
 	</div>
 {/if}

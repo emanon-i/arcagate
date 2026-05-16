@@ -4,6 +4,7 @@
  */
 import { open } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 
 interface Props {
 	config: {
@@ -25,7 +26,7 @@ async function handlePickFolder() {
 	const selected = await open({
 		directory: true,
 		multiple: false,
-		title: '検索ルートを選択',
+		title: t('widgets.file_search.picker_title'),
 	});
 	if (selected && !Array.isArray(selected)) {
 		config = { ...config, root: selected };
@@ -34,24 +35,24 @@ async function handlePickFolder() {
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-root">検索ルートフォルダ</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-root">{t('widgets.file_search.root_label')}</label>
 	<div class="flex gap-2">
 		<input
 			id="ws-fs-root"
 			type="text"
 			autocomplete="off"
-			placeholder="例: E:\Cella\Projects"
+			placeholder={t('widgets.common.folder.placeholder')}
 			class="min-w-0 flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 			value={fsRoot}
 			oninput={(e) => {
 				config = { ...config, root: (e.currentTarget as HTMLInputElement).value };
 			}}
 		/>
-		<Button type="button" variant="outline" size="sm" onclick={handlePickFolder}>選択</Button>
+		<Button type="button" variant="outline" size="sm" onclick={handlePickFolder}>{t('widgets.common.folder.pick_button')}</Button>
 	</div>
 </div>
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-depth">スキャン階層 (1〜3)</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-depth">{t('widgets.file_search.depth_label')}</label>
 	<input
 		id="ws-fs-depth"
 		type="number"
@@ -72,7 +73,7 @@ async function handlePickFolder() {
 	/>
 </div>
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-limit">最大件数 (10〜2000)</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-limit">{t('widgets.file_search.limit_label')}</label>
 	<input
 		id="ws-fs-limit"
 		type="number"
@@ -94,12 +95,12 @@ async function handlePickFolder() {
 	/>
 </div>
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-fs-title">{t('widgets.settings.title_label')}</label>
 	<input
 		id="ws-fs-title"
 		type="text"
 		autocomplete="off"
-		placeholder="ファイル検索"
+		placeholder={t('widgets.file_search.default_title')}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={fsTitle}
 		oninput={(e) => {

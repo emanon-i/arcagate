@@ -1,4 +1,5 @@
 <script lang="ts">
+import { t } from '$lib/i18n.svelte';
 import type { Tag } from '$lib/types/tag';
 
 /**
@@ -18,7 +19,7 @@ let { userTags, selectedTagIds, onToggleTag }: Props = $props();
 
 {#if userTags.length > 0}
 	<div class="space-y-2">
-		<p class="text-sm font-medium text-[var(--ag-text-primary)]">タグ</p>
+		<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.form.tags_label')}</p>
 		<div class="flex flex-wrap gap-2">
 			{#each userTags as tag (tag.id)}
 				<label

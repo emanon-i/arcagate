@@ -52,11 +52,7 @@ function handleKeydown(e: KeyboardEvent) {
 function handleDelete(id: string, name: string, ev: MouseEvent): void {
 	ev.stopPropagation();
 	if (workspaceStore.workspaces.length <= 1) return;
-	if (
-		!window.confirm(
-			`ワークスペース「${name}」を削除しますか? (widget も全て削除されます、 元に戻せません)`,
-		)
-	) {
+	if (!window.confirm(t('workspace.tab.delete_confirm', { name }))) {
 		return;
 	}
 	void workspaceStore.deleteWorkspace(id);
@@ -93,8 +89,8 @@ function handleDelete(id: string, name: string, ev: MouseEvent): void {
 				<button
 					type="button"
 					class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-[opacity,color,background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-error-text)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					aria-label={`${ws.name} を削除`}
-					title="削除"
+					aria-label={t('workspace.tab.delete_label', { name: ws.name })}
+					title={t('common.delete')}
 					onclick={(e) => handleDelete(ws.id, ws.name, e)}
 					data-testid="workspace-tab-{ws.id}-delete"
 				>
@@ -108,7 +104,7 @@ function handleDelete(id: string, name: string, ev: MouseEvent): void {
 		<input
 			type="text"
 			class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-transparent px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
-			placeholder="名前"
+			placeholder={t('workspace.tab.name_placeholder')}
 			autocomplete="off"
 			bind:value={newName}
 			onkeydown={handleKeydown}
@@ -121,7 +117,7 @@ function handleDelete(id: string, name: string, ev: MouseEvent): void {
 			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			onclick={startAdd}
 		>
-			+ ページを追加
+			{t('workspace.tab.add_page')}
 		</button>
 	{/if}
 	<!-- PH-issue-009 Phase B: 壁紙設定 (active workspace 用)。
@@ -134,7 +130,7 @@ function handleDelete(id: string, name: string, ev: MouseEvent): void {
 			onclick={() => onEditWallpaper()}
 		>
 			<ImageIcon class="h-3.5 w-3.5" />
-			壁紙
+			{t('workspace.tab.wallpaper')}
 		</button>
 	{/if}
 </div>

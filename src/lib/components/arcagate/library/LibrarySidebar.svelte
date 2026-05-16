@@ -2,6 +2,7 @@
 import { LayoutDashboard, Star } from '@lucide/svelte';
 import SidebarRow from '$lib/components/arcagate/common/SidebarRow.svelte';
 import { typeIconMap } from '$lib/constants/item-type';
+import { t } from '$lib/i18n.svelte';
 import { NAV_TOP } from '$lib/nav-items';
 import { itemStore } from '$lib/state/items.svelte';
 
@@ -32,7 +33,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 	<section class="space-y-1.5" data-testid="sidebar-section-all">
 		{#if expanded}
 			<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-				ライブラリ全体
+				{t('library.sidebar.all_section')}
 			</h3>
 		{/if}
 		<!-- 4/30 user 検収 C4: 旧実装は items.length (現在 load 済み件数) を表示 → タグ別 count
@@ -40,7 +41,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 		     統一してデータ整合性を確保。 -->
 		<SidebarRow
 			icon={NAV_TOP.library.icon}
-			label="すべて"
+			label={t('library.sidebar.all_label')}
 			meta={expanded
 				? String(itemStore.libraryStats?.total_items ?? itemStore.items.length)
 				: undefined}
@@ -51,7 +52,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 		{#each starredTags as tag (tag.id)}
 			<SidebarRow
 				icon={Star}
-				label="お気に入り"
+				label={t('common.favorites')}
 				meta={expanded ? String(tag.item_count) : undefined}
 				iconOnly={!expanded}
 				active={activeTag === tag.id}
@@ -68,7 +69,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 		>
 			{#if expanded}
 				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-					タイプ
+					{t('library.sidebar.type_section')}
 				</h3>
 			{/if}
 			{#each typeTags as tag (tag.id)}
@@ -93,7 +94,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 		>
 			{#if expanded}
 				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-					ワークスペース
+					{t('library.sidebar.workspace_section')}
 				</h3>
 			{/if}
 			{#each workspaceTags as tag (tag.id)}
@@ -117,7 +118,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 		>
 			{#if expanded}
 				<h3 class="px-2 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-					タグ
+					{t('library.sidebar.tag_section')}
 				</h3>
 			{/if}
 			{#each userTags as tag (tag.id)}

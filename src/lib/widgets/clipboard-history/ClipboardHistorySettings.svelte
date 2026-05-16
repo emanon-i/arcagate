@@ -8,6 +8,8 @@ interface Props {
 	};
 }
 
+import { t } from '$lib/i18n.svelte';
+
 let { config = $bindable() }: Props = $props();
 
 let clipboardMaxItems = $derived(config.max_items ?? 20);
@@ -16,7 +18,7 @@ let clipboardTitle = $derived(config.title ?? '');
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-max">保持する履歴数 (1〜200)</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-max">{t('widgets.clipboard_history.max_items_label')}</label>
 	<input
 		id="ws-clip-max"
 		type="number"
@@ -37,7 +39,7 @@ let clipboardTitle = $derived(config.title ?? '');
 	/>
 </div>
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-poll">ポーリング間隔（ミリ秒、500〜10000）</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-poll">{t('widgets.clipboard_history.poll_interval_label')}</label>
 	<input
 		id="ws-clip-poll"
 		type="number"
@@ -59,12 +61,12 @@ let clipboardTitle = $derived(config.title ?? '');
 	/>
 </div>
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-clip-title">{t('widgets.settings.title_label')}</label>
 	<input
 		id="ws-clip-title"
 		type="text"
 		autocomplete="off"
-		placeholder="クリップボード履歴"
+		placeholder={t('widgets.clipboard_history.default_title')}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={clipboardTitle}
 		oninput={(e) => {

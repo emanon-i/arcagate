@@ -3,8 +3,10 @@
  *
  * - グローバル: 全画面共通の主要ホットキー
  * - 画面別: 各画面 (Library / Workspace / Palette / Settings) の操作リファレンス
- * - i18n 対応の余地: 現状日本語固定、将来 messages.json 化
+ * - i18n: description / title / tips は t() 経由で locale 追従
  */
+
+import { t } from '$lib/i18n.svelte';
 
 export interface HelpHotkey {
 	keys: string;
@@ -18,67 +20,83 @@ export interface HelpScreenSection {
 	tips: string[];
 }
 
-export const GLOBAL_HOTKEYS: HelpHotkey[] = [
-	{ keys: 'Ctrl+Shift+Space', description: 'コマンドパレットを開く' },
-	{ keys: '?', description: 'ヘルプを開く / 閉じる' },
-	{ keys: 'Esc', description: 'パレット / ダイアログを閉じる' },
-];
+export function getGlobalHotkeys(): HelpHotkey[] {
+	return [
+		{ keys: 'Ctrl+Shift+Space', description: t('help.global.open_palette') },
+		{ keys: '?', description: t('help.global.toggle_help') },
+		{ keys: 'Esc', description: t('help.global.close') },
+	];
+}
 
-export const SCREENS: HelpScreenSection[] = [
-	{
-		id: 'library',
-		title: 'Library — アイテム管理',
-		hotkeys: [
-			{ keys: '←/→', description: 'カードを移動' },
-			{ keys: 'Enter / ダブルクリック', description: '選択アイテムを起動' },
-			{ keys: 'Delete', description: '選択アイテムを削除' },
-		],
-		tips: [
-			'D&D でアプリ・フォルダを追加できます',
-			'Settings → 取り込みフォルダで自動取り込み設定が可能です',
-			'Library カードのサイズは Settings > Library で S/M/L 切替',
-		],
-	},
-	{
-		id: 'workspace',
-		title: 'Workspace — シナリオ別ランチャーパッド',
-		hotkeys: [
-			{ keys: '編集モード切替', description: '右上のボタンでウィジェット追加 / 配置' },
-			{ keys: '右クリック', description: 'ウィジェット設定メニュー' },
-			{ keys: 'ダブルクリック', description: 'ウィジェット内アイテムを起動' },
-		],
-		tips: [
-			'Workspace タブで複数構成を切替可能',
-			'ウィジェットはグリッドで自由配置 / リサイズ',
-			'Favorites / Recent / Stats / QuickNote 等から組み合わせて作る',
-		],
-	},
-	{
-		id: 'palette',
-		title: 'Palette — コマンドパレット',
-		hotkeys: [
-			{ keys: 'Ctrl+Shift+Space', description: 'どこからでも開く（グローバル）' },
-			{ keys: '↑/↓', description: '結果を選択' },
-			{ keys: 'Enter', description: '実行 / 起動' },
-			{ keys: 'Esc', description: '閉じる' },
-		],
-		tips: [
-			'タグプレフィックス: 例 `g:` で「ゲーム」タグ内検索',
-			'計算式や URL も入力可能（自動判定）',
-			'クリップボード履歴も検索対象に出ます',
-		],
-	},
-	{
-		id: 'settings',
-		title: 'Settings — 設定',
-		hotkeys: [
-			{ keys: 'Settings ボタン', description: '右下の歯車から開く' },
-			{ keys: 'Esc', description: '閉じる' },
-		],
-		tips: [
-			'2 ペイン UI: 左カテゴリ / 右設定項目',
-			'設定変更は即時反映',
-			'テーマは Appearance、組み込みは「コピー」してカスタマイズ',
-		],
-	},
-];
+export function getScreens(): HelpScreenSection[] {
+	return [
+		{
+			id: 'library',
+			title: t('help.library.title'),
+			hotkeys: [
+				{ keys: '←/→', description: t('help.library.hotkey_move_card') },
+				{ keys: t('help.library.hotkey_launch_key'), description: t('help.library.hotkey_launch') },
+				{ keys: 'Delete', description: t('help.library.hotkey_delete') },
+			],
+			tips: [
+				t('help.library.tip_dnd'),
+				t('help.library.tip_auto_import'),
+				t('help.library.tip_card_size'),
+			],
+		},
+		{
+			id: 'workspace',
+			title: t('help.workspace.title'),
+			hotkeys: [
+				{
+					keys: t('help.workspace.hotkey_edit_mode_key'),
+					description: t('help.workspace.hotkey_edit_mode_desc'),
+				},
+				{
+					keys: t('help.workspace.hotkey_right_click_key'),
+					description: t('help.workspace.hotkey_right_click_desc'),
+				},
+				{
+					keys: t('help.workspace.hotkey_double_click_key'),
+					description: t('help.workspace.hotkey_double_click_desc'),
+				},
+			],
+			tips: [
+				t('help.workspace.tip_tabs'),
+				t('help.workspace.tip_grid'),
+				t('help.workspace.tip_widgets'),
+			],
+		},
+		{
+			id: 'palette',
+			title: t('help.palette.title'),
+			hotkeys: [
+				{ keys: 'Ctrl+Shift+Space', description: t('help.palette.hotkey_open') },
+				{ keys: '↑/↓', description: t('help.palette.hotkey_select') },
+				{ keys: 'Enter', description: t('help.palette.hotkey_launch') },
+				{ keys: 'Esc', description: t('help.palette.hotkey_close') },
+			],
+			tips: [
+				t('help.palette.tip_tag_prefix'),
+				t('help.palette.tip_calc_url'),
+				t('help.palette.tip_clipboard'),
+			],
+		},
+		{
+			id: 'settings',
+			title: t('help.settings.title'),
+			hotkeys: [
+				{
+					keys: t('help.settings.hotkey_open_key'),
+					description: t('help.settings.hotkey_open_desc'),
+				},
+				{ keys: 'Esc', description: t('help.settings.hotkey_close_desc') },
+			],
+			tips: [
+				t('help.settings.tip_two_pane'),
+				t('help.settings.tip_instant'),
+				t('help.settings.tip_theme'),
+			],
+		},
+	];
+}

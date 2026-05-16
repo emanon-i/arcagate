@@ -2,6 +2,7 @@
 import { Info, X } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
 import { onMount } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 
 type TipTone = 'default' | 'accent' | 'success';
 
@@ -45,7 +46,7 @@ function dismiss() {
 			</div>
 			<button
 				type="button"
-				aria-label="閉じる"
+				aria-label={t('common.close')}
 				class="rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] p-1.5 text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
 				onclick={dismiss}
 			>

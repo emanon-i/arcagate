@@ -66,23 +66,23 @@ async function handleUndo() {
 			class="pointer-events-auto flex items-center gap-3 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-4 py-2.5 text-sm text-[var(--ag-text-primary)] shadow-[var(--ag-shadow-md)]"
 			data-testid="library-undo-snackbar"
 		>
-			<span class="font-medium">「{libraryHistory.pendingUndo.itemSnapshot.label}」を削除しました</span>
-			<span class="text-xs text-[var(--ag-text-muted)]">{secondsLeft}秒</span>
+			<span class="font-medium">{t('workspace.undo_snackbar.deleted', { label: libraryHistory.pendingUndo.itemSnapshot.label })}</span>
+			<span class="text-xs text-[var(--ag-text-muted)]">{t('workspace.undo_snackbar.seconds_remaining', { n: secondsLeft })}</span>
 			<Button
 				type="button"
 				variant="outline"
 				size="sm"
 				data-testid="library-undo-button"
-				aria-label="削除を取り消す"
+				aria-label={t('workspace.undo_snackbar.undo_button_label')}
 				onclick={() => void handleUndo()}
 			>
 				<Undo2 class="h-3.5 w-3.5" />
-				元に戻す
+				{t('workspace.tooltip.undo')}
 			</Button>
 			<button
 				type="button"
 				class="rounded-full p-0.5 text-[var(--ag-text-muted)] transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)]"
-				aria-label="snackbar を閉じる"
+				aria-label={t('workspace.undo_snackbar.close')}
 				onclick={() => libraryHistory.dismiss()}
 			>
 				<X class="h-3.5 w-3.5" />

@@ -2,6 +2,7 @@
 import { LayoutGrid } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
+import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import type { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -273,10 +274,10 @@ void openItemDetail;
 						>
 							<LayoutGrid class="h-12 w-12 text-[var(--ag-text-faint)]" />
 							<p class="text-sm font-medium text-[var(--ag-text-secondary)]">
-								ウィジェットを追加しましょう
+								{t('workspace.empty_add_title')}
 							</p>
 							<p class="max-w-md text-xs text-[var(--ag-text-muted)]">
-								左のサイドバーから widget を選んでドラッグ、もしくはクリックで追加できます。
+								{t('workspace.empty_add_desc')}
 							</p>
 						</div>
 					{/if}

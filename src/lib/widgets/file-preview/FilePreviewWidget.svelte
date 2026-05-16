@@ -101,7 +101,7 @@ async function handleDblClick(): Promise<void> {
 // で render するので、 配列順 [refresh, settings] でそのまま左→右の見た目になる。
 let menuItems = $derived([
 	{
-		label: '再読み込み',
+		label: t('widgets.file_preview.reload'),
 		icon: RefreshCw,
 		onclick: (): void => {
 			void load();
@@ -117,7 +117,9 @@ let menuItems = $derived([
 // scalar value のみ表示、 非対応は frontmatter raw として fallback 表示)。
 let frontmatterPairs = $derived(preview ? parseFrontmatterPairs(preview.frontmatter) : []);
 
-let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ?? 'ファイル');
+let displayTitle = $derived(
+	preview?.name ?? config.path.split(/[\\/]/).pop() ?? t('widgets.file_preview.default_name'),
+);
 </script>
 
 <!-- Fix A (2026-05-12): config.path を WidgetShell に渡し、 body 右クリック menu で
@@ -126,40 +128,40 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 	{#if !config.path}
 		<EmptyState
 			icon={FileText}
-			title="ファイルを設定してください"
-			description="設定モーダルでファイルを選ぶか、 テキストファイルを Workspace にドラッグ&ドロップしてください。"
+			title={t('widgets.file_preview.empty_title')}
+			description={t('widgets.file_preview.empty_desc')}
 			action={{
-				label: '設定を開く',
+				label: t('widgets.settings.open_button'),
 				icon: Settings,
 				onClick: () => (settingsOpen = true),
 			}}
 			testId="file-preview-empty-state"
 		/>
 	{:else if loading}
-		<p class="text-sm text-[var(--ag-text-muted)]">読み込み中...</p>
+		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.file_preview.loading')}</p>
 	{:else if error}
-		<p class="text-sm text-[var(--ag-text-error)]">エラー: {error}</p>
+		<p class="text-sm text-[var(--ag-text-error)]">{t('widgets.file_preview.error_prefix', { error })}</p>
 	{:else if preview}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
 			class="space-y-2 text-xs"
 			ondblclick={() => void handleDblClick()}
-			title="ダブルクリックで OS の既定アプリで開く"
+			title={t('widgets.dblclick_open_hint')}
 		>
 			<!-- メタデータ row。
 			     audit batch (2026-05-13) #2.9: 「更新」 「作成」 timestamp を 1 行にまとめて固定セット化、
 			     widget が狭くても folded されにくく、 視認性安定。 -->
 			<div class="flex flex-wrap gap-x-3 gap-y-1 text-[var(--ag-text-muted)]">
-				<span><strong class="text-[var(--ag-text-secondary)]">サイズ</strong> {formatBytes(preview.sizeBytes)}</span>
+				<span><strong class="text-[var(--ag-text-secondary)]">{t('widgets.file_preview.meta_size')}</strong> {formatBytes(preview.sizeBytes)}</span>
 				{#if preview.charCount !== null}
-					<span><strong class="text-[var(--ag-text-secondary)]">文字数</strong> {preview.charCount.toLocaleString()}</span>
+					<span><strong class="text-[var(--ag-text-secondary)]">{t('widgets.file_preview.meta_chars')}</strong> {preview.charCount.toLocaleString()}</span>
 				{/if}
 			</div>
 			<div class="flex flex-wrap gap-x-3 gap-y-1 text-[var(--ag-text-muted)]">
-				<span><strong class="text-[var(--ag-text-secondary)]">更新</strong> {formatDate(preview.modifiedAtUnix)}</span>
+				<span><strong class="text-[var(--ag-text-secondary)]">{t('widgets.file_preview.meta_modified')}</strong> {formatDate(preview.modifiedAtUnix)}</span>
 				{#if preview.createdAtUnix}
-					<span><strong class="text-[var(--ag-text-secondary)]">作成</strong> {formatDate(preview.createdAtUnix)}</span>
+					<span><strong class="text-[var(--ag-text-secondary)]">{t('widgets.file_preview.meta_created')}</strong> {formatDate(preview.createdAtUnix)}</span>
 				{/if}
 			</div>
 
@@ -194,14 +196,14 @@ let displayTitle = $derived(preview?.name ?? config.path.split(/[\\/]/).pop() ??
 			<div>
 				<div class="mb-1 flex items-center gap-2 text-xs font-medium text-[var(--ag-text-secondary)]">
 					{#if preview.truncated}
-						<Chip tone="warm">先頭 256KB のみ</Chip>
+						<Chip tone="warm">{t('widgets.file_preview.chip_truncated')}</Chip>
 					{/if}
 					{#if preview.isBinary}
-						<Chip tone="default">バイナリ</Chip>
+						<Chip tone="default">{t('widgets.file_preview.chip_binary')}</Chip>
 					{/if}
 				</div>
 				{#if preview.isBinary}
-					<p class="text-xs text-[var(--ag-text-muted)]">バイナリファイルのため表示できません。</p>
+					<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.file_preview.binary_message')}</p>
 				{:else}
 					<!-- K-9: 旧 border + bg-surface-2 の「入力欄」 style を撤去。 monospace
 					     じゃなく font-content (serif 系) で「読み物」 感に統一、 装飾は
