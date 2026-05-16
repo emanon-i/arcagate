@@ -25,8 +25,15 @@ export const BASE_H = 120;
 export const GRID_GAP = 16;
 export const INNER_PAD = 20; // p-5 (flex container の padding)
 export const MIN_ZOOM = 25;
-export const MAX_ZOOM = 200;
+// 2026-05-17 user 検収: 最大拡大率 default を 200% → 300% に。
+// user が Settings で max/min を変更した場合は clampZoom / clampZoomFit に値を渡す
+// (本 const は default 兼 fallback)。
+export const MAX_ZOOM = 300;
 export const RESET_ZOOM = 100;
+
+/** Settings で設定可能な拡大率上限の上下限 (sanity guard、 user 入力 clamp 用)。 */
+export const ZOOM_LIMIT_MAX = 1000;
+export const ZOOM_LIMIT_MIN = 10;
 
 /**
  * F-8 v3 (2026-05-09 user 再検収): fit-to-content 専用下限。
@@ -77,6 +84,24 @@ export const TOP_RESERVE = 56;
 export const BOTTOM_RESERVE = 72;
 export const SIDE_RESERVE = 16;
 
+/**
+ * 2026-05-17 user 検収: 下部ショートカットヒントバー (undo/redo 等の hotkey hint) の高さ予約。
+ *
+ * ヒントバー表示時は floating toolbar をこの分だけ上へずらして重なりを回避し、
+ * fit-to-content / canvas 高さ計算も `effectiveBottomReserve()` でこの値を加算する。
+ * Settings でヒントバーを非表示にした場合はこの予約を外して widget を下端まで配置可能にする。
+ */
+export const HINT_BAR_RESERVE = 44;
+
+/**
+ * ヒントバー表示状態を加味した下部 reserve。
+ * 表示時: floating toolbar (BOTTOM_RESERVE) + ヒントバー (HINT_BAR_RESERVE)。
+ * 非表示時: floating toolbar のみ。
+ */
+export function effectiveBottomReserve(hintBarVisible: boolean): number {
+	return BOTTOM_RESERVE + (hintBarVisible ? HINT_BAR_RESERVE : 0);
+}
+
 /** viewport の `cellPx + gap`（zoom % 込み）。grid 描画と同じ Math.round() を使う。 */
 export function cellStrideX(zoomPct: number): number {
 	return Math.round(BASE_W * (zoomPct / 100)) + GRID_GAP;
@@ -85,13 +110,16 @@ export function cellStrideY(zoomPct: number): number {
 	return Math.round(BASE_H * (zoomPct / 100)) + GRID_GAP;
 }
 
-/** zoom を [MIN_ZOOM, MAX_ZOOM] にクランプして整数化。 */
-export function clampZoom(zoom: number): number {
-	return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom)));
+/**
+ * zoom を [min, max] にクランプして整数化。
+ * 2026-05-17: min / max は Settings で user が変更可能 (default は MIN_ZOOM / MAX_ZOOM)。
+ */
+export function clampZoom(zoom: number, min: number = MIN_ZOOM, max: number = MAX_ZOOM): number {
+	return Math.max(min, Math.min(max, Math.round(zoom)));
 }
 
 /**
- * fit-to-content 専用 clamp。 下限 MIN_ZOOM_FIT、 **上限 MAX_ZOOM (=200)**。
+ * fit-to-content 専用 clamp。 下限 MIN_ZOOM_FIT、 上限は引数 max (default MAX_ZOOM)。
  *
  * K-8 (2026-05-16 user 検収): 旧上限 RESET_ZOOM (100%) は user 報告
  * 「画面いっぱいにならない」 の root cause。 widget 1 個 / 2 縦 / 4 個 等 BB が
@@ -109,8 +137,8 @@ export function clampZoom(zoom: number): number {
  * Figma / Excalidraw 等の Fit も「viewport を埋めるよう拡大する」 が業界標準で、
  * 「100% 縛り」 は本実装の誤解 (元 v3 v2 comment) だった。
  */
-export function clampZoomFit(zoom: number): number {
-	return Math.max(MIN_ZOOM_FIT, Math.min(MAX_ZOOM, Math.round(zoom)));
+export function clampZoomFit(zoom: number, max: number = MAX_ZOOM): number {
+	return Math.max(MIN_ZOOM_FIT, Math.min(max, Math.round(zoom)));
 }
 
 /**
@@ -286,18 +314,20 @@ export function computeOrigin(bb: BoundingBox): { cellX: number; cellY: number }
 export function computeFitZoom(
 	bb: BoundingBox,
 	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight'>,
+	maxZoom: number = MAX_ZOOM,
+	bottomReserve: number = BOTTOM_RESERVE,
 ): number {
 	const cols = bb.maxX - bb.minX;
 	const rows = bb.maxY - bb.minY;
 	const availW = Math.max(1, viewport.clientWidth - SIDE_RESERVE * 2);
-	const availH = Math.max(1, viewport.clientHeight - TOP_RESERVE - BOTTOM_RESERVE);
+	const availH = Math.max(1, viewport.clientHeight - TOP_RESERVE - bottomReserve);
 	// BB の 100% zoom 時 pixel 幅: cols × BASE_W + (cols−1) × gap
 	const bbW100 = cols * BASE_W + Math.max(0, cols - 1) * GRID_GAP;
 	const bbH100 = rows * BASE_H + Math.max(0, rows - 1) * GRID_GAP;
 	if (bbW100 <= 0 || bbH100 <= 0) return RESET_ZOOM;
 	const ratio = Math.min(availW / bbW100, availH / bbH100);
 	// floor で「BB が必ず収まる」を保証 (round / ceil だと境界で 1px overflow が起きる)
-	return clampZoomFit(Math.floor(ratio * 100));
+	return clampZoomFit(Math.floor(ratio * 100), maxZoom);
 }
 
 /**
@@ -311,6 +341,7 @@ export function computeFitScroll(
 	origin: { cellX: number; cellY: number },
 	zoom: number,
 	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight'>,
+	bottomReserve: number = BOTTOM_RESERVE,
 ): { scrollLeft: number; scrollTop: number } {
 	const sx = cellStrideX(zoom);
 	const sy = cellStrideY(zoom);
@@ -327,7 +358,7 @@ export function computeFitScroll(
 	// X: 単純な viewport 中央 (左右 reserve は対称なので center は不変)
 	// Y: TOP_RESERVE 〜 (clientHeight - BOTTOM_RESERVE) の中央
 	const visualCenterX = viewport.clientWidth / 2;
-	const visualCenterY = TOP_RESERVE + (viewport.clientHeight - TOP_RESERVE - BOTTOM_RESERVE) / 2;
+	const visualCenterY = TOP_RESERVE + (viewport.clientHeight - TOP_RESERVE - bottomReserve) / 2;
 	return {
 		scrollLeft: Math.max(0, originPxX - visualCenterX),
 		scrollTop: Math.max(0, originPxY - visualCenterY),

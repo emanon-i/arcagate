@@ -21,7 +21,7 @@ export const meta: WidgetMeta = {
 		return widgetLabel('file_preview');
 	},
 	defaultConfig: { path: '' },
-	defaultSize: { w: 2, h: 2 },
+	defaultSize: { w: 4, h: 4 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'memo',

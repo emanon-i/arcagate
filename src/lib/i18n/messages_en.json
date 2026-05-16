@@ -28,6 +28,15 @@
 		"save": "Save",
 		"settings": "Settings"
 	},
+	"context_menu": {
+		"deselect": "Deselect",
+		"favorite_add": "Add to favorites",
+		"favorite_remove": "Remove from favorites",
+		"launch": "Launch",
+		"open_settings": "Open settings",
+		"rename": "Rename",
+		"select_all": "Select all"
+	},
 	"dialog": {
 		"confirm_delete": "Delete?",
 		"dup_add_new": "Add as new widget",
@@ -467,6 +476,17 @@
 			"last_checked": "Last checked: {time}",
 			"new_version": "New version v{version}",
 			"up_to_date": "You are using the latest version"
+		},
+		"workspace": {
+			"heading": "Workspace",
+			"hint_bar_aria_off": "Hide hint bar",
+			"hint_bar_aria_on": "Show hint bar",
+			"hint_bar_desc": "Show the shortcut-key hint bar at the bottom of the Workspace",
+			"hint_bar_label": "Shortcut hint bar",
+			"max_zoom_desc": "Upper limit for zooming in widgets (100-1000%)",
+			"max_zoom_label": "Maximum zoom",
+			"min_zoom_desc": "Lower limit for zooming out widgets (10-100%)",
+			"min_zoom_label": "Minimum zoom"
 		}
 	},
 	"setup": {
@@ -910,7 +930,7 @@
 		},
 		"tab": {
 			"add_page": "+ Add page",
-			"delete_confirm": "Delete workspace \"{name}\"? (All widgets will also be removed and this cannot be undone.)",
+			"delete_confirm": "Delete workspace \"{name}\"? Its widgets and the items registered through this workspace will also be removed from the Library. This cannot be undone.",
 			"delete_label": "Delete {name}",
 			"name_placeholder": "Name",
 			"wallpaper": "Wallpaper"

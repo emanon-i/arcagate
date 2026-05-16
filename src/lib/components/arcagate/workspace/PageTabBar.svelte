@@ -1,5 +1,6 @@
 <script lang="ts">
-import { Image as ImageIcon, X } from '@lucide/svelte';
+import { Image as ImageIcon, Pencil, Trash2, X } from '@lucide/svelte';
+import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import { t } from '$lib/i18n.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 
@@ -49,13 +50,58 @@ function handleKeydown(e: KeyboardEvent) {
 // 修正: hover で × icon を表示、 click で confirm → deleteWorkspace。 1 件しか
 // 残っていない場合 (= default だけ) は × を非表示にして「最後の workspace は消せない」
 // 安全弁を備える (user 仕様: 「Home 等のデフォルト workspace は削除不可で OK」)。
+function deleteWorkspace(id: string, name: string): void {
+	if (workspaceStore.workspaces.length <= 1) return;
+	// 2026-05-17 bug fix 連動: workspace 削除で widget 経由登録 item も Library から消えるため
+	// confirm 文言でも明示する。
+	if (!window.confirm(t('workspace.tab.delete_confirm', { name }))) return;
+	void workspaceStore.deleteWorkspace(id);
+}
+
 function handleDelete(id: string, name: string, ev: MouseEvent): void {
 	ev.stopPropagation();
-	if (workspaceStore.workspaces.length <= 1) return;
-	if (!window.confirm(t('workspace.tab.delete_confirm', { name }))) {
-		return;
-	}
-	void workspaceStore.deleteWorkspace(id);
+	deleteWorkspace(id, name);
+}
+
+// 2026-05-17 user 検収: タブ右クリックの専用コンテキストメニュー (名前を変更 / 削除)。
+let tabMenu = $state<{
+	open: boolean;
+	x: number;
+	y: number;
+	id: string;
+	name: string;
+	canDelete: boolean;
+}>({ open: false, x: 0, y: 0, id: '', name: '', canDelete: false });
+
+function openTabMenu(ev: MouseEvent, ws: { id: string; name: string }): void {
+	ev.preventDefault();
+	tabMenu = {
+		open: true,
+		x: ev.clientX,
+		y: ev.clientY,
+		id: ws.id,
+		name: ws.name,
+		canDelete: workspaceStore.workspaces.length > 1,
+	};
+}
+
+function closeTabMenu(): void {
+	tabMenu = { ...tabMenu, open: false };
+}
+
+function renameFromMenu(): void {
+	const id = tabMenu.id;
+	closeTabMenu();
+	// selectWorkspace は activeWorkspaceId を同期的に更新するため、 続けて rename を開けば
+	// 対象 workspace 名で dialog が開く。
+	onSelectWorkspace?.(id);
+	onRenameActive?.();
+}
+
+function deleteFromMenu(): void {
+	const { id, name } = tabMenu;
+	closeTabMenu();
+	deleteWorkspace(id, name);
 }
 </script>
 
@@ -80,6 +126,7 @@ function handleDelete(id: string, name: string, ev: MouseEvent): void {
 				class:hover:border-[var(--ag-border-strong)]={!isActive}
 				onclick={() => onSelectWorkspace?.(ws.id)}
 				ondblclick={isActive ? () => onRenameActive?.() : undefined}
+				oncontextmenu={(e) => openTabMenu(e, ws)}
 				data-testid="workspace-tab-{ws.id}"
 			>
 				{ws.name}
@@ -134,3 +181,28 @@ function handleDelete(id: string, name: string, ev: MouseEvent): void {
 		</button>
 	{/if}
 </div>
+
+<ContextMenu open={tabMenu.open} x={tabMenu.x} y={tabMenu.y} onClose={closeTabMenu}>
+	<button
+		type="button"
+		role="menuitem"
+		class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-primary)] focus-visible:bg-[var(--ag-surface-3)] focus-visible:outline-none hover:bg-[var(--ag-surface-3)]"
+		data-testid="tab-context-rename"
+		onclick={renameFromMenu}
+	>
+		<Pencil class="h-3.5 w-3.5" />
+		{t('context_menu.rename')}
+	</button>
+	{#if tabMenu.canDelete}
+		<button
+			type="button"
+			role="menuitem"
+			class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-destructive focus-visible:bg-destructive/10 focus-visible:outline-none hover:bg-destructive/10"
+			data-testid="tab-context-delete"
+			onclick={deleteFromMenu}
+		>
+			<Trash2 class="h-3.5 w-3.5" />
+			{t('common.delete')}
+		</button>
+	{/if}
+</ContextMenu>

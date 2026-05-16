@@ -4,7 +4,6 @@ import { normalizeWheelStep } from '$lib/utils/wheel-normalize';
 import {
 	BASE_H,
 	BASE_W,
-	BOTTOM_RESERVE,
 	bufferOffsetPx,
 	cellStrideX,
 	cellStrideY,
@@ -15,6 +14,7 @@ import {
 	computeFitZoom,
 	computeOrigin,
 	computeZoomAnchorScroll,
+	effectiveBottomReserve,
 	GRID_GAP,
 	INNER_PAD,
 	MAX_ZOOM,
@@ -54,7 +54,11 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 			// container-relative coord に変換する。container は左右に sidebar 等があるため offset 必須。
 			const delta = normalizeWheelStep(e);
 			const oldZoom = configStore.widgetZoom;
-			const newZoom = clampZoom(oldZoom + delta);
+			const newZoom = clampZoom(
+				oldZoom + delta,
+				configStore.widgetMinZoom,
+				configStore.widgetMaxZoom,
+			);
 			if (newZoom === oldZoom) return;
 			const rect = el.getBoundingClientRect();
 			// 5/05 Codex L5 fix: cursor anchor を container bounds に clamp。
@@ -119,7 +123,7 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 
 	function setZoom(value: number) {
 		const el = containerRef();
-		const newZoom = clampZoom(value);
+		const newZoom = clampZoom(value, configStore.widgetMinZoom, configStore.widgetMaxZoom);
 		const oldZoom = configStore.widgetZoom;
 		if (newZoom === oldZoom) return;
 		if (!el) {
@@ -178,10 +182,13 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 			return;
 		}
 		const origin = computeOrigin(bb);
-		const targetZoom = computeFitZoom(bb, {
-			clientWidth: el.clientWidth,
-			clientHeight: el.clientHeight,
-		});
+		const bottomReserve = effectiveBottomReserve(configStore.hintBarVisible);
+		const targetZoom = computeFitZoom(
+			bb,
+			{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
+			configStore.widgetMaxZoom,
+			bottomReserve,
+		);
 		configStore.setWidgetZoom(targetZoom);
 		if (pendingZoomRAF !== null) cancelAnimationFrame(pendingZoomRAF);
 		pendingZoomRAF = requestAnimationFrame(() => {
@@ -193,7 +200,7 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 			const bbWidthPx = (bb.maxX - bb.minX) * sx - GRID_GAP;
 			const bbHeightPx = (bb.maxY - bb.minY) * sy - GRID_GAP;
 			const availW = el.clientWidth - SIDE_RESERVE * 2;
-			const availH = el.clientHeight - TOP_RESERVE - BOTTOM_RESERVE;
+			const availH = el.clientHeight - TOP_RESERVE - bottomReserve;
 			const overflows = bbWidthPx > availW || bbHeightPx > availH;
 			if (overflows) {
 				const buffer = bufferOffsetPx(targetZoom);
@@ -205,10 +212,12 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 					behavior: 'instant',
 				});
 			} else {
-				const target = computeFitScroll(origin, targetZoom, {
-					clientWidth: el.clientWidth,
-					clientHeight: el.clientHeight,
-				});
+				const target = computeFitScroll(
+					origin,
+					targetZoom,
+					{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
+					bottomReserve,
+				);
 				el.scrollTo({
 					left: target.scrollLeft,
 					top: target.scrollTop,

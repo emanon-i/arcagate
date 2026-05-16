@@ -292,8 +292,8 @@ $effect(() => {
 			{@const cell = pointerDrag.dropCell}
 			{@const previewSize =
 				pointerDrag.active.kind === 'add'
-					? (widgetRegistry[pointerDrag.active.widgetType]?.minViableSize ??
-						widgetRegistry[pointerDrag.active.widgetType]?.defaultSize ?? { w: 2, h: 2 })
+					? (widgetRegistry[pointerDrag.active.widgetType]?.defaultSize ??
+						widgetRegistry[pointerDrag.active.widgetType]?.minViableSize ?? { w: 2, h: 2 })
 					: (() => {
 							const moving = workspaceStore.widgets.find(
 								(w) => pointerDrag.active?.kind === 'move' && w.id === pointerDrag.active.widgetId,

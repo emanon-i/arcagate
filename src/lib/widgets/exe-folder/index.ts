@@ -14,7 +14,7 @@ export const meta: WidgetMeta = {
 	},
 	defaultConfig: { scan_depth: 2 },
 	// J-2 (2026-05-12): folder list 多数を縦に流すため W:H=3:6 で高さ重視。
-	defaultSize: { w: 2, h: 2 },
+	defaultSize: { w: 4, h: 4 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'watch',

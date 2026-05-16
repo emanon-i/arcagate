@@ -28,6 +28,15 @@
 		"save": "保存",
 		"settings": "設定"
 	},
+	"context_menu": {
+		"deselect": "選択を解除",
+		"favorite_add": "お気に入りに追加",
+		"favorite_remove": "お気に入りから解除",
+		"launch": "起動",
+		"open_settings": "設定を開く",
+		"rename": "名前を変更",
+		"select_all": "すべて選択"
+	},
 	"dialog": {
 		"confirm_delete": "削除しますか?",
 		"dup_add_new": "別 widget として追加",
@@ -467,6 +476,17 @@
 			"last_checked": "最終確認: {time}",
 			"new_version": "新バージョン v{version}",
 			"up_to_date": "最新バージョンを使用中です"
+		},
+		"workspace": {
+			"heading": "ワークスペース",
+			"hint_bar_aria_off": "ヒントバーを非表示にする",
+			"hint_bar_aria_on": "ヒントバーを表示する",
+			"hint_bar_desc": "Workspace 下部にショートカットキーの説明を表示する",
+			"hint_bar_label": "ショートカットヒントバー",
+			"max_zoom_desc": "ウィジェットを拡大できる上限 (100〜1000%)",
+			"max_zoom_label": "最大拡大率",
+			"min_zoom_desc": "ウィジェットを縮小できる下限 (10〜100%)",
+			"min_zoom_label": "最小拡大率"
 		}
 	},
 	"setup": {
@@ -910,7 +930,7 @@
 		},
 		"tab": {
 			"add_page": "+ ページを追加",
-			"delete_confirm": "ワークスペース「{name}」を削除しますか? (widget も全て削除されます、元に戻せません)",
+			"delete_confirm": "ワークスペース「{name}」を削除しますか? widget と、この workspace で登録したアイテムも Library から削除されます。元に戻せません。",
 			"delete_label": "{name} を削除",
 			"name_placeholder": "名前",
 			"wallpaper": "壁紙"

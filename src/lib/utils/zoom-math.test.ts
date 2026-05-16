@@ -2,17 +2,21 @@ import { describe, expect, it } from 'vitest';
 import {
 	BASE_H,
 	BASE_W,
+	BOTTOM_RESERVE,
 	BUFFER_COLS_LEFT,
 	BUFFER_ROWS_TOP,
 	bufferOffsetPx,
 	cellStrideX,
 	cellStrideY,
 	clampZoom,
+	clampZoomFit,
 	computeBoundingBox,
 	computeFitScroll,
 	computeFitZoom,
 	computeOrigin,
+	effectiveBottomReserve,
 	GRID_GAP,
+	HINT_BAR_RESERVE,
 	INNER_PAD,
 	MAX_ZOOM,
 	MIN_ZOOM,
@@ -172,28 +176,35 @@ describe('computeFitZoom', () => {
 		expect(z).toBeGreaterThan(100);
 	});
 
-	it('K-8: 1 widget の Fit は MAX_ZOOM (200%) まで拡大、 画面いっぱい体感', () => {
+	it('2026-05-17: 1 widget の Fit は MAX_ZOOM (300%) まで拡大', () => {
 		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 1 };
-		// K-10 part 2 後: BB 120×120 in viewport 1200×800 → ratio min(1168/120, 672/120)
-		// = min(9.73, 5.6) = 5.6 → 560% → clamp to 200%
+		// BB 120×120 in viewport 1200×800 → ratio min(1168/120, 672/120)
+		// = min(9.73, 5.6) = 5.6 → 560% → clamp to MAX_ZOOM (300%)
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
-		expect(z).toBe(200); // MAX_ZOOM clamp
+		expect(z).toBe(300); // MAX_ZOOM clamp
 	});
 
-	it('K-8: 2 縦 widget の Fit も MAX_ZOOM まで拡大', () => {
+	it('2 縦 widget の Fit: 上限未満ならそのまま (262%)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 2 };
-		// K-10 part 2 後: BB 120W × 256H (= 2*120+16). viewport 1200x800:
-		// ratio min(1168/120, 672/256) = min(9.73, 2.625) = 2.625 → 262% → clamp 200%
+		// BB 120W × 256H (= 2*120+16). viewport 1200x800:
+		// ratio min(1168/120, 672/256) = min(9.73, 2.625) = 2.625 → 262% (< 300% なので clamp 不要)
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
-		expect(z).toBe(200);
+		expect(z).toBe(262);
 	});
 
-	it('K-8: 4 widget 2x2 の Fit も MAX_ZOOM まで拡大', () => {
+	it('4 widget 2x2 の Fit: 上限未満ならそのまま (262%)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 2, maxY: 2 };
-		// K-10 part 2 後: BB 256W × 256H. viewport 1200x800:
-		// ratio min(1168/256, 672/256) = min(4.56, 2.625) = 2.625 → 262% → clamp 200%
+		// BB 256W × 256H. viewport 1200x800:
+		// ratio min(1168/256, 672/256) = min(4.56, 2.625) = 2.625 → 262%
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
-		expect(z).toBe(200);
+		expect(z).toBe(262);
+	});
+
+	it('maxZoom 引数で上限を変更できる (user 設定の widgetMaxZoom 用)', () => {
+		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 1 };
+		// 560% 計算 → maxZoom=200 なら 200、 maxZoom=1000 なら 560。
+		expect(computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 }, 200)).toBe(200);
+		expect(computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 }, 1000)).toBe(560);
 	});
 
 	it('BB が viewport より大きければ縮小 (< 100%)', () => {
@@ -247,5 +258,58 @@ describe('computeFitScroll - K-8 multi-widget centering', () => {
 		// scroll 後 BB center が viewport visualCenterX に来ること
 		const visualCenterX = 1200 / 2;
 		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - visualCenterX), 0);
+	});
+});
+
+describe('clampZoom — configurable min/max (2026-05-17)', () => {
+	it('引数省略時は default MIN_ZOOM / MAX_ZOOM', () => {
+		expect(clampZoom(500)).toBe(MAX_ZOOM); // 300
+		expect(clampZoom(0)).toBe(MIN_ZOOM); // 25
+	});
+
+	it('user 設定の min / max を渡すとその範囲に clamp', () => {
+		expect(clampZoom(900, 10, 1000)).toBe(900);
+		expect(clampZoom(1500, 10, 1000)).toBe(1000);
+		expect(clampZoom(5, 10, 1000)).toBe(10);
+	});
+});
+
+describe('clampZoomFit — configurable max (2026-05-17)', () => {
+	it('下限は常に MIN_ZOOM_FIT、 上限は引数 (default MAX_ZOOM)', () => {
+		expect(clampZoomFit(1)).toBe(MIN_ZOOM_FIT);
+		expect(clampZoomFit(9999)).toBe(MAX_ZOOM); // 300
+		expect(clampZoomFit(9999, 1000)).toBe(1000);
+		expect(clampZoomFit(500, 1000)).toBe(500);
+	});
+});
+
+describe('effectiveBottomReserve / hint bar fit-to-content (2026-05-17)', () => {
+	it('ヒントバー表示時は BOTTOM_RESERVE + HINT_BAR_RESERVE', () => {
+		expect(effectiveBottomReserve(true)).toBe(BOTTOM_RESERVE + HINT_BAR_RESERVE);
+	});
+
+	it('ヒントバー非表示時は BOTTOM_RESERVE のみ (ヒントバー高さを残さない)', () => {
+		expect(effectiveBottomReserve(false)).toBe(BOTTOM_RESERVE);
+	});
+
+	it('computeFitZoom: ヒントバー非表示時の方が使える高さが広く zoom は同等以上', () => {
+		const bb = { minX: 0, minY: 0, maxX: 6, maxY: 6 };
+		const viewport = { clientWidth: 1200, clientHeight: 800 };
+		const visible = computeFitZoom(bb, viewport, MAX_ZOOM, effectiveBottomReserve(true));
+		const hidden = computeFitZoom(bb, viewport, MAX_ZOOM, effectiveBottomReserve(false));
+		expect(hidden).toBeGreaterThanOrEqual(visible);
+		// ヒントバー高さ分 availH が違うので zoom 値も実際に変わる (誤計算の検証)。
+		expect(hidden).not.toBe(visible);
+	});
+
+	it('computeFitScroll: ヒントバー state で scrollTop が変わり scrollLeft は不変', () => {
+		const origin = { cellX: 5, cellY: 20 };
+		const viewport = { clientWidth: 1200, clientHeight: 800 };
+		const visible = computeFitScroll(origin, 100, viewport, effectiveBottomReserve(true));
+		const hidden = computeFitScroll(origin, 100, viewport, effectiveBottomReserve(false));
+		// bottomReserve が大きい (表示時) ほど visualCenterY が小さく → scrollTop が大きい。
+		expect(visible.scrollTop).toBeGreaterThan(hidden.scrollTop);
+		// X 軸は bottomReserve 非依存。
+		expect(visible.scrollLeft).toBe(hidden.scrollLeft);
 	});
 });

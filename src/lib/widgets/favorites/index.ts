@@ -14,7 +14,7 @@ export const meta: WidgetMeta = {
 	},
 	defaultConfig: { max_items: 10 },
 	// J-2 (2026-05-12): item list 縦長で max_items=10 を視認できる高さ。
-	defaultSize: { w: 2, h: 2 },
+	defaultSize: { w: 4, h: 4 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'library',

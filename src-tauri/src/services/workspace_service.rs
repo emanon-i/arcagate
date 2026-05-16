@@ -85,10 +85,24 @@ pub fn update_workspace(
 
 pub fn delete_workspace(db: &DbState, id: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tag_id = format!("sys-ws-{}", id);
+
     workspace_repository::delete_workspace(&conn, id)?;
 
+    // 2026-05-17 user 報告 bug fix: 旧実装は sys-ws-<id> tag だけ削除し、 U-7 で widget 経由
+    // 登録された item 本体 (sys-ws-<id> tag 保持) が Library に孤児として残留していた。
+    // workspace 削除時、 その workspace でのみ登録された item を Library からも削除する。
+    // 他 workspace の sys-ws-* tag も持つ item は残す (item_tags CASCADE で当該 tag 紐付けのみ消える)。
+    conn.execute(
+        "DELETE FROM items WHERE id IN (\
+             SELECT item_id FROM item_tags WHERE tag_id = ?1\
+         ) AND id NOT IN (\
+             SELECT item_id FROM item_tags WHERE tag_id LIKE 'sys-ws-%' AND tag_id <> ?1\
+         )",
+        rusqlite::params![tag_id],
+    )?;
+
     // U-3: workspace 削除と同時に sys-ws-<id> tag も削除 (item_tags は ON DELETE CASCADE)。
-    let tag_id = format!("sys-ws-{}", id);
     conn.execute("DELETE FROM tags WHERE id = ?1", rusqlite::params![tag_id])?;
 
     Ok(())
@@ -335,6 +349,88 @@ mod tests {
         delete_workspace(&db, &ws.id).unwrap();
         let all = list_workspaces(&db).unwrap();
         assert_eq!(all.len(), 0);
+    }
+
+    #[test]
+    fn test_delete_workspace_cascades_orphan_items() {
+        let db = initialize_in_memory();
+        let ws = create_workspace(
+            &db,
+            CreateWorkspaceInput {
+                name: "WS".to_string(),
+            },
+        )
+        .unwrap();
+        // create_workspace で sys-ws-<id> tag は作成済。 widget 経由登録を模して item に付与。
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "INSERT INTO items (id, item_type, label, target) VALUES ('it1', 'exe', 'A', 'C:/a.exe')",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO item_tags (item_id, tag_id) VALUES ('it1', ?1)",
+                rusqlite::params![format!("sys-ws-{}", ws.id)],
+            )
+            .unwrap();
+        }
+        delete_workspace(&db, &ws.id).unwrap();
+        let conn = db.0.lock().unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM items WHERE id = 'it1'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(
+            count, 0,
+            "workspace 削除で widget 登録 item も Library から消える"
+        );
+    }
+
+    #[test]
+    fn test_delete_workspace_keeps_multi_workspace_items() {
+        let db = initialize_in_memory();
+        let ws1 = create_workspace(
+            &db,
+            CreateWorkspaceInput {
+                name: "WS1".to_string(),
+            },
+        )
+        .unwrap();
+        let ws2 = create_workspace(
+            &db,
+            CreateWorkspaceInput {
+                name: "WS2".to_string(),
+            },
+        )
+        .unwrap();
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "INSERT INTO items (id, item_type, label, target) VALUES ('it1', 'exe', 'A', 'C:/a.exe')",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO item_tags (item_id, tag_id) VALUES ('it1', ?1)",
+                rusqlite::params![format!("sys-ws-{}", ws1.id)],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO item_tags (item_id, tag_id) VALUES ('it1', ?1)",
+                rusqlite::params![format!("sys-ws-{}", ws2.id)],
+            )
+            .unwrap();
+        }
+        delete_workspace(&db, &ws1.id).unwrap();
+        let conn = db.0.lock().unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM items WHERE id = 'it1'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 1, "他 workspace にも登録済の item は残す");
     }
 
     #[test]

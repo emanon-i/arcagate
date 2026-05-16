@@ -23,6 +23,7 @@ interface Props {
 	viewMode?: 'grid' | 'list';
 	onclick?: () => void;
 	ondblclick?: () => void;
+	oncontextmenu?: (e: MouseEvent) => void;
 }
 
 let {
@@ -33,6 +34,7 @@ let {
 	viewMode = 'grid',
 	onclick,
 	ondblclick,
+	oncontextmenu,
 }: Props = $props();
 
 // metadataStore は親 (LibraryMainArea / LibraryItemPicker) が
@@ -84,6 +86,7 @@ let resolvedMode = $derived.by(() => {
 		aria-pressed={isSelected}
 		{onclick}
 		{ondblclick}
+		{oncontextmenu}
 	>
 		<div class="relative shrink-0">
 			<div class="flex h-9 w-9 items-center justify-center rounded-[var(--ag-radius-sm)] bg-gradient-to-br {artMap[item.item_type]}">
@@ -115,6 +118,7 @@ let resolvedMode = $derived.by(() => {
 		aria-pressed={isSelected}
 		{onclick}
 		{ondblclick}
+		{oncontextmenu}
 	>
 		{#if resolvedMode === 'image' && item.icon_path}
 			<ItemIcon

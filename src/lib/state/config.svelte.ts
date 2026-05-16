@@ -139,19 +139,62 @@ function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
 //   - caller は **必ず** clampZoom 済の値を渡す前提 (defense in depth ではない)
 //   - 二重 clamp / 5 単位 round / 整数化を全部撤廃
 //   - load-time clamp のみ残す (corrupted localStorage 対策、value drift 検知不能のため)
-import { MAX_ZOOM, MIN_ZOOM_FIT, RESET_ZOOM } from '$lib/utils/zoom-math';
+import {
+	MAX_ZOOM,
+	MIN_ZOOM,
+	MIN_ZOOM_FIT,
+	RESET_ZOOM,
+	ZOOM_LIMIT_MAX,
+	ZOOM_LIMIT_MIN,
+} from '$lib/utils/zoom-math';
 
 const ZOOM_STORAGE_KEY = 'widget-zoom';
+const WIDGET_MAX_ZOOM_KEY = 'arcagate.widget.max-zoom';
+const WIDGET_MIN_ZOOM_KEY = 'arcagate.widget.min-zoom';
+
+// 2026-05-17 user 検収: 拡大率の上下限を Settings で変更可能に。
+// 設定可能 range は max ∈ [100, 1000] / min ∈ [10, 100] (zoom-math の ZOOM_LIMIT_*)。
+// default は zoom-math の MAX_ZOOM (300) / MIN_ZOOM (25)。
+let widgetMaxZoom = $state(loadNumber(WIDGET_MAX_ZOOM_KEY, MAX_ZOOM, 100, ZOOM_LIMIT_MAX));
+let widgetMinZoom = $state(loadNumber(WIDGET_MIN_ZOOM_KEY, MIN_ZOOM, ZOOM_LIMIT_MIN, 100));
 
 // F-8 v2 (2026-05-09): load range の下限は MIN_ZOOM_FIT (1) — fit-to-content で 25% 未満になった
 // 値も persist して reload 時復元する (旧: MIN_ZOOM=25 で範囲外 → fallback で全体表示状態が失われていた)。
-let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, RESET_ZOOM, MIN_ZOOM_FIT, MAX_ZOOM));
+// 2026-05-17: load 上限は user 設定の widgetMaxZoom (固定 MAX_ZOOM ではなく)。
+let widgetZoom = $state(loadNumber(ZOOM_STORAGE_KEY, RESET_ZOOM, MIN_ZOOM_FIT, widgetMaxZoom));
 
 function setWidgetZoom(zoom: number): void {
 	// caller は clampZoom() 済の値を渡す前提。本関数は no-op-skip + persist のみ。
 	if (widgetZoom === zoom) return;
 	widgetZoom = zoom;
 	saveNumber(ZOOM_STORAGE_KEY, zoom);
+}
+
+function setWidgetMaxZoom(value: number): void {
+	const next = Math.round(Math.max(100, Math.min(ZOOM_LIMIT_MAX, value)));
+	if (widgetMaxZoom === next) return;
+	widgetMaxZoom = next;
+	saveNumber(WIDGET_MAX_ZOOM_KEY, next);
+	// 現在 zoom が新上限を超えていたら即引き下げる (instant-feedback)。
+	if (widgetZoom > next) setWidgetZoom(next);
+}
+
+function setWidgetMinZoom(value: number): void {
+	const next = Math.round(Math.max(ZOOM_LIMIT_MIN, Math.min(100, value)));
+	if (widgetMinZoom === next) return;
+	widgetMinZoom = next;
+	saveNumber(WIDGET_MIN_ZOOM_KEY, next);
+	if (widgetZoom < next) setWidgetZoom(next);
+}
+
+// 2026-05-17 user 検収: 下部ショートカットヒントバーの表示/非表示。
+const HINT_BAR_VISIBLE_KEY = 'arcagate.workspace.hint-bar.visible';
+let hintBarVisible = $state<boolean>(loadBool(HINT_BAR_VISIBLE_KEY, true));
+
+function setHintBarVisible(value: boolean): void {
+	if (hintBarVisible === value) return;
+	hintBarVisible = value;
+	saveBool(HINT_BAR_VISIBLE_KEY, value);
 }
 
 async function loadConfig(): Promise<void> {
@@ -264,6 +307,12 @@ async function resetAllSettings(): Promise<void> {
 		saveBool(LIBRARY_SHOW_HIDDEN_KEY, false);
 		widgetZoom = RESET_ZOOM;
 		saveNumber(ZOOM_STORAGE_KEY, RESET_ZOOM);
+		widgetMaxZoom = MAX_ZOOM;
+		saveNumber(WIDGET_MAX_ZOOM_KEY, MAX_ZOOM);
+		widgetMinZoom = MIN_ZOOM;
+		saveNumber(WIDGET_MIN_ZOOM_KEY, MIN_ZOOM);
+		hintBarVisible = true;
+		saveBool(HINT_BAR_VISIBLE_KEY, true);
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem('arcagate.locale');
 		}
@@ -294,6 +343,15 @@ export const configStore = {
 	get widgetZoom() {
 		return widgetZoom;
 	},
+	get widgetMaxZoom() {
+		return widgetMaxZoom;
+	},
+	get widgetMinZoom() {
+		return widgetMinZoom;
+	},
+	get hintBarVisible() {
+		return hintBarVisible;
+	},
 	get itemSize() {
 		return itemSize;
 	},
@@ -311,6 +369,9 @@ export const configStore = {
 	saveAutostart,
 	completeSetup,
 	setWidgetZoom,
+	setWidgetMaxZoom,
+	setWidgetMinZoom,
+	setHintBarVisible,
 	saveItemSize,
 	setLibraryCardBackground,
 	setLibraryCardStyle,
