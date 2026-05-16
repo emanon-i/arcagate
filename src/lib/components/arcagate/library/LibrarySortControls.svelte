@@ -1,7 +1,8 @@
 <script lang="ts">
 import { Eye, EyeOff, LayoutGrid, LayoutList, Plus } from '@lucide/svelte';
+import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
-import { SORT_FIELD_LABELS, type SortField, type SortOrder } from '$lib/utils/library-sort';
+import type { SortField, SortOrder } from '$lib/utils/library-sort';
 
 /**
  * Library 上部 controls (sort field / order / view mode / add button / selection mode toggle)。
@@ -38,8 +39,8 @@ let {
 		class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] {configStore.libraryShowHidden
 			? 'bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
 			: 'bg-[var(--ag-surface-3)] text-[var(--ag-text-muted)]'}"
-		aria-label={configStore.libraryShowHidden ? '非表示アイテムを隠す' : '非表示アイテムを表示'}
-		title={configStore.libraryShowHidden ? '非表示アイテムを隠す' : '非表示アイテムを表示'}
+		aria-label={configStore.libraryShowHidden ? t('library.sort.hide_hidden') : t('library.sort.show_hidden')}
+		title={configStore.libraryShowHidden ? t('library.sort.hide_hidden') : t('library.sort.show_hidden')}
 		data-testid="library-show-hidden-toggle"
 		onclick={() => configStore.setLibraryShowHidden(!configStore.libraryShowHidden)}
 	>
@@ -53,7 +54,7 @@ let {
 	     優先されるため見た目上 disable 状態に。 -->
 	<select
 		class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:opacity-60"
-		aria-label="並び順を選ぶ"
+		aria-label={t('library.sort.sort_aria')}
 		data-testid="library-sort-field"
 		disabled={searchActive}
 		value={configStore.librarySort.field}
@@ -62,14 +63,14 @@ let {
 			configStore.setLibrarySort(v, configStore.librarySort.order);
 		}}
 	>
-		<option value="name">{SORT_FIELD_LABELS.name}</option>
-		<option value="created">{SORT_FIELD_LABELS.created}</option>
-		<option value="updated">{SORT_FIELD_LABELS.updated}</option>
+		<option value="name">{t('library.sort.field_name')}</option>
+		<option value="created">{t('library.sort.field_created')}</option>
+		<option value="updated">{t('library.sort.field_updated')}</option>
 	</select>
 	<button
 		type="button"
 		class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1.5 text-xs text-[var(--ag-text-primary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] disabled:opacity-60"
-		aria-label={configStore.librarySort.order === 'asc' ? '昇順' : '降順'}
+		aria-label={configStore.librarySort.order === 'asc' ? t('library.sort.asc') : t('library.sort.desc')}
 		data-testid="library-sort-order"
 		disabled={searchActive}
 		onclick={() => {
@@ -85,7 +86,7 @@ let {
 		'grid'
 			? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]'
 			: 'bg-[var(--ag-surface-3)]'}"
-		aria-label="グリッド表示"
+		aria-label={t('library.sort.grid_view')}
 		onclick={() => {
 			viewMode = 'grid';
 		}}
@@ -98,7 +99,7 @@ let {
 		'list'
 			? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)]'
 			: 'bg-[var(--ag-surface-3)]'}"
-		aria-label="リスト表示"
+		aria-label={t('library.sort.list_view')}
 		onclick={() => {
 			viewMode = 'list';
 		}}
@@ -112,17 +113,17 @@ let {
 		onclick={() => onAddItem?.()}
 	>
 		<Plus class="h-4 w-4" />
-		アイテムを追加
+		{t('library.add_item')}
 	</button>
 	<button
 		type="button"
 		class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {selectionMode
 			? 'bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
 			: 'bg-[var(--ag-surface-3)]'}"
-		aria-label={selectionMode ? '選択モード終了' : '複数選択モード'}
+		aria-label={selectionMode ? t('library.sort.selection_end') : t('library.sort.selection_start')}
 		data-testid="library-selection-toggle"
 		onclick={() => onSelectionToggle?.()}
 	>
-		{selectionMode ? '選択解除' : '複数選択'}
+		{selectionMode ? t('library.sort.selection_end') : t('library.sort.selection_start')}
 	</button>
 </div>

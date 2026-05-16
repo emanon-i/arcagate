@@ -96,11 +96,11 @@ function handleDelete() {
 				onclick={handleDelete}
 			>
 				<Trash2 class="h-3.5 w-3.5" />
-				このウィジェットを削除
+				{t('workspace.settings_dialog.delete_widget')}
 			</Button>
 			<div class="flex items-center gap-2">
-				<Button type="button" variant="outline" onclick={onClose}>キャンセル</Button>
-				<Button type="submit">保存</Button>
+				<Button type="button" variant="outline" onclick={onClose}>{t('common.cancel')}</Button>
+				<Button type="submit">{t('common.save')}</Button>
 			</div>
 		</div>
 	</form>

@@ -18,7 +18,12 @@ let saving = $state(false);
 async function pickFile(): Promise<void> {
 	const selected = await openDialog({
 		multiple: false,
-		filters: [{ name: '画像', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] }],
+		filters: [
+			{
+				name: t('widgets.image_scrap.filter_image'),
+				extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'],
+			},
+		],
 	});
 	if (!selected) return;
 	saving = true;
@@ -34,20 +39,20 @@ async function pickFile(): Promise<void> {
 </script>
 
 <div class="space-y-2">
-	<div class="text-xs font-medium text-[var(--ag-text-secondary)]">画像ファイル</div>
+	<div class="text-xs font-medium text-[var(--ag-text-secondary)]">{t('widgets.image_scrap.file_label')}</div>
 	<div class="flex items-center gap-2">
 		<input
 			type="text"
 			class="min-w-0 flex-1 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-xs text-[var(--ag-text-primary)] outline-none focus:border-[var(--ag-accent)]"
-			placeholder="画像ファイルのパス"
+			placeholder={t('widgets.image_scrap.path_placeholder')}
 			value={config.path ?? ''}
 			readonly
 		/>
 		<Button type="button" variant="outline" size="sm" disabled={saving} onclick={() => void pickFile()}>
-			{saving ? '保存中...' : '選択'}
+			{saving ? t('widgets.image_scrap.saving') : t('widgets.common.folder.pick_button')}
 		</Button>
 	</div>
 	<p class="text-xs text-[var(--ag-text-muted)]">
-		png / jpg / gif / webp / svg / bmp に対応。
+		{t('widgets.image_scrap.format_hint')}
 	</p>
 </div>

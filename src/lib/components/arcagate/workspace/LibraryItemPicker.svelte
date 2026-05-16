@@ -3,6 +3,7 @@ import { Search, Star } from '@lucide/svelte';
 import LibraryCard from '$lib/components/arcagate/library/LibraryCard.svelte';
 import { getSizeClasses } from '$lib/components/arcagate/library/library-card-sizes';
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import { searchItemsInTag } from '$lib/ipc/items';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -151,14 +152,16 @@ $effect(() => {
 	void metadataStore.loadMetadataForItems(ids);
 });
 
-const TYPE_LABELS: Record<ItemType | 'all', string> = {
-	all: 'すべて',
-	url: 'URL',
-	exe: 'アプリ',
-	script: 'スクリプト',
-	folder: 'フォルダ',
-	command: 'コマンド',
-};
+function getTypeLabels(): Record<ItemType | 'all', string> {
+	return {
+		all: t('workspace.picker.type_all'),
+		url: 'URL',
+		exe: t('workspace.picker.type_exe'),
+		script: t('workspace.picker.type_script'),
+		folder: t('workspace.picker.type_folder'),
+		command: t('workspace.picker.type_command'),
+	};
+}
 </script>
 
 <!-- audit 2026-05-14 G1: BaseDialog migration、 disableFocusTrap=true で search input 常時 focus 維持。
@@ -171,7 +174,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 	ariaLabelledby="picker-title"
 	boxClass="!max-w-4xl !p-0 flex flex-col overflow-hidden max-h-[85vh]"
 >
-	<div class="flex flex-1 flex-col overflow-hidden" id="picker-title" aria-label="アイテム選択">
+	<div class="flex flex-1 flex-col overflow-hidden" id="picker-title" aria-label={t('workspace.picker.aria_label')}>
 		<!-- 検索バー -->
 		<div class="flex items-center gap-3 border-b border-[var(--ag-border)] px-4 py-3">
 			<Search class="h-4 w-4 shrink-0 text-[var(--ag-text-muted)]" />
@@ -179,7 +182,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 			<input
 				type="text"
 				class="min-w-0 flex-1 bg-transparent text-sm text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
-				placeholder="アイテムを検索 (label / target / 別名)"
+				placeholder={t('workspace.picker.search_placeholder')}
 				autofocus
 				autocomplete="off"
 				bind:value={searchQuery}
@@ -194,9 +197,9 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 			<select
 				class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 				bind:value={filterType}
-				aria-label="種別で絞り込み"
+				aria-label={t('workspace.picker.filter_type_aria')}
 			>
-				{#each Object.entries(TYPE_LABELS) as [val, label] (val)}
+				{#each Object.entries(getTypeLabels()) as [val, label] (val)}
 					<option value={val}>{label}</option>
 				{/each}
 			</select>
@@ -214,24 +217,24 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 				}}
 			>
 				<Star class="h-3.5 w-3.5" fill={starredOnly ? 'currentColor' : 'none'} />
-				<span>お気に入りのみ</span>
+				<span>{t('workspace.picker.starred_only')}</span>
 			</button>
 
 			<!-- sort -->
 			<select
 				class="ml-auto rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 				bind:value={sortKey}
-				aria-label="並び替え"
+				aria-label={t('workspace.picker.sort_aria')}
 			>
-				<option value="name-asc">名前 (昇順)</option>
-				<option value="name-desc">名前 (降順)</option>
-				<option value="created-desc">追加日 (新しい順)</option>
-				<option value="created-asc">追加日 (古い順)</option>
+				<option value="name-asc">{t('workspace.picker.sort_name_asc')}</option>
+				<option value="name-desc">{t('workspace.picker.sort_name_desc')}</option>
+				<option value="created-desc">{t('workspace.picker.sort_created_desc')}</option>
+				<option value="created-asc">{t('workspace.picker.sort_created_asc')}</option>
 			</select>
 
 			<!-- 件数 + リセット -->
 			<span class="text-[var(--ag-text-muted)]">
-				{filteredItems.length} 件
+				{t('workspace.picker.count', { n: filteredItems.length })}
 			</span>
 			{#if searchQuery || filterType !== 'all' || starredOnly}
 				<button
@@ -239,7 +242,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 					class="text-[var(--ag-text-muted)] underline hover:text-[var(--ag-text-primary)]"
 					onclick={clearFilters}
 				>
-					絞り込み解除
+					{t('workspace.picker.clear_filters')}
 				</button>
 			{/if}
 		</div>
@@ -249,8 +252,8 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 			{#if pageItems.length === 0}
 				<div class="py-8 text-center text-sm text-[var(--ag-text-muted)]">
 					{debouncedQuery || filterType !== 'all' || starredOnly
-						? '一致するアイテムがありません'
-						: 'アイテムがまだありません'}
+						? t('workspace.picker.no_match')
+						: t('workspace.picker.no_items')}
 				</div>
 			{:else}
 				<!-- F-7 (2026-05-08 user 検収): LibraryView と同様 --ag-card-w を inline で設定。
@@ -278,7 +281,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 									type="checkbox"
 									class="pointer-events-none absolute bottom-2 right-2 z-10 h-4 w-4 cursor-pointer rounded border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] accent-[var(--ag-accent)] shadow-sm"
 									checked={selectedIds.has(item.id)}
-									aria-label="{item.label} を選択"
+									aria-label={t('workspace.picker.select_item', { label: item.label })}
 									tabindex="-1"
 								/>
 							</div>
@@ -306,10 +309,10 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 					type="button"
 					class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:cursor-not-allowed disabled:opacity-40"
 					disabled={page === 0}
-					aria-label="前のページ"
+					aria-label={t('workspace.picker.prev_page')}
 					onclick={() => (page = Math.max(0, page - 1))}
 				>
-					‹ 前
+					‹ {t('common.back')}
 				</button>
 				<span class="tabular-nums text-[var(--ag-text-muted)]">
 					{page + 1} / {totalPages}
@@ -318,10 +321,10 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 					type="button"
 					class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] disabled:cursor-not-allowed disabled:opacity-40"
 					disabled={page >= totalPages - 1}
-					aria-label="次のページ"
+					aria-label={t('workspace.picker.next_page')}
 					onclick={() => (page = Math.min(totalPages - 1, page + 1))}
 				>
-					次 ›
+					{t('common.next')} ›
 				</button>
 			</div>
 
@@ -331,7 +334,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 					class="rounded-md px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 					onclick={onClose}
 				>
-					キャンセル
+					{t('common.cancel')}
 				</button>
 				{#if multi}
 					<button
@@ -341,7 +344,7 @@ const TYPE_LABELS: Record<ItemType | 'all', string> = {
 						disabled={selectedIds.size === 0}
 						onclick={confirmMulti}
 					>
-						追加 ({selectedIds.size})
+						{t('workspace.picker.add_n', { count: selectedIds.size })}
 					</button>
 				{/if}
 			</div>

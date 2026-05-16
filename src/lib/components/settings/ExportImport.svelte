@@ -1,6 +1,7 @@
 <script lang="ts">
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import * as exportIpc from '$lib/ipc/export';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -19,9 +20,9 @@ async function handleExport() {
 	message = null;
 	try {
 		await exportIpc.exportJson(path);
-		message = 'エクスポート完了';
+		message = t('settings.export_import.export_done');
 	} catch (e) {
-		message = `エクスポートエラー: ${e}`;
+		message = t('settings.export_import.export_error', { error: String(e) });
 	} finally {
 		exporting = false;
 	}
@@ -39,9 +40,9 @@ async function handleImport() {
 	try {
 		await exportIpc.importJson(path);
 		await Promise.all([itemStore.loadItems(), itemStore.loadTags(), configStore.loadConfig()]);
-		message = 'インポート完了';
+		message = t('settings.export_import.import_done');
 	} catch (e) {
-		message = `インポートエラー: ${e}`;
+		message = t('settings.export_import.import_error', { error: String(e) });
 	} finally {
 		importing = false;
 	}
@@ -49,8 +50,8 @@ async function handleImport() {
 </script>
 
 <div class="space-y-4">
-  <h3 class="text-sm font-medium">データのバックアップ</h3>
-  <p class="text-xs text-muted-foreground">アイテム・設定を JSON ファイルに保存します。起動ログは含まれません。</p>
+  <h3 class="text-sm font-medium">{t('settings.export_import.heading')}</h3>
+  <p class="text-xs text-muted-foreground">{t('settings.export_import.desc')}</p>
   <!-- audit 2026-05-14 rank 11 phase 2: ExportImport の 2 raw button を shadcn Button に migration。
        「エクスポート」 = primary (= rubric (a))、 「インポート」 = secondary (= (b))。 -->
   <div class="flex gap-2">
@@ -61,7 +62,7 @@ async function handleImport() {
       onclick={handleExport}
       disabled={exporting || importing}
     >
-      {exporting ? "エクスポート中..." : "エクスポート"}
+      {exporting ? t('settings.export_import.exporting') : t('settings.export_import.export_button')}
     </Button>
     <Button
       type="button"
@@ -70,7 +71,7 @@ async function handleImport() {
       onclick={handleImport}
       disabled={exporting || importing}
     >
-      {importing ? "インポート中..." : "インポート"}
+      {importing ? t('settings.export_import.importing') : t('settings.export_import.import_button')}
     </Button>
   </div>
   {#if message}

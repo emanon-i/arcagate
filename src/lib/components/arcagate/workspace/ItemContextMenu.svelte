@@ -104,7 +104,7 @@ async function handleSelect(opener: Opener) {
 
 		<p class="px-3 pb-1 pt-2 text-xs text-[var(--ag-text-muted)]">Open with…</p>
 		{#if loading}
-			<p class="px-3 py-2 text-xs text-[var(--ag-text-muted)]">読み込み中…</p>
+			<p class="px-3 py-2 text-xs text-[var(--ag-text-muted)]">{t('common.loading')}</p>
 		{:else}
 			{#each openers as o (o.id)}
 				<button
@@ -117,9 +117,9 @@ async function handleSelect(opener: Opener) {
 					<span class="min-w-0 flex-1 truncate">{o.name}</span>
 					<span class="shrink-0 text-xs text-[var(--ag-text-muted)]">
 						{#if o.id === currentDefaultId}
-							<Check class="inline h-3.5 w-3.5 text-[var(--ag-accent-text)]" aria-label="既定" />
+							<Check class="inline h-3.5 w-3.5 text-[var(--ag-accent-text)]" aria-label={t('workspace.context.default_label')} />
 						{:else if o.is_builtin}
-							組み込み
+							{t('workspace.context.builtin')}
 						{/if}
 					</span>
 				</button>
@@ -131,7 +131,7 @@ async function handleSelect(opener: Opener) {
 			class="flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
 		>
 			<input type="checkbox" class="cursor-pointer" bind:checked={setAsDefault} />
-			<span>既定にして開く</span>
+			<span>{t('workspace.context.set_as_default')}</span>
 		</label>
 
 		<button
@@ -144,7 +144,7 @@ async function handleSelect(opener: Opener) {
 			}}
 		>
 			<Settings2 class="h-3.5 w-3.5" />
-			Opener を登録 / 編集…
+			{t('workspace.context.opener_register')}
 		</button>
 	{/if}
 </ContextMenu>

@@ -27,7 +27,7 @@ async function handleCheck() {
 			toastStore.add(t('toast.version_up_to_date'), 'success');
 		}
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'アップデート確認' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.update_check') }, e), 'error');
 	} finally {
 		checking = false;
 	}
@@ -35,9 +35,7 @@ async function handleCheck() {
 
 async function handleInstall() {
 	if (!available) return;
-	if (
-		!window.confirm(`バージョン ${available.version} をインストールしてアプリを再起動しますか?`)
-	) {
+	if (!window.confirm(t('settings.updater.install_confirm', { version: available.version }))) {
 		return;
 	}
 	installing = true;
@@ -51,7 +49,7 @@ async function handleInstall() {
 			}
 		});
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'アップデートのインストール' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.update_install') }, e), 'error');
 		installing = false;
 	}
 }
@@ -59,9 +57,9 @@ async function handleInstall() {
 
 <div class="space-y-3" data-testid="updater-settings">
 	<div>
-		<p class="text-sm font-medium text-[var(--ag-text-primary)]">アップデート</p>
+		<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.updater.heading')}</p>
 		<p class="text-xs text-[var(--ag-text-muted)]">
-			GitHub Releases から最新バージョンを確認・インストールできます。
+			{t('settings.updater.desc')}
 		</p>
 	</div>
 
@@ -75,7 +73,7 @@ async function handleInstall() {
 			data-testid="updater-check"
 		>
 			<RefreshCw class="h-3.5 w-3.5 {checking ? 'animate-spin' : ''}" />
-			{checking ? '確認中...' : 'アップデート確認'}
+			{checking ? t('settings.updater.checking') : t('settings.updater.check_button')}
 		</Button>
 
 		{#if available}
@@ -88,14 +86,14 @@ async function handleInstall() {
 				data-testid="updater-install"
 			>
 				<Download class="h-3.5 w-3.5" />
-				{installing ? 'インストール中...' : `v${available.version} を適用`}
+				{installing ? t('settings.updater.installing') : t('settings.updater.install_button', { version: available.version })}
 			</Button>
 		{/if}
 	</div>
 
 	{#if lastChecked}
 		<p class="text-xs text-[var(--ag-text-muted)]">
-			最終確認: {lastChecked.toLocaleString('ja-JP')}
+			{t('settings.updater.last_checked', { time: lastChecked.toLocaleString() })}
 		</p>
 	{/if}
 
@@ -104,7 +102,7 @@ async function handleInstall() {
 			class="rounded border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-3 py-2 text-xs"
 			data-testid="updater-info"
 		>
-			<p class="font-medium text-[var(--ag-accent-text)]">新バージョン v{available.version}</p>
+			<p class="font-medium text-[var(--ag-accent-text)]">{t('settings.updater.new_version', { version: available.version })}</p>
 			{#if available.date}
 				<p class="text-[var(--ag-text-muted)]">{available.date}</p>
 			{/if}
@@ -115,7 +113,7 @@ async function handleInstall() {
 	{:else if lastChecked}
 		<div class="flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
 			<CheckCircle2 class="h-3.5 w-3.5 text-green-500" />
-			最新バージョンを使用中です
+			{t('settings.updater.up_to_date')}
 		</div>
 	{/if}
 </div>

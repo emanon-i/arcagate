@@ -2,6 +2,7 @@
 import { Copy, Minus, Square, X } from '@lucide/svelte';
 import type { Window } from '@tauri-apps/api/window';
 import { onDestroy, onMount, type Snippet } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 
 interface Props {
 	leftSlot?: Snippet;
@@ -67,7 +68,7 @@ function handleClose() {
 		<button
 			type="button"
 			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
-			aria-label="最小化"
+			aria-label={t('common.minimize')}
 			onclick={handleMinimize}
 		>
 			<Minus class="h-4 w-4" />
@@ -75,7 +76,7 @@ function handleClose() {
 		<button
 			type="button"
 			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
-			aria-label={isMaximized ? '元に戻す' : '最大化'}
+			aria-label={isMaximized ? t('common.restore') : t('common.maximize')}
 			onclick={handleToggleMaximize}
 		>
 			{#if isMaximized}
@@ -87,7 +88,7 @@ function handleClose() {
 		<button
 			type="button"
 			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-red-500/80 hover:text-white"
-			aria-label="閉じる"
+			aria-label={t('common.close')}
 			onclick={handleClose}
 		>
 			<X class="h-4 w-4" />

@@ -86,7 +86,7 @@ async function handleBulkStar() {
 		const count = await bulkAddTag(ids, 'sys-starred');
 		toastStore.add(t('toast.favorites_added_n', { count }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: '一括お気に入り追加' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('library.op.bulk_star') }, e), 'error');
 		return;
 	}
 	// mutation 成功後の post-refresh は best-effort (allSettled)。失敗で selection を抜けないと
@@ -108,19 +108,19 @@ async function handleBulkExport() {
 		await navigator.clipboard.writeText(JSON.stringify(items, null, 2));
 		toastStore.add(t('toast.json_copied_n', { count: items.length }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'JSON書き出し' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('library.op.json_export') }, e), 'error');
 	}
 }
 
 async function handleBulkDelete() {
 	if (selectedIds.size === 0) return;
-	if (!window.confirm(`${selectedIds.size} 件を削除しますか? (元に戻せません)`)) return;
+	if (!window.confirm(t('library.selection.delete_confirm', { count: selectedIds.size }))) return;
 	try {
 		const ids = Array.from(selectedIds);
 		const count = await bulkDeleteItems(ids);
 		toastStore.add(t('toast.items_deleted_n', { count }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: '一括削除' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('library.op.bulk_delete') }, e), 'error');
 		return;
 	}
 	await Promise.allSettled([
@@ -348,7 +348,7 @@ function handleGridKeydown(e: KeyboardEvent) {
 
 <!-- R10-B G3 axe Phase 2: 外側 +page.svelte 側に <main> がある (nested main は axe critical)。
      ここは <section aria-label="ライブラリ"> に変更して landmark を保持する。 -->
-<section aria-label="ライブラリ" class="min-h-full">
+<section aria-label={t('library.section_aria')} class="min-h-full">
 	<div
 		class="min-h-full p-5"
 		role="presentation"
@@ -380,13 +380,13 @@ function handleGridKeydown(e: KeyboardEvent) {
 				class="sticky top-0 z-10 mb-4 flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-4 py-2 text-sm shadow-[var(--ag-shadow-md)]"
 				data-testid="library-selection-actionbar"
 			>
-				<span class="text-[var(--ag-accent-text)]">{selectedIds.size} 件選択中</span>
+				<span class="text-[var(--ag-accent-text)]">{t('library.selection.count', { count: selectedIds.size })}</span>
 				<div class="flex-1"></div>
 				<Button type="button" variant="default" size="sm" onclick={() => void handleBulkStar()}>
-					お気に入りに追加
+					{t('library.selection.add_favorites')}
 				</Button>
 				<Button type="button" variant="outline" size="sm" onclick={() => void handleBulkExport()}>
-					JSON で書き出す
+					{t('library.selection.export_json')}
 				</Button>
 				<Button
 					type="button"
@@ -394,10 +394,10 @@ function handleGridKeydown(e: KeyboardEvent) {
 					size="sm"
 					onclick={() => void handleBulkDelete()}
 				>
-					削除
+					{t('common.delete')}
 				</Button>
 				<Button type="button" variant="outline" size="sm" onclick={exitSelectionMode}>
-					キャンセル
+					{t('common.cancel')}
 				</Button>
 			</div>
 		{/if}

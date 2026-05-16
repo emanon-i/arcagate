@@ -7,6 +7,7 @@
  * 本 component で title + hideCompleted toggle に置換。
  */
 import Switch from '$lib/components/common/Switch.svelte';
+import { t } from '$lib/i18n.svelte';
 
 interface Props {
 	config: {
@@ -23,12 +24,12 @@ let hideCompleted = $derived(config.hideCompleted ?? false);
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-task-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-task-title">{t('widgets.settings.title_label')}</label>
 	<input
 		id="ws-task-title"
 		type="text"
 		autocomplete="off"
-		placeholder="タスク"
+		placeholder={t('widgets.daily_task.default_title')}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={widgetTitle}
 		oninput={(e) => {
@@ -38,12 +39,12 @@ let hideCompleted = $derived(config.hideCompleted ?? false);
 </div>
 
 <div class="flex items-center justify-between gap-3 text-sm">
-	<span class="text-[var(--ag-text-primary)]">完了タスクを非表示</span>
+	<span class="text-[var(--ag-text-primary)]">{t('widgets.daily_task.hide_completed_label')}</span>
 	<Switch
 		checked={hideCompleted}
 		onChange={(v) => {
 			config = { ...config, hideCompleted: v };
 		}}
-		aria-label="完了タスクを非表示にする"
+		aria-label={t('widgets.daily_task.hide_completed_aria')}
 	/>
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Copy, Plus } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 
 /**
@@ -36,8 +37,12 @@ async function cloneTheme(sourceId: string) {
 	const source = themeStore.themes.find((t) => t.id === sourceId);
 	const cssVars = source ? source.css_vars : '{}';
 	const baseTheme = source ? source.base_theme : 'dark';
-	const baseName = source ? source.name : 'テーマ';
-	const created = await themeStore.createTheme(`${baseName} のコピー`, baseTheme, cssVars);
+	const baseName = source ? source.name : t('settings.appearance.theme_default_name');
+	const created = await themeStore.createTheme(
+		t('settings.appearance.clone_name', { name: baseName }),
+		baseTheme,
+		cssVars,
+	);
 	if (created) {
 		await themeStore.setThemeMode(created.id);
 		editingThemeId = created.id;
@@ -86,7 +91,7 @@ async function handleImport() {
 		importJson = '';
 		showImportArea = false;
 	} else {
-		importError = themeStore.error ?? 'インポートに失敗しました';
+		importError = themeStore.error ?? t('settings.appearance.import_failed');
 	}
 }
 
@@ -108,17 +113,17 @@ function handleFileImport(e: Event) {
 	aria-labelledby="tab-appearance"
 	class="space-y-4 px-6 py-5"
 >
-	<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">外観</h3>
+	<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">{t('settings.appearance.heading')}</h3>
 	<div>
 		<div class="mb-3 flex items-center justify-between">
-			<p class="text-sm font-medium text-[var(--ag-text-primary)]">テーマ</p>
+			<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.appearance.theme_heading')}</p>
 			<button
 				type="button"
 				class="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--ag-text-secondary)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 				onclick={cloneCurrentTheme}
 			>
 				<Plus class="h-3.5 w-3.5" />
-				現在のテーマを複製
+				{t('settings.appearance.clone_current')}
 			</button>
 		</div>
 		<div class="grid grid-cols-2 gap-2">
@@ -134,8 +139,8 @@ function handleFileImport(e: Event) {
 					editingThemeId = null;
 				}}
 			>
-				<span class="font-medium">フラット ダーク</span>
-				<span class="text-xs opacity-70">デフォルト</span>
+				<span class="font-medium">{t('settings.appearance.flat_dark')}</span>
+				<span class="text-xs opacity-70">{t('settings.appearance.builtin_default')}</span>
 			</button>
 			<button
 				type="button"
@@ -148,8 +153,8 @@ function handleFileImport(e: Event) {
 					editingThemeId = null;
 				}}
 			>
-				<span class="font-medium">フラット ライト</span>
-				<span class="text-xs opacity-70">デフォルト</span>
+				<span class="font-medium">{t('settings.appearance.flat_light')}</span>
+				<span class="text-xs opacity-70">{t('settings.appearance.builtin_default')}</span>
 			</button>
 			<!-- DB テーマ（組み込みプリセット + カスタム） -->
 			{#each themeStore.themes.filter((t) => t.id !== 'theme-builtin-dark' && t.id !== 'theme-builtin-light') as theme (theme.id)}
@@ -166,7 +171,7 @@ function handleFileImport(e: Event) {
 						}}
 					>
 						<span class="font-medium">{theme.name}</span>
-						<span class="text-xs opacity-70">{theme.is_builtin ? '組み込み' : 'カスタム'}</span>
+						<span class="text-xs opacity-70">{theme.is_builtin ? t('settings.appearance.builtin_badge') : t('settings.appearance.custom_badge')}</span>
 					</button>
 					<div class="flex gap-1 px-1">
 						{#if !theme.is_builtin}
@@ -182,7 +187,7 @@ function handleFileImport(e: Event) {
 									}
 								}}
 							>
-								{editingThemeId === theme.id ? '閉じる' : '編集'}
+								{editingThemeId === theme.id ? t('common.close') : t('common.edit')}
 							</button>
 						{:else}
 							<button
@@ -190,7 +195,7 @@ function handleFileImport(e: Event) {
 								class="flex items-center gap-0.5 rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 								onclick={() => void cloneTheme(theme.id)}
 							>
-								コピーして編集
+								{t('settings.appearance.clone_and_edit')}
 							</button>
 						{/if}
 						<button
@@ -199,14 +204,14 @@ function handleFileImport(e: Event) {
 							onclick={() => void handleExport(theme.id)}
 						>
 							<Copy class="h-3 w-3" />
-							{copySuccess ? '✓ コピー済' : 'コピー'}
+							{copySuccess ? t('settings.appearance.copy_done') : t('settings.appearance.copy_button')}
 						</button>
 						<button
 							type="button"
 							class="rounded px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 							onclick={() => handleExportDownload(theme.id)}
 						>
-							DL
+							{t('settings.appearance.download_button')}
 						</button>
 					</div>
 				</div>
@@ -221,7 +226,7 @@ function handleFileImport(e: Event) {
 					{@const TE = ThemeEditorComponent}
 					<TE theme={editingTheme} onClose={() => (editingThemeId = null)} />
 				{:else}
-					<div class="text-sm text-[var(--ag-text-muted)]">テーマエディタを読み込み中…</div>
+					<div class="text-sm text-[var(--ag-text-muted)]">{t('settings.appearance.editor_loading')}</div>
 				{/if}
 			{/if}
 		{/if}
@@ -237,12 +242,12 @@ function handleFileImport(e: Event) {
 						importError = null;
 					}}
 				>
-					JSON からインポート
+					{t('settings.appearance.import_json_button')}
 				</button>
 				<label
 					class="cursor-pointer text-xs text-[var(--ag-text-muted)] underline-offset-2 hover:text-[var(--ag-text-secondary)] hover:underline"
 				>
-					ファイルを選択
+					{t('settings.appearance.choose_file')}
 					<input
 						type="file"
 						accept=".json"
@@ -268,7 +273,7 @@ function handleFileImport(e: Event) {
 						class="rounded-md bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs font-medium text-[var(--ag-accent-text)] transition-colors hover:bg-[var(--ag-accent-active-bg)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ag-accent)]"
 						onclick={handleImport}
 					>
-						インポート
+						{t('settings.export_import.import_button')}
 					</button>
 				</div>
 			{/if}

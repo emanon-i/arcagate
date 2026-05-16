@@ -173,8 +173,8 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 		if (ext && IMAGE_EXTS.includes(ext)) {
 			const existing = findExistingMatch('image_scrap', path);
 			if (existing) {
-				dupDialogTitle = '同じ画像の widget があります';
-				dupDialogMessage = `この画像を表示する widget が既に Workspace に存在します。\n\n• 既存を選択 (おすすめ): その widget を選択状態にします\n• 別 widget として追加: 同じ画像を別 widget に複製します\n• キャンセル: 何もしません`;
+				dupDialogTitle = t('dialog.dup_image_title');
+				dupDialogMessage = t('dialog.dup_image_message');
 				dupExistingWidgetId = existing.id;
 				dupPendingAction = () => addImageScrapWidget(path);
 				dupDialogOpen = true;
@@ -190,8 +190,8 @@ listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 		if (ext && TEXT_EXTS.includes(ext)) {
 			const existing = findExistingMatch('file_preview', path);
 			if (existing) {
-				dupDialogTitle = '同じファイルの widget があります';
-				dupDialogMessage = `このファイルを表示する widget が既に Workspace に存在します。\n\n• 既存を選択 (おすすめ): その widget を選択状態にします\n• 別 widget として追加: 同じファイルを別 widget に複製します\n• キャンセル: 何もしません`;
+				dupDialogTitle = t('dialog.dup_file_title');
+				dupDialogMessage = t('dialog.dup_file_message');
 				dupExistingWidgetId = existing.id;
 				dupPendingAction = () => addFilePreviewWidget(path);
 				dupDialogOpen = true;
@@ -402,9 +402,9 @@ function handleFormClose() {
 	open={dupDialogOpen}
 	title={dupDialogTitle}
 	message={dupDialogMessage}
-	primaryLabel="既存を選択"
+	primaryLabel={t('dialog.dup_select_existing')}
 	onPrimary={handleDupPrimary}
-	secondaryLabel="別 widget として追加"
+	secondaryLabel={t('dialog.dup_add_new')}
 	onSecondary={() => void handleDupSecondary()}
 	onClose={handleDupCancel}
 />
@@ -427,7 +427,7 @@ function handleFormClose() {
 				<button
 					type="button"
 					class="rounded-lg p-1 text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-4)]"
-					aria-label={t('nav.settings') + 'を閉じる'}
+					aria-label={t('dialog.settings_close_aria')}
 					onclick={() => (showSettings = false)}
 				>
 					<X class="h-4 w-4" />
@@ -447,7 +447,7 @@ function handleFormClose() {
 {#if isDraggingOver}
 	<div class="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/30">
 		<div class="rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-surface-1)]/90 px-8 py-6 text-center shadow-lg">
-			<p class="text-lg font-medium text-[var(--ag-text-primary)]">ここにドロップして登録</p>
+			<p class="text-lg font-medium text-[var(--ag-text-primary)]">{t('common.drop_to_register')}</p>
 			<p class="mt-1 text-sm text-[var(--ag-text-muted)]">exe / url / folder / script</p>
 		</div>
 	</div>

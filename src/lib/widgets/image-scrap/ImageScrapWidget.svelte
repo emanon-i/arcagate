@@ -31,7 +31,11 @@ const DEFAULTS = { path: '' };
 let config = $derived(parseWidgetConfig(widget?.config, DEFAULTS));
 
 let imageSrc = $derived(config.path ? convertFileSrc(config.path) : '');
-let displayName = $derived(config.path ? (config.path.split(/[\\/]/).pop() ?? '画像') : '画像');
+let displayName = $derived(
+	config.path
+		? (config.path.split(/[\\/]/).pop() ?? t('widgets.image_scrap.default_name'))
+		: t('widgets.image_scrap.default_name'),
+);
 
 let imageError = $state(false);
 
@@ -64,10 +68,10 @@ async function handleDblClick(): Promise<void> {
 	{#if !config.path}
 		<EmptyState
 			icon={ImageIcon}
-			title="画像を設定してください"
-			description="設定モーダルで画像ファイルを選ぶか、 画像ファイルを Workspace にドラッグ&ドロップしてください。"
+			title={t('widgets.image_scrap.empty_title')}
+			description={t('widgets.image_scrap.empty_desc')}
 			action={{
-				label: '設定を開く',
+				label: t('widgets.settings.open_button'),
 				icon: Settings,
 				onClick: () => (settingsOpen = true),
 			}}
@@ -76,7 +80,7 @@ async function handleDblClick(): Promise<void> {
 	{:else if imageError}
 		<div class="flex h-full flex-col items-center justify-center gap-2 text-xs text-[var(--ag-text-muted)]">
 			<ImageOff class="h-8 w-8" />
-			<div>画像を読み込めません</div>
+			<div>{t('widgets.image_scrap.load_error')}</div>
 			<div class="truncate max-w-full px-4 text-[var(--ag-text-faint)]" title={config.path}>{config.path}</div>
 		</div>
 	{:else}
@@ -85,12 +89,12 @@ async function handleDblClick(): Promise<void> {
 		<div
 			class="flex h-full cursor-pointer items-center justify-center overflow-hidden"
 			ondblclick={() => void handleDblClick()}
-			title="ダブルクリックで OS の既定アプリで開く"
+			title={t('widgets.dblclick_open_hint')}
 		>
 			<!-- svelte-ignore a11y_img_redundant_alt -->
 			<img
 				src={imageSrc}
-				alt={`${displayName} 画像`}
+				alt={t('widgets.image_scrap.img_alt', { name: displayName })}
 				class="pointer-events-none max-h-full max-w-full object-contain"
 				onerror={() => (imageError = true)}
 				data-testid="image-scrap-img"

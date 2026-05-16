@@ -2,6 +2,7 @@
 import { File, Folder } from '@lucide/svelte';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import type { ItemType } from '$lib/types/item';
 import DropZone from './DropZone.svelte';
 
@@ -44,10 +45,10 @@ async function handlePickFile(): Promise<void> {
 		directory: false,
 		filters: [
 			{
-				name: '実行ファイル / Script',
+				name: t('item.target.filter_executable'),
 				extensions: ['exe', 'bat', 'cmd', 'ps1', 'sh', 'py', 'js'],
 			},
-			{ name: 'すべてのファイル', extensions: ['*'] },
+			{ name: t('item.target.filter_all_files'), extensions: ['*'] },
 		],
 	});
 	if (typeof selected === 'string') {
@@ -69,7 +70,7 @@ async function handlePickFolder(): Promise<void> {
 
 <!-- J-2: タイプ → URL/ローカル二択トグル -->
 <div class="space-y-1">
-	<span class="text-sm font-medium text-[var(--ag-text-primary)]">タイプ</span>
+	<span class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.target.type_label')}</span>
 	<div
 		class="flex gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-1"
 	>
@@ -81,7 +82,7 @@ async function handlePickFolder(): Promise<void> {
 				: 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
 			onclick={() => onTypeModeChange('local')}
 		>
-			ローカル
+			{t('item.target.type_local')}
 		</button>
 		<button
 			type="button"
@@ -96,7 +97,7 @@ async function handlePickFolder(): Promise<void> {
 	</div>
 	{#if typeMode === 'local' && !isEdit}
 		<p class="text-xs text-[var(--ag-text-muted)]">
-			自動検出: {itemType}
+			{t('item.target.auto_detect', { type: itemType })}
 		</p>
 	{/if}
 </div>
@@ -105,7 +106,7 @@ async function handlePickFolder(): Promise<void> {
      drag&drop / 既存 picker (E-5 で追加予定) と並行可、user の手書き編集に対応。 -->
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-target">
-		{typeMode === 'url' ? 'URL' : 'ファイル / フォルダのパス'}
+		{typeMode === 'url' ? 'URL' : t('item.target.path_label')}
 		<span class="text-destructive">*</span>
 	</label>
 	{#if typeMode === 'url'}
@@ -118,7 +119,7 @@ async function handlePickFolder(): Promise<void> {
 			required
 			placeholder="https://example.com"
 		/>
-		<p class="text-xs text-[var(--ag-text-muted)]">ブラウザで開く URL を入力</p>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('item.target.url_hint')}</p>
 	{:else}
 		<div class="flex items-stretch gap-2">
 			<input
@@ -128,7 +129,7 @@ async function handlePickFolder(): Promise<void> {
 				class="flex-1 rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)]"
 				bind:value={target}
 				required
-				placeholder="C:\path\to\file.exe または ドラッグ＆ドロップ"
+				placeholder={t('item.target.path_placeholder')}
 			/>
 			<!-- E-5: file picker buttons (Tauri native dialog)。直接入力 + drag&drop と並行。 -->
 			<Button
@@ -136,32 +137,32 @@ async function handlePickFolder(): Promise<void> {
 				variant="outline"
 				size="sm"
 				class="shrink-0"
-				aria-label="ファイルを参照"
-				title="ファイルを選択"
+				aria-label={t('item.target.browse_file_aria')}
+				title={t('item.target.browse_file_title')}
 				onclick={() => void handlePickFile()}
 			>
 				<File class="h-3.5 w-3.5" />
-				ファイル
+				{t('item.target.file_button')}
 			</Button>
 			<Button
 				type="button"
 				variant="outline"
 				size="sm"
 				class="shrink-0"
-				aria-label="フォルダを参照"
-				title="フォルダを選択"
+				aria-label={t('item.target.browse_folder_aria')}
+				title={t('item.target.browse_folder_title')}
 				onclick={() => void handlePickFolder()}
 			>
 				<Folder class="h-3.5 w-3.5" />
-				フォルダ
+				{t('item.target.folder_button')}
 			</Button>
 		</div>
-		<p class="text-xs text-[var(--ag-text-muted)]">.exe / .bat / フォルダのパス。直接入力 / drag&drop / 参照ボタンのいずれも可</p>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('item.target.path_hint')}</p>
 	{/if}
 </div>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-args">引数</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="item-args">{t('item.target.args_label')}</label>
 	<input
 		id="item-args"
 		type="text"

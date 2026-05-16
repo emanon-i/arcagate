@@ -1,5 +1,6 @@
 <script lang="ts">
 import { GripHorizontal, X } from '@lucide/svelte';
+import { t } from '$lib/i18n.svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
@@ -7,7 +8,6 @@ import {
 	clampResizeForOverlap,
 	computeResize,
 	RESIZE_CURSORS,
-	RESIZE_LABELS,
 	type ResizeDir,
 } from '$lib/utils/resize-delta';
 
@@ -44,6 +44,11 @@ let { widgetId, isSelected, dynamicCols, widgetW, widgetH, onDeleteConfirmIdChan
 // J-3 (2026-05-12): resize 上限を 4 cell → 12 cell に拡張。
 // 大画面 1 widget の利用や 全画面 widget も対応できる現実的な上限。
 const MAX_SPAN = 12;
+
+function getResizeLabel(dir: ResizeDir): string {
+	const key = `workspace.handles.resize_${dir}` as const;
+	return t(key);
+}
 
 const isMoving = $derived(
 	pointerDrag.active?.kind === 'move' && pointerDrag.active.widgetId === widgetId,
@@ -140,8 +145,8 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 		class:cursor-grabbing={isMoving}
 		role="button"
 		tabindex="-1"
-		aria-label="ウィジェットを移動"
-		title="ドラッグで移動"
+		aria-label={t('workspace.handles.move')}
+		title={t('workspace.handles.drag_to_move')}
 		onpointerdown={handleMoveStart}
 	>
 		<GripHorizontal
@@ -154,8 +159,8 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<button
 		type="button"
 		class="absolute -right-3 -top-3 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] text-[var(--ag-text-secondary)] shadow-[var(--ag-shadow-sm,0_2px_4px_rgba(0,0,0,0.1))] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-destructive hover:text-white active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-		aria-label="ウィジェットを削除"
-		title="削除 (Delete)"
+		aria-label={t('workspace.handles.delete')}
+		title={t('workspace.handles.delete_title')}
 		onclick={handleDelete}
 	>
 		<X class="h-4 w-4" />
@@ -167,7 +172,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<div
 		class="absolute -top-px left-1/2 z-15 h-1.5 w-12 -translate-x-1/2 rounded-full bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
 		style="cursor: {RESIZE_CURSORS.n}"
-		aria-label={RESIZE_LABELS.n}
+		aria-label={getResizeLabel('n')}
 		onpointerdown={(e) => handleResizeStart(e, 'n')}
 	></div>
 	<!-- 下辺 (s) -->
@@ -175,7 +180,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<div
 		class="absolute -bottom-px left-1/2 z-15 h-1.5 w-12 -translate-x-1/2 rounded-full bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
 		style="cursor: {RESIZE_CURSORS.s}"
-		aria-label={RESIZE_LABELS.s}
+		aria-label={getResizeLabel('s')}
 		onpointerdown={(e) => handleResizeStart(e, 's')}
 	></div>
 	<!-- 右辺 (e) -->
@@ -183,7 +188,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<div
 		class="absolute -right-px top-1/2 z-15 h-12 w-1.5 -translate-y-1/2 rounded-full bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
 		style="cursor: {RESIZE_CURSORS.e}"
-		aria-label={RESIZE_LABELS.e}
+		aria-label={getResizeLabel('e')}
 		onpointerdown={(e) => handleResizeStart(e, 'e')}
 	></div>
 	<!-- 左辺 (w) -->
@@ -191,7 +196,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<div
 		class="absolute -left-px top-1/2 z-15 h-12 w-1.5 -translate-y-1/2 rounded-full bg-[var(--ag-accent)]/0 transition-colors duration-[var(--ag-duration-fast)] hover:bg-[var(--ag-accent)]/40"
 		style="cursor: {RESIZE_CURSORS.w}"
-		aria-label={RESIZE_LABELS.w}
+		aria-label={getResizeLabel('w')}
 		onpointerdown={(e) => handleResizeStart(e, 'w')}
 	></div>
 	<!-- 左上 (nw) -->
@@ -199,7 +204,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<div
 		class="absolute -left-1.5 -top-1.5 z-20 h-3 w-3 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] transition-transform duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:scale-125 hover:border-[var(--ag-accent)]"
 		style="cursor: {RESIZE_CURSORS.nw}"
-		aria-label={RESIZE_LABELS.nw}
+		aria-label={getResizeLabel('nw')}
 		onpointerdown={(e) => handleResizeStart(e, 'nw')}
 	></div>
 	<!-- 右上 (ne): PH-issue-031 / 検収項目 #2 — 右上 × button (-right-3 -top-3) と
@@ -210,7 +215,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<div
 		class="absolute -bottom-1.5 -left-1.5 z-20 h-3 w-3 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] transition-transform duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:scale-125 hover:border-[var(--ag-accent)]"
 		style="cursor: {RESIZE_CURSORS.sw}"
-		aria-label={RESIZE_LABELS.sw}
+		aria-label={getResizeLabel('sw')}
 		onpointerdown={(e) => handleResizeStart(e, 'sw')}
 	></div>
 	<!-- 右下 (se) -->
@@ -218,7 +223,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	<div
 		class="absolute -bottom-1.5 -right-1.5 z-20 h-3 w-3 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] transition-transform duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:scale-125 hover:border-[var(--ag-accent)]"
 		style="cursor: {RESIZE_CURSORS.se}"
-		aria-label={RESIZE_LABELS.se}
+		aria-label={getResizeLabel('se')}
 		onpointerdown={(e) => handleResizeStart(e, 'se')}
 	></div>
 {/if}

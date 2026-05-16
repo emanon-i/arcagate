@@ -1,6 +1,7 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
 import { fade, fly } from 'svelte/transition';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 
 const rm =
@@ -39,7 +40,7 @@ const typeStyles: Record<string, string> = {
 				<button
 					type="button"
 					class="shrink-0 opacity-60 transition-opacity duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:opacity-100"
-					aria-label="閉じる"
+					aria-label={t('common.close')}
 					onclick={() => toastStore.dismiss(toast.id)}
 				>
 					<X class="h-3.5 w-3.5" />

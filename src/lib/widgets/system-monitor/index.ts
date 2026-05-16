@@ -1,4 +1,5 @@
 import { Activity } from '@lucide/svelte';
+import { widgetLabel } from '$lib/types/workspace';
 import type { WidgetMeta } from '../_shared/types';
 import SystemMonitorSettings from './SystemMonitorSettings.svelte';
 import Component from './SystemMonitorWidget.svelte';
@@ -8,7 +9,9 @@ export const widgetType = 'system_monitor' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: Activity,
-	label: 'システムモニタ',
+	get label() {
+		return widgetLabel('system_monitor');
+	},
 	defaultConfig: {
 		refresh_interval_ms: 2000,
 		show_cpu: true,

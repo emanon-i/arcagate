@@ -13,18 +13,20 @@ interface Props {
 	};
 }
 
+import { t } from '$lib/i18n.svelte';
+
 let { config = $bindable() }: Props = $props();
 
 let widgetTitle = $derived(config.title ?? '');
 </script>
 
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-snippet-title">タイトル</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-snippet-title">{t('widgets.settings.title_label')}</label>
 	<input
 		id="ws-snippet-title"
 		type="text"
 		autocomplete="off"
-		placeholder="スニペット"
+		placeholder={t('widgets.snippet.default_title')}
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={widgetTitle}
 		oninput={(e) => {

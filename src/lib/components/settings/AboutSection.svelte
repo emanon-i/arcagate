@@ -1,6 +1,7 @@
 <script lang="ts">
 import { ExternalLink, Info } from '@lucide/svelte';
 import { onMount } from 'svelte';
+import { t } from '$lib/i18n.svelte';
 
 let appVersion = $state<string | null>(null);
 let tauriVersion = $state<string | null>(null);
@@ -27,7 +28,7 @@ const repoUrl = 'https://github.com/emanon-i/arcagate';
 		<div>
 			<h3 class="text-base font-semibold text-[var(--ag-text-primary)]">Arcagate</h3>
 			<p class="text-xs text-[var(--ag-text-secondary)]">
-				PC上に散在する起動元を集約する個人用コマンドパレット
+				{t('settings.about.description')}
 			</p>
 		</div>
 	</div>
@@ -61,6 +62,6 @@ const repoUrl = 'https://github.com/emanon-i/arcagate';
 		class="inline-flex items-center gap-1.5 text-sm text-[var(--ag-accent-text)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 	>
 		<ExternalLink class="h-3.5 w-3.5" />
-		ソースコード
+		{t('settings.about.source_code')}
 	</a>
 </div>

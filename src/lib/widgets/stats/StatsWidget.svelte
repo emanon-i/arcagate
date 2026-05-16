@@ -79,7 +79,7 @@ async function handleLaunch(id: string) {
 				</button>
 			{/each}
 			{#if visibleTopItems.length === 0}
-				<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">起動履歴がありません</div>
+				<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">{t('widgets.stats.no_history')}</div>
 			{/if}
 		</div>
 	</div>

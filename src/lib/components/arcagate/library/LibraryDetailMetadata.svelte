@@ -3,6 +3,7 @@ import { Info } from '@lucide/svelte';
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { artMap, typeLabel } from '$lib/constants/item-type';
+import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
@@ -79,13 +80,13 @@ let showHideDescription = $state(false);
 
 <!-- Detail rows -->
 <div class="mt-4 space-y-2 text-sm">
-	<DetailRow label="種別" value={typeLabel[item.item_type]} />
-	<DetailRow label="ターゲット" value={item.target} />
+	<DetailRow label={t('library.detail.type_label')} value={typeLabel[item.item_type]} />
+	<DetailRow label={t('library.detail.target_label')} value={item.target} />
 	{#if item.aliases.length > 0}
-		<DetailRow label="別名" value={item.aliases.join(', ')} />
+		<DetailRow label={t('library.detail.alias_label')} value={item.aliases.join(', ')} />
 	{/if}
 	{#if item.args}
-		<DetailRow label="引数" value={item.args} />
+		<DetailRow label={t('library.detail.args_label')} value={item.args} />
 	{/if}
 </div>
 
@@ -104,13 +105,13 @@ let showHideDescription = $state(false);
 	/>
 	<div class="min-w-0 flex-1">
 		<div class="flex items-center gap-1.5">
-			<label class="cursor-pointer" for="visibility-toggle-checkbox">ライブラリで非表示</label>
+			<label class="cursor-pointer" for="visibility-toggle-checkbox">{t('library.detail.hide_label')}</label>
 			<button
 				type="button"
 				class="rounded p-0.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-				aria-label="非表示の説明"
+				aria-label={t('library.detail.hide_desc_aria')}
 				aria-expanded={showHideDescription}
-				title="クリックで詳細表示"
+				title={t('library.detail.hide_info_tooltip')}
 				onclick={() => (showHideDescription = !showHideDescription)}
 			>
 				<Info class="h-3.5 w-3.5" />
@@ -118,7 +119,7 @@ let showHideDescription = $state(false);
 		</div>
 		{#if showHideDescription}
 			<p class="mt-1 text-xs text-[var(--ag-text-muted)]">
-				非表示にすると <strong>検索（パレット / Library 一覧）</strong> と <strong>ウィジェット</strong> から外れます。データは残るため、再度表示に戻すことも可能です。
+				{t('library.detail.hide_description')}
 			</p>
 		{/if}
 	</div>

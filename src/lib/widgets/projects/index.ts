@@ -1,4 +1,5 @@
 import { FolderKanban } from '@lucide/svelte';
+import { widgetLabel } from '$lib/types/workspace';
 import type { WidgetMeta } from '../_shared/types';
 import ProjectsSettings from './ProjectsSettings.svelte';
 import Component from './ProjectsWidget.svelte';
@@ -10,7 +11,9 @@ export const meta: WidgetMeta = {
 	// PH-issue-039 / 検収項目 #12: icon を GitBranch → FolderKanban (フォルダ監視の意味と一致)。
 	icon: FolderKanban,
 	// PH-issue-039 / 検収項目 #12: label を 'プロジェクト' → 'フォルダ監視' (WIDGET_LABELS と統一)。
-	label: 'フォルダ監視',
+	get label() {
+		return widgetLabel('projects');
+	},
 	defaultConfig: {
 		max_items: 10,
 		git_poll_interval_sec: 60,

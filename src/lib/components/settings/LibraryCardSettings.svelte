@@ -1,15 +1,19 @@
 <script lang="ts">
+import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 
 let bg = $derived(configStore.libraryCard.background);
 let style = $derived(configStore.libraryCard.style);
 
 const SIZES = ['S', 'M', 'L'] as const;
-const MODES = [
-	{ id: 'image', label: '画像', desc: 'アイコン画像をカード全面に表示' },
-	{ id: 'fill', label: '塗りつぶし', desc: '背景色 + アイコン色で構成' },
-	{ id: 'none', label: 'なし', desc: 'タイプ別グラデーション + 中央アイコン' },
-] as const;
+const MODES = [{ id: 'image' as const }, { id: 'fill' as const }, { id: 'none' as const }];
+let modes = $derived(
+	MODES.map((m) => ({
+		...m,
+		label: t(`settings.library_card.mode_${m.id}_label`),
+		desc: t(`settings.library_card.mode_${m.id}_desc`),
+	})),
+);
 </script>
 
 {#snippet ColorRow(label: string, value: string, oninput: (v: string) => void, testid: string)}
@@ -67,9 +71,9 @@ const MODES = [
 <div class="space-y-6">
 	<!-- カードサイズ -->
 	<section class="space-y-2">
-		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">カードサイズ</h4>
-		<p class="text-xs text-[var(--ag-text-muted)]">4:3 アスペクト固定。ウィンドウ幅で列数のみ変動します。</p>
-		<div class="flex gap-2" role="group" aria-label="カードサイズ">
+		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.size_heading')}</h4>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('settings.library_card.size_desc')}</p>
+		<div class="flex gap-2" role="group" aria-label={t('settings.library_card.size_heading')}>
 			{#each SIZES as size (size)}
 				<button
 					type="button"
@@ -85,9 +89,9 @@ const MODES = [
 
 	<!-- 背景モード -->
 	<section class="space-y-2">
-		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">背景モード</h4>
-		<div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="カード背景モード">
-			{#each MODES as mode (mode.id)}
+		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.bg_mode_heading')}</h4>
+		<div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t('settings.library_card.bg_mode_heading')}>
+			{#each modes as mode (mode.id)}
 				<button
 					type="button"
 					role="radio"
@@ -105,15 +109,15 @@ const MODES = [
 
 	{#if bg.mode === 'fill'}
 		<section class="space-y-2 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
-			<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">塗りつぶし色</h4>
+			<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.fill_color_heading')}</h4>
 			{@render ColorRow(
-				'背景色',
+				t('settings.library_card.fill_bg_color'),
 				bg.fillBgColor,
 				(v) => configStore.setLibraryCardBackground({ fillBgColor: v }),
 				'library-fill-bg-color',
 			)}
 			{@render ColorRow(
-				'アイコン色',
+				t('settings.library_card.fill_icon_color'),
 				bg.fillIconColor,
 				(v) => configStore.setLibraryCardBackground({ fillIconColor: v }),
 				'library-fill-icon-color',
@@ -127,15 +131,15 @@ const MODES = [
 
 	<!-- ラベル文字 -->
 	<section class="space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
-		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">ラベルの文字</h4>
+		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.label_text_heading')}</h4>
 		{@render ColorRow(
-			'文字色',
+			t('settings.library_card.text_color'),
 			style.textColor,
 			(v) => configStore.setLibraryCardStyle({ textColor: v }),
 			'library-text-color',
 		)}
 		{@render CheckboxRow(
-			'背景オーバーレイ',
+			t('settings.library_card.overlay'),
 			style.overlayEnabled,
 			(v) => configStore.setLibraryCardStyle({ overlayEnabled: v }),
 			'library-overlay-enabled',
@@ -143,20 +147,20 @@ const MODES = [
 
 		<div class="space-y-2 border-t border-[var(--ag-border)] pt-3">
 			{@render CheckboxRow(
-				'縁取り',
+				t('settings.library_card.stroke'),
 				style.strokeEnabled,
 				(v) => configStore.setLibraryCardStyle({ strokeEnabled: v }),
 				'library-stroke-enabled',
 			)}
 			{#if style.strokeEnabled}
 				{@render ColorRow(
-					'縁取り色',
+					t('settings.library_card.stroke_color'),
 					style.strokeColor,
 					(v) => configStore.setLibraryCardStyle({ strokeColor: v }),
 					'library-stroke-color',
 				)}
 				{@render RangeRow(
-					'縁取り太さ',
+					t('settings.library_card.stroke_width'),
 					style.strokeWidthPx,
 					0,
 					3,

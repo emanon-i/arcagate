@@ -1,3 +1,5 @@
+import { t } from '$lib/i18n.svelte';
+
 export type ResizeDir = 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se';
 
 export interface Rect {
@@ -110,13 +112,22 @@ export const RESIZE_CURSORS: Record<ResizeDir, string> = {
 	se: 'nwse-resize',
 };
 
-export const RESIZE_LABELS: Record<ResizeDir, string> = {
-	n: 'ウィジェットの上端を移動',
-	s: 'ウィジェットの下端を移動',
-	e: 'ウィジェットの右端を移動',
-	w: 'ウィジェットの左端を移動',
-	ne: 'ウィジェットの右上角を移動',
-	se: 'ウィジェットの幅と高さを変更',
-	sw: 'ウィジェットの左下角を移動',
-	nw: 'ウィジェットの左上角を移動',
-};
+/**
+ * Resize handle の aria-label を現在 locale で返す関数。
+ * 定数オブジェクトでは locale 切替時に reactivity が無いため、
+ * `widgetLabel()` パターンと同様に呼び出し毎 t() 経由で評価する。
+ */
+export function resizeLabel(dir: ResizeDir): string {
+	return t(`workspace.resize_label.${dir}`);
+}
+
+/**
+ * Backward-compat: 旧 callsite が `RESIZE_LABELS[dir]` で参照していたものに対応。
+ * 各 access 毎に t() を呼ぶので locale 切替に追従する。
+ * 新規実装では `resizeLabel(dir)` を直接使用すること。
+ */
+export const RESIZE_LABELS: Record<ResizeDir, string> = new Proxy({} as Record<ResizeDir, string>, {
+	get(_target, prop: string) {
+		return resizeLabel(prop as ResizeDir);
+	},
+});

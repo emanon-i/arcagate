@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { untrack } from 'svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import { checkIsDirectory, extractItemIcon } from '$lib/ipc/items';
 import { itemStore } from '$lib/state/items.svelte';
 import type { CreateItemInput, Item, ItemType, UpdateItemInput } from '$lib/types/item';
@@ -151,13 +152,10 @@ async function handleSubmit(e: Event) {
 		if (trimmedTarget) {
 			const existing = itemStore.items.find((i) => i.target === trimmedTarget);
 			if (existing) {
-				const confirmed = await ask(
-					`同じパスのアイテム「${existing.label}」 が既に登録されています。\n\n別アイテムとして追加しますか？\n(キャンセルすると既存をそのまま保持します)`,
-					{
-						title: '重複の確認',
-						kind: 'warning',
-					},
-				);
+				const confirmed = await ask(t('item.form.duplicate_message', { label: existing.label }), {
+					title: t('item.form.duplicate_title'),
+					kind: 'warning',
+				});
 				if (!confirmed) {
 					onCancel();
 					return;
@@ -251,16 +249,16 @@ async function handleDrop(paths: string[]) {
 
 	<div class="flex justify-end gap-2 pt-2">
 		<Button type="button" variant="outline" onclick={onCancel} disabled={submitting}
-			>キャンセル</Button
+			>{t('common.cancel')}</Button
 		>
 		<Button type="submit" disabled={submitting}>
 			{#if submitting}
 				<span
 					class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
 				></span>
-				処理中...
+				{t('item.form.processing')}
 			{:else}
-				{item ? '更新' : '作成'}
+				{item ? t('item.form.update') : t('item.form.create')}
 			{/if}
 		</Button>
 	</div>

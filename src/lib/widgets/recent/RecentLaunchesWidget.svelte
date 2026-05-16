@@ -89,7 +89,7 @@ function handleItemContext(id: string, ev?: MouseEvent): void {
 		showTarget
 		onLaunch={handleLaunch}
 		onContext={handleItemContext}
-		emptyMessage="最近の起動履歴がここに表示されます"
+		emptyMessage={t('widgets.recent.empty_message')}
 	/>
 </WidgetShell>
 

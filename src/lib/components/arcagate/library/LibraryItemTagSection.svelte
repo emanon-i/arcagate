@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Plus, Search, X as XIcon } from '@lucide/svelte';
 import Chip from '$lib/components/arcagate/common/Chip.svelte';
+import { t } from '$lib/i18n.svelte';
 import type { Tag, TagWithCount } from '$lib/types/tag';
 import { filterTagSuggestions, isExistingTag } from '$lib/utils/tag-suggest';
 
@@ -94,7 +95,7 @@ $effect(() => {
 />
 
 <div class="mt-4 space-y-2">
-	<div class="text-xs font-medium text-[var(--ag-text-muted)]">タグ</div>
+	<div class="text-xs font-medium text-[var(--ag-text-muted)]">{t('library.tags.heading')}</div>
 	<div class="flex flex-wrap gap-1.5">
 		{#each itemTags.filter((t) => !t.is_system) as tag (tag.id)}
 			<!-- refactor (Chip 既存活用): tag chip を Chip.svelte (default tone) で render。
@@ -105,7 +106,7 @@ $effect(() => {
 					<button
 						type="button"
 						class="ml-0.5 rounded-full p-0.5 text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.95] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)]"
-						aria-label="タグ {tag.name} を解除"
+						aria-label={t('library.tags.remove_aria', { name: tag.name })}
 						onclick={() => onRemoveTag(tag.id)}
 					>
 						<XIcon class="h-3 w-3" />
@@ -114,7 +115,7 @@ $effect(() => {
 			</Chip>
 		{/each}
 		{#if itemTags.filter((t) => !t.is_system).length === 0}
-			<span class="text-xs text-[var(--ag-text-muted)]">タグなし</span>
+			<span class="text-xs text-[var(--ag-text-muted)]">{t('library.tags.empty')}</span>
 		{/if}
 	</div>
 	<!-- F-9 (2026-05-08 user 検収): availableTags.length > 0 gating を撤去。
@@ -127,7 +128,7 @@ $effect(() => {
 			class="rounded-full border border-dashed border-[var(--ag-border)] px-2.5 py-1 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
 			onclick={() => (showTagSelect = !showTagSelect)}
 		>
-			+ タグを追加
+			{t('library.tags.add_button')}
 		</button>
 		{#if showTagSelect}
 			<div bind:this={tagDropdownEl} class="absolute left-0 top-full z-10 mt-1 w-56 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-lg">
@@ -137,9 +138,9 @@ $effect(() => {
 					<input
 						type="text"
 						class="min-w-0 flex-1 bg-transparent text-xs text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-muted)] focus-visible:outline-none"
-						placeholder={onCreateTag ? '検索 / 新規作成 (Enter)' : 'タグを検索...'}
+						placeholder={onCreateTag ? t('library.tags.search_create_placeholder') : t('library.tags.search_placeholder')}
 						autocomplete="off"
-						aria-label={onCreateTag ? 'タグを検索または新規作成' : 'タグを検索'}
+						aria-label={onCreateTag ? t('library.tags.search_create_aria') : t('library.tags.search_aria')}
 						bind:value={tagQuery}
 						onkeydown={(e) => {
 							if (e.key === 'ArrowDown') {
@@ -157,20 +158,20 @@ $effect(() => {
 						<button
 							type="button"
 							class="flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-left text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
-							aria-label="タグ {tagQuery.trim()} を新規作成して付与"
+							aria-label={t('library.tags.create_aria', { name: tagQuery.trim() })}
 							onclick={handleCreateNew}
 						>
 							<Plus class="h-3 w-3" />
-							<span>新規作成: 「{tagQuery.trim()}」</span>
+							<span>{t('library.tags.create_label', { name: tagQuery.trim() })}</span>
 						</button>
 					{/if}
 					{#if filteredTags.length === 0 && !canCreateNew}
 						<div class="px-3 py-2 text-xs text-[var(--ag-text-muted)]">
 							{tagQuery
-								? '一致するタグがありません'
+								? t('library.tags.no_match')
 								: onCreateTag
-									? 'タグを入力して Enter で新規作成'
-									: 'タグなし'}
+									? t('library.tags.create_hint')
+									: t('library.tags.empty')}
 						</div>
 					{:else}
 						{#each filteredTags as tag, i (tag.id)}
@@ -178,7 +179,7 @@ $effect(() => {
 								type="button"
 								class="block w-full rounded-md px-3 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]"
 								tabindex={focusedTagIndex === i ? 0 : -1}
-								aria-label="タグ {tag.name} を追加"
+								aria-label={t('library.tags.add_aria', { name: tag.name })}
 								onclick={() => { onAddTag(tag.id); closeTagDropdown(); }}
 								onkeydown={(e) => {
 									if (e.key === 'ArrowDown') {

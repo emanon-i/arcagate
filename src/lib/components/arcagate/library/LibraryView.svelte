@@ -126,10 +126,10 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 			{:else}
 				<div class="py-12 text-center text-sm text-[var(--ag-text-muted)]">
 					{searchQuery
-						? `「${searchQuery}」に一致するアイテムはありません`
+						? t('library.no_match_query', { query: searchQuery })
 						: activeTag
-							? 'このタグにアイテムがありません'
-							: 'アイテムがまだありません'}
+							? t('library.no_match_tag')
+							: t('library.no_items_yet')}
 				</div>
 			{/if}
 		{/if}
@@ -171,10 +171,10 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 			{:else}
 				<div class="col-span-full py-12 text-center text-sm text-[var(--ag-text-muted)]">
 					{searchQuery
-						? `「${searchQuery}」に一致するアイテムはありません`
+						? t('library.no_match_query', { query: searchQuery })
 						: activeTag
-							? 'このタグにアイテムがありません'
-							: 'アイテムがまだありません'}
+							? t('library.no_match_tag')
+							: t('library.no_items_yet')}
 				</div>
 			{/if}
 		{/if}

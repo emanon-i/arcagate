@@ -11,6 +11,7 @@
  */
 
 import { check } from '@tauri-apps/plugin-updater';
+import { t } from '$lib/i18n.svelte';
 import { toastStore } from './toast.svelte';
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -57,10 +58,7 @@ async function runCheck(_trigger: 'startup' | 'interval'): Promise<void> {
 		if (dismissed === update.version) return;
 
 		// 通知
-		toastStore.add(
-			`新バージョン v${update.version} が利用可能 — Settings > 一般 > アップデート で適用`,
-			'info',
-		);
+		toastStore.add(t('toast.version_available_hint', { version: update.version }), 'info');
 		// 1 度通知したら dismiss 扱いで再通知抑制 (ユーザが Settings で適用 or 手動 dismiss する想定)
 		setItem(KEY_LAST_DISMISSED, update.version);
 	} catch (_err) {

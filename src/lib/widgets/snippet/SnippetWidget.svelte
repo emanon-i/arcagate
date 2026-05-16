@@ -120,7 +120,7 @@ async function copySnippet(snip: Snippet) {
 		await navigator.clipboard.writeText(snip.body);
 		toastStore.add(t('toast.snippet_copied', { label: snip.label }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'クリップボードへのコピー' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.clipboard_copy') }, e), 'error');
 	}
 }
 
@@ -132,20 +132,20 @@ function deleteSnippet(id: string) {
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
-<WidgetShell title={config.title || 'スニペット'} icon={Clipboard} {menuItems}>
+<WidgetShell title={config.title || t('widgets.snippet.default_title')} icon={Clipboard} {menuItems}>
 	<!-- compose mode: 新規追加 / 編集 inline form -->
 	{#if composeMode}
 		<div class="space-y-2">
 			<input
 				type="text"
 				autocomplete="off"
-				placeholder="ラベル (例: メールテンプレ)"
+				placeholder={t('widgets.snippet.label_placeholder')}
 				class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
 				bind:value={composeLabel}
 			/>
 			<textarea
 				autocomplete="off"
-				placeholder="本文 (クリックでコピーされる文字列)"
+				placeholder={t('widgets.snippet.body_placeholder')}
 				rows="3"
 				class="w-full resize-none rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 font-mono text-xs text-[var(--ag-text-primary)] focus-visible:border-[var(--ag-accent)] focus-visible:outline-none"
 				bind:value={composeBody}
@@ -156,7 +156,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					class="rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-1 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 					onclick={cancelCompose}
 				>
-					キャンセル
+					{t('common.cancel')}
 				</button>
 				<button
 					type="button"
@@ -164,7 +164,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					onclick={saveCompose}
 				>
 					<Check class="h-3 w-3" />
-					保存
+					{t('common.save')}
 				</button>
 			</div>
 		</div>
@@ -173,29 +173,28 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		<button
 			type="button"
 			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-center text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
-			aria-label="スニペットを追加"
+			aria-label={t('widgets.snippet.add_aria')}
 			onclick={startAdd}
 		>
 			<Plus class="h-6 w-6" />
-			<span class="text-xs font-medium">スニペットを追加</span>
+			<span class="text-xs font-medium">{t('widgets.snippet.add_aria')}</span>
 			<span class="px-3 text-xs leading-relaxed text-[var(--ag-text-faint)]">
-				よく使う文字列をワンクリックでコピー。<br />
-				メールテンプレ / コマンド / コード snippet 等。
+				{t('widgets.snippet.empty_desc')}
 			</span>
 		</button>
 	{:else}
 		<!-- toolbar: 「+」 button (常時) + snippet count -->
 		<div class="mb-2 flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] pb-1.5">
-			<span class="text-xs text-[var(--ag-text-muted)]">{snippets.length} 件</span>
+			<span class="text-xs text-[var(--ag-text-muted)]">{t('widgets.snippet.count', { count: snippets.length })}</span>
 			<button
 				type="button"
 				class="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-				aria-label="スニペットを追加"
-				title="スニペットを追加"
+				aria-label={t('widgets.snippet.add_aria')}
+				title={t('widgets.snippet.add_aria')}
 				onclick={startAdd}
 			>
 				<Plus class="h-3 w-3" />
-				追加
+				{t('common.add')}
 			</button>
 		</div>
 		<ul class="space-y-1">
@@ -204,7 +203,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					<button
 						type="button"
 						class="flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded-md px-2 py-1 text-left text-xs transition-[background-color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none active:scale-[0.97] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-						aria-label="{snip.label} をクリップボードにコピー"
+						aria-label={t('widgets.snippet.copy_aria', { label: snip.label })}
 						title={snip.body}
 						onclick={() => void copySnippet(snip)}
 					>
@@ -214,8 +213,8 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					<button
 						type="button"
 						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:opacity-100 group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-						aria-label="{snip.label} を編集"
-						title="編集"
+						aria-label={t('widgets.snippet.edit_aria', { label: snip.label })}
+						title={t('common.edit')}
 						onclick={() => startEdit(snip)}
 					>
 						<Pencil class="h-3 w-3" />
@@ -223,8 +222,8 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					<button
 						type="button"
 						class="shrink-0 rounded p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-opacity duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:opacity-100 group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-						aria-label="{snip.label} を削除"
-						title="削除"
+						aria-label={t('widgets.snippet.delete_aria', { label: snip.label })}
+						title={t('common.delete')}
 						onclick={() => deleteSnippet(snip.id)}
 					>
 						<X class="h-3 w-3" />

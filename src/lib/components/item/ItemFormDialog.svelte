@@ -1,5 +1,6 @@
 <script lang="ts">
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
+import { t } from '$lib/i18n.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
 import { getErrorMessage } from '$lib/utils/format-error';
@@ -49,7 +50,7 @@ async function handleSubmit(input: CreateItemInput | UpdateItemInput) {
 
 <BaseDialog {open} {onClose} size="lg">
 	<h2 class="mb-4 text-lg font-semibold text-[var(--ag-text-primary)]">
-		{item ? 'アイテムを編集' : 'アイテムを追加'}
+		{item ? t('item.dialog.title_edit') : t('item.dialog.title_add')}
 	</h2>
 	{#if submitError}
 		<div

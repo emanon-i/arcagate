@@ -1,4 +1,5 @@
 <script lang="ts">
+import { t } from '$lib/i18n.svelte';
 import BookmarkImport from './BookmarkImport.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
 import OpenerSettings from './OpenerSettings.svelte';
@@ -24,7 +25,7 @@ import OpenerSettings from './OpenerSettings.svelte';
 	class="space-y-6 px-6 py-5"
 >
 	<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
-		ライブラリ
+		{t('nav.library')}
 	</h3>
 	<LibraryCardSettings />
 	<div class="border-t border-[var(--ag-border)] pt-5">

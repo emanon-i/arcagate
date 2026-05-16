@@ -240,7 +240,10 @@ async function persistConfig(next: WidgetConfig) {
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: '設定の保存' }, e), 'error');
+		toastStore.add(
+			formatIpcError({ operation: t('widgets.common.operation_save_settings') }, e),
+			'error',
+		);
 	}
 }
 
@@ -288,49 +291,49 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 <!-- Lateral sweep (2026-05-12): config.watch_path を WidgetShell に渡し、 widget body 右クリック menu
      で「監視 folder のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。 -->
-<WidgetShell title={config.title || 'Exe Folders'} icon={AppWindow} {menuItems} path={config.watch_path}>
+<WidgetShell title={config.title || t('widgets.widget_label.exe_folder')} icon={AppWindow} {menuItems} path={config.watch_path}>
 	<!-- B-7 #9: Settings の description は info icon + hover tooltip に。inline 表示で
 	     widget 領域を圧迫していた問題への root-cause 対応。 -->
 	{#if config.description}
 		<div class="mb-2 flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
 			<button
 				type="button"
-				aria-label="説明を表示"
+				aria-label={t('widgets.common.show_description')}
 				class="flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 				title={config.description}
 			>
 				<Info class="h-3.5 w-3.5" />
 			</button>
-			<span class="truncate">説明</span>
+			<span class="truncate">{t('widgets.common.description_label')}</span>
 		</div>
 	{/if}
 	{#if !config.watch_path}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
 		<EmptyState
 			icon={FolderOpen}
-			title="監視フォルダを設定してください"
-			description="設定モーダルで監視ルートを選ぶと、サブフォルダの exe が自動で表示されます。"
+			title={t('widgets.exe_folder.empty_title')}
+			description={t('widgets.exe_folder.empty_description')}
 			action={{
-				label: '設定を開く',
+				label: t('widgets.common.open_settings'),
 				icon: Settings,
 				onClick: () => (settingsOpen = true),
 			}}
 			testId="exe-folder-empty-state"
 		/>
 	{:else if scanning}
-		<p class="text-sm text-[var(--ag-text-muted)]">スキャン中...</p>
+		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.common.scanning')}</p>
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-text-error)]">エラー: {scanError}</p>
+		<p class="text-sm text-[var(--ag-text-error)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
 	{:else if entries.length === 0}
 		<p class="text-sm text-[var(--ag-text-muted)]">
-			指定フォルダ内に exe を含むサブフォルダがありません。
+			{t('widgets.exe_folder.no_exe_subfolders')}
 		</p>
 	{:else}
 		<!-- 並び替え toolbar (5/03 user 検収: 旧「全部 Library 追加」 button は撤廃。auto-register on scan に統一)。
 		     I-3 (2026-05-10 user 検収): scroll で消えないよう sticky top-0 で widget header 領域に pin。
 		     bg-[var(--ag-surface-opaque)] で下層の item rows と被らないよう不透明に。 -->
 		<div class="sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-4 pb-1.5 pt-1 text-xs">
-			<span class="text-[var(--ag-text-muted)]">並び替え:</span>
+			<span class="text-[var(--ag-text-muted)]">{t('widgets.common.sort_label')}</span>
 			<button
 				type="button"
 				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
@@ -338,13 +341,13 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
 					: 'text-[var(--ag-text-secondary)]'}"
 				onclick={() => void setSort('name')}
-				aria-label="名前で並び替え{sortField === 'name'
+				aria-label="{t('widgets.common.sort_by_name')}{sortField === 'name'
 					? sortOrder === 'asc'
-						? ' (現在 昇順)'
-						: ' (現在 降順)'
+						? t('widgets.common.sort_current_asc')
+						: t('widgets.common.sort_current_desc')
 					: ''}"
 			>
-				名前
+				{t('widgets.common.sort_name')}
 				{#if sortField === 'name'}
 					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
 							class="h-3 w-3"
@@ -358,13 +361,13 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
 					: 'text-[var(--ag-text-secondary)]'}"
 				onclick={() => void setSort('mtime')}
-				aria-label="更新日時で並び替え{sortField === 'mtime'
+				aria-label="{t('widgets.common.sort_by_mtime')}{sortField === 'mtime'
 					? sortOrder === 'asc'
-						? ' (現在 古い順)'
-						: ' (現在 新しい順)'
+						? t('widgets.common.sort_current_oldest')
+						: t('widgets.common.sort_current_newest')
 					: ''}"
 			>
-				更新日時
+				{t('widgets.common.sort_mtime')}
 				{#if sortField === 'mtime'}
 					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
 							class="h-3 w-3"
@@ -383,7 +386,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						<button
 							type="button"
 							class="flex flex-col items-center gap-1 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-2 text-center text-sm text-[var(--ag-text-primary)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)]"
-							aria-label="{entry.folderName} を起動"
+							aria-label={t('widgets.common.launch_label', { label: entry.folderName })}
 							title={entry.folderPath}
 							onclick={() => launchEntry(entry)}
 							oncontextmenu={(e) => {
@@ -420,7 +423,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					<button
 						type="button"
 						class="flex min-w-0 flex-1 items-center gap-2 rounded-l-md px-2 py-1.5 text-left text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] {entry.exeCandidates.length > 1 ? '' : 'rounded-r-md'}"
-						aria-label="{entry.folderName} を起動"
+						aria-label={t('widgets.common.launch_with_context', { label: entry.folderName })}
 						onclick={() => launchEntry(entry)}
 						oncontextmenu={(e) => {
 							e.preventDefault();
@@ -446,10 +449,10 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						<button
 							type="button"
 							class="shrink-0 rounded-r-md px-1.5 py-1.5 text-[var(--ag-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] hover:bg-[var(--ag-surface-4)]"
-							aria-label="{entry.folderName} の起動 exe を選ぶ"
+							aria-label={t('widgets.exe_folder.select_exe_aria', { label: entry.folderName })}
 							aria-haspopup="menu"
 							aria-expanded={candidatePopoverFor === entry.folderPath}
-							title="起動 exe を切替"
+							title={t('widgets.exe_folder.switch_exe_title')}
 							data-popover-trigger="exe-cands"
 							onclick={(e) => {
 								e.stopPropagation();
@@ -486,7 +489,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 									class="mt-1 w-full rounded px-2 py-1.5 text-left text-xs text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)]"
 									onclick={() => void clearOverride(entry)}
 								>
-									自動選択（最大サイズ）に戻す
+									{t('widgets.exe_folder.auto_select_reset')}
 								</button>
 							{/if}
 						</div>

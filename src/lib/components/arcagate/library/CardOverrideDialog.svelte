@@ -3,6 +3,7 @@ import { X as XIcon } from '@lucide/svelte';
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
 import ItemFormCardOverride from '$lib/components/item/ItemFormCardOverride.svelte';
 import { Button } from '$lib/components/ui/button';
+import { t } from '$lib/i18n.svelte';
 import type { Item } from '$lib/types/item';
 
 /**
@@ -39,13 +40,13 @@ let { open, item, onClose }: Props = $props();
 			id="card-override-dialog-title"
 			class="text-lg font-semibold text-[var(--ag-text-primary)]"
 		>
-			カード個別設定
+			{t('library.card_override.title')}
 		</h2>
 		<Button
 			type="button"
 			variant="ghost"
 			size="icon-sm"
-			aria-label="閉じる"
+			aria-label={t('common.close')}
 			onclick={onClose}
 		>
 			<XIcon class="h-4 w-4" />

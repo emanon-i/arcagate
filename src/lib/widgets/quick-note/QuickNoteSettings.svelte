@@ -9,6 +9,8 @@
  * - docs/desktop_ui_ux_agent_rules.md P1 操作可視化 / P11 装飾より対象
  * - docs/l1_requirements/ux_standards.md §5 インタラクションフィードバック
  */
+import { t } from '$lib/i18n.svelte';
+
 interface Props {
 	config: { font_size?: 'sm' | 'md' | 'lg' };
 }
@@ -17,11 +19,11 @@ let { config = $bindable() }: Props = $props();
 
 let fontSize = $derived<'sm' | 'md' | 'lg'>(config.font_size ?? 'md');
 
-const SIZES: { value: 'sm' | 'md' | 'lg'; label: string; previewClass: string }[] = [
-	{ value: 'sm', label: '小', previewClass: 'text-sm' },
-	{ value: 'md', label: '中', previewClass: 'text-base' },
-	{ value: 'lg', label: '大', previewClass: 'text-lg' },
-];
+let sizes = $derived([
+	{ value: 'sm' as const, label: t('widgets.quick_note.font_size_sm'), previewClass: 'text-sm' },
+	{ value: 'md' as const, label: t('widgets.quick_note.font_size_md'), previewClass: 'text-base' },
+	{ value: 'lg' as const, label: t('widgets.quick_note.font_size_lg'), previewClass: 'text-lg' },
+]);
 
 function setSize(v: 'sm' | 'md' | 'lg') {
 	config = { ...config, font_size: v };
@@ -29,9 +31,9 @@ function setSize(v: 'sm' | 'md' | 'lg') {
 </script>
 
 <div class="space-y-1">
-	<p class="text-sm font-medium text-[var(--ag-text-primary)]">フォントサイズ</p>
+	<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('widgets.quick_note.font_size_label')}</p>
 	<div class="grid grid-cols-3 gap-2">
-		{#each SIZES as size (size.value)}
+		{#each sizes as size (size.value)}
 			{@const isActive = fontSize === size.value}
 			<button
 				type="button"
@@ -39,7 +41,7 @@ function setSize(v: 'sm' | 'md' | 'lg') {
 					? 'border-[var(--ag-accent)] bg-[var(--ag-accent-bg)]'
 					: 'border-[var(--ag-border)] bg-[var(--ag-surface-2)] hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-3)]'}"
 				aria-pressed={isActive}
-				aria-label="フォントサイズ: {size.label}"
+				aria-label={t('widgets.quick_note.font_size_aria', { label: size.label })}
 				onclick={() => setSize(size.value)}
 			>
 				<span
@@ -51,7 +53,7 @@ function setSize(v: 'sm' | 'md' | 'lg') {
 					class="text-xs {isActive
 						? 'text-[var(--ag-accent-text)]'
 						: 'text-[var(--ag-text-muted)]'}"
-				>{size.label}{size.value === 'md' ? '（既定）' : ''}</span>
+				>{size.label}{size.value === 'md' ? t('widgets.quick_note.font_size_default_suffix') : ''}</span>
 			</button>
 		{/each}
 	</div>

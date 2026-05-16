@@ -2,7 +2,8 @@
 import { HelpCircle, X as XIcon } from '@lucide/svelte';
 import { tick } from 'svelte';
 import { fade, fly } from 'svelte/transition';
-import { GLOBAL_HOTKEYS, SCREENS } from '$lib/help-content';
+import { getGlobalHotkeys, getScreens } from '$lib/help-content';
+import { t } from '$lib/i18n.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 
 const rm =
@@ -91,14 +92,14 @@ function handleKeydown(e: KeyboardEvent) {
 						id="help-panel-title"
 						class="text-base font-semibold text-[var(--ag-text-primary)]"
 					>
-						ヘルプ
+						{t('nav.help')}
 					</h2>
 				</div>
 				<button
 					bind:this={closeBtnEl}
 					type="button"
 					class="rounded p-1.5 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-2)] hover:text-[var(--ag-text-primary)]"
-					aria-label="ヘルプを閉じる"
+					aria-label={t('help.close_aria')}
 					onclick={handleClose}
 					data-testid="help-panel-close"
 				>
@@ -109,10 +110,10 @@ function handleKeydown(e: KeyboardEvent) {
 			<div class="flex-1 overflow-y-auto px-6 py-4">
 				<section class="mb-6">
 					<h3 class="mb-3 text-sm font-semibold text-[var(--ag-text-primary)]">
-						グローバルホットキー
+						{t('help.global.heading')}
 					</h3>
 					<ul class="space-y-2">
-						{#each GLOBAL_HOTKEYS as h}
+						{#each getGlobalHotkeys() as h}
 							<li class="flex items-baseline gap-3 text-sm">
 								<kbd
 									class="rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-0.5 font-mono text-xs text-[var(--ag-text-primary)]"
@@ -125,7 +126,7 @@ function handleKeydown(e: KeyboardEvent) {
 					</ul>
 				</section>
 
-				{#each SCREENS as screen (screen.id)}
+				{#each getScreens() as screen (screen.id)}
 					<section class="mb-6">
 						<h3 class="mb-3 text-sm font-semibold text-[var(--ag-text-primary)]">
 							{screen.title}
@@ -158,15 +159,15 @@ function handleKeydown(e: KeyboardEvent) {
 			<footer
 				class="border-t border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-6 py-3 text-xs text-[var(--ag-text-muted)]"
 			>
-				詳細は <code class="font-mono">README.md</code> および
+				{t('help.footer_prefix')} <code class="font-mono">README.md</code> {t('help.footer_and')}
 				<a
 					href="https://github.com/emanon-i/arcagate"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="underline transition-colors duration-[var(--ag-duration-fast)] hover:text-[var(--ag-accent)]"
 				>
-					GitHub リポジトリ
-				</a> を参照
+					{t('help.footer_github')}
+				</a> {t('help.footer_suffix')}
 			</footer>
 		</div>
 	</div>
