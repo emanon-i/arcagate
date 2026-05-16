@@ -1,4 +1,5 @@
 import { FileText } from '@lucide/svelte';
+import { widgetLabel } from '$lib/types/workspace';
 import type { WidgetMeta } from '../_shared/types';
 import FilePreviewSettings from './FilePreviewSettings.svelte';
 import Component from './FilePreviewWidget.svelte';
@@ -16,7 +17,9 @@ export const widgetType = 'file_preview' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: FileText,
-	label: 'ファイルプレビュー',
+	get label() {
+		return widgetLabel('file_preview');
+	},
 	defaultConfig: { path: '' },
 	defaultSize: { w: 2, h: 2 },
 	minViableSize: { w: 2, h: 2 },

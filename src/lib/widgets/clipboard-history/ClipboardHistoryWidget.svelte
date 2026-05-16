@@ -80,7 +80,7 @@ async function copyEntry(entry: ClipboardEntry) {
 		await writeText(entry.text);
 		toastStore.add(t('toast.copied_to_clipboard'), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'クリップボードへのコピー' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.clipboard_copy') }, e), 'error');
 	}
 }
 

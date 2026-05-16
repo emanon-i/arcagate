@@ -120,7 +120,7 @@ async function copySnippet(snip: Snippet) {
 		await navigator.clipboard.writeText(snip.body);
 		toastStore.add(t('toast.snippet_copied', { label: snip.label }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'クリップボードへのコピー' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.clipboard_copy') }, e), 'error');
 	}
 }
 

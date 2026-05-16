@@ -13,7 +13,7 @@ async function pickFile(): Promise<void> {
 		multiple: false,
 		filters: [
 			{
-				name: 'テキスト',
+				name: t('widgets.file_preview.filter_text'),
 				extensions: ['md', 'txt', 'markdown', 'log', 'json', 'yaml', 'yml', 'toml', 'csv'],
 			},
 			{ name: t('widgets.file_preview.filter_all'), extensions: ['*'] },

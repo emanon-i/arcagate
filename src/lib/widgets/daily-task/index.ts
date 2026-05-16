@@ -1,4 +1,5 @@
 import { CheckSquare } from '@lucide/svelte';
+import { widgetLabel } from '$lib/types/workspace';
 import type { WidgetMeta } from '../_shared/types';
 import DailyTaskSettings from './DailyTaskSettings.svelte';
 import Component from './DailyTaskWidget.svelte';
@@ -8,7 +9,9 @@ export const widgetType = 'daily_task' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: CheckSquare,
-	label: 'デイリータスク',
+	get label() {
+		return widgetLabel('daily_task');
+	},
 	defaultConfig: {},
 	// J-2 (2026-05-12): 縦長 (W:H=3:5)、チェックボックス list で 8-12 タスク視認。
 	defaultSize: { w: 2, h: 2 },

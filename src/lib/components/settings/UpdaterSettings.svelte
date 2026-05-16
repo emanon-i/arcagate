@@ -27,7 +27,7 @@ async function handleCheck() {
 			toastStore.add(t('toast.version_up_to_date'), 'success');
 		}
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'アップデート確認' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.update_check') }, e), 'error');
 	} finally {
 		checking = false;
 	}
@@ -49,7 +49,7 @@ async function handleInstall() {
 			}
 		});
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'アップデートのインストール' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.update_install') }, e), 'error');
 		installing = false;
 	}
 }

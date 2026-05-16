@@ -18,7 +18,12 @@ let saving = $state(false);
 async function pickFile(): Promise<void> {
 	const selected = await openDialog({
 		multiple: false,
-		filters: [{ name: '画像', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] }],
+		filters: [
+			{
+				name: t('widgets.image_scrap.filter_image'),
+				extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'],
+			},
+		],
 	});
 	if (!selected) return;
 	saving = true;

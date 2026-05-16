@@ -1,4 +1,5 @@
 import { Clipboard } from '@lucide/svelte';
+import { widgetLabel } from '$lib/types/workspace';
 import type { WidgetMeta } from '../_shared/types';
 import SnippetSettings from './SnippetSettings.svelte';
 import Component from './SnippetWidget.svelte';
@@ -8,7 +9,9 @@ export const widgetType = 'snippet' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: Clipboard,
-	label: 'スニペット',
+	get label() {
+		return widgetLabel('snippet');
+	},
 	defaultConfig: {},
 	// J-2 (2026-05-12): snippet list 縦長で 10 件視認。
 	defaultSize: { w: 2, h: 2 },

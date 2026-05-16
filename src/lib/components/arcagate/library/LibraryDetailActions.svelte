@@ -31,7 +31,10 @@ let { item, isStarred, onLaunch, onEdit, onToggleStar, onDelete, onPickDefaultAp
 <!-- Default app for folders (S-3-7) -->
 {#if item.item_type === 'folder'}
 	<div class="mt-4 space-y-2 text-sm">
-		<DetailRow label={t('library.detail.default_app')} value={item.default_app || 'Explorer（既定）'} />
+		<DetailRow
+			label={t('library.detail.default_app')}
+			value={item.default_app || t('library.detail.default_app_fallback')}
+		/>
 		<button
 			type="button"
 			class="flex items-center gap-2 rounded-2xl border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-2 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"

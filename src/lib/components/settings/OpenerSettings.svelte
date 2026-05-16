@@ -34,7 +34,7 @@ async function refresh() {
 	try {
 		all = await openersStore.load(true);
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'Opener 一覧の取得' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.opener_list') }, e), 'error');
 	} finally {
 		loading = false;
 	}
@@ -91,7 +91,7 @@ async function handleSubmit(e: Event) {
 		cancelForm();
 		await refresh();
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'Opener の保存' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.opener_save') }, e), 'error');
 	}
 }
 
@@ -105,7 +105,7 @@ async function handleDelete(o: Opener) {
 		if (editing?.id === o.id) cancelForm();
 		await refresh();
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'Opener の削除' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.opener_delete') }, e), 'error');
 	}
 }
 </script>

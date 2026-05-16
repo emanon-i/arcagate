@@ -58,6 +58,15 @@
 			"generic": "Failed to launch \"{target}\" — {msg}",
 			"not_executable": "\"{target}\" is not an executable — check the item type (Exe / Script / Folder etc.).",
 			"permission_denied": "No permission to launch \"{target}\" — try running as administrator or check file permissions."
+		},
+		"op": {
+			"clipboard_copy": "Copying to clipboard",
+			"file_open": "Opening the file",
+			"opener_delete": "Deleting the opener",
+			"opener_list": "Loading openers",
+			"opener_save": "Saving the opener",
+			"update_check": "Checking for updates",
+			"update_install": "Installing the update"
 		}
 	},
 	"help": {
@@ -202,6 +211,7 @@
 			"card_override_open": "Open settings",
 			"close_panel": "Close panel",
 			"default_app": "Default app",
+			"default_app_fallback": "Explorer (default)",
 			"delete_confirm_body": "Permanently delete \"{label}\"?\n\nThe following will also be removed (cannot be undone):{widgetLine}{userTagLine}\n• Launch history / launch count\n• Favorites / system tag associations\n\nYou can undo within 5 seconds via the notification.",
 			"delete_confirm_title": "Confirm permanent delete",
 			"delete_tag_line": "User tag associations: {count}",
@@ -660,6 +670,7 @@
 			"error_prefix": "Error: {error}",
 			"file_label": "File",
 			"filter_all": "All files",
+			"filter_text": "Text",
 			"format_hint": "Supports md / txt / markdown / json / yaml / toml / csv / log. YAML front matter in Markdown is shown in a separate area.",
 			"loading": "Loading...",
 			"meta_chars": "Chars",
@@ -693,6 +704,7 @@
 			"empty_desc": "Select an image in the settings modal",
 			"empty_title": "No image configured",
 			"file_label": "Image file",
+			"filter_image": "Image",
 			"format_hint": "Supports PNG / JPG / GIF / WebP / SVG / BMP",
 			"img_alt": "{name}",
 			"load_error": "Failed to load image",

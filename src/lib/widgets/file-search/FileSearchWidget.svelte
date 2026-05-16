@@ -145,7 +145,7 @@ async function openEntry(entry: FileEntry) {
 			await invoke('cmd_open_path', { path: entry.path });
 		}
 	} catch (e: unknown) {
-		toastStore.add(formatIpcError({ operation: 'ファイルを開く処理' }, e), 'error');
+		toastStore.add(formatIpcError({ operation: t('error.op.file_open') }, e), 'error');
 	}
 }
 

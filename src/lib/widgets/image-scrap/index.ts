@@ -1,4 +1,5 @@
 import { Image } from '@lucide/svelte';
+import { widgetLabel } from '$lib/types/workspace';
 import type { WidgetMeta } from '../_shared/types';
 import ImageScrapSettings from './ImageScrapSettings.svelte';
 import Component from './ImageScrapWidget.svelte';
@@ -15,7 +16,9 @@ export const widgetType = 'image_scrap' as const;
 export const meta: WidgetMeta = {
 	Component,
 	icon: Image,
-	label: '画像',
+	get label() {
+		return widgetLabel('image_scrap');
+	},
 	defaultConfig: { path: '' },
 	defaultSize: { w: 2, h: 2 },
 	minViableSize: { w: 2, h: 2 },
