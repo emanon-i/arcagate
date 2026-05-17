@@ -97,12 +97,12 @@ pub fn get_active_theme_mode(db: &DbState) -> Result<String, AppError> {
 pub fn set_active_theme_mode(db: &DbState, mode: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
 
-    // "dark", "light", "system" are always valid
+    // #7: 'system' (OS 追従) のみ特殊値で、それ以外は実在する theme ID
+    // ('dark' / 'light' / custom) でなければならない。
     match mode {
-        "dark" | "light" | "system" => {}
-        custom_id => {
-            // Must be a valid theme ID
-            theme_repository::find_by_id(&conn, custom_id)?;
+        "system" => {}
+        theme_id => {
+            theme_repository::find_by_id(&conn, theme_id)?;
         }
     }
 
@@ -161,15 +161,27 @@ mod tests {
     fn test_list_themes() {
         let db = initialize_in_memory();
         let themes = list_themes(&db).unwrap();
-        // 8 builtin (migration 024 で Lime Forest / Magenta Plum / Lemon Sun 追加)
-        assert_eq!(themes.len(), 8);
+        // #7: builtin は Dark / Light の 2 本のみ
+        assert_eq!(themes.len(), 2);
     }
 
     #[test]
     fn test_get_theme() {
         let db = initialize_in_memory();
-        let theme = get_theme(&db, "theme-builtin-dark").unwrap();
+        let theme = get_theme(&db, "dark").unwrap();
         assert_eq!(theme.name, "Dark");
+    }
+
+    #[test]
+    fn test_builtin_themes_are_dark_light_only() {
+        let db = initialize_in_memory();
+        let themes = list_themes(&db).unwrap();
+        let mut ids: Vec<&str> = themes.iter().map(|t| t.id.as_str()).collect();
+        ids.sort_unstable();
+        assert_eq!(ids, vec!["dark", "light"]);
+        let light = get_theme(&db, "light").unwrap();
+        assert_eq!(light.name, "Light");
+        assert_eq!(light.base_theme, "light");
     }
 
     #[test]
@@ -272,7 +284,7 @@ mod tests {
 
         delete_theme(&db, &theme.id).unwrap();
         let all = list_themes(&db).unwrap();
-        assert_eq!(all.len(), 8); // 8 builtins (migration 024 で +3)
+        assert_eq!(all.len(), 2); // #7: builtin は LG Dark / Light の 2 本
     }
 
     #[test]
@@ -299,12 +311,14 @@ mod tests {
     fn test_get_active_theme_mode_default() {
         let db = initialize_in_memory();
         let mode = get_active_theme_mode(&db).unwrap();
+        // #7: 初回起動 default は Dark テーマ
         assert_eq!(mode, "dark");
     }
 
     #[test]
     fn test_set_active_theme_mode_valid() {
         let db = initialize_in_memory();
+        // #7: builtin theme ID ('dark' / 'light') と 'system' (OS 追従) が有効値
         set_active_theme_mode(&db, "light").unwrap();
         assert_eq!(get_active_theme_mode(&db).unwrap(), "light");
 
@@ -313,6 +327,13 @@ mod tests {
 
         set_active_theme_mode(&db, "dark").unwrap();
         assert_eq!(get_active_theme_mode(&db).unwrap(), "dark");
+    }
+
+    #[test]
+    fn test_set_active_theme_mode_rejects_unknown_id() {
+        let db = initialize_in_memory();
+        // 実在しない theme ID は reject
+        assert!(set_active_theme_mode(&db, "no-such-theme").is_err());
     }
 
     #[test]
@@ -342,7 +363,7 @@ mod tests {
     #[test]
     fn test_export_theme_json() {
         let db = initialize_in_memory();
-        let json = export_theme_json(&db, "theme-builtin-dark").unwrap();
+        let json = export_theme_json(&db, "dark").unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed["name"], "Dark");
     }

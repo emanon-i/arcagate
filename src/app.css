@@ -173,9 +173,9 @@ select[data-themed] option {
 
   /* E-2 (2026-05-08): 全 select の <option> dropdown を theme tokens 経由で塗り、
      Library ソート / カード設定 select / widget settings 等すべて contrast 保証。
-     F-6 (2026-05-08): liquid-glass テーマで `--ag-surface-3` が rgba 透過色 (例:
+     F-6 (2026-05-08): glass 質感テーマで `--ag-surface-3` が rgba 透過色 (例:
      `rgba(255,255,255,0.08)`) のため <option> 背景が透ける問題を fix。
-     `--ag-surface-opaque` は全テーマで不透明値 (liquid-glass = rgba(13,17,23,0.85)) を持つため、
+     `--ag-surface-opaque` は全テーマで不透明値 (Dark = rgba(13,17,23,0.85)) を持つため、
      これに切替で contrast 完全保証。Tauri WebView2 (Chromium) は <option> styling を尊重。 */
   select option {
     color: var(--ag-text-primary);

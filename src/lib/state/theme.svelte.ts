@@ -1,6 +1,11 @@
 import { listen } from '@tauri-apps/api/event';
 import * as themeIpc from '$lib/ipc/theme';
-import type { Theme, ThemeMode } from '$lib/types/theme';
+import {
+	BUILTIN_THEME_DARK,
+	BUILTIN_THEME_LIGHT,
+	type Theme,
+	type ThemeMode,
+} from '$lib/types/theme';
 import { getErrorMessage } from '$lib/utils/format-error';
 
 /**
@@ -16,16 +21,22 @@ import { getErrorMessage } from '$lib/utils/format-error';
 const THEME_MODE_CACHE_KEY = 'arcagate.theme.activeMode';
 
 function readCachedMode(): ThemeMode {
-	if (typeof window === 'undefined') return 'dark';
+	if (typeof window === 'undefined') return BUILTIN_THEME_DARK;
 	try {
 		const v = window.localStorage.getItem(THEME_MODE_CACHE_KEY);
-		if (v === 'dark' || v === 'light' || v === 'system') return v;
-		// 任意の custom theme ID も受容 (theme load 後に存在性確認、無効なら fallback)
-		if (v && v.length > 0) return v as ThemeMode;
+		if (!v) return BUILTIN_THEME_DARK;
+		if (v === 'system') return 'system';
+		// #7: 旧 theme ID (theme-builtin-*) は 'dark' / 'light' へ読み替え
+		if (v === 'theme-builtin-light' || v === 'theme-builtin-liquid-glass-light') {
+			return BUILTIN_THEME_LIGHT;
+		}
+		if (v.startsWith('theme-builtin-')) return BUILTIN_THEME_DARK;
+		// 'dark' / 'light' / custom theme ID をそのまま受容 (theme load 後に存在性確認)
+		return v as ThemeMode;
 	} catch {
-		// localStorage 不可環境は dark default
+		// localStorage 不可環境は Dark default
 	}
-	return 'dark';
+	return BUILTIN_THEME_DARK;
 }
 
 function writeCachedMode(mode: ThemeMode): void {
@@ -46,18 +57,30 @@ let systemMediaQuery: MediaQueryList | null = null;
 let systemListener: ((e: MediaQueryListEvent) => void) | null = null;
 let themeChangedUnlisten: (() => void) | null = null;
 
-function resolveMode(mode: ThemeMode): 'dark' | 'light' {
+/** OS が dark を要求しているか (system mode 解決用)。 */
+function systemPrefersDark(): boolean {
+	if (typeof window === 'undefined') return true;
+	return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+/**
+ * activeMode を実際に適用する builtin/custom theme ID へ解決する。
+ * 'system' は OS 設定で Dark / Light テーマを自動選択。
+ */
+function resolveThemeId(mode: ThemeMode): string {
 	if (mode === 'system') {
-		if (typeof window !== 'undefined') {
-			return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-		}
-		return 'dark';
+		return systemPrefersDark() ? BUILTIN_THEME_DARK : BUILTIN_THEME_LIGHT;
 	}
-	if (mode === 'dark' || mode === 'light') {
-		return mode;
-	}
-	// Custom theme: resolve from base_theme
-	const theme = themes.find((t) => t.id === mode);
+	return mode;
+}
+
+function resolveMode(mode: ThemeMode): 'dark' | 'light' {
+	const id = resolveThemeId(mode);
+	// builtin Dark / Light は themes 配列未 load でも同期解決 (起動時ちらつき防止、E-1)
+	if (id === BUILTIN_THEME_DARK) return 'dark';
+	if (id === BUILTIN_THEME_LIGHT) return 'light';
+	// custom theme: base_theme から解決
+	const theme = themes.find((t) => t.id === id);
 	return theme ? (theme.base_theme as 'dark' | 'light') : 'dark';
 }
 
@@ -86,23 +109,21 @@ function applyTheme(): void {
 		el.classList.remove('dark');
 	}
 
-	// 3. Apply custom theme CSS variables + data-theme attribute
-	if (activeMode !== 'dark' && activeMode !== 'light' && activeMode !== 'system') {
-		const theme = themes.find((t) => t.id === activeMode);
-		if (theme) {
-			try {
-				const vars = JSON.parse(theme.css_vars) as Record<string, string>;
-				for (const [key, value] of Object.entries(vars)) {
-					style.setProperty(key, value);
-				}
-			} catch {
-				// Invalid JSON — ignore
+	// 3. Apply effective theme CSS variables + data-theme attribute.
+	//    #7: 全 mode が theme へ解決される ('system' は OS 設定で Dark/Light 自動選択)。
+	const effectiveId = resolveThemeId(activeMode);
+	const theme = themes.find((t) => t.id === effectiveId);
+	if (theme) {
+		try {
+			const vars = JSON.parse(theme.css_vars) as Record<string, string>;
+			for (const [key, value] of Object.entries(vars)) {
+				style.setProperty(key, value);
 			}
+		} catch {
+			// Invalid JSON — ignore
 		}
-		el.dataset.theme = activeMode;
-	} else {
-		delete el.dataset.theme;
 	}
+	el.dataset.theme = effectiveId;
 
 	// 4. System mode listener
 	setupSystemListener();
@@ -203,9 +224,10 @@ async function deleteTheme(id: string): Promise<void> {
 	try {
 		await themeIpc.deleteTheme(id);
 		themes = themes.filter((t) => t.id !== id);
-		// If deleted theme was active, backend resets to "dark"
+		// 削除した theme が active だった場合、backend は LG Dark に reset する
 		if (activeMode === id) {
-			activeMode = 'dark';
+			activeMode = BUILTIN_THEME_DARK;
+			writeCachedMode(activeMode);
 			applyTheme();
 		}
 	} catch (e) {

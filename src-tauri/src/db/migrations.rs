@@ -32,6 +32,7 @@ const MIGRATION_028: &str = include_str!("../../migrations/028_drop_widget_item_
 const MIGRATION_029: &str = include_str!("../../migrations/029_widget_item_hides.sql");
 const MIGRATION_030: &str = include_str!("../../migrations/030_backfill_sys_type_tags.sql");
 const MIGRATION_031: &str = include_str!("../../migrations/031_widget_grid_square_finer.sql");
+const MIGRATION_032: &str = include_str!("../../migrations/032_consolidate_builtin_themes.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -66,6 +67,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_029),
         M::up(MIGRATION_030),
         M::up(MIGRATION_031),
+        M::up(MIGRATION_032),
     ])
 }
 
@@ -111,6 +113,82 @@ mod tests {
         assert!(tables.contains(&"workspaces".to_string()));
         assert!(tables.contains(&"workspace_widgets".to_string()));
         assert!(tables.contains(&"themes".to_string()));
+    }
+
+    #[test]
+    fn test_migration_032_consolidates_themes_and_remaps_mode() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // migration 031 まで適用 (旧 builtin テーマ 8 件が揃った状態)
+        m.to_version(&mut conn, 31).unwrap();
+        let before: i64 = conn
+            .query_row("SELECT COUNT(*) FROM themes", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(before, 8);
+
+        // 削除対象テーマを指す theme_mode を持つ既存 user を再現
+        conn.execute(
+            "INSERT INTO config (key, value) VALUES ('theme_mode', 'theme-builtin-endfield')",
+            [],
+        )
+        .unwrap();
+
+        // migration 032 適用
+        m.to_version(&mut conn, 32).unwrap();
+
+        // builtin は Dark / Light の 2 本のみ (id は 'dark' / 'light')
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM themes", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 2);
+        let light_base: String = conn
+            .query_row(
+                "SELECT base_theme FROM themes WHERE id = 'light'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(light_base, "light");
+        let dark_name: String = conn
+            .query_row("SELECT name FROM themes WHERE id = 'dark'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(dark_name, "Dark");
+
+        // 削除テーマを指していた theme_mode は 'dark' へ remap
+        let mode: String = conn
+            .query_row(
+                "SELECT value FROM config WHERE key = 'theme_mode'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(mode, "dark");
+    }
+
+    #[test]
+    fn test_migration_032_remaps_old_light_theme_id() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+        m.to_version(&mut conn, 31).unwrap();
+        conn.execute(
+            "INSERT INTO config (key, value) VALUES ('theme_mode', 'theme-builtin-light')",
+            [],
+        )
+        .unwrap();
+        m.to_version(&mut conn, 32).unwrap();
+        let mode: String = conn
+            .query_row(
+                "SELECT value FROM config WHERE key = 'theme_mode'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(mode, "light");
     }
 
     #[test]
