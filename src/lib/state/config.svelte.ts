@@ -42,9 +42,11 @@ export interface LibraryCardConfig {
 
 const LIBRARY_CARD_STORAGE_KEY = 'arcagate-library-card';
 
+// #8: グローバル背景モード選択は撤廃。default は 'none' (タイプ別グラデーション +
+// 中央アイコン) 固定。画像 / カスタム色はカード個別設定 (card_override) で指定する。
 const DEFAULT_LIBRARY_CARD: LibraryCardConfig = {
 	background: {
-		mode: 'image',
+		mode: 'none',
 		fillBgColor: '#1f2937',
 		fillIconColor: '#ffffff',
 		focalX: 50,
@@ -119,12 +121,6 @@ function patchEqual<T extends object>(current: T, patch: Partial<T>): boolean {
 		if (current[k] !== patch[k]) return false;
 	}
 	return true;
-}
-
-function setLibraryCardBackground(patch: Partial<LibraryCardBackgroundConfig>): void {
-	if (patchEqual(libraryCard.background, patch)) return;
-	libraryCard = { ...libraryCard, background: { ...libraryCard.background, ...patch } };
-	persistLibraryCard();
 }
 
 function setLibraryCardStyle(patch: Partial<LibraryCardStyleConfig>): void {
@@ -373,7 +369,6 @@ export const configStore = {
 	setWidgetMinZoom,
 	setHintBarVisible,
 	saveItemSize,
-	setLibraryCardBackground,
 	setLibraryCardStyle,
 	setLibrarySort,
 	setLibraryShowHidden,
