@@ -53,10 +53,10 @@ use commands::widget_item_hides_commands::{
 };
 use commands::workspace_commands::{
     cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
-    cmd_get_frecency_items, cmd_get_frequent_items, cmd_get_git_statuses_batch,
-    cmd_get_recent_items, cmd_git_status, cmd_list_widgets, cmd_list_workspaces, cmd_remove_widget,
-    cmd_save_wallpaper_file, cmd_set_workspace_wallpaper, cmd_update_widget_config,
-    cmd_update_widget_position, cmd_update_workspace,
+    cmd_get_folder_mtimes_batch, cmd_get_frecency_items, cmd_get_frequent_items,
+    cmd_get_git_statuses_batch, cmd_get_recent_items, cmd_git_status, cmd_list_widgets,
+    cmd_list_workspaces, cmd_remove_widget, cmd_save_wallpaper_file, cmd_set_workspace_wallpaper,
+    cmd_update_widget_config, cmd_update_widget_position, cmd_update_workspace,
 };
 use tauri::{
     menu::{Menu, MenuItem},
@@ -311,6 +311,7 @@ pub fn run() {
             cmd_get_recent_items,
             cmd_get_frecency_items,
             cmd_get_folder_items,
+            cmd_get_folder_mtimes_batch,
             cmd_git_status,
             cmd_get_git_statuses_batch,
             cmd_save_wallpaper_file,

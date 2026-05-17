@@ -30,7 +30,7 @@ import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { getFolderItems, getGitStatusesBatch } from '$lib/ipc/workspace';
+import { getFolderItems, getFolderMtimesBatch, getGitStatusesBatch } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
@@ -54,6 +54,9 @@ let { widget }: Props = $props();
 
 let folderItems = $state<Item[]>([]);
 let gitStatuses = $state<Record<string, GitStatus>>({});
+// #10: フォルダ実 mtime (filesystem 更新日時) を path → ms epoch で保持。
+// 「更新日時」ソートは DB updated_at ではなくこの実 mtime を参照する。
+let folderMtimes = $state<Record<string, number>>({});
 let settingsOpen = $state(false);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
@@ -89,8 +92,9 @@ let sortedItems = $derived.by(() => {
 	if (sortField === 'name') {
 		list.sort((a, b) => dir * a.label.localeCompare(b.label, 'ja'));
 	} else {
-		// updated_at は ISO 文字列 (lexicographic = 時系列)。asc=古い順 / desc=新しい順。
-		list.sort((a, b) => dir * a.updated_at.localeCompare(b.updated_at));
+		// #10: 「更新日時」は DB の updated_at ではなく実フォルダの filesystem mtime を参照。
+		// asc=古い順 / desc=新しい順。mtime 未取得 (0) は最古扱い。
+		list.sort((a, b) => dir * ((folderMtimes[a.target] ?? 0) - (folderMtimes[b.target] ?? 0)));
 	}
 	return list;
 });
@@ -141,6 +145,24 @@ async function fetchGitStatuses(items: Item[], merge = false): Promise<void> {
 	gitStatuses = merge ? { ...gitStatuses, ...entries } : entries;
 }
 
+// #10: フォルダの実 mtime を batch 取得して folderMtimes map を更新。
+// load 完了時 + git poll と同タイミングで呼び、監視中も自動で再ソートされる。
+async function fetchFolderMtimes(items: Item[]): Promise<void> {
+	const paths = items.map((i) => i.target);
+	if (paths.length === 0) {
+		folderMtimes = {};
+		return;
+	}
+	try {
+		const entries = await getFolderMtimesBatch(paths);
+		const map: Record<string, number> = {};
+		for (const e of entries) map[e.path] = e.mtimeMs;
+		folderMtimes = map;
+	} catch {
+		// best-effort: 取得失敗時は既存 map 維持 (次回 poll で retry)。
+	}
+}
+
 // PH-issue-039 / 検収項目 #14 (仕様統一): config.watched_folder が変わったら scan を即時 reset + run。
 // 旧実装は autoRegisterFolderItems を全 widget の任意 folder で呼んで結果を merge していたため
 // 「同じ widget で folder 共有 (#11)」のように見えていた。本実装で widget config 経由のみに限定。
@@ -182,6 +204,7 @@ $effect(() => {
 		.then(async (items) => {
 			folderItems = items;
 			await fetchGitStatuses(items);
+			await fetchFolderMtimes(items);
 			// 5/03 user 検収 (B): 「Library に追加してもすべてに含まれない」 fb 対応。
 			// auto-register で DB に新規 item を入れた後、itemStore の items / libraryStats /
 			// tagWithCounts を再取得し、Library 画面の表示と count を即同期する。
@@ -203,6 +226,8 @@ $effect(() => {
 	const interval = config.git_poll_interval_sec * 1000;
 	const timer = setInterval(() => {
 		void fetchGitStatuses(folderItems);
+		// #10: poll 毎にフォルダ実 mtime も再取得 → 監視中の更新で自動再ソート。
+		void fetchFolderMtimes(folderItems);
 	}, interval);
 	return () => clearInterval(timer);
 });
