@@ -13,6 +13,7 @@ pub mod kill_switch_service;
 pub mod launch_service;
 pub mod metadata_service;
 pub mod opener_service;
+pub mod script_runner_service;
 pub mod system_monitor_service;
 pub mod theme_service;
 pub mod url_service;
