@@ -13,9 +13,9 @@ import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { useWorkspaceInput } from '$lib/state/workspace-input.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadBool, saveBool } from '$lib/utils/local-storage';
+import { HINT_BAR_RESERVE } from '$lib/utils/zoom-math';
 import WidgetItemContextMenu from '$lib/widgets/_shared/WidgetItemContextMenu.svelte';
 import WorkspaceGrid from './WorkspaceGrid.svelte';
-import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
 import WorkspaceSidebar from './WorkspaceSidebar.svelte';
 import WorkspaceUndoSnackbar from './WorkspaceUndoSnackbar.svelte';
@@ -201,8 +201,6 @@ function confirmRename(name: string) {
      Industrial Yellow design 自体 (panel / hatch / dot / bracket) は keep、
      selection 色だけ theme に連動させる方針。 -->
 <div class="relative flex h-full">
-	<WorkspaceHintBar editMode={true} selectedWidgetId={workspaceSelection.singleId} />
-
 	{#if sidebarOpen}
 		<WorkspaceSidebar {dynamicCols} onClose={() => (sidebarOpen = false)} />
 	{:else}
@@ -253,8 +251,10 @@ function confirmRename(name: string) {
 	<!-- 右下 floating toolbar (Undo / Redo / zoom% / Reset / Fit)。
 	     PH-widget-polish: title 属性で keyboard shortcut tooltip、cursor-pointer / cursor-not-allowed、
 	     active:scale-[0.97] で触覚フィードバック (P1 操作可視化、P2 反応即時)。 -->
+	<!-- 2026-05-17 user 検収: ヒントバー表示時は toolbar をその高さ分上へずらして重なりを回避。 -->
 	<div
-		class="absolute bottom-4 right-4 z-30 flex items-center gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 shadow-[var(--ag-shadow-md,0_4px_12px_rgba(0,0,0,0.15))]"
+		class="absolute right-4 z-30 flex items-center gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 shadow-[var(--ag-shadow-md,0_4px_12px_rgba(0,0,0,0.15))]"
+		style="bottom: {configStore.hintBarVisible ? HINT_BAR_RESERVE + 8 : 16}px;"
 		data-testid="canvas-toolbar"
 	>
 		<Button

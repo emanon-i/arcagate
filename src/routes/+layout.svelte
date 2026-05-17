@@ -46,6 +46,19 @@ onMount(() => {
 onDestroy(() => {
 	uninstallErrorMonitor();
 });
+
+/**
+ * 2026-05-17 user 検収: ブラウザ / OS のデフォルトコンテキストメニューを全画面で抑止。
+ * 各画面は専用 context menu を実装する。 input / textarea / contenteditable は
+ * コピペ等の native menu が必要なため抑止対象から除外する。
+ */
+function handleGlobalContextMenu(e: MouseEvent): void {
+	const target = e.target as HTMLElement | null;
+	if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+	e.preventDefault();
+}
 </script>
+
+<svelte:window oncontextmenu={handleGlobalContextMenu} />
 
 {@render children()}

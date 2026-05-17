@@ -416,6 +416,7 @@ function handleGridKeydown(e: KeyboardEvent) {
 			onToggleSelection={toggleSelection}
 			{onAddItem}
 			onGridKeydown={handleGridKeydown}
+			{onEditItem}
 		/>
 	</div>
 </section>

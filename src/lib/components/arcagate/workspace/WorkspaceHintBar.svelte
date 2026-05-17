@@ -19,8 +19,6 @@ import { t } from '$lib/i18n.svelte';
  * - bg を opaque/85 + backdrop-blur-sm にして壁紙が透ける時も読みやすく (P11 装飾より対象)
  */
 interface Props {
-	// PH-issue-002 で編集モード撤廃、prop 互換のため受け取るが常時表示。
-	editMode?: boolean;
 	selectedWidgetId: string | null;
 }
 

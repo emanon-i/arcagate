@@ -81,6 +81,77 @@ let locale = $derived(currentLocale());
 			</select>
 		</div>
 	</div>
+	<!-- 2026-05-17 user 検収: Workspace 設定 (ヒントバー表示 / 拡大率上下限)。 -->
+	<div class="space-y-4 border-t border-[var(--ag-border)] pt-4">
+		<h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]">
+			{t('settings.workspace.heading')}
+		</h3>
+		<div class="flex items-center justify-between gap-4">
+			<div class="min-w-0">
+				<p class="text-sm font-medium text-[var(--ag-text-primary)]">
+					{t('settings.workspace.hint_bar_label')}
+				</p>
+				<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
+					{t('settings.workspace.hint_bar_desc')}
+				</p>
+			</div>
+			<div class="shrink-0">
+				<Switch
+					checked={configStore.hintBarVisible}
+					onChange={(enabled) => configStore.setHintBarVisible(enabled)}
+					aria-label={configStore.hintBarVisible
+						? t('settings.workspace.hint_bar_aria_off')
+						: t('settings.workspace.hint_bar_aria_on')}
+				/>
+			</div>
+		</div>
+		<div class="flex items-center justify-between gap-4">
+			<div class="min-w-0">
+				<p class="text-sm font-medium text-[var(--ag-text-primary)]">
+					{t('settings.workspace.max_zoom_label')}
+				</p>
+				<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
+					{t('settings.workspace.max_zoom_desc')}
+				</p>
+			</div>
+			<div class="shrink-0">
+				<input
+					type="number"
+					min="100"
+					max="1000"
+					step="10"
+					class="w-24 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					aria-label={t('settings.workspace.max_zoom_label')}
+					value={configStore.widgetMaxZoom}
+					onchange={(e) =>
+						configStore.setWidgetMaxZoom(Number((e.currentTarget as HTMLInputElement).value))}
+				/>
+			</div>
+		</div>
+		<div class="flex items-center justify-between gap-4">
+			<div class="min-w-0">
+				<p class="text-sm font-medium text-[var(--ag-text-primary)]">
+					{t('settings.workspace.min_zoom_label')}
+				</p>
+				<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
+					{t('settings.workspace.min_zoom_desc')}
+				</p>
+			</div>
+			<div class="shrink-0">
+				<input
+					type="number"
+					min="10"
+					max="100"
+					step="5"
+					class="w-24 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					aria-label={t('settings.workspace.min_zoom_label')}
+					value={configStore.widgetMinZoom}
+					onchange={(e) =>
+						configStore.setWidgetMinZoom(Number((e.currentTarget as HTMLInputElement).value))}
+				/>
+			</div>
+		</div>
+	</div>
 	<div class="border-t border-[var(--ag-border)] pt-4">
 		<UpdaterSettings />
 	</div>

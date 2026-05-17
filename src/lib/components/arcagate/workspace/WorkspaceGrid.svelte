@@ -1,22 +1,25 @@
 <script lang="ts">
-import { LayoutGrid } from '@lucide/svelte';
+import { CheckCheck, LayoutGrid, SquareDashed } from '@lucide/svelte';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import LibraryDetailPanel from '$lib/components/arcagate/library/LibraryDetailPanel.svelte';
+import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import type { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
+import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadJSON, saveJSON } from '$lib/utils/local-storage';
 import {
-	BOTTOM_RESERVE,
 	bufferOffsetPx,
 	computeBoundingBox,
 	computeFitScroll,
 	computeOrigin,
+	effectiveBottomReserve,
 } from '$lib/utils/zoom-math';
 import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
+import WorkspaceHintBar from './WorkspaceHintBar.svelte';
 import WorkspaceWidgetGrid from './WorkspaceWidgetGrid.svelte';
 
 /**
@@ -99,10 +102,12 @@ function computeInitialScroll(el: HTMLElement): { left: number; top: number } {
 		};
 	}
 	const origin = computeOrigin(bb);
-	const fit = computeFitScroll(origin, configStore.widgetZoom, {
-		clientWidth: el.clientWidth,
-		clientHeight: el.clientHeight,
-	});
+	const fit = computeFitScroll(
+		origin,
+		configStore.widgetZoom,
+		{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
+		effectiveBottomReserve(configStore.hintBarVisible),
+	);
 	return {
 		left: Math.min(el.scrollWidth - el.clientWidth, fit.scrollLeft),
 		top: Math.min(el.scrollHeight - el.clientHeight, fit.scrollTop),
@@ -165,7 +170,10 @@ let canvasW = $derived(
 let canvasH = $derived(
 	Math.max(
 		containerHeight,
-		bufferPx.y + maxRow * (zoom.widgetH + GRID_GAP) + FLEX_PADDING + BOTTOM_RESERVE,
+		bufferPx.y +
+			maxRow * (zoom.widgetH + GRID_GAP) +
+			FLEX_PADDING +
+			effectiveBottomReserve(configStore.hintBarVisible),
 	),
 );
 
@@ -188,6 +196,31 @@ function openItemDetail(itemId: string) {
 	workspaceContextMenuStore.close();
 }
 void openItemDetail;
+
+// 2026-05-17 user 検収: canvas 空白部の右クリック専用メニュー (全選択 / 選択解除)。
+let canvasMenu = $state<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+
+function handleCanvasContextMenu(e: MouseEvent): void {
+	// widget 上の右クリックは各 widget の context menu が preventDefault 済 →
+	// defaultPrevented で判別し、 空白部の時だけ canvas menu を開く。
+	if (e.defaultPrevented) return;
+	e.preventDefault();
+	canvasMenu = { open: true, x: e.clientX, y: e.clientY };
+}
+
+function closeCanvasMenu(): void {
+	canvasMenu = { ...canvasMenu, open: false };
+}
+
+function selectAllWidgets(): void {
+	workspaceSelection.setMany(workspaceStore.widgets.map((w) => w.id));
+	closeCanvasMenu();
+}
+
+function deselectAllWidgets(): void {
+	workspaceSelection.clear();
+	closeCanvasMenu();
+}
 </script>
 
 <!-- 4/30 user 検収: wallpaper 未設定時の fallback gradient を column 自体に置く。
@@ -231,6 +264,7 @@ void openItemDetail;
 		onpointermove={onCanvasPointerMove}
 		onpointerup={onCanvasPointerUp}
 		onscroll={onWorkspaceScroll}
+		oncontextmenu={handleCanvasContextMenu}
 	>
 		<!-- 5/04 user 検収 (post-redo3 #2): canvas size = max(viewport, grid)、padding 0。
 		     2026-05-07 fix: canvas に buffer 領域 (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP) を持たせ、
@@ -295,4 +329,36 @@ void openItemDetail;
 			</div>
 		</div>
 	</div>
+
+	<!-- 2026-05-17 user 検収: 下部ショートカットヒントバー。 canvas column 内に置くことで
+	     widget サイドバーに被らない (旧: WorkspaceLayout 直下で sidebar 上まで全幅に伸びていた)。
+	     Settings で非表示にでき、 fit-to-content の reserve も effectiveBottomReserve() で連動。 -->
+	{#if configStore.hintBarVisible}
+		<WorkspaceHintBar selectedWidgetId={workspaceSelection.singleId} />
+	{/if}
 </div>
+
+<ContextMenu open={canvasMenu.open} x={canvasMenu.x} y={canvasMenu.y} onClose={closeCanvasMenu}>
+	<button
+		type="button"
+		role="menuitem"
+		class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-primary)] focus-visible:bg-[var(--ag-surface-3)] focus-visible:outline-none hover:bg-[var(--ag-surface-3)] disabled:opacity-40"
+		data-testid="canvas-context-select-all"
+		disabled={workspaceStore.widgets.length === 0}
+		onclick={selectAllWidgets}
+	>
+		<CheckCheck class="h-3.5 w-3.5" />
+		{t('context_menu.select_all')}
+	</button>
+	<button
+		type="button"
+		role="menuitem"
+		class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-primary)] focus-visible:bg-[var(--ag-surface-3)] focus-visible:outline-none hover:bg-[var(--ag-surface-3)] disabled:opacity-40"
+		data-testid="canvas-context-deselect"
+		disabled={workspaceSelection.size === 0}
+		onclick={deselectAllWidgets}
+	>
+		<SquareDashed class="h-3.5 w-3.5" />
+		{t('context_menu.deselect')}
+	</button>
+</ContextMenu>

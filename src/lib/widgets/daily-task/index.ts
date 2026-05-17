@@ -14,7 +14,7 @@ export const meta: WidgetMeta = {
 	},
 	defaultConfig: {},
 	// J-2 (2026-05-12): 縦長 (W:H=3:5)、チェックボックス list で 8-12 タスク視認。
-	defaultSize: { w: 2, h: 2 },
+	defaultSize: { w: 4, h: 4 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'memo',
