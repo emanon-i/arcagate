@@ -113,6 +113,11 @@
 	/* Backdrop filter (Dark / Light テーマが glass 用に override する) */
 	--ag-backdrop: none;
 
+	/* #9: glass 面トークン (base fallback。Dark/Light テーマが override する) */
+	--ag-glass-bg: var(--ag-surface-opaque);
+	--ag-glass-blur: none;
+	--ag-glass-noise: none;
+
 	/* Effect tokens — theme differentiation
 	   --ag-widget-shadow-hover : widget hover 時の box-shadow (base shadow + glow)
 	   --ag-accent-glow         : focus ring / active item の glow (box-shadow 追加値)
@@ -230,12 +235,18 @@
    構造的 override (backdrop-filter 等) は両テーマ共通。
    ===================================================================== */
 
-/* Effect tokens — Dark */
+/* Effect tokens — Dark
+   #9: glass 面トークン。--ag-glass-bg は壁紙が透ける半透明色、--ag-glass-blur は
+   強めの backdrop-filter、--ag-glass-noise は grain テクスチャ。glass surface は
+   `.ag-glass` utility class でこの 3 つをまとめて適用する。 */
 [data-theme="dark"] {
 	--ag-widget-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 	--ag-accent-glow: 0 0 12px rgba(255, 255, 255, 0.3);
 	--ag-surface-tint: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
 	--ag-focus-glow: rgba(255, 255, 255, 0.25);
+	--ag-glass-bg: rgba(20, 25, 34, 0.6);
+	--ag-glass-blur: blur(28px) saturate(200%);
+	--ag-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.35'/%3E%3C/svg%3E");
 }
 
 /* Effect tokens — Light (tonally inverted、blur/radius は css_vars と同値) */
@@ -244,6 +255,18 @@
 	--ag-accent-glow: 0 0 12px rgba(37, 99, 235, 0.25);
 	--ag-surface-tint: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, transparent 50%);
 	--ag-focus-glow: rgba(37, 99, 235, 0.3);
+	--ag-glass-bg: rgba(249, 250, 252, 0.62);
+	--ag-glass-blur: blur(28px) saturate(200%);
+	--ag-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.22'/%3E%3C/svg%3E");
+}
+
+/* glass surface utility — 半透明 bg + grain + 強 blur をまとめて適用。
+   popup / dropdown / dialog / widget body / context menu / snackbar 等で使用。 */
+.ag-glass {
+	background-color: var(--ag-glass-bg);
+	background-image: var(--ag-glass-noise);
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
 }
 
 [data-theme="dark"] body,
@@ -256,22 +279,22 @@
 [data-theme="dark"] aside,
 [data-theme="light"] [role="dialog"] > div,
 [data-theme="light"] aside {
-	backdrop-filter: var(--ag-backdrop);
-	-webkit-backdrop-filter: var(--ag-backdrop);
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
 }
 
 /* Sidebar nav panel */
 [data-theme="dark"] .ag-sidebar,
 [data-theme="light"] .ag-sidebar {
-	backdrop-filter: var(--ag-backdrop);
-	-webkit-backdrop-filter: var(--ag-backdrop);
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
 }
 
 /* Library cards — elevated glass look */
 [data-theme="dark"] [data-testid^="library-card-"],
 [data-theme="light"] [data-testid^="library-card-"] {
-	backdrop-filter: var(--ag-backdrop);
-	-webkit-backdrop-filter: var(--ag-backdrop);
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
 	box-shadow: var(--ag-shadow-sm);
 	transition:
 		border-color var(--ag-duration-fast) var(--ag-ease-in-out),

@@ -208,7 +208,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		/>
 	{:else}
 		<!-- PH-issue-018: 検索バー sticky で scroll 中も検索可能。z-1 で結果リストより上。 -->
-		<div class="sticky top-0 z-[1] mb-2 flex items-center gap-1 bg-[var(--ag-surface-opaque)] pb-1">
+		<div class="ag-glass sticky top-0 z-[1] mb-2 flex items-center gap-1 pb-1">
 			<div class="flex flex-1 items-center gap-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2">
 				<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
 				<input

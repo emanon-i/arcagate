@@ -131,7 +131,7 @@ $effect(() => {
 			{t('library.tags.add_button')}
 		</button>
 		{#if showTagSelect}
-			<div bind:this={tagDropdownEl} class="absolute left-0 top-full z-10 mt-1 w-56 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-lg">
+			<div bind:this={tagDropdownEl} class="ag-glass absolute left-0 top-full z-10 mt-1 w-56 rounded-lg border border-[var(--ag-border)] p-1 shadow-lg">
 				<!-- PH-355: 検索 input。F-9: Enter で onCreateTag (新規作成 + 即 attach)。 -->
 				<div class="mb-1 flex items-center gap-1 border-b border-[var(--ag-border)] px-2 py-1">
 					<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />

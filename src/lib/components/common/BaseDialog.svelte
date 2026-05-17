@@ -81,7 +81,7 @@ function handleOpenChange(next: boolean): void {
 			{/snippet}
 		</Dialog.Overlay>
 		<Dialog.Content
-			class="fixed left-1/2 top-1/2 z-50 w-full {sizeClass} -translate-x-1/2 -translate-y-1/2 rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-6 shadow-[var(--ag-shadow-dialog)] {boxClass}"
+			class="ag-glass fixed left-1/2 top-1/2 z-50 w-full {sizeClass} -translate-x-1/2 -translate-y-1/2 rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] p-6 shadow-[var(--ag-shadow-dialog)] {boxClass}"
 			aria-labelledby={ariaLabelledby}
 			aria-describedby={ariaDescribedby}
 			trapFocus={!disableFocusTrap}

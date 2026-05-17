@@ -75,7 +75,7 @@ let adjustedY = $derived.by(() => {
 	<div
 		bind:this={menuEl}
 		role="menu"
-		class="fixed z-50 min-w-[14rem] max-w-[20rem] rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-[var(--ag-shadow-md)]"
+		class="ag-glass fixed z-50 min-w-[14rem] max-w-[20rem] rounded-md border border-[var(--ag-border)] p-1 shadow-[var(--ag-shadow-md)]"
 		style="left: {adjustedX}px; top: {adjustedY}px;"
 		data-testid="context-menu"
 	>

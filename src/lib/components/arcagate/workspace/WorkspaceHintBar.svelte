@@ -36,7 +36,7 @@ const dNormal = rm ? 0 : 200;
 	out:fade={{ duration: dFast }}
 >
 	<div
-		class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-[var(--ag-border)] bg-[var(--ag-surface-opaque)]/85 px-6 py-2 text-xs text-[var(--ag-text-muted)] backdrop-blur-sm"
+		class="ag-glass flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-[var(--ag-border)] px-6 py-2 text-xs text-[var(--ag-text-muted)]"
 		class:border-l-2={selectedWidgetId}
 		class:border-l-[var(--ag-accent)]={selectedWidgetId}
 	>

@@ -20,7 +20,7 @@ let { label, value }: Props = $props();
 </script>
 
 <div
-	class="border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-4"
+	class="ag-glass border border-[var(--ag-border)] p-4"
 	style="border-radius: var(--ag-radius-card);"
 >
 	<div class="text-xs text-[var(--ag-text-primary)] opacity-70">{label}</div>

@@ -63,7 +63,7 @@ async function handleUndo() {
 		out:fade={{ duration: dFast }}
 	>
 		<div
-			class="pointer-events-auto flex items-center gap-3 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-4 py-2.5 text-sm text-[var(--ag-text-primary)] shadow-[var(--ag-shadow-md)]"
+			class="ag-glass pointer-events-auto flex items-center gap-3 rounded-md border border-[var(--ag-border)] px-4 py-2.5 text-sm text-[var(--ag-text-primary)] shadow-[var(--ag-shadow-md)]"
 			data-testid="library-undo-snackbar"
 		>
 			<span class="font-medium">{t('workspace.undo_snackbar.deleted', { label: libraryHistory.pendingUndo.itemSnapshot.label })}</span>
