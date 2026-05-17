@@ -36,6 +36,7 @@ use commands::metadata_commands::{cmd_get_item_metadata, cmd_get_items_metadata_
 use commands::opener_commands::{
     cmd_delete_opener, cmd_launch_with_opener, cmd_list_openers, cmd_save_opener,
 };
+use commands::reset_commands::cmd_factory_reset;
 use commands::script_commands::{cmd_run_script, cmd_scan_script_folder};
 use commands::system_monitor_commands::{
     cmd_get_disk_stats, cmd_get_network_stats, cmd_get_system_stats,
@@ -336,6 +337,7 @@ pub fn run() {
             cmd_scan_exe_folders,
             cmd_scan_script_folder,
             cmd_run_script,
+            cmd_factory_reset,
             cmd_list_files,
             cmd_cancel_file_search,
             cmd_open_path,
