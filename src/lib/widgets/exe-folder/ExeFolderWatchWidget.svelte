@@ -331,8 +331,8 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	{:else}
 		<!-- 並び替え toolbar (5/03 user 検収: 旧「全部 Library 追加」 button は撤廃。auto-register on scan に統一)。
 		     I-3 (2026-05-10 user 検収): scroll で消えないよう sticky top-0 で widget header 領域に pin。
-		     bg-[var(--ag-surface-opaque)] で下層の item rows と被らないよう不透明に。 -->
-		<div class="sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] px-4 pb-1.5 pt-1 text-xs">
+		     #9: ag-glass で widget 本体と同じガラス面に統一 (scroll する rows は blur 越しに透ける)。 -->
+		<div class="ag-glass sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-4 pb-1.5 pt-1 text-xs">
 			<span class="text-[var(--ag-text-muted)]">{t('widgets.common.sort_label')}</span>
 			<button
 				type="button"
@@ -465,7 +465,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					{#if candidatePopoverFor === entry.folderPath}
 						<div
 							role="menu"
-							class="absolute right-0 top-full z-10 mt-1 w-72 max-w-full rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] p-1 shadow-[var(--ag-shadow-md)]"
+							class="ag-glass absolute right-0 top-full z-10 mt-1 w-72 max-w-full rounded-md border border-[var(--ag-border)] p-1 shadow-[var(--ag-shadow-md)]"
 						>
 							{#each entry.exeCandidates as cand (cand.path)}
 								<button

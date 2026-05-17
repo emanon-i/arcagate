@@ -110,8 +110,13 @@
 	--ag-ease-in: cubic-bezier(0.4, 0, 1, 1);
 	--ag-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-	/* Backdrop filter (Liquid Glass theme overrides this) */
+	/* Backdrop filter (Dark / Light テーマが glass 用に override する) */
 	--ag-backdrop: none;
+
+	/* #9: glass 面トークン (base fallback。Dark/Light テーマが override する) */
+	--ag-glass-bg: var(--ag-surface-opaque);
+	--ag-glass-blur: none;
+	--ag-glass-noise: none;
 
 	/* Effect tokens — theme differentiation
 	   --ag-widget-shadow-hover : widget hover 時の box-shadow (base shadow + glow)
@@ -223,121 +228,73 @@
 }
 
 /* =====================================================================
-   Endfield Theme — token overrides + global structural overrides
-   5-layer: solid bg → contour grid → noise → surface → content
+   Dark / Light テーマ — token overrides + glass 質感の構造 CSS
+   #7: builtin テーマは Dark / Light の 2 本のみ。
+     data-theme="dark"   → Dark
+     data-theme="light"  → Light
+   構造的 override (backdrop-filter 等) は両テーマ共通。
    ===================================================================== */
 
-[data-theme="theme-builtin-endfield"] {
-	--ag-widget-shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.55), 0 0 20px rgba(34, 211, 238, 0.12);
-	--ag-accent-glow: 0 0 8px rgba(34, 211, 238, 0.5);
-	--ag-surface-tint: linear-gradient(135deg, rgba(34, 211, 238, 0.04) 0%, transparent 60%);
-}
-
-/* Contour grid lines (body::before) */
-[data-theme="theme-builtin-endfield"] body::before {
-	content: "";
-	position: fixed;
-	inset: 0;
-	z-index: 0;
-	pointer-events: none;
-	background-image:
-		repeating-linear-gradient(
-			0deg,
-			transparent,
-			transparent 39px,
-			rgba(62, 207, 207, 0.06) 39px,
-			rgba(62, 207, 207, 0.06) 40px
-		),
-		repeating-linear-gradient(
-			90deg,
-			transparent,
-			transparent 59px,
-			rgba(62, 207, 207, 0.03) 59px,
-			rgba(62, 207, 207, 0.03) 60px
-		);
-}
-
-/* Noise texture (body::after) */
-[data-theme="theme-builtin-endfield"] body::after {
-	content: "";
-	position: fixed;
-	inset: 0;
-	z-index: 0;
-	pointer-events: none;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-	background-repeat: repeat;
-}
-
-/* Endfield: focus-visible に accent glow を追加 */
-[data-theme="theme-builtin-endfield"] :focus-visible {
-	outline-offset: 2px;
-	filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.4));
-}
-
-/* =====================================================================
-   Ubuntu Frosted Theme — token overrides + global structural overrides
-   ===================================================================== */
-
-[data-theme="theme-builtin-ubuntu-frosted"] {
-	--ag-accent-glow: 0 0 6px rgba(34, 211, 238, 0.35);
-}
-
-/* Sidebar with frosted glass */
-[data-theme="theme-builtin-ubuntu-frosted"] .ag-sidebar {
-	backdrop-filter: blur(24px) saturate(180%);
-	-webkit-backdrop-filter: blur(24px) saturate(180%);
-	background: rgba(30, 21, 35, 0.65) !important;
-	border-right: 1px solid rgba(233, 84, 32, 0.18);
-}
-
-/* Library cards with blur */
-[data-theme="theme-builtin-ubuntu-frosted"] [data-testid^="library-card-"] {
-	backdrop-filter: blur(12px) saturate(160%);
-	-webkit-backdrop-filter: blur(12px) saturate(160%);
-	background: rgba(37, 27, 47, 0.55) !important;
-	box-shadow:
-		0 2px 12px rgba(0, 0, 0, 0.35),
-		inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* Dialog / popover with heavy blur */
-[data-theme="theme-builtin-ubuntu-frosted"] [role="dialog"] > div {
-	backdrop-filter: blur(20px) saturate(200%);
-	-webkit-backdrop-filter: blur(20px) saturate(200%);
-}
-
-/* =====================================================================
-   Liquid Glass Theme — token overrides + global structural overrides
-   Applied when data-theme="theme-builtin-liquid-glass" is set on <html>
-   ===================================================================== */
-
-[data-theme="theme-builtin-liquid-glass"] {
+/* Effect tokens — Dark
+   #9: glass 面トークン。--ag-glass-bg は壁紙が透ける半透明色、--ag-glass-blur は
+   強めの backdrop-filter、--ag-glass-noise は grain テクスチャ。glass surface は
+   `.ag-glass` utility class でこの 3 つをまとめて適用する。 */
+[data-theme="dark"] {
 	--ag-widget-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 	--ag-accent-glow: 0 0 12px rgba(255, 255, 255, 0.3);
 	--ag-surface-tint: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+	--ag-focus-glow: rgba(255, 255, 255, 0.25);
+	--ag-glass-bg: rgba(20, 25, 34, 0.6);
+	--ag-glass-blur: blur(28px) saturate(200%);
+	--ag-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.35'/%3E%3C/svg%3E");
 }
 
-[data-theme="theme-builtin-liquid-glass"] body {
+/* Effect tokens — Light (tonally inverted、blur/radius は css_vars と同値) */
+[data-theme="light"] {
+	--ag-widget-shadow-hover: 0 8px 32px rgba(15, 23, 42, 0.16), 0 0 24px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+	--ag-accent-glow: 0 0 12px rgba(37, 99, 235, 0.25);
+	--ag-surface-tint: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, transparent 50%);
+	--ag-focus-glow: rgba(37, 99, 235, 0.3);
+	--ag-glass-bg: rgba(249, 250, 252, 0.62);
+	--ag-glass-blur: blur(28px) saturate(200%);
+	--ag-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.22'/%3E%3C/svg%3E");
+}
+
+/* glass surface utility — 半透明 bg + grain + 強 blur をまとめて適用。
+   popup / dropdown / dialog / widget body / context menu / snackbar 等で使用。 */
+.ag-glass {
+	background-color: var(--ag-glass-bg);
+	background-image: var(--ag-glass-noise);
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
+}
+
+[data-theme="dark"] body,
+[data-theme="light"] body {
 	background: var(--ag-bg);
 }
 
 /* Cards, panels, and surface containers get glass effect */
-[data-theme="theme-builtin-liquid-glass"] [role="dialog"] > div,
-[data-theme="theme-builtin-liquid-glass"] aside {
-	backdrop-filter: var(--ag-backdrop);
-	-webkit-backdrop-filter: var(--ag-backdrop);
+[data-theme="dark"] [role="dialog"] > div,
+[data-theme="dark"] aside,
+[data-theme="light"] [role="dialog"] > div,
+[data-theme="light"] aside {
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
 }
 
 /* Sidebar nav panel */
-[data-theme="theme-builtin-liquid-glass"] .ag-sidebar {
-	backdrop-filter: var(--ag-backdrop);
-	-webkit-backdrop-filter: var(--ag-backdrop);
+[data-theme="dark"] .ag-sidebar,
+[data-theme="light"] .ag-sidebar {
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
 }
 
 /* Library cards — elevated glass look */
-[data-theme="theme-builtin-liquid-glass"] [data-testid^="library-card-"] {
-	backdrop-filter: var(--ag-backdrop);
-	-webkit-backdrop-filter: var(--ag-backdrop);
+[data-theme="dark"] [data-testid^="library-card-"],
+[data-theme="light"] [data-testid^="library-card-"] {
+	backdrop-filter: var(--ag-glass-blur);
+	-webkit-backdrop-filter: var(--ag-glass-blur);
 	box-shadow: var(--ag-shadow-sm);
 	transition:
 		border-color var(--ag-duration-fast) var(--ag-ease-in-out),
@@ -346,14 +303,11 @@
 		box-shadow var(--ag-duration-fast) var(--ag-ease-in-out);
 }
 
-[data-theme="theme-builtin-liquid-glass"] [data-testid^="library-card-"]:hover {
+[data-theme="dark"] [data-testid^="library-card-"]:hover,
+[data-theme="light"] [data-testid^="library-card-"]:hover {
 	transform: translateY(-3px);
-	box-shadow:
-		0 8px 32px rgba(0, 0, 0, 0.5),
-		0 2px 8px rgba(0, 0, 0, 0.3),
-		inset 0 1px 0 rgba(255, 255, 255, 0.12),
-		inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-	border-color: rgba(255, 255, 255, 0.22);
+	box-shadow: var(--ag-widget-shadow-hover);
+	border-color: var(--ag-border-hover);
 	transition:
 		transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
 		box-shadow 200ms ease-out,
@@ -361,16 +315,15 @@
 }
 
 /* Palette overlay panel */
-[data-theme="theme-builtin-liquid-glass"] [role="dialog"][aria-modal="true"] > div {
+[data-theme="dark"] [role="dialog"][aria-modal="true"] > div,
+[data-theme="light"] [role="dialog"][aria-modal="true"] > div {
 	backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
 	-webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
-	box-shadow:
-		0 24px 80px rgba(0, 0, 0, 0.7),
-		0 0 0 1px rgba(255, 255, 255, 0.1),
-		inset 0 1px 0 rgba(255, 255, 255, 0.18);
+	box-shadow: var(--ag-shadow-dialog);
 }
 
-/* Liquid Glass: focus-visible に white glow を追加 */
-[data-theme="theme-builtin-liquid-glass"] :focus-visible {
-	filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.25));
+/* focus-visible に glow を追加 (テーマ別の glow 色は --ag-focus-glow) */
+[data-theme="dark"] :focus-visible,
+[data-theme="light"] :focus-visible {
+	filter: drop-shadow(0 0 8px var(--ag-focus-glow));
 }

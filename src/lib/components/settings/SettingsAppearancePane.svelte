@@ -3,6 +3,7 @@ import { Copy, Plus } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { t } from '$lib/i18n.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
+import { BUILTIN_THEME_DARK, BUILTIN_THEME_LIGHT } from '$lib/types/theme';
 
 /**
  * Settings の外観カテゴリ pane (theme list + theme editor mount + JSON import)。
@@ -33,6 +34,13 @@ let copySuccess = $state(false);
 const importPlaceholder =
 	'{"name": "My Theme", "base_theme": "dark", "css_vars": "{}","is_builtin": false,"created_at": "","updated_at": ""}';
 
+// #7: builtin テーマ (Dark / Light) は i18n ラベルで表示、custom は DB の name。
+function themeLabel(theme: { id: string; name: string }): string {
+	if (theme.id === BUILTIN_THEME_DARK) return t('settings.appearance.theme_dark');
+	if (theme.id === BUILTIN_THEME_LIGHT) return t('settings.appearance.theme_light');
+	return theme.name;
+}
+
 async function cloneTheme(sourceId: string) {
 	const source = themeStore.themes.find((t) => t.id === sourceId);
 	const cssVars = source ? source.css_vars : '{}';
@@ -51,11 +59,12 @@ async function cloneTheme(sourceId: string) {
 
 async function cloneCurrentTheme() {
 	const activeId = themeStore.activeMode;
-	// 'dark'/'light'/'system' は DB テーマではないので対応する builtin を探す
-	const builtinFallback = activeId === 'light' ? 'theme-builtin-light' : 'theme-builtin-dark';
+	// #7: 'system' は DB テーマではないので解決後の builtin (Dark/Light) を複製元にする
 	const sourceId =
-		activeId === 'dark' || activeId === 'light' || activeId === 'system'
-			? builtinFallback
+		activeId === 'system'
+			? themeStore.resolvedMode === 'light'
+				? BUILTIN_THEME_LIGHT
+				: BUILTIN_THEME_DARK
 			: activeId;
 	await cloneTheme(sourceId);
 }
@@ -127,37 +136,23 @@ function handleFileImport(e: Event) {
 			</button>
 		</div>
 		<div class="grid grid-cols-2 gap-2">
-			<!-- フラット Dark / Light -->
+			<!-- #7: OS 追従モード (Dark/Light を自動選択) -->
 			<button
 				type="button"
-				class="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
-				'dark'
+				class="col-span-2 flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
+				'system'
 					? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
 					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
 				onclick={() => {
-					void themeStore.setThemeMode('dark');
+					void themeStore.setThemeMode('system');
 					editingThemeId = null;
 				}}
 			>
-				<span class="font-medium">{t('settings.appearance.flat_dark')}</span>
-				<span class="text-xs opacity-70">{t('settings.appearance.builtin_default')}</span>
+				<span class="font-medium">{t('settings.appearance.system')}</span>
+				<span class="text-xs opacity-70">{t('settings.appearance.system_desc')}</span>
 			</button>
-			<button
-				type="button"
-				class="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
-				'light'
-					? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
-					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
-				onclick={() => {
-					void themeStore.setThemeMode('light');
-					editingThemeId = null;
-				}}
-			>
-				<span class="font-medium">{t('settings.appearance.flat_light')}</span>
-				<span class="text-xs opacity-70">{t('settings.appearance.builtin_default')}</span>
-			</button>
-			<!-- DB テーマ（組み込みプリセット + カスタム） -->
-			{#each themeStore.themes.filter((t) => t.id !== 'theme-builtin-dark' && t.id !== 'theme-builtin-light') as theme (theme.id)}
+			<!-- テーマ（Dark / Light + カスタム） -->
+			{#each themeStore.themes as theme (theme.id)}
 				<div class="flex flex-col gap-1">
 					<button
 						type="button"
@@ -170,7 +165,7 @@ function handleFileImport(e: Event) {
 							editingThemeId = null;
 						}}
 					>
-						<span class="font-medium">{theme.name}</span>
+						<span class="font-medium">{themeLabel(theme)}</span>
 						<span class="text-xs opacity-70">{theme.is_builtin ? t('settings.appearance.builtin_badge') : t('settings.appearance.custom_badge')}</span>
 					</button>
 					<div class="flex gap-1 px-1">

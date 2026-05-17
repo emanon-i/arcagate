@@ -421,7 +421,7 @@ function handleFormClose() {
 		tabindex="-1"
 		onclick={(e) => { if (e.target === e.currentTarget) showSettings = false; }}
 	>
-		<div class="relative flex h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] shadow-[var(--ag-shadow-dialog)]">
+		<div class="ag-glass relative flex h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] shadow-[var(--ag-shadow-dialog)]">
 			<div class="flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
 				<h2 class="text-base font-semibold text-[var(--ag-text-primary)]">{t('nav.settings')}</h2>
 				<button

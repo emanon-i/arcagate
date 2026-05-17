@@ -826,25 +826,27 @@ surface-opaque: backdrop-filter が使えない環境用の不透明フォール
 
 ### テーマ種別
 
-```
-BaseTheme（CSS クラス）
-  ├── dark  → .dark クラスをトグル
-  └── light → .dark クラスを除去
+デザインは半透明 + blur の glass 質感に一本化（Industrial Yellow / 蛍光イエロー
+路線は撤回済）。builtin テーマは Dark / Light の 2 本のみ。
 
-BuiltinCustomTheme（DB 保存 + data-theme セレクタで構造 CSS 適用）
-  ├── Endfield       (dark ベース: 深青灰 + ノイズテクスチャ)
-  ├── Ubuntu Frosted (dark ベース: Frosted Glass)
-  └── Liquid Glass   (dark ベース: backdrop-filter)
+```
+BuiltinTheme（DB 保存 + data-theme セレクタで構造 CSS 適用）
+  ├── Dark  (id='dark':  dark ベース、glass 質感)
+  └── Light (id='light': light ベース、Dark を tonally invert)
+
+system（OS 追従）
+  └── OS の prefers-color-scheme で Dark / Light を自動選択
 
 UserCustomTheme（DB 保存）
-  └── ユーザが css_vars JSON を編集したテーマ
+  └── ユーザが builtin を複製 / JSON import して css_vars を編集したテーマ
 ```
 
 ### 適用フロー
 
-1. `applyTheme()` が `css_vars` JSON を `:root` に `el.style.setProperty()` で展開
-2. `el.dataset.theme = activeMode` を設定 → `[data-theme="..."]` セレクタが構造 CSS を適用
-3. `backdrop-filter` など CSS 変数で設定できないプロパティは `[data-theme]` 側で定義
+1. `applyTheme()` が `activeMode` を実テーマ ID へ解決（`system` は OS 設定で Dark/Light）
+2. 解決したテーマの `css_vars` JSON を `:root` に `el.style.setProperty()` で展開
+3. `el.dataset.theme = <解決後 ID>` を設定 → `[data-theme="dark"]` / `[data-theme="light"]`
+   セレクタが構造 CSS（backdrop-filter 等）を適用
 
 ### BuiltinTheme の格納
 

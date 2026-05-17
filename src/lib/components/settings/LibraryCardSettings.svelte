@@ -2,18 +2,9 @@
 import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 
-let bg = $derived(configStore.libraryCard.background);
 let style = $derived(configStore.libraryCard.style);
 
 const SIZES = ['S', 'M', 'L'] as const;
-const MODES = [{ id: 'image' as const }, { id: 'fill' as const }, { id: 'none' as const }];
-let modes = $derived(
-	MODES.map((m) => ({
-		...m,
-		label: t(`settings.library_card.mode_${m.id}_label`),
-		desc: t(`settings.library_card.mode_${m.id}_desc`),
-	})),
-);
 </script>
 
 {#snippet ColorRow(label: string, value: string, oninput: (v: string) => void, testid: string)}
@@ -87,47 +78,13 @@ let modes = $derived(
 		</div>
 	</section>
 
-	<!-- 背景モード -->
-	<section class="space-y-2">
-		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.bg_mode_heading')}</h4>
-		<div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t('settings.library_card.bg_mode_heading')}>
-			{#each modes as mode (mode.id)}
-				<button
-					type="button"
-					role="radio"
-					aria-checked={bg.mode === mode.id}
-					data-testid="library-bg-mode-{mode.id}"
-					class="flex flex-col items-start gap-1 rounded-md border px-3 py-2 text-left transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {bg.mode === mode.id ? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]' : 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
-					onclick={() => configStore.setLibraryCardBackground({ mode: mode.id })}
-				>
-					<span class="text-sm font-medium">{mode.label}</span>
-					<span class="text-xs opacity-70">{mode.desc}</span>
-				</button>
-			{/each}
-		</div>
+	<!-- #8: グローバル背景モード選択は撤廃。default は「タイプ別グラデーション +
+	     中央アイコン」固定。画像 / カスタム色は各アイテムの編集画面 (カード個別設定 >
+	     背景設定) で指定する。 -->
+	<section class="space-y-1">
+		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.bg_heading')}</h4>
+		<p class="text-xs text-[var(--ag-text-muted)]">{t('settings.library_card.bg_desc')}</p>
 	</section>
-
-	{#if bg.mode === 'fill'}
-		<section class="space-y-2 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
-			<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.fill_color_heading')}</h4>
-			{@render ColorRow(
-				t('settings.library_card.fill_bg_color'),
-				bg.fillBgColor,
-				(v) => configStore.setLibraryCardBackground({ fillBgColor: v }),
-				'library-fill-bg-color',
-			)}
-			{@render ColorRow(
-				t('settings.library_card.fill_icon_color'),
-				bg.fillIconColor,
-				(v) => configStore.setLibraryCardBackground({ fillIconColor: v }),
-				'library-fill-icon-color',
-			)}
-		</section>
-	{/if}
-
-	<!-- B-9 #17: 画像の表示位置 (focal point) section は Settings から削除。
-	     全カード一律設定では実用性低、適切な移動先未定のため一旦削除。
-	     bg.focalX/Y の defaults は configStore で 50/50 維持。 -->
 
 	<!-- ラベル文字 -->
 	<section class="space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
