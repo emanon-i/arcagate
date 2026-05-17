@@ -73,7 +73,7 @@ pub fn scan_script_folder(root: &str, depth: u8) -> Result<Vec<ScriptEntry>, App
     }
     let mut out = Vec::new();
     walk(root_path, depth, &mut out);
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.sort_by_key(|e| e.name.to_lowercase());
     Ok(out)
 }
 
