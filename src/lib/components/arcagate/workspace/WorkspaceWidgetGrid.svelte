@@ -4,7 +4,12 @@ import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { WIDGET_LABELS } from '$lib/types/workspace';
-import { clampWidget, wouldOverlapAt } from '$lib/utils/widget-grid';
+import {
+	clampWidget,
+	computeMoveDragPreviews,
+	type DragPreviewBox,
+	wouldOverlapAt,
+} from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
 import WidgetHandles from './WidgetHandles.svelte';
 
@@ -217,6 +222,44 @@ $effect(() => {
 	document.addEventListener('keydown', handleKeydown);
 	return () => document.removeEventListener('keydown', handleKeydown);
 });
+
+/**
+ * #12: drag 中の preview box 群。
+ * - add: 1 box (default size)。
+ * - move (単): primary 1 box。
+ * - move (複数選択かつ primary が選択内): 選択 widget 全部を同 delta で preview box 化
+ *   → 「複数選択中の 1 つを drag すると他選択 widget も同 delta で追従」を視覚化。
+ * blocked 判定は非移動 widget との overlap + grid 越境。1 box でも違反なら moveMany は
+ * atomic reject するため、dragBlocked は OR で全 box を赤表示する。
+ */
+let dragPreviews = $derived.by<DragPreviewBox[]>(() => {
+	const active = pointerDrag.active;
+	const cell = pointerDrag.dropCell;
+	if (!active || !cell) return [];
+	if (active.kind === 'add') {
+		const sz = widgetRegistry[active.widgetType]?.defaultSize ??
+			widgetRegistry[active.widgetType]?.minViableSize ?? { w: 2, h: 2 };
+		const others = workspaceStore.widgets.map((w) => ({
+			x: w.position_x,
+			y: w.position_y,
+			w: w.width,
+			h: w.height,
+		}));
+		const blocked =
+			cell.x + sz.w > dynamicCols || wouldOverlapAt(cell.x, cell.y, sz.w, sz.h, others);
+		return [{ x: cell.x, y: cell.y, w: sz.w, h: sz.h, blocked }];
+	}
+	const primary = workspaceStore.widgets.find((w) => w.id === active.widgetId);
+	if (!primary) return [];
+	const dx = cell.x - primary.position_x;
+	const dy = cell.y - primary.position_y;
+	// 複数選択 drag (primary が選択内) なら選択全部、それ以外は primary のみ移動。
+	const isMulti = workspaceSelection.size > 1 && workspaceSelection.has(active.widgetId);
+	const movingIds = new Set(isMulti ? workspaceSelection.asArray() : [active.widgetId]);
+	return computeMoveDragPreviews(workspaceStore.widgets, movingIds, dx, dy, dynamicCols, maxRow);
+});
+
+let dragBlocked = $derived(dragPreviews.some((p) => p.blocked));
 </script>
 
 <!-- L-3: Grid with overlay -->
@@ -284,42 +327,21 @@ $effect(() => {
 			{/if}
 		{/each}
 
-		<!-- Codex High #4 + 再 review #2: Drop preview highlight を defaultSize / 移動元実 size に合わせる。
-		     overlap 事前判定 + grid 右端越え判定で accent (free) / destructive (blocked / 越境) を色分け。
-		     **width clamp はせず、span は previewSize.w 全幅で出す**（右端で grid 外にはみ出すが、その時は
-		     blocked 色で「ここには配置できない」と視覚的に伝える）。 -->
-		{#if pointerDrag.dropCell && pointerDrag.active}
-			{@const cell = pointerDrag.dropCell}
-			{@const previewSize =
-				pointerDrag.active.kind === 'add'
-					? (widgetRegistry[pointerDrag.active.widgetType]?.defaultSize ??
-						widgetRegistry[pointerDrag.active.widgetType]?.minViableSize ?? { w: 2, h: 2 })
-					: (() => {
-							const moving = workspaceStore.widgets.find(
-								(w) => pointerDrag.active?.kind === 'move' && w.id === pointerDrag.active.widgetId,
-							);
-							return moving ? { w: moving.width, h: moving.height } : { w: 2, h: 2 };
-						})()}
-			{@const others = workspaceStore.widgets
-				.filter((w) =>
-					pointerDrag.active?.kind === 'move' ? w.id !== pointerDrag.active.widgetId : true,
-				)
-				.map((w) => ({ x: w.position_x, y: w.position_y, w: w.width, h: w.height }))}
-			{@const overflowsRight = cell.x + previewSize.w > dynamicCols}
-			{@const blocked =
-				overflowsRight ||
-				wouldOverlapAt(cell.x, cell.y, previewSize.w, previewSize.h, others)}
-			{@const colorVar = blocked ? 'var(--ag-error-text)' : 'var(--ag-accent)'}
+		<!-- #12: Drop preview。複数選択 drag では選択 widget 全部を同 delta で preview 表示する。
+		     overlap / 越境を accent (free) / destructive (blocked) で色分け。1 box でも違反すれば
+		     moveMany が atomic reject するため、dragBlocked (OR) で全 box を赤表示する。 -->
+		{#each dragPreviews as p, i (i)}
+			{@const colorVar = dragBlocked ? 'var(--ag-error-text)' : 'var(--ag-accent)'}
 			<div
 				class="pointer-events-none rounded-lg border-2 border-dashed transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none"
 				style="
-					grid-column: {cell.x + 1} / span {previewSize.w};
-					grid-row: {cell.y + 1} / span {previewSize.h};
+					grid-column: {p.x + 1} / span {p.w};
+					grid-row: {p.y + 1} / span {p.h};
 					border-color: {colorVar};
 					background: color-mix(in srgb, {colorVar} 10%, transparent);
 					box-shadow: 0 0 0 2px {colorVar};
 				"
 			></div>
-		{/if}
+		{/each}
 	</div>
 </div>

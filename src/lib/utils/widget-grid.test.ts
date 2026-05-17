@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	clampWidget,
+	computeMoveDragPreviews,
 	findFreePosition,
 	findFreePositionNear,
 	type Rect,
@@ -116,5 +117,44 @@ describe('findFreePositionNear', () => {
 	it('seed が範囲外なら範囲内に clamp して探索', () => {
 		// seed (-5, -5) は範囲内 (0, 0) に clamp、空 grid なので (0, 0)
 		expect(findFreePositionNear(-5, -5, 1, 1, [], 4, 4)).toEqual({ x: 0, y: 0 });
+	});
+});
+
+/**
+ * #12: computeMoveDragPreviews — 複数選択 widget の同 delta drag preview。
+ */
+describe('computeMoveDragPreviews', () => {
+	const widgets = [
+		{ id: 'a', position_x: 0, position_y: 0, width: 2, height: 2 },
+		{ id: 'b', position_x: 4, position_y: 0, width: 2, height: 2 },
+		{ id: 'c', position_x: 8, position_y: 0, width: 2, height: 2 },
+	];
+
+	it('複数選択 widget を同 delta で移動した box を返す', () => {
+		const r = computeMoveDragPreviews(widgets, new Set(['a', 'b']), 1, 3, 12, 32);
+		expect(r).toHaveLength(2);
+		expect(r[0]).toMatchObject({ x: 1, y: 3, w: 2, h: 2, blocked: false });
+		expect(r[1]).toMatchObject({ x: 5, y: 3, w: 2, h: 2, blocked: false });
+	});
+
+	it('非移動 widget と重なる移動先は blocked', () => {
+		const r = computeMoveDragPreviews(widgets, new Set(['a']), 4, 0, 12, 32);
+		expect(r[0].blocked).toBe(true);
+	});
+
+	it('grid 右端を越える移動先は blocked', () => {
+		const r = computeMoveDragPreviews(widgets, new Set(['c']), 3, 0, 12, 32);
+		expect(r[0].blocked).toBe(true);
+	});
+
+	it('負座標は描画用に 0 クランプ、blocked は実座標で判定', () => {
+		const r = computeMoveDragPreviews(widgets, new Set(['a']), -3, 0, 12, 32);
+		expect(r[0].x).toBe(0);
+		expect(r[0].blocked).toBe(true);
+	});
+
+	it('移動グループ同士は衝突扱いしない (rigid に同 delta 移動)', () => {
+		const r = computeMoveDragPreviews(widgets, new Set(['a', 'b']), 2, 0, 12, 32);
+		expect(r.every((p) => !p.blocked)).toBe(true);
 	});
 });
