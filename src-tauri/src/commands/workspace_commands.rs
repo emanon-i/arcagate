@@ -144,6 +144,14 @@ pub fn cmd_get_git_statuses_batch(
     Ok(workspace_service::git_statuses_batch(paths))
 }
 
+/// #10: フォルダの実 mtime (filesystem 更新日時) を batch 取得する。
+/// フォルダ監視 widget の「更新日時」ソートで DB の `updated_at` ではなく
+/// 実フォルダの mtime を参照するため。ロジックは workspace_service に集約。
+#[tauri::command]
+pub fn cmd_get_folder_mtimes_batch(paths: Vec<String>) -> Vec<workspace_service::FolderMtimeEntry> {
+    workspace_service::folder_mtimes_batch(paths)
+}
+
 /// PH-issue-009: 画像を `<app_data_dir>/wallpapers/<uuid>.<ext>` にコピーして保存先パスを返す。
 /// UI 側で file picker → このコマンドを呼んで保存後 path を取得し、
 /// `cmd_set_workspace_wallpaper` で workspace に紐付ける。

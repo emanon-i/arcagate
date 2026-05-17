@@ -36,6 +36,7 @@ use commands::metadata_commands::{cmd_get_item_metadata, cmd_get_items_metadata_
 use commands::opener_commands::{
     cmd_delete_opener, cmd_launch_with_opener, cmd_list_openers, cmd_save_opener,
 };
+use commands::script_commands::{cmd_run_script, cmd_scan_script_folder};
 use commands::system_monitor_commands::{
     cmd_get_disk_stats, cmd_get_network_stats, cmd_get_system_stats,
 };
@@ -53,10 +54,10 @@ use commands::widget_item_hides_commands::{
 };
 use commands::workspace_commands::{
     cmd_add_widget, cmd_create_workspace, cmd_delete_workspace, cmd_get_folder_items,
-    cmd_get_frecency_items, cmd_get_frequent_items, cmd_get_git_statuses_batch,
-    cmd_get_recent_items, cmd_git_status, cmd_list_widgets, cmd_list_workspaces, cmd_remove_widget,
-    cmd_save_wallpaper_file, cmd_set_workspace_wallpaper, cmd_update_widget_config,
-    cmd_update_widget_position, cmd_update_workspace,
+    cmd_get_folder_mtimes_batch, cmd_get_frecency_items, cmd_get_frequent_items,
+    cmd_get_git_statuses_batch, cmd_get_recent_items, cmd_git_status, cmd_list_widgets,
+    cmd_list_workspaces, cmd_remove_widget, cmd_save_wallpaper_file, cmd_set_workspace_wallpaper,
+    cmd_update_widget_config, cmd_update_widget_position, cmd_update_workspace,
 };
 use tauri::{
     menu::{Menu, MenuItem},
@@ -311,6 +312,7 @@ pub fn run() {
             cmd_get_recent_items,
             cmd_get_frecency_items,
             cmd_get_folder_items,
+            cmd_get_folder_mtimes_batch,
             cmd_git_status,
             cmd_get_git_statuses_batch,
             cmd_save_wallpaper_file,
@@ -332,6 +334,8 @@ pub fn run() {
             cmd_get_item_metadata,
             cmd_get_items_metadata_batch,
             cmd_scan_exe_folders,
+            cmd_scan_script_folder,
+            cmd_run_script,
             cmd_list_files,
             cmd_cancel_file_search,
             cmd_open_path,

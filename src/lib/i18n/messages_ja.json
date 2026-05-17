@@ -767,6 +767,17 @@
 		"recent": {
 			"empty_message": "最近の起動履歴がここに表示されます"
 		},
+		"script_folder": {
+			"confirm_desc": "スクリプトを実行する前に確認ダイアログを表示します。",
+			"confirm_label": "実行前に確認する",
+			"confirm_run_button": "実行",
+			"confirm_run_desc": "「{name}」を実行しますか？",
+			"confirm_run_title": "スクリプトを実行",
+			"empty_description": "設定モーダルで監視フォルダを選ぶと、配下のスクリプトが表示されます。",
+			"empty_title": "No folder configured",
+			"no_scripts": "指定フォルダ内に実行可能なスクリプトがありません。",
+			"op_run": "スクリプトの実行"
+		},
 		"settings": {
 			"open_button": "設定を開く",
 			"title_label": "タイトル"
@@ -825,6 +836,7 @@
 			"projects": "フォルダ監視",
 			"quick_note": "メモ",
 			"recent": "最近起動",
+			"script_folder": "スクリプト監視",
 			"snippet": "スニペット",
 			"stats": "よく使うもの",
 			"system_monitor": "システムモニタ"

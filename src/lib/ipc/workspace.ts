@@ -113,3 +113,17 @@ export interface GitStatusBatchEntry {
 export async function getGitStatusesBatch(paths: string[]): Promise<GitStatusBatchEntry[]> {
 	return invoke<GitStatusBatchEntry[]>('cmd_get_git_statuses_batch', { paths });
 }
+
+/**
+ * #10: フォルダの実 mtime (filesystem 更新日時、ms epoch) を batch 取得。
+ * フォルダ監視 widget の「更新日時」ソート用。取得失敗時は `mtimeMs: 0`。
+ * 入力 paths と同じ順序で entry が返る。
+ */
+export interface FolderMtimeEntry {
+	path: string;
+	mtimeMs: number;
+}
+
+export async function getFolderMtimesBatch(paths: string[]): Promise<FolderMtimeEntry[]> {
+	return invoke<FolderMtimeEntry[]>('cmd_get_folder_mtimes_batch', { paths });
+}

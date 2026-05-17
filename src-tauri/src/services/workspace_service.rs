@@ -1,3 +1,4 @@
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::db::DbState;
@@ -201,11 +202,68 @@ pub fn git_statuses_batch(paths: Vec<String>) -> Vec<GitStatusBatchEntry> {
     git::git_statuses_batch(paths)
 }
 
+/// #10: フォルダの実 mtime (filesystem 更新日時、ms epoch)。
+/// フォルダ監視 widget の「更新日時」ソートで DB の updated_at ではなく
+/// 実フォルダの mtime を参照するために使う。
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderMtimeEntry {
+    pub path: String,
+    pub mtime_ms: u64,
+}
+
+/// 各 path の filesystem mtime を batch 取得する。入力順を保持。
+/// path 不在 / metadata 取得不可時は `mtime_ms: 0`。
+pub fn folder_mtimes_batch(paths: Vec<String>) -> Vec<FolderMtimeEntry> {
+    paths
+        .into_iter()
+        .map(|path| {
+            let mtime_ms = std::fs::metadata(&path)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|tm| tm.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0);
+            FolderMtimeEntry { path, mtime_ms }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::db::initialize_in_memory;
     use crate::models::workspace::WidgetType;
+
+    #[test]
+    fn test_folder_mtimes_batch_existing_and_missing() {
+        // #10: 実在 path は mtime > 0、不在 path は 0。
+        let tmp = std::env::temp_dir();
+        let tmp_str = tmp.to_string_lossy().to_string();
+        let missing = tmp
+            .join("arcagate-no-such-dir-xyz")
+            .to_string_lossy()
+            .to_string();
+        let result = folder_mtimes_batch(vec![tmp_str.clone(), missing.clone()]);
+        assert_eq!(result.len(), 2);
+        assert!(result.iter().find(|e| e.path == tmp_str).unwrap().mtime_ms > 0);
+        assert_eq!(
+            result.iter().find(|e| e.path == missing).unwrap().mtime_ms,
+            0
+        );
+    }
+
+    #[test]
+    fn test_folder_mtimes_batch_preserves_order() {
+        let r = folder_mtimes_batch(vec![
+            "a-x".to_string(),
+            "b-x".to_string(),
+            "c-x".to_string(),
+        ]);
+        assert_eq!(r.len(), 3);
+        assert_eq!(r[0].path, "a-x");
+        assert_eq!(r[2].path, "c-x");
+    }
 
     #[test]
     fn test_create_workspace() {

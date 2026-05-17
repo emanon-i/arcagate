@@ -767,6 +767,17 @@
 		"recent": {
 			"empty_message": "Your recent launch history will appear here"
 		},
+		"script_folder": {
+			"confirm_desc": "Show a confirmation dialog before running a script.",
+			"confirm_label": "Confirm before running",
+			"confirm_run_button": "Run",
+			"confirm_run_desc": "Run \"{name}\"?",
+			"confirm_run_title": "Run script",
+			"empty_description": "Pick a folder to watch in the settings dialog to list the scripts inside it.",
+			"empty_title": "No folder configured",
+			"no_scripts": "No runnable scripts found in the selected folder.",
+			"op_run": "Run script"
+		},
 		"settings": {
 			"open_button": "Open settings",
 			"title_label": "Title"
@@ -825,6 +836,7 @@
 			"projects": "Folder watch",
 			"quick_note": "Note",
 			"recent": "Recent",
+			"script_folder": "Script folder watch",
 			"snippet": "Snippet",
 			"stats": "Frequently used",
 			"system_monitor": "System monitor"

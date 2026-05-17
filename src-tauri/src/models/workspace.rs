@@ -25,6 +25,9 @@ pub enum WidgetType {
     /// U-6 (2026-05-12): テキストファイル D&D で配置する preview widget。
     /// config: { path: string }。 widget が path から file を読んでメタ + 中身を render。
     FilePreview,
+    /// #11: スクリプトフォルダ監視 widget。config: { watch_path, scan_depth, ... }。
+    /// 監視フォルダ配下の allowlist スクリプトをクリックで実行する。
+    ScriptFolder,
 }
 
 impl WidgetType {
@@ -44,6 +47,7 @@ impl WidgetType {
             WidgetType::SystemMonitor => "system_monitor",
             WidgetType::ImageScrap => "image_scrap",
             WidgetType::FilePreview => "file_preview",
+            WidgetType::ScriptFolder => "script_folder",
         }
     }
 
@@ -64,6 +68,7 @@ impl WidgetType {
             "system_monitor" => Some(WidgetType::SystemMonitor),
             "image_scrap" => Some(WidgetType::ImageScrap),
             "file_preview" => Some(WidgetType::FilePreview),
+            "script_folder" => Some(WidgetType::ScriptFolder),
             _ => None,
         }
     }

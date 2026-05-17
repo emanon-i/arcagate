@@ -115,3 +115,50 @@ export function findFreePositionNear(
 	// near では見つからないなら通常 scan で fallback
 	return findFreePosition(w, h, others, maxCols, maxRow);
 }
+
+/** #12: drag preview の 1 box。x/y は描画用に 0 クランプ済、blocked は実座標で判定。 */
+export interface DragPreviewBox {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+	blocked: boolean;
+}
+
+type GridWidget = {
+	id: string;
+	position_x: number;
+	position_y: number;
+	width: number;
+	height: number;
+};
+
+/**
+ * #12: 複数選択 widget を同 delta (dx, dy) で移動したときの drag preview box 群を計算する。
+ *
+ * `movingIds` に含まれる widget を delta 移動し、各 box の blocked (非移動 widget との
+ * overlap または grid 越境) を判定する。複数選択 drag で「他選択 widget も同 delta で追従」
+ * を視覚化するための pure 関数。box の x/y は grid-column 負値を避けるため 0 にクランプし、
+ * blocked 判定はクランプ前の実座標で行う (moveMany の atomic reject 条件と一致)。
+ */
+export function computeMoveDragPreviews(
+	widgets: GridWidget[],
+	movingIds: Set<string>,
+	dx: number,
+	dy: number,
+	dynamicCols: number,
+	maxRow: number,
+): DragPreviewBox[] {
+	const stationary: Rect[] = widgets
+		.filter((w) => !movingIds.has(w.id))
+		.map((w) => ({ x: w.position_x, y: w.position_y, w: w.width, h: w.height }));
+	return widgets
+		.filter((w) => movingIds.has(w.id))
+		.map((w) => {
+			const px = w.position_x + dx;
+			const py = w.position_y + dy;
+			const overflows = px < 0 || py < 0 || px + w.width > dynamicCols || py + w.height > maxRow;
+			const blocked = overflows || wouldOverlapAt(px, py, w.width, w.height, stationary);
+			return { x: Math.max(0, px), y: Math.max(0, py), w: w.width, h: w.height, blocked };
+		});
+}
