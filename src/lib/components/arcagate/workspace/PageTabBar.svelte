@@ -105,24 +105,23 @@ function deleteFromMenu(): void {
 }
 </script>
 
-<div class="flex flex-wrap items-center gap-2">
-	<!-- 不具合修正 (2026-05-19): 旧 border-only + bg-transparent タブは wallpaper / 暗い
-	     workspace 背景に紛れて 5 テーマで視認不能だった。 TitleBar の TitleTab と同じ
-	     solid surface パターンへ統一 — inactive は --ag-surface-2、 active は accent
-	     active surface。 全 token は base 非依存の派生層なので 5 テーマ共通で可視。
-	     Tailwind arbitrary value を含む `class:` directive はトグルが脆いため、
-	     active/inactive は通常の三項クラス文字列で表現する。 -->
+<!-- ページタブ + 壁紙設定を 1 つの frosted glass pill に内包する (2026-05-19 user 指示)。
+     pill 自体が ag-glass (半透明 + backdrop-blur + 控えめ border + soft shadow) で、
+     canvas / 壁紙が pill 越しにうっすら透ける。 個別 button は solid surface を持たず、
+     active/inactive は text-color + 軽い accent tint のみで区別する (pill の色は変えない)。
+     旧 solid chip 直置き方式は「色が濃すぎる」 user 報告で撤回。 -->
+<div class="ag-glass inline-flex flex-wrap items-center gap-1 rounded-full p-1.5">
 	{#each workspaceStore.workspaces as ws (ws.id)}
 		{@const isActive = ws.id === workspaceStore.activeWorkspaceId}
 		{@const canDelete = workspaceStore.workspaces.length > 1}
 		<div class="group relative inline-flex">
 			<button
 				type="button"
-				class="rounded-full border text-xs transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {canDelete
+				class="rounded-full text-xs transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {canDelete
 					? 'pl-3.5 pr-7 py-1.5'
 					: 'px-3.5 py-1.5'} {isActive
-					? 'border-[var(--ag-accent-active-border)] bg-[var(--ag-accent-active-bg)] font-medium text-[var(--ag-accent-text)]'
-					: 'border-[var(--ag-border)] bg-[var(--ag-surface-2)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
+					? 'bg-[var(--ag-accent-bg)] font-medium text-[var(--ag-accent-text)]'
+					: 'text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
 				onclick={() => onSelectWorkspace?.(ws.id)}
 				ondblclick={isActive ? () => onRenameActive?.() : undefined}
 				oncontextmenu={(e) => openTabMenu(e, ws)}
@@ -158,11 +157,10 @@ function deleteFromMenu(): void {
 			autofocus
 		/>
 	{:else}
-		<!-- 設計方針 (2026-05-19): bar chrome 無しのため、 各 button は自前の surface 色で
-		     壁紙の上でも視認させる。 dashed border は「追加」 affordance として維持。 -->
+		<!-- pill 内: solid surface 無し。 dashed border のみ「追加」 affordance として維持。 -->
 		<button
 			type="button"
-			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] bg-[var(--ag-surface-2)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			onclick={startAdd}
 		>
 			{t('workspace.tab.add_page')}
@@ -173,7 +171,7 @@ function deleteFromMenu(): void {
 	{#if onEditWallpaper && workspaceStore.activeWorkspaceId}
 		<button
 			type="button"
-			class="ml-auto flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label={t('workspace.wallpaper_set')}
 			onclick={() => onEditWallpaper()}
 		>
