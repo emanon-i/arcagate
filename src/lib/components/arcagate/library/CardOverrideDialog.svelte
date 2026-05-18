@@ -7,7 +7,7 @@ import { t } from '$lib/i18n.svelte';
 import type { Item } from '$lib/types/item';
 
 /**
- * F-5 (2026-05-08 user 検収): カード個別調整 modal。
+ * F-5 (2026-05-08 user 検収): カード見た目設定 modal。
  *
  * 内部で `ItemFormCardOverride` を render、card_override 編集 UI 全部を modal 内に集約。
  * BaseDialog rewrite (Dialog wrapper unify Phase 2)。
@@ -40,7 +40,7 @@ let { open, item, onClose }: Props = $props();
 			id="card-override-dialog-title"
 			class="text-lg font-semibold text-[var(--ag-text-primary)]"
 		>
-			{t('library.card_override.title')}
+			{t('library.appearance_settings.title')}
 		</h2>
 		<Button
 			type="button"

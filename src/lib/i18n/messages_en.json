@@ -136,15 +136,15 @@
 		}
 	},
 	"item": {
-		"card_override": {
+		"appearance_settings": {
 			"badge_active": "Customized",
 			"card_display_label": "Card display",
 			"confirm_reset_button": "Clear",
-			"confirm_reset_desc": "The per-card display settings will be lost and the global settings from Settings > Library will apply.",
-			"confirm_reset_title": "Clear per-card customization?",
+			"confirm_reset_desc": "The appearance settings for this card will be lost and the global settings from Settings > Library will apply.",
+			"confirm_reset_title": "Clear appearance settings?",
 			"desc_global": "Global settings from Settings > Library are applied.",
 			"desc_overriding": "This card uses display settings independent of the global configuration.",
-			"enable_aria": "Enable per-card customization for this card",
+			"enable_aria": "Enable appearance settings for this card",
 			"enable_button": "Customize this card",
 			"filter_icon_image": "Icon image",
 			"fit_center": "Centered",
@@ -161,7 +161,7 @@
 			"opener_desc": "Launch with the specified Opener for this card only. Applies to click launches in both Library and Workspace.",
 			"opener_label": "Launch app (Opener override)",
 			"overlay_label": "Show gradient overlay at the bottom",
-			"reset_aria": "Clear per-card customization and revert to global settings",
+			"reset_aria": "Clear appearance settings and revert to global settings",
 			"reset_button": "Revert to global settings",
 			"stroke_color_label": "Outline color",
 			"stroke_label": "Add outline to label text",
@@ -211,14 +211,14 @@
 	},
 	"library": {
 		"add_item": "Add item",
-		"card_override": {
-			"title": "Per-card customization"
+		"appearance_settings": {
+			"title": "Card appearance"
 		},
 		"detail": {
 			"alias_label": "Aliases",
+			"appearance_settings_label": "Appearance",
+			"appearance_settings_open": "Open appearance settings",
 			"args_label": "Arguments",
-			"card_override_label": "Per-card customization",
-			"card_override_open": "Open per-card customization",
 			"close_panel": "Close panel",
 			"default_app": "Default app",
 			"default_app_fallback": "Explorer (default)",
@@ -460,7 +460,7 @@
 			"press_key": "Press a key…"
 		},
 		"library_card": {
-			"bg_desc": "All cards show a centered icon on a shared surface. Set a full-bleed image or swap the icon per item from its edit dialog (per-card customization).",
+			"bg_desc": "All cards show a centered icon on a shared surface. Set a full-bleed image or swap the icon per item from its edit dialog (card appearance settings).",
 			"bg_heading": "Card appearance",
 			"label_text_heading": "Label text",
 			"overlay": "Background overlay",
@@ -540,10 +540,10 @@
 		}
 	},
 	"toast": {
+		"appearance_settings_cleared": "Appearance settings cleared",
+		"appearance_settings_started": "Appearance settings started",
 		"bookmark_read_failed": "Read failed: {error}",
 		"calc_copied_to_clipboard": "Calculation copied to clipboard",
-		"card_override_cleared": "Per-card customization cleared",
-		"card_override_started": "Per-card customization started",
 		"config_save_failed": "Failed to save settings: {error}",
 		"copied_to_clipboard": "Copied to clipboard",
 		"copy_failed": "Copy failed: {error}",
@@ -635,7 +635,7 @@
 		},
 		"common": {
 			"builtin_suffix": " (built-in)",
-			"default_opener_desc": "Use this opener for launches from this widget. Per-card Library customization takes priority if set.",
+			"default_opener_desc": "Use this opener for launches from this widget. The card's Library appearance settings take priority if set.",
 			"default_opener_label": "Default launcher app",
 			"default_opener_system": "Default (system) / follows item.default_app",
 			"description_label": "Description",
