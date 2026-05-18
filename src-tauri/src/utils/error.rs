@@ -21,6 +21,11 @@ pub enum AppError {
     #[error("Not executable: {0}")]
     LaunchNotExecutable(String),
 
+    /// audit F15 (2026-05-18): Command / Script アイテムの初回起動確認が未済。
+    /// payload は実行対象 (command / script 文字列) — frontend が確認ダイアログに表示する。
+    #[error("{0}")]
+    ConfirmationRequired(String),
+
     #[error("Validation error: {0}")]
     Validation(String),
 
@@ -61,6 +66,7 @@ impl AppError {
             AppError::LaunchFileNotFound(_) => "launch.file_not_found",
             AppError::LaunchPermissionDenied(_) => "launch.permission_denied",
             AppError::LaunchNotExecutable(_) => "launch.not_executable",
+            AppError::ConfirmationRequired(_) => "launch.confirmation_required",
             AppError::Validation(_) => "validation",
             AppError::Io(_) => "io.error",
             AppError::DbLock => "db.lock",

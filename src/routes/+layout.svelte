@@ -1,6 +1,7 @@
 <script lang="ts">
 import '../app.css';
 import { onDestroy, onMount } from 'svelte';
+import ScriptLaunchConfirmDialog from '$lib/components/common/ScriptLaunchConfirmDialog.svelte';
 import { detectOsLocale, type Locale, setLocale } from '$lib/i18n.svelte';
 import { installErrorMonitor, uninstallErrorMonitor } from '$lib/state/error-monitor.svelte';
 import { installLongtaskObserver, installResourceObserver } from '$lib/utils/perf';
@@ -62,3 +63,6 @@ function handleGlobalContextMenu(e: MouseEvent): void {
 <svelte:window oncontextmenu={handleGlobalContextMenu} />
 
 {@render children()}
+
+<!-- audit F15: Command / Script 初回起動確認ダイアログ (全 launch 経路 共通、 root に 1 度 mount) -->
+<ScriptLaunchConfirmDialog />

@@ -31,7 +31,11 @@ pub fn cmd_cancel_file_search(state: State<FileSearchState>, search_id: String) 
 
 /// 任意の path（file / folder）を OS デフォルトで開く。
 /// Library 経由でない一時アクセス用（FileSearchWidget 等）。
+///
+/// audit F8 (2026-05-18): path は WebView から直接渡る raw 入力。 起動前に
+/// `validate_existing_path` で制御文字拒否 + 実在検証を行う。
 #[tauri::command]
 pub fn cmd_open_path(path: String) -> Result<(), AppError> {
+    launcher::validate_existing_path(&path)?;
     launcher::launch_folder(&path)
 }

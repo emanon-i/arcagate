@@ -144,7 +144,10 @@ fn interpreter_for(ext: &str) -> Option<&'static [&'static str]> {
 
 /// スクリプトが監視フォルダ配下の許可形式かを検証し、canonicalize 済みパスを返す。
 /// (実行・テスト双方から使う純粋な検証ロジック。)
-fn validate_script(
+///
+/// audit F15 (2026-05-18): 初回実行確認の gate (cmd_run_script) が confirmation key に
+/// 使う canonical path を得るため `pub` 化。
+pub fn validate_script(
     folder: &str,
     script_path: &str,
 ) -> Result<(std::path::PathBuf, String), AppError> {

@@ -45,6 +45,9 @@
 		"dup_image_message": "この画像を表示する widget が既に Workspace に存在します。\n\n• 既存を選択 (おすすめ): その widget を選択状態にします\n• 別 widget として追加: 同じ画像を別 widget に複製します\n• キャンセル: 何もしません",
 		"dup_image_title": "同じ画像の widget があります",
 		"dup_select_existing": "既存を選択",
+		"script_launch_confirm_message": "このアイテムは次のコマンド / スクリプトを実行します。 初回起動の確認です — 内容を確認してから実行してください。",
+		"script_launch_confirm_run": "実行",
+		"script_launch_confirm_title": "コマンド / スクリプトを実行しますか?",
 		"settings_close_aria": "設定を閉じる",
 		"unsaved_changes": "保存されていない変更があります"
 	},

@@ -30,14 +30,15 @@ use commands::item_commands::{
 };
 use commands::kill_switch_commands::cmd_check_kill_switch;
 use commands::launch_commands::{
-    cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent, cmd_reveal_in_explorer,
+    cmd_confirm_item, cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
+    cmd_reveal_in_explorer,
 };
 use commands::metadata_commands::{cmd_get_item_metadata, cmd_get_items_metadata_batch};
 use commands::opener_commands::{
     cmd_delete_opener, cmd_launch_with_opener, cmd_list_openers, cmd_save_opener,
 };
 use commands::reset_commands::cmd_factory_reset;
-use commands::script_commands::{cmd_run_script, cmd_scan_script_folder};
+use commands::script_commands::{cmd_confirm_script, cmd_run_script, cmd_scan_script_folder};
 use commands::system_monitor_commands::{
     cmd_get_disk_stats, cmd_get_network_stats, cmd_get_system_stats,
 };
@@ -282,6 +283,7 @@ pub fn run() {
             cmd_check_is_directory,
             cmd_extract_item_icon,
             cmd_launch_item,
+            cmd_confirm_item,
             cmd_list_recent,
             cmd_list_frequent,
             cmd_reveal_in_explorer,
@@ -337,6 +339,7 @@ pub fn run() {
             cmd_scan_exe_folders,
             cmd_scan_script_folder,
             cmd_run_script,
+            cmd_confirm_script,
             cmd_factory_reset,
             cmd_list_files,
             cmd_cancel_file_search,

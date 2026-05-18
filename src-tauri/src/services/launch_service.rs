@@ -44,6 +44,18 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let item = item_repository::find_by_id(&conn, item_id)?;
 
+    // audit F15 (2026-05-18): Command / Script は任意のコマンド / スクリプトを実行するため、
+    // 初回起動時に確認を要求する。 未確認なら起動を中断し ConfirmationRequired を返す
+    // (frontend が確認ダイアログを表示 → cmd_confirm_item → 再起動)。 CLI / MCP は明示的な
+    // 非対話起動なので gate を適用しない。
+    let needs_confirmation = matches!(item.item_type, ItemType::Command | ItemType::Script)
+        && source != "cli"
+        && source != "mcp";
+    if needs_confirmation && !launch_repository::is_item_confirmed(&conn, item_id)? {
+        log::info!("launch gated (confirmation required): id={}", item_id);
+        return Err(AppError::ConfirmationRequired(item.target.clone()));
+    }
+
     log::info!(
         "launching item: id={} type={:?} label={} source={}",
         item_id,
@@ -129,6 +141,25 @@ pub fn list_frequent(db: &DbState, limit: i64) -> Result<Vec<ItemStats>, AppErro
     launch_repository::list_frequent(&conn, limit)
 }
 
+/// audit F15 (2026-05-18): アイテムを起動確認済みとして記録する。
+/// frontend が確認ダイアログでユーザー承認を得た後に呼ぶ。
+pub fn confirm_item(db: &DbState, item_id: &str) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    launch_repository::confirm_item(&conn, item_id)
+}
+
+/// audit F15 (2026-05-18): #11 script widget のスクリプトが実行確認済みか。
+pub fn is_script_confirmed(db: &DbState, script_path: &str) -> Result<bool, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    launch_repository::is_script_confirmed(&conn, script_path)
+}
+
+/// audit F15 (2026-05-18): スクリプトを実行確認済みとして記録する。
+pub fn confirm_script(db: &DbState, script_path: &str) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    launch_repository::confirm_script(&conn, script_path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,6 +202,69 @@ mod tests {
         let err = preflight_check(ItemType::Exe, manifest_dir).unwrap_err();
         assert!(matches!(err, AppError::LaunchNotExecutable(_)));
     }
+
+    // --- audit F15: Command / Script 初回起動確認 gate ---
+
+    fn insert_command_item(db: &DbState, id: &str, target: &str) {
+        use crate::models::item::Item;
+        use crate::repositories::item_repository;
+        let conn = db.0.lock().unwrap();
+        let item = Item {
+            id: id.to_string(),
+            item_type: ItemType::Command,
+            label: "Test Command".to_string(),
+            target: target.to_string(),
+            args: None,
+            working_dir: None,
+            icon_path: None,
+            icon_type: None,
+            aliases: vec![],
+            sort_order: 0,
+            is_enabled: true,
+            is_tracked: false,
+            default_app: None,
+            card_override_json: None,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        item_repository::insert(&conn, &item).unwrap();
+    }
+
+    #[test]
+    fn launch_item_unconfirmed_command_returns_confirmation_required() {
+        use crate::db::initialize_in_memory;
+        let db = initialize_in_memory();
+        insert_command_item(&db, "cmd-001", "echo hello");
+
+        let err = launch_item(&db, "cmd-001", "palette").unwrap_err();
+        match err {
+            AppError::ConfirmationRequired(target) => assert_eq!(target, "echo hello"),
+            other => panic!("expected ConfirmationRequired, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn launch_item_cli_source_skips_confirmation_gate() {
+        use crate::db::initialize_in_memory;
+        let db = initialize_in_memory();
+        insert_command_item(&db, "cmd-002", "echo hello");
+
+        // source="cli" は gate 対象外 — spawn 結果は環境依存だが ConfirmationRequired ではない。
+        let result = launch_item(&db, "cmd-002", "cli");
+        assert!(!matches!(result, Err(AppError::ConfirmationRequired(_))));
+    }
+
+    #[test]
+    fn launch_item_confirmed_command_passes_gate() {
+        use crate::db::initialize_in_memory;
+        let db = initialize_in_memory();
+        insert_command_item(&db, "cmd-003", "echo hello");
+        confirm_item(&db, "cmd-003").unwrap();
+
+        // 確認済みなので gate を通過する (ConfirmationRequired にはならない)。
+        let result = launch_item(&db, "cmd-003", "palette");
+        assert!(!matches!(result, Err(AppError::ConfirmationRequired(_))));
+    }
 }
 
 /// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
@@ -198,5 +292,17 @@ impl LaunchService {
 
     pub fn list_frequent(&self, limit: i64) -> Result<Vec<ItemStats>, AppError> {
         list_frequent(&self.db, limit)
+    }
+
+    pub fn confirm_item(&self, item_id: &str) -> Result<(), AppError> {
+        confirm_item(&self.db, item_id)
+    }
+
+    pub fn is_script_confirmed(&self, script_path: &str) -> Result<bool, AppError> {
+        is_script_confirmed(&self.db, script_path)
+    }
+
+    pub fn confirm_script(&self, script_path: &str) -> Result<(), AppError> {
+        confirm_script(&self.db, script_path)
     }
 }

@@ -9,6 +9,13 @@ pub fn cmd_launch_item(services: State<AppServices>, item_id: String) -> Result<
     services.launch.launch_item(&item_id, "palette")
 }
 
+/// audit F15 (2026-05-18): Command / Script アイテムを起動確認済みとして記録する。
+/// frontend が初回起動確認ダイアログでユーザー承認を得た後に呼ぶ。
+#[tauri::command]
+pub fn cmd_confirm_item(services: State<AppServices>, item_id: String) -> Result<(), AppError> {
+    services.launch.confirm_item(&item_id)
+}
+
 #[tauri::command]
 pub fn cmd_get_item_stats(
     services: State<AppServices>,
@@ -39,6 +46,9 @@ pub fn cmd_list_frequent(
 pub fn cmd_reveal_in_explorer(path: String) -> Result<(), AppError> {
     use std::path::Path;
     use std::process::Command;
+
+    // audit F8 (2026-05-18): WebView から渡る raw path。 制御文字拒否 + 実在検証。
+    crate::launcher::validate_existing_path(&path)?;
 
     let p = Path::new(&path);
     let metadata = std::fs::metadata(p)
