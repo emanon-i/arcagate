@@ -276,9 +276,11 @@ function deselectAllWidgets(): void {
 		></div>
 	{/if}
 
-	<!-- 上部 toolbar: PageTabBar (workspace 切替 + 壁紙設定 button)。
-	     検収 #11: 背景色削除 (透明)、border のみ残す。 -->
-	<div class="relative z-20 shrink-0 border-b border-[var(--ag-border)] px-5 py-3">
+	<!-- 上部 PageTabBar (workspace 切替 + 壁紙設定 button)。
+	     設計方針 (2026-05-19 user 指示): bar chrome を持たない。 背景塗りつぶし無し +
+	     区切り線無しの透明な配置 container とし、 タブ / ボタンは canvas 背景 (壁紙) の
+	     上に直接浮かぶ独立要素として個別の色で視認させる。 -->
+	<div class="relative z-20 shrink-0 px-5 py-3">
 		<PageTabBar
 			onSelectWorkspace={onSelectWorkspace}
 			onRenameActive={onRenameActive}

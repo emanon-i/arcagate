@@ -149,7 +149,7 @@ function deleteFromMenu(): void {
 		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			type="text"
-			class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-transparent px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
+			class="w-24 rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-surface-2)] px-3 py-1 text-xs text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
 			placeholder={t('workspace.tab.name_placeholder')}
 			autocomplete="off"
 			bind:value={newName}
@@ -158,9 +158,11 @@ function deleteFromMenu(): void {
 			autofocus
 		/>
 	{:else}
+		<!-- 設計方針 (2026-05-19): bar chrome 無しのため、 各 button は自前の surface 色で
+		     壁紙の上でも視認させる。 dashed border は「追加」 affordance として維持。 -->
 		<button
 			type="button"
-			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="rounded-full border border-dashed border-[var(--ag-border-dashed)] bg-[var(--ag-surface-2)] px-3 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			onclick={startAdd}
 		>
 			{t('workspace.tab.add_page')}
@@ -171,7 +173,7 @@ function deleteFromMenu(): void {
 	{#if onEditWallpaper && workspaceStore.activeWorkspaceId}
 		<button
 			type="button"
-			class="ml-auto flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-transparent px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			class="ml-auto flex items-center gap-1 rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2.5 py-1.5 text-xs text-[var(--ag-text-muted)] transition-[color,border-color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-accent-border)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 			aria-label={t('workspace.wallpaper_set')}
 			onclick={() => onEditWallpaper()}
 		>
