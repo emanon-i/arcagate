@@ -277,10 +277,10 @@ function deselectAllWidgets(): void {
 	{/if}
 
 	<!-- 上部 PageTabBar (workspace 切替 + 壁紙設定 button)。
-	     設計方針 (2026-05-19 user 指示): bar chrome を持たない。 背景塗りつぶし無し +
-	     区切り線無しの透明な配置 container とし、 タブ / ボタンは canvas 背景 (壁紙) の
-	     上に直接浮かぶ独立要素として個別の色で視認させる。 -->
-	<div class="relative z-20 shrink-0 px-5 py-3">
+	     設計方針 (2026-05-19 user 指示): 全幅 bar / 区切り線は持たない。 PageTabBar 自身が
+	     frosted glass pill (ag-glass) で、 canvas 上に浮かぶ単一 pill として中央に配置する。
+	     wallpaper は pill 越しにうっすら透ける。 -->
+	<div class="relative z-20 flex shrink-0 justify-center px-5 py-3">
 		<PageTabBar
 			onSelectWorkspace={onSelectWorkspace}
 			onRenameActive={onRenameActive}
