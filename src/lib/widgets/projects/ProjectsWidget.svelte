@@ -286,7 +286,7 @@ async function handleLaunch(item: Item) {
 	{:else if scanning}
 		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.common.scanning')}</p>
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-text-error)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
+		<p class="text-sm text-[var(--ag-error-text)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
 	{:else if folderItems.length === 0}
 		<p class="text-sm text-[var(--ag-text-muted)]">
 			{t('widgets.projects.no_subfolders')}

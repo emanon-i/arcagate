@@ -121,12 +121,10 @@ function computeInitialScroll(el: HTMLElement): { left: number; top: number } {
 		};
 	}
 	const origin = computeOrigin(bb);
-	const fit = computeFitScroll(
-		origin,
-		configStore.widgetZoom,
-		{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
-		effectiveBottomReserve(configStore.hintBarVisible),
-	);
+	const fit = computeFitScroll(origin, configStore.widgetZoom, {
+		clientWidth: el.clientWidth,
+		clientHeight: el.clientHeight,
+	});
 	return {
 		left: Math.min(el.scrollWidth - el.clientWidth, fit.scrollLeft),
 		top: Math.min(el.scrollHeight - el.clientHeight, fit.scrollTop),
@@ -186,8 +184,17 @@ function onWorkspaceScroll() {
 const FLEX_PADDING = 40; // p-5 = 20px × 2
 const GRID_GAP = 16;
 let bufferPx = $derived(bufferOffsetPx(configStore.widgetZoom));
+// 不具合修正 (2026-05-19): canvas 末尾に viewport 1 画面分の trailing 余白を確保する。
+// 旧実装は grid content 右端 / 下端直後に scroll 余地が無く、 grid 端付近の widget /
+// 選択集合を fit-to-content しても BB 重心を viewport 中心へ運ぶ scroll 量に canvas が
+// 足りず browser に clamp され「中央に来ない」 不具合になっていた。 leading は bufferPx
+// (BUFFER_COLS_LEFT/ROWS_TOP) が担うので trailing を pixel 基準で足し、 任意の content 点を
+// viewport 中心へ scroll 可能にする (Obsidian 無限 canvas 相当)。
 let canvasW = $derived(
-	Math.max(containerWidth, bufferPx.x + dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING),
+	Math.max(
+		containerWidth,
+		bufferPx.x + dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING + containerWidth,
+	),
 );
 // K-6 fix (2026-05-15): 旧 canvasH は FLEX_PADDING のみで bottom reserve なし → 最下段 widget が
 // floating bottom toolbar (Undo / Zoom / Fit) の裏に隠れ、 scroll で逃せなかった (user 報告)。
@@ -199,7 +206,8 @@ let canvasH = $derived(
 		bufferPx.y +
 			maxRow * (zoom.widgetH + GRID_GAP) +
 			FLEX_PADDING +
-			effectiveBottomReserve(configStore.hintBarVisible),
+			effectiveBottomReserve(configStore.hintBarVisible) +
+			containerHeight,
 	),
 );
 

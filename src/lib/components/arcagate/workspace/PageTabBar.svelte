@@ -106,24 +106,23 @@ function deleteFromMenu(): void {
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
-	<!-- 4/30 user 検収: workspace 選択 chip の塗りつぶし削除。border-only で active を識別、
-	     wallpaper / surface gradient が透けて見えるよう全 chip を bg-transparent に。
-	     #4 fix: active text を --ag-accent-text (黒、yellow 背景前提) から --ag-accent
-	     (Industrial Yellow 自身) に切替。透明 bg でも dark 背景で潰れず可読、yellow 強調。 -->
+	<!-- 不具合修正 (2026-05-19): 旧 border-only + bg-transparent タブは wallpaper / 暗い
+	     workspace 背景に紛れて 5 テーマで視認不能だった。 TitleBar の TitleTab と同じ
+	     solid surface パターンへ統一 — inactive は --ag-surface-2、 active は accent
+	     active surface。 全 token は base 非依存の派生層なので 5 テーマ共通で可視。
+	     Tailwind arbitrary value を含む `class:` directive はトグルが脆いため、
+	     active/inactive は通常の三項クラス文字列で表現する。 -->
 	{#each workspaceStore.workspaces as ws (ws.id)}
 		{@const isActive = ws.id === workspaceStore.activeWorkspaceId}
 		{@const canDelete = workspaceStore.workspaces.length > 1}
 		<div class="group relative inline-flex">
 			<button
 				type="button"
-				class="rounded-full border bg-transparent text-xs transition-[color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {canDelete ? 'pl-3.5 pr-7 py-1.5' : 'px-3.5 py-1.5'}"
-				class:border-[var(--ag-accent-border)]={isActive}
-				class:text-[var(--ag-accent)]={isActive}
-				class:font-medium={isActive}
-				class:border-[var(--ag-border)]={!isActive}
-				class:text-[var(--ag-text-secondary)]={!isActive}
-				class:hover:text-[var(--ag-text-primary)]={!isActive}
-				class:hover:border-[var(--ag-border-strong)]={!isActive}
+				class="rounded-full border text-xs transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {canDelete
+					? 'pl-3.5 pr-7 py-1.5'
+					: 'px-3.5 py-1.5'} {isActive
+					? 'border-[var(--ag-accent-active-border)] bg-[var(--ag-accent-active-bg)] font-medium text-[var(--ag-accent-text)]'
+					: 'border-[var(--ag-border)] bg-[var(--ag-surface-2)] text-[var(--ag-text-secondary)] hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
 				onclick={() => onSelectWorkspace?.(ws.id)}
 				ondblclick={isActive ? () => onRenameActive?.() : undefined}
 				oncontextmenu={(e) => openTabMenu(e, ws)}

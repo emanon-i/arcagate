@@ -140,7 +140,7 @@ let displayTitle = $derived(
 	{:else if loading}
 		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.file_preview.loading')}</p>
 	{:else if error}
-		<p class="text-sm text-[var(--ag-text-error)]">{t('widgets.file_preview.error_prefix', { error })}</p>
+		<p class="text-sm text-[var(--ag-error-text)]">{t('widgets.file_preview.error_prefix', { error })}</p>
 	{:else if preview}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->

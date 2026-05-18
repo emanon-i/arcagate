@@ -436,13 +436,13 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 								</div>
 								{#if networkChartType === 'sparkline'}
 									<svg viewBox="0 0 100 16" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
-										<path d={netSparklinePath(n.interface)} fill="none" stroke="var(--ag-accent-text)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+										<path d={netSparklinePath(n.interface)} fill="none" stroke="var(--ag-accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
 									</svg>
 								{:else if networkChartType === 'bar'}
 									<div class="flex gap-1 text-xs text-[var(--ag-text-faint)]">
 										<div class="flex-1">
 											<div class="h-1 w-full overflow-hidden rounded-full bg-[var(--ag-surface-3)]">
-												<div class="h-full rounded-full bg-[var(--ag-accent-text)]" style="width: {netRxBarPct(n.interface)}%"></div>
+												<div class="h-full rounded-full bg-[var(--ag-accent)]" style="width: {netRxBarPct(n.interface)}%"></div>
 											</div>
 										</div>
 										<div class="flex-1">

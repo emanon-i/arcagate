@@ -319,21 +319,48 @@ export function computeFitZoom(
 ): number {
 	const cols = bb.maxX - bb.minX;
 	const rows = bb.maxY - bb.minY;
+	if (cols <= 0 || rows <= 0) return RESET_ZOOM;
 	const availW = Math.max(1, viewport.clientWidth - SIDE_RESERVE * 2);
 	const availH = Math.max(1, viewport.clientHeight - TOP_RESERVE - bottomReserve);
-	// BB の 100% zoom 時 pixel 幅: cols × BASE_W + (cols−1) × gap
-	const bbW100 = cols * BASE_W + Math.max(0, cols - 1) * GRID_GAP;
-	const bbH100 = rows * BASE_H + Math.max(0, rows - 1) * GRID_GAP;
-	if (bbW100 <= 0 || bbH100 <= 0) return RESET_ZOOM;
-	const ratio = Math.min(availW / bbW100, availH / bbH100);
-	// floor で「BB が必ず収まる」を保証 (round / ceil だと境界で 1px overflow が起きる)
-	return clampZoomFit(Math.floor(ratio * 100), maxZoom);
+	// 不具合修正 (2026-05-19): GRID_GAP は zoom に追従しない **固定 px**
+	// (cellStride = round(BASE × zoom/100) + GRID_GAP)。 旧実装は
+	// `bbW100 = cols×BASE + (cols−1)×gap` を 1 つの ratio で一律 scale していたが、
+	// それは gap も zoom 倍率で縮む前提の誤りで、 zoom < 100% (BB が viewport より
+	// 大きい複数 widget 選択) で実 BB が availW を (cols−1)×gap×(1−ratio) 分 overflow し、
+	// fitToContent 側の overflow 判定が top-left align fallback に落ちて「中央に来ない」
+	// 不具合になっていた。
+	//
+	// step 1: 固定 gap 分を avail から先に引き、 cell (BASE) 部分のみを scale 対象とした
+	//         ratio で zoom 候補を出す。
+	// step 2: cellStride の Math.round() は floor した整数 zoom で理想値を上回り得るため、
+	//         実 stride で BB の描画 px を再計測し、 収まるまで整数 zoom を上下調整する
+	//         (収まる限り上げ / overflow なら下げ)。 これで「返した zoom の実 BB は必ず
+	//         availW/availH に収まる」 (MIN_ZOOM_FIT 飽和時を除く) を保証する。
+	const cellAvailW = Math.max(1, availW - Math.max(0, cols - 1) * GRID_GAP);
+	const cellAvailH = Math.max(1, availH - Math.max(0, rows - 1) * GRID_GAP);
+	const ratio = Math.min(cellAvailW / (cols * BASE_W), cellAvailH / (rows * BASE_H));
+	const fits = (z: number): boolean =>
+		cols * cellStrideX(z) - GRID_GAP <= availW && rows * cellStrideY(z) - GRID_GAP <= availH;
+	let zoom = clampZoomFit(Math.floor(ratio * 100), maxZoom);
+	if (fits(zoom)) {
+		while (zoom < maxZoom && fits(zoom + 1)) zoom++;
+	} else {
+		while (zoom > MIN_ZOOM_FIT && !fits(zoom)) zoom--;
+	}
+	return zoom;
 }
 
 /**
  * Fit-to-content の scroll 計算。
  *
- * BB 重心 (origin) を viewport の **visual center** (chrome 補正済) に持ってくる scroll 値を返す。
+ * BB 重心 (origin) を viewport の **幾何中心** に一致させる scroll 値を返す。
+ *
+ * 不具合修正 (2026-05-19): 旧実装は `visualCenterY = TOP_RESERVE + (H − TOP − bottom)/2`
+ * の「chrome 補正済 visual center」 に BB を置いていたが、 reserve が非対称
+ * (TOP=56 / bottom=72〜116) なため BB 中心は真の viewport 中心から (TOP−bottom)/2 だけ
+ * ずれ、 user 報告「中央に来るべきなのにズレてる」 / ヒントバー ON/OFF で位置が動く
+ * 不具合になっていた。 user 要求どおり **BB 重心 = viewport 幾何中心** に統一する。
+ * (BB が chrome に潜らないための余白確保は computeFitZoom 側の reserve 付き zoom 計算が担う。)
  * scrollWidth/Height は zoom 変化後に reflow されるので、呼び出し側は max(0, ...) のみ適用し、
  * 上限 clamp は browser の native scrollTo に任せる (browser は自動で scrollWidth/Height に clamp する)。
  */
@@ -341,7 +368,6 @@ export function computeFitScroll(
 	origin: { cellX: number; cellY: number },
 	zoom: number,
 	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight'>,
-	bottomReserve: number = BOTTOM_RESERVE,
 ): { scrollLeft: number; scrollTop: number } {
 	const sx = cellStrideX(zoom);
 	const sy = cellStrideY(zoom);
@@ -354,13 +380,8 @@ export function computeFitScroll(
 	// → BB center = INNER_PAD + buffer + ((minX + maxX) / 2) × stride − gap/2
 	const originPxX = INNER_PAD + buffer.x + origin.cellX * sx - GRID_GAP / 2;
 	const originPxY = INNER_PAD + buffer.y + origin.cellY * sy - GRID_GAP / 2;
-	// visual center: chrome reserve を考慮した available area の中央
-	// X: 単純な viewport 中央 (左右 reserve は対称なので center は不変)
-	// Y: TOP_RESERVE 〜 (clientHeight - BOTTOM_RESERVE) の中央
-	const visualCenterX = viewport.clientWidth / 2;
-	const visualCenterY = TOP_RESERVE + (viewport.clientHeight - TOP_RESERVE - bottomReserve) / 2;
 	return {
-		scrollLeft: Math.max(0, originPxX - visualCenterX),
-		scrollTop: Math.max(0, originPxY - visualCenterY),
+		scrollLeft: Math.max(0, originPxX - viewport.clientWidth / 2),
+		scrollTop: Math.max(0, originPxY - viewport.clientHeight / 2),
 	};
 }

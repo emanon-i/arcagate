@@ -19,6 +19,7 @@ import {
 	INNER_PAD,
 	MAX_ZOOM,
 	MIN_ZOOM,
+	MIN_ZOOM_FIT,
 	RESET_ZOOM,
 	SIDE_RESERVE,
 	TOP_RESERVE,
@@ -193,16 +194,24 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 		if (pendingZoomRAF !== null) cancelAnimationFrame(pendingZoomRAF);
 		pendingZoomRAF = requestAnimationFrame(() => {
 			pendingZoomRAF = null;
-			// BB が targetZoom で viewport に収まるか測定。MIN_ZOOM_FIT=5 飽和で overflow する場合は
-			// BB top-left align (widget が必ず見える)、収まる場合は BB origin を viewport center。
-			const sx = cellStrideX(targetZoom);
-			const sy = cellStrideY(targetZoom);
-			const bbWidthPx = (bb.maxX - bb.minX) * sx - GRID_GAP;
-			const bbHeightPx = (bb.maxY - bb.minY) * sy - GRID_GAP;
-			const availW = el.clientWidth - SIDE_RESERVE * 2;
-			const availH = el.clientHeight - TOP_RESERVE - bottomReserve;
-			const overflows = bbWidthPx > availW || bbHeightPx > availH;
+			// computeFitZoom は固定 gap を正しく差し引いた zoom を返すため、 MIN_ZOOM_FIT で
+			// 飽和していない限り BB は availW/availH に必ず収まる。 飽和時 (BB が極小 zoom でも
+			// 入らない) のみ実測 overflow を判定し、 overflow なら BB top-left align
+			// (widget が必ず見える)、 それ以外は BB 重心を viewport 幾何中心に置く。
+			const saturatedMin = targetZoom <= MIN_ZOOM_FIT;
+			let overflows = false;
+			if (saturatedMin) {
+				const sx = cellStrideX(targetZoom);
+				const sy = cellStrideY(targetZoom);
+				const bbWidthPx = (bb.maxX - bb.minX) * sx - GRID_GAP;
+				const bbHeightPx = (bb.maxY - bb.minY) * sy - GRID_GAP;
+				const availW = el.clientWidth - SIDE_RESERVE * 2;
+				const availH = el.clientHeight - TOP_RESERVE - bottomReserve;
+				overflows = bbWidthPx > availW || bbHeightPx > availH;
+			}
 			if (overflows) {
+				const sx = cellStrideX(targetZoom);
+				const sy = cellStrideY(targetZoom);
 				const buffer = bufferOffsetPx(targetZoom);
 				const minPxX = INNER_PAD + buffer.x + bb.minX * sx;
 				const minPxY = INNER_PAD + buffer.y + bb.minY * sy;
@@ -212,12 +221,10 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 					behavior: 'instant',
 				});
 			} else {
-				const target = computeFitScroll(
-					origin,
-					targetZoom,
-					{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
-					bottomReserve,
-				);
+				const target = computeFitScroll(origin, targetZoom, {
+					clientWidth: el.clientWidth,
+					clientHeight: el.clientHeight,
+				});
 				el.scrollTo({
 					left: target.scrollLeft,
 					top: target.scrollTop,

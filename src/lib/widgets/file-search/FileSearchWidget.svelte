@@ -238,7 +238,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				</button>
 			</div>
 		{:else if lastError}
-			<p class="text-xs text-[var(--ag-text-warning,red)]">{lastError}</p>
+			<p class="text-xs text-[var(--ag-error-text)]">{lastError}</p>
 		{:else if filtered.length === 0}
 			<p class="text-xs text-[var(--ag-text-muted)]">
 				{query ? t('widgets.file_search.no_match') : t('widgets.file_search.no_files')}

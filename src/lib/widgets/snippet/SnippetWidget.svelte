@@ -160,7 +160,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				</button>
 				<button
 					type="button"
-					class="flex items-center gap-1 rounded-md border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-2 py-1 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-accent)] hover:text-[var(--ag-accent-text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					class="flex items-center gap-1 rounded-md border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-2 py-1 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none hover:bg-[var(--ag-accent)] hover:text-[var(--ag-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 					onclick={saveCompose}
 				>
 					<Check class="h-3 w-3" />
