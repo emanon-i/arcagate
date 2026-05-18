@@ -1,33 +1,42 @@
 <script lang="ts">
+import { ChevronDown, ChevronRight, Shuffle } from '@lucide/svelte';
 import { t } from '$lib/i18n.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import type { Theme } from '$lib/types/theme';
+import { BG_REF_DARK, BG_REF_LIGHT, cssColorToHex, randomSeedPair } from '$lib/utils/color';
 import ThemeEditorHeader from './ThemeEditorHeader.svelte';
 import ThemeEditorTokenEditor from './ThemeEditorTokenEditor.svelte';
 
 /**
- * ThemeEditor facade。
+ * ThemeEditor (design tokens v2) facade。
+ *
+ * v2: custom theme は «color seed (--c-primary / --c-secondary) を決めるだけ» が基本操作。
+ * 派生する色全体は CSS 側 (oklch(from …) / color-mix()) が自動計算する。
+ * - 上段: primary 必須 / secondary 任意の color picker + ランダム生成ボタン
+ * - 下段: advanced — 全 token (--c-* / --ag-*) の生値編集 (折りたたみ、 power user 用)
+ * 変更は即 documentElement に反映 (live preview)、 保存で css_vars に永続化。
  *
  * 引用元 guideline:
- *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、332 LOC を facade + 2 sub に分割)
- *
- * 子 component:
- * - ThemeEditorHeader (theme info + name edit + save/delete buttons + status)
- * - ThemeEditorTokenEditor (grouped vars editor + color picker + text input)
- *
- * agent judgment: a3 元提案 (Preview / CategoryList / TokenEditor 3 子) は実装に対応する
- * visual preview / sidebar category list が無く、Header + TokenEditor の 2 子に再構成。
+ *   docs/l2_foundation/design-tokens.md §A / §D / §G
  */
 
 let { theme, onClose }: { theme: Theme; onClose: () => void } = $props();
 
 type VarEntry = { key: string; value: string };
 
-// 全標準 --ag-* 変数リスト（arcagate-theme.css の :root 変数に対応）
-const ALL_AG_VARS: string[] = [
-	// bg
-	'--ag-bg',
-	// surface
+// color seed (--c-*) — v2 の編集主軸。 advanced で全 --ag-* も編集可能。
+const SEED_VARS: string[] = [
+	'--c-bg',
+	'--c-fg',
+	'--c-primary',
+	'--c-secondary',
+	'--c-glass-tint',
+	'--c-warn',
+	'--c-error',
+	'--c-success',
+];
+
+const AG_VARS: string[] = [
 	'--ag-surface-page',
 	'--ag-surface-0',
 	'--ag-surface-1',
@@ -35,62 +44,32 @@ const ALL_AG_VARS: string[] = [
 	'--ag-surface-3',
 	'--ag-surface-4',
 	'--ag-surface-opaque',
-	// border
 	'--ag-border',
 	'--ag-border-hover',
 	'--ag-border-dashed',
-	// accent
 	'--ag-accent',
 	'--ag-accent-text',
 	'--ag-accent-bg',
 	'--ag-accent-border',
-	'--ag-accent-active-bg',
-	'--ag-accent-active-border',
-	// text
+	'--ag-accent-secondary',
 	'--ag-text-primary',
 	'--ag-text-secondary',
 	'--ag-text-muted',
 	'--ag-text-faint',
-	// error
 	'--ag-error-bg',
 	'--ag-error-border',
 	'--ag-error-text',
-	// warm
 	'--ag-warm-bg',
 	'--ag-warm-border',
 	'--ag-warm-text',
-	// success
 	'--ag-success-bg',
 	'--ag-success-border',
 	'--ag-success-text',
-	// shadow
-	'--ag-shadow-none',
-	'--ag-shadow-sm',
-	'--ag-shadow-md',
-	'--ag-shadow-dialog',
-	'--ag-shadow-palette',
-	// radius
-	'--ag-radius-chip',
-	'--ag-radius-button',
-	'--ag-radius-input',
-	'--ag-radius-card',
-	'--ag-radius-widget',
-	'--ag-radius-window',
-	'--ag-radius-palette',
-	'--ag-radius-keyhint',
-	// backdrop
-	'--ag-backdrop',
-	// duration
-	'--ag-duration-instant',
-	'--ag-duration-fast',
-	'--ag-duration-normal',
-	'--ag-duration-slow',
-	// ease
-	'--ag-ease-in-out',
-	'--ag-ease-out',
-	'--ag-ease-in',
-	'--ag-ease-bounce',
 ];
+
+const ALL_VARS: string[] = [...SEED_VARS, ...AG_VARS];
+
+const bgRef = $derived(theme.base_theme === 'light' ? BG_REF_LIGHT : BG_REF_DARK);
 
 function parseCssVarsMap(cssVars: string): Map<string, string> {
 	try {
@@ -104,23 +83,61 @@ function parseCssVarsMap(cssVars: string): Map<string, string> {
 function initEntries(): VarEntry[] {
 	const overrides = parseCssVarsMap(theme.css_vars);
 	const style = getComputedStyle(document.documentElement);
-	return ALL_AG_VARS.map((key) => ({
+	return ALL_VARS.map((key) => ({
 		key,
 		value: overrides.get(key) ?? style.getPropertyValue(key).trim(),
 	}));
 }
 
+// secondary が «明示的に指定済» かを theme.css_vars から判定 (function 内 access で
+// reactive ではない初期値読み取り — editor は 1 theme に紐付き lifetime 中 theme は不変)。
+function initSecondaryEnabled(): boolean {
+	const o = parseCssVarsMap(theme.css_vars);
+	return o.has('--c-secondary') && (o.get('--c-secondary') ?? '') !== '';
+}
+
 let entries = $state<VarEntry[]>(initEntries());
-// 保存済み変数リスト（保存成功時に更新し、unmount 時の CSS リセットに使う）
 let savedCssVars = $state<VarEntry[]>(initEntries());
 let saving = $state(false);
 let saveError = $state<string | null>(null);
 let savedSuccess = $state(false);
 let confirmDelete = $state(false);
+let showAdvanced = $state(false);
+// secondary は «明示的に指定されたとき» のみ有効。 未指定なら CSS が primary 補色を自動派生。
+let secondaryEnabled = $state(initSecondaryEnabled());
 
-// テーマ名インライン編集
 let editingName = $state(false);
 let nameValue = $state('');
+
+function entryIndex(key: string): number {
+	return entries.findIndex((e) => e.key === key);
+}
+
+function setVar(key: string, value: string): void {
+	const idx = entryIndex(key);
+	if (idx < 0) return;
+	entries[idx].value = value;
+	document.documentElement.style.setProperty(key, value);
+}
+
+// color picker は hex を扱う。 現在値 (oklch / var 等) はブラウザに hex 解決させる。
+const primaryHex = $derived(cssColorToHex(entries[entryIndex('--c-primary')]?.value || '#000000'));
+const secondaryHex = $derived(
+	cssColorToHex(entries[entryIndex('--c-secondary')]?.value || '#000000'),
+);
+
+function randomize(): void {
+	const pair = randomSeedPair('glass', bgRef, primaryHex, secondaryHex);
+	setVar('--c-primary', pair.primary);
+	setVar('--c-secondary', pair.secondary);
+	secondaryEnabled = true;
+}
+
+function toggleSecondary(enabled: boolean): void {
+	secondaryEnabled = enabled;
+	// 無効化時は空値 → CSS の primary 補色 auto 派生に戻す。
+	setVar('--c-secondary', enabled ? secondaryHex : '');
+}
 
 function startNameEdit() {
 	nameValue = theme.name;
@@ -128,7 +145,7 @@ function startNameEdit() {
 }
 
 async function commitNameEdit() {
-	if (!editingName) return; // Enter → blur の二重発火ガード
+	if (!editingName) return;
 	editingName = false;
 	const trimmed = nameValue.trim();
 	if (!trimmed || trimmed === theme.name) return;
@@ -141,8 +158,7 @@ function cancelNameEdit() {
 
 const isDirty = $derived(entries.some((e, i) => e.value !== savedCssVars[i]?.value));
 
-// unmount 時に未保存の CSS vars をリセットする
-// $effect の return は cleanup（unmount 時に呼ばれる）
+// unmount 時に未保存の CSS vars をリセットする。
 $effect(() => {
 	return () => {
 		for (const { key, value } of savedCssVars) {
@@ -160,7 +176,14 @@ async function handleSave() {
 	saving = true;
 	saveError = null;
 	const cssVars: Record<string, string> = {};
-	for (const { key, value } of entries) cssVars[key] = value;
+	for (const { key, value } of entries) {
+		// secondary 無効時は明示的に空 → CSS auto 派生に委ねる。
+		if (key === '--c-secondary' && !secondaryEnabled) {
+			cssVars[key] = '';
+		} else {
+			cssVars[key] = value;
+		}
+	}
 	const updated = await themeStore.updateTheme(
 		theme.id,
 		undefined,
@@ -188,9 +211,9 @@ async function handleDelete() {
 	onClose();
 }
 
-// Group vars by prefix for display
+// advanced editor: --c-* / --ag-* を prefix group 化。
 const GROUP_ORDER = [
-	'--ag-bg',
+	'--c-',
 	'--ag-surface',
 	'--ag-border',
 	'--ag-accent',
@@ -198,19 +221,12 @@ const GROUP_ORDER = [
 	'--ag-error',
 	'--ag-warm',
 	'--ag-success',
-	'--ag-shadow',
-	'--ag-radius',
-	'--ag-backdrop',
-	'--ag-duration',
-	'--ag-ease',
 ];
 
 const grouped = $derived.by(() => {
 	const otherKey = t('settings.appearance.token_group_other');
 	const groups: Record<string, VarEntry[]> = { [otherKey]: [] };
-	for (const g of GROUP_ORDER) {
-		groups[g] = [];
-	}
+	for (const g of GROUP_ORDER) groups[g] = [];
 	for (const entry of entries) {
 		let matched = false;
 		for (const g of GROUP_ORDER) {
@@ -247,5 +263,78 @@ const grouped = $derived.by(() => {
 		<p class="mb-2 text-xs text-[var(--ag-error-text)]">{saveError}</p>
 	{/if}
 
-	<ThemeEditorTokenEditor {entries} {grouped} onValueChange={handleValueChange} />
+	<!-- color seed editor (v2 の編集主軸) -->
+	<div class="space-y-3">
+		<div class="flex items-center justify-between gap-3">
+			<label class="flex items-center gap-2 text-sm text-[var(--ag-text-primary)]" for="seed-primary">
+				{t('settings.appearance.seed_primary')}
+			</label>
+			<div class="flex items-center gap-2">
+				<input
+					id="seed-primary"
+					type="color"
+					value={primaryHex}
+					oninput={(e) => setVar('--c-primary', e.currentTarget.value)}
+					class="h-7 w-10 shrink-0 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent p-0.5"
+				/>
+				<span class="w-20 font-mono text-xs text-[var(--ag-text-muted)]">{primaryHex}</span>
+			</div>
+		</div>
+
+		<div class="flex items-center justify-between gap-3">
+			<label class="flex items-center gap-2 text-sm text-[var(--ag-text-primary)]">
+				<input
+					type="checkbox"
+					checked={secondaryEnabled}
+					onchange={(e) => toggleSecondary(e.currentTarget.checked)}
+					class="accent-[var(--ag-accent)]"
+				/>
+				{t('settings.appearance.seed_secondary')}
+			</label>
+			{#if secondaryEnabled}
+				<div class="flex items-center gap-2">
+					<input
+						type="color"
+						aria-label={t('settings.appearance.seed_secondary')}
+						value={secondaryHex}
+						oninput={(e) => setVar('--c-secondary', e.currentTarget.value)}
+						class="h-7 w-10 shrink-0 cursor-pointer rounded border border-[var(--ag-border)] bg-transparent p-0.5"
+					/>
+					<span class="w-20 font-mono text-xs text-[var(--ag-text-muted)]">{secondaryHex}</span>
+				</div>
+			{:else}
+				<span class="text-xs text-[var(--ag-text-faint)]">{t('settings.appearance.seed_secondary_auto')}</span>
+			{/if}
+		</div>
+
+		<button
+			type="button"
+			class="flex items-center gap-1.5 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs font-medium text-[var(--ag-text-primary)] transition-colors hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+			onclick={randomize}
+		>
+			<Shuffle class="h-3.5 w-3.5" />
+			{t('settings.appearance.seed_random')}
+		</button>
+	</div>
+
+	<!-- advanced: 全 token の生値編集 -->
+	<div class="mt-4 border-t border-[var(--ag-border)] pt-3">
+		<button
+			type="button"
+			class="flex items-center gap-1 text-xs font-medium text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)] focus-visible:outline-none"
+			onclick={() => (showAdvanced = !showAdvanced)}
+		>
+			{#if showAdvanced}
+				<ChevronDown class="h-3.5 w-3.5" />
+			{:else}
+				<ChevronRight class="h-3.5 w-3.5" />
+			{/if}
+			{t('settings.appearance.advanced_tokens')}
+		</button>
+		{#if showAdvanced}
+			<div class="mt-2">
+				<ThemeEditorTokenEditor {entries} {grouped} onValueChange={handleValueChange} />
+			</div>
+		{/if}
+	</div>
 </div>

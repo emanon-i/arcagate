@@ -1,5 +1,7 @@
 <script lang="ts">
 import '../app.css';
+// a11y トグル (透明度 / コントラスト / 動き) を起動時に <html> へ即時反映する side-effect import。
+import '$lib/state/a11y.svelte';
 import { onDestroy, onMount } from 'svelte';
 import ScriptLaunchConfirmDialog from '$lib/components/common/ScriptLaunchConfirmDialog.svelte';
 import { detectOsLocale, type Locale, setLocale } from '$lib/i18n.svelte';

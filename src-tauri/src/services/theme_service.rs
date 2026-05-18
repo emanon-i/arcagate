@@ -161,8 +161,8 @@ mod tests {
     fn test_list_themes() {
         let db = initialize_in_memory();
         let themes = list_themes(&db).unwrap();
-        // #7: builtin は Dark / Light の 2 本のみ
-        assert_eq!(themes.len(), 2);
+        // 5 builtin (design tokens v2 / migration 035: Dark / Light / Neumorph / Brutalist / HUD)
+        assert_eq!(themes.len(), 5);
     }
 
     #[test]
@@ -173,12 +173,14 @@ mod tests {
     }
 
     #[test]
-    fn test_builtin_themes_are_dark_light_only() {
+    fn test_builtin_themes_v2_set() {
+        // design tokens v2 (migration 035): built-in は 5 本
+        // (Dark / Light / Neumorph / Brutalist / HUD)。
         let db = initialize_in_memory();
         let themes = list_themes(&db).unwrap();
         let mut ids: Vec<&str> = themes.iter().map(|t| t.id.as_str()).collect();
         ids.sort_unstable();
-        assert_eq!(ids, vec!["dark", "light"]);
+        assert_eq!(ids, vec!["brutalist", "dark", "hud", "light", "neumorph"]);
         let light = get_theme(&db, "light").unwrap();
         assert_eq!(light.name, "Light");
         assert_eq!(light.base_theme, "light");
@@ -284,7 +286,7 @@ mod tests {
 
         delete_theme(&db, &theme.id).unwrap();
         let all = list_themes(&db).unwrap();
-        assert_eq!(all.len(), 2); // #7: builtin は LG Dark / Light の 2 本
+        assert_eq!(all.len(), 5); // 5 builtins (design tokens v2 / migration 035)
     }
 
     #[test]

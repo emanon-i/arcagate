@@ -1,18 +1,21 @@
 <script lang="ts">
 import { Copy, Plus } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import Switch from '$lib/components/common/Switch.svelte';
 import { t } from '$lib/i18n.svelte';
+import { a11yStore } from '$lib/state/a11y.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import { BUILTIN_THEME_DARK, BUILTIN_THEME_LIGHT } from '$lib/types/theme';
 
 /**
- * Settings の外観カテゴリ pane (theme list + theme editor mount + JSON import)。
+ * Settings の外観カテゴリ pane (theme list + theme editor mount + a11y トグル + JSON import)。
  *
  * 引用元 guideline:
  *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、appearance pane 抽出)
+ *   docs/l2_foundation/design-tokens.md §E (a11y トグル 3 種)
  *
- * agent judgment: a3 元提案 "SettingsThemePane" は ThemeEditor (既存) と統合された appearance
- * category 全体を本 pane に集約。ThemeEditor は dynamic import で初回 paint を軽くする (PH-381 維持)。
+ * design tokens v2: built-in は Dark / Light / Neumorph / Brutalist / HUD の 5 本 +
+ * 'system' (OS 追従)。 built-in / custom theme は DB theme grid に並ぶ。
  */
 
 // PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
@@ -34,18 +37,25 @@ let copySuccess = $state(false);
 const importPlaceholder =
 	'{"name": "My Theme", "base_theme": "dark", "css_vars": "{}","is_builtin": false,"created_at": "","updated_at": ""}';
 
-// #7: builtin テーマ (Dark / Light) は i18n ラベルで表示、custom は DB の name。
+// built-in theme の表示名は i18n、 custom theme は DB の name。
+const BUILTIN_LABEL_KEY: Record<string, string> = {
+	dark: 'settings.appearance.theme_dark',
+	light: 'settings.appearance.theme_light',
+	neumorph: 'settings.appearance.theme_neumorph',
+	brutalist: 'settings.appearance.theme_brutalist',
+	hud: 'settings.appearance.theme_hud',
+};
+
 function themeLabel(theme: { id: string; name: string }): string {
-	if (theme.id === BUILTIN_THEME_DARK) return t('settings.appearance.theme_dark');
-	if (theme.id === BUILTIN_THEME_LIGHT) return t('settings.appearance.theme_light');
-	return theme.name;
+	const key = BUILTIN_LABEL_KEY[theme.id];
+	return key ? t(key) : theme.name;
 }
 
 async function cloneTheme(sourceId: string) {
 	const source = themeStore.themes.find((t) => t.id === sourceId);
 	const cssVars = source ? source.css_vars : '{}';
 	const baseTheme = source ? source.base_theme : 'dark';
-	const baseName = source ? source.name : t('settings.appearance.theme_default_name');
+	const baseName = source ? themeLabel(source) : t('settings.appearance.theme_default_name');
 	const created = await themeStore.createTheme(
 		t('settings.appearance.clone_name', { name: baseName }),
 		baseTheme,
@@ -54,12 +64,13 @@ async function cloneTheme(sourceId: string) {
 	if (created) {
 		await themeStore.setThemeMode(created.id);
 		editingThemeId = created.id;
+		void ensureThemeEditorLoaded();
 	}
 }
 
 async function cloneCurrentTheme() {
 	const activeId = themeStore.activeMode;
-	// #7: 'system' は DB テーマではないので解決後の builtin (Dark/Light) を複製元にする
+	// 'system' は DB テーマではないので解決後の builtin (Dark/Light) を複製元にする
 	const sourceId =
 		activeId === 'system'
 			? themeStore.resolvedMode === 'light'
@@ -72,7 +83,6 @@ async function cloneCurrentTheme() {
 async function handleExport(id: string) {
 	const json = await themeStore.exportTheme(id);
 	if (!json) return;
-	// クリップボードにコピー
 	await navigator.clipboard.writeText(json);
 	copySuccess = true;
 	setTimeout(() => (copySuccess = false), 2000);
@@ -114,6 +124,28 @@ function handleFileImport(e: Event) {
 	};
 	reader.readAsText(file);
 }
+
+// design tokens v2 §E: a11y トグル定義 (label / desc / 現在値 / setter)。
+const a11yToggles = $derived([
+	{
+		flag: 'reduceTransparency' as const,
+		label: t('settings.appearance.a11y_reduce_transparency_label'),
+		desc: t('settings.appearance.a11y_reduce_transparency_desc'),
+		checked: a11yStore.reduceTransparency,
+	},
+	{
+		flag: 'increaseContrast' as const,
+		label: t('settings.appearance.a11y_increase_contrast_label'),
+		desc: t('settings.appearance.a11y_increase_contrast_desc'),
+		checked: a11yStore.increaseContrast,
+	},
+	{
+		flag: 'reduceMotion' as const,
+		label: t('settings.appearance.a11y_reduce_motion_label'),
+		desc: t('settings.appearance.a11y_reduce_motion_desc'),
+		checked: a11yStore.reduceMotion,
+	},
+]);
 </script>
 
 <div
@@ -136,7 +168,7 @@ function handleFileImport(e: Event) {
 			</button>
 		</div>
 		<div class="grid grid-cols-2 gap-2">
-			<!-- #7: OS 追従モード (Dark/Light を自動選択) -->
+			<!-- OS 追従モード (Dark/Light を自動選択) -->
 			<button
 				type="button"
 				class="col-span-2 flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
@@ -151,7 +183,7 @@ function handleFileImport(e: Event) {
 				<span class="font-medium">{t('settings.appearance.system')}</span>
 				<span class="text-xs opacity-70">{t('settings.appearance.system_desc')}</span>
 			</button>
-			<!-- テーマ（Dark / Light + カスタム） -->
+			<!-- テーマ（built-in 5 本 + カスタム） -->
 			{#each themeStore.themes as theme (theme.id)}
 				<div class="flex flex-col gap-1">
 					<button
@@ -225,6 +257,26 @@ function handleFileImport(e: Event) {
 				{/if}
 			{/if}
 		{/if}
+
+		<!-- アクセシビリティ (design tokens v2 §E) -->
+		<div class="mt-4 space-y-3 border-t border-[var(--ag-border)] pt-4">
+			<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.appearance.a11y_heading')}</p>
+			{#each a11yToggles as toggle (toggle.flag)}
+				<div class="flex items-center justify-between gap-4">
+					<div class="min-w-0">
+						<p class="text-sm text-[var(--ag-text-primary)]">{toggle.label}</p>
+						<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">{toggle.desc}</p>
+					</div>
+					<div class="shrink-0">
+						<Switch
+							checked={toggle.checked}
+							onChange={(enabled) => a11yStore.setFlag(toggle.flag, enabled)}
+							aria-label={toggle.label}
+						/>
+					</div>
+				</div>
+			{/each}
+		</div>
 
 		<!-- JSON インポート -->
 		<div class="mt-4 border-t border-[var(--ag-border)] pt-4">

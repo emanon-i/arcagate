@@ -89,12 +89,12 @@ function applyTheme(): void {
 
 	const el = document.documentElement;
 
-	// 1. Reset all --ag-* custom properties
+	// 1. Reset all theme custom properties (design tokens v2: seed --c-* + semantic --ag-*)
 	const style = el.style;
 	const toRemove: string[] = [];
 	for (let i = 0; i < style.length; i++) {
 		const prop = style[i];
-		if (prop.startsWith('--ag-')) {
+		if (prop.startsWith('--ag-') || prop.startsWith('--c-')) {
 			toRemove.push(prop);
 		}
 	}
