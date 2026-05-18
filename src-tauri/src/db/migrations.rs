@@ -35,6 +35,7 @@ const MIGRATION_031: &str = include_str!("../../migrations/031_widget_grid_squar
 const MIGRATION_032: &str = include_str!("../../migrations/032_consolidate_builtin_themes.sql");
 const MIGRATION_033: &str = include_str!("../../migrations/033_confirmed_items.sql");
 const MIGRATION_034: &str = include_str!("../../migrations/034_confirmed_scripts.sql");
+const MIGRATION_035: &str = include_str!("../../migrations/035_design_tokens_v2.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -72,6 +73,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_032),
         M::up(MIGRATION_033),
         M::up(MIGRATION_034),
+        M::up(MIGRATION_035),
     ])
 }
 

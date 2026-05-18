@@ -23,7 +23,7 @@ function isHex(value: string): boolean {
 }
 
 function looksLikeColor(value: string): boolean {
-	return /^(#|rgb|hsl)/i.test(value.trim());
+	return /^(#|rgb|hsl|oklch|oklab|color-mix)/i.test(value.trim());
 }
 </script>
 
@@ -33,7 +33,7 @@ function looksLikeColor(value: string): boolean {
 			<p
 				class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ag-text-muted)]"
 			>
-				{groupKey.replace('--ag-', '')}
+				{groupKey.replace('--ag-', '').replace('--c-', 'seed')}
 			</p>
 			<div class="space-y-1.5">
 				{#each vars as entry (entry.key)}

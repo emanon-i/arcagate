@@ -95,17 +95,18 @@ mod tests {
         let conn = db.0.lock().unwrap();
 
         let themes = find_all(&conn).unwrap();
-        // #7 (migration 032): builtin は Dark / Light の 2 本のみ (id は 'dark' / 'light')。
-        assert_eq!(themes.len(), 2);
+        // Design tokens v2 (migration 035): built-in は 5 本
+        // (Dark / Light / Neumorph / Brutalist / HUD、 id prefix なし)。
+        assert_eq!(themes.len(), 5);
         assert!(themes.iter().all(|t| t.is_builtin));
-        assert!(themes
-            .iter()
-            .any(|t| t.id == "dark" && t.name == "Dark" && t.base_theme == "dark"));
+        assert!(themes.iter().any(|t| t.id == "dark" && t.name == "Dark"));
         assert!(themes
             .iter()
             .any(|t| t.id == "light" && t.name == "Light" && t.base_theme == "light"));
-        // 旧 builtin プリセットは削除済み
-        assert!(!themes.iter().any(|t| t.id == "theme-builtin-dark"));
+        assert!(themes.iter().any(|t| t.id == "neumorph"));
+        assert!(themes.iter().any(|t| t.id == "brutalist"));
+        assert!(themes.iter().any(|t| t.id == "hud"));
+        // 旧 builtin プリセットは廃止済
         assert!(!themes.iter().any(|t| t.id == "theme-builtin-endfield"));
         assert!(!themes.iter().any(|t| t.id == "theme-builtin-liquid-glass"));
     }
@@ -133,11 +134,11 @@ mod tests {
         insert(&conn, &make_theme("custom-001", "Custom", "light", false)).unwrap();
 
         let themes = find_all(&conn).unwrap();
-        // #7: 2 builtin (LG Dark / Light) + 1 custom = 3
-        assert_eq!(themes.len(), 3);
+        // 5 builtin (design tokens v2) + 1 custom = 6
+        assert_eq!(themes.len(), 6);
         // builtin first (is_builtin DESC), then custom
-        assert!(themes[..2].iter().all(|t| t.is_builtin));
-        assert!(!themes[2].is_builtin);
+        assert!(themes[..5].iter().all(|t| t.is_builtin));
+        assert!(!themes[5].is_builtin);
     }
 
     #[test]

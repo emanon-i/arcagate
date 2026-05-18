@@ -1,221 +1,299 @@
-/* Arcagate Design Tokens */
+/* =====================================================================
+   Arcagate Design Tokens v2
+   ---------------------------------------------------------------------
+   3 層構成 (詳細は docs/l2_foundation/design-tokens.md):
+
+     1. color seeds (--c-*)        : 1〜2 色 + base。色全体は色彩学で自動派生
+     2. aesthetic primitives       : glass / neumorph / brutalist / HUD を
+        (--radius-* / --surface-* …)  色とは直交した軸で表現
+     3. semantic tokens (--ag-*)   : component が直接参照する派生層。
+                                     seeds + color-mix() + oklch(from …) で runtime 計算
+
+   WebView2 (Windows 11 / Chromium 系) は relative color `oklch(from …)` /
+   `color-mix()` を完全サポートするため JS fallback は不要。
+   ===================================================================== */
 
 :root {
-	/* audit batch deferred (2026-05-13) #10: UI font / content font の分離。
-	 * --ag-font-ui: button / label / menu 等の UI 文字 (system 系 widget 含む)、
-	 * --ag-font-content: note / file preview / snippet 等の本文 (読み物としての可読性優先)。 */
+	/* ========================================================
+	   FONT (aesthetic 切替可能、 既定は UI / content / numeric)
+	   ======================================================== */
 	--ag-font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
 	--ag-font-content: 'Yu Gothic', 'Hiragino Sans', 'Meiryo', ui-serif, Georgia, 'Times New Roman', serif;
 	--ag-font-mono: ui-monospace, 'Cascadia Code', 'Consolas', 'Menlo', monospace;
 
-	/* === Primitive Layer (do not use directly in components — use --ag-* tokens) === */
-	--prim-gray-50: #f9fafb;
-	--prim-gray-100: #f3f4f6;
-	--prim-gray-200: #e5e7eb;
-	--prim-gray-900: #111827;
-	--prim-gray-950: #030712;
-	--prim-cyan-300: #67e8f9;
-	--prim-cyan-400: #22d3ee;
-	--prim-cyan-500: #06b6d4;
-	--prim-cyan-700: #0e7490;
-	--prim-red-400: #f87171;
-	--prim-amber-400: #fbbf24;
-	--prim-emerald-400: #34d399;
+	--font-family-base: var(--ag-font-ui);
+	--font-family-display: var(--ag-font-ui);
+	--font-family-numeric: var(--ag-font-mono);
 
-	/* Surface hierarchy */
-	--ag-surface-page: #f8f9fb;
-	--ag-surface-0: #ffffff;
-	--ag-surface-1: #f3f4f6;
-	--ag-surface-2: rgba(0, 0, 0, 0.03);
-	--ag-surface-3: rgba(0, 0, 0, 0.04);
-	--ag-surface-4: rgba(0, 0, 0, 0.05);
+	/* ========================================================
+	   LAYER 1 — COLOR SEEDS (Light base 既定値)
+	   テーマ / ThemeEditor はこの 8 値だけを差し替える。
+	   ======================================================== */
+	--c-bg: oklch(0.985 0.003 250);
+	--c-fg: oklch(0.22 0.02 260);
+	--c-primary: oklch(0.62 0.13 215);
+	/* secondary 未指定時は primary の補色 (色相 +180°) を自動派生 */
+	--c-secondary: oklch(from var(--c-primary) l c calc(h + 180));
+	/* frosted overlay tint — 両 base で near-white */
+	--c-glass-tint: oklch(0.99 0.004 250);
+	/* 文化的意味を持つため hue 固定、 l/c のみ primary に緩く追従 */
+	--c-warn: oklch(0.74 0.16 75);
+	--c-error: oklch(0.58 0.20 25);
+	--c-success: oklch(0.66 0.15 150);
 
-	/* Border */
-	--ag-border: rgba(0, 0, 0, 0.1);
-	--ag-border-hover: rgba(0, 0, 0, 0.2);
-	--ag-border-dashed: rgba(0, 0, 0, 0.15);
+	/* base 別 scrim (clear glass の dim layer / overlay 用) */
+	--scrim: oklch(0 0 0 / 0.45);
+	--scrim-dim: oklch(1 0 0 / 0.25);
 
-	/* Workspace canvas dot grid */
-	--ag-canvas-dot: rgba(0, 0, 0, 0.12);
+	/* ========================================================
+	   LAYER 2 — AESTHETIC PRIMITIVES (色と直交、 既定 = Light whisper)
+	   テーマはこの群を差し替えて glass/neumorph/brutalist/HUD を表現。
+	   ======================================================== */
+	--ag-radius-sm: 8px;
+	--ag-radius-md: 14px;
+	--ag-radius-lg: 22px;
 
-	/* Accent (primary) */
-	--ag-accent: #06b6d4;
+	/* glass 面の物理特性 */
+	--surface-blur: blur(8px) saturate(160%);
+	--surface-noise-opacity: 0;
+	--surface-noise-frequency: 0.9;
+	--surface-border: var(--ag-border);
+	--surface-shadow: var(--ag-shadow-sm);
 
-	/* Tone: accent (cyan) */
-	--ag-accent-border: rgba(6, 182, 212, 0.2);
-	--ag-accent-bg: rgba(6, 182, 212, 0.1);
-	--ag-accent-text: #0e7490;
-	--ag-accent-active-bg: rgba(6, 182, 212, 0.12);
-	--ag-accent-active-border: rgba(6, 182, 212, 0.25);
+	/* dual shadow primitives (neumorph 等で内外影を組む) */
+	--shadow-outer-light: -4px -4px 10px oklch(1 0 0 / 0.6);
+	--shadow-outer-dark: 4px 4px 12px oklch(0 0 0 / 0.12);
+	--shadow-inner-light: inset 1px 1px 2px oklch(1 0 0 / 0.5);
+	--shadow-inner-dark: inset -1px -1px 2px oklch(0 0 0 / 0.1);
 
-	/* D-6 #6: Accent secondary / tertiary (各 theme で独立色相を持たせ palette 差別化を強める) */
-	--ag-accent-secondary: #ec4899;
-	--ag-accent-secondary-bg: rgba(236, 72, 153, 0.1);
-	--ag-accent-secondary-border: rgba(236, 72, 153, 0.2);
-	--ag-accent-tertiary: #8b5cf6;
-	--ag-accent-tertiary-bg: rgba(139, 92, 246, 0.1);
-	--ag-accent-tertiary-border: rgba(139, 92, 246, 0.2);
+	/* text 装飾効果 (HUD 等) */
+	--text-effect-glow: none;
+	--text-effect-stroke: none;
 
-	/* Tone: warm (amber) */
-	--ag-warm-border: rgba(217, 119, 6, 0.2);
-	--ag-warm-bg: rgba(217, 119, 6, 0.1);
-	--ag-warm-text: #92400e;
+	/* 背景 pattern (brutalist の dot grid 等) */
+	--bg-pattern: none;
+	--bg-pattern-opacity: 0;
+	--bg-pattern-color: var(--c-fg);
 
-	/* Tone: success (emerald) */
-	--ag-success-border: rgba(5, 150, 105, 0.2);
-	--ag-success-bg: rgba(5, 150, 105, 0.1);
-	--ag-success-text: #065f46;
+	/* 構造装飾 (HUD の bracket / tickmark / frame) */
+	--decoration-bracket-corners: 0;
+	--decoration-tickmarks: 0;
+	--decoration-frame-border: 0;
 
-	/* Tone: error (red) */
-	--ag-error-border: rgba(220, 38, 38, 0.25);
-	--ag-error-bg: rgba(220, 38, 38, 0.08);
-	--ag-error-text: #991b1b;
+	/* ========================================================
+	   LAYER 3 — SEMANTIC TOKENS (--ag-*)  component が参照する層
+	   全て base 非依存: bg/fg/primary へ向けた color-mix で
+	   light/dark どちらでも自動的に正しい方向に派生する。
+	   ======================================================== */
 
-	/* Text hierarchy */
-	--ag-text-primary: rgba(0, 0, 0, 0.9);
-	--ag-text-secondary: rgba(0, 0, 0, 0.6);
-	--ag-text-muted: rgba(0, 0, 0, 0.45);
-	--ag-text-faint: rgba(0, 0, 0, 0.35);
+	/* --- surface 階層 (bg → fg 方向に持ち上げ = dark で明るく / light で暗く) --- */
+	--ag-bg: var(--c-bg);
+	--ag-surface-page: color-mix(in oklab, var(--c-bg), var(--c-fg) 2%);
+	--ag-surface-0: var(--c-bg);
+	--ag-surface-1: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
+	--ag-surface-2: color-mix(in oklab, var(--c-bg), var(--c-fg) 6%);
+	--ag-surface-3: color-mix(in oklab, var(--c-bg), var(--c-fg) 9%);
+	--ag-surface-4: color-mix(in oklab, var(--c-bg), var(--c-fg) 13%);
+	--ag-surface-opaque: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
 
-	/* Opaque surface for dialogs/widgets (--ag-surface-3 blended onto --ag-surface-0) */
-	--ag-surface-opaque: #f5f5f6;
+	/* --- glass 面 (aesthetic primitive と組み合わせ) --- */
+	--surface-glass-regular: color-mix(in oklab, var(--c-bg), transparent 28%);
+	--surface-glass-clear: color-mix(in oklab, var(--c-bg), transparent 55%);
 
-	/* Radii */
+	/* --- border --- */
+	--ag-border: color-mix(in oklab, var(--c-fg), transparent 88%);
+	--ag-border-hover: color-mix(in oklab, var(--c-fg), transparent 76%);
+	--ag-border-dashed: color-mix(in oklab, var(--c-fg), transparent 83%);
+	--border-default: var(--ag-border);
+
+	/* --- workspace canvas dot grid --- */
+	--ag-canvas-dot: color-mix(in oklab, var(--c-fg), transparent 86%);
+
+	/* --- accent (primary) --- */
+	--ag-accent: var(--c-primary);
+	--ag-accent-text: color-mix(in oklab, var(--c-primary), var(--c-fg) 52%);
+	--ag-accent-bg: color-mix(in oklab, var(--c-primary), transparent 88%);
+	--ag-accent-border: color-mix(in oklab, var(--c-primary), transparent 74%);
+	--ag-accent-active-bg: color-mix(in oklab, var(--c-primary), transparent 84%);
+	--ag-accent-active-border: color-mix(in oklab, var(--c-primary), transparent 70%);
+
+	/* --- accent secondary (seed で指定 or primary 補色 自動) --- */
+	--ag-accent-secondary: var(--c-secondary);
+	--ag-accent-secondary-bg: color-mix(in oklab, var(--c-secondary), transparent 88%);
+	--ag-accent-secondary-border: color-mix(in oklab, var(--c-secondary), transparent 78%);
+
+	/* --- accent tertiary (primary から色相 +120° 自動派生) --- */
+	--ag-accent-tertiary: oklch(from var(--c-primary) l c calc(h + 120));
+	--ag-accent-tertiary-bg: color-mix(in oklab, var(--ag-accent-tertiary), transparent 88%);
+	--ag-accent-tertiary-border: color-mix(in oklab, var(--ag-accent-tertiary), transparent 78%);
+
+	/* --- interactive surface states --- */
+	--interactive-default: color-mix(in oklab, var(--c-bg), var(--c-fg) 9%);
+	--interactive-hover: color-mix(in oklab, var(--c-bg), var(--c-fg) 13%);
+	--interactive-active: var(--ag-accent-bg);
+
+	/* --- tone: warm --- */
+	--ag-warm-text: color-mix(in oklab, var(--c-warn), var(--c-fg) 50%);
+	--ag-warm-bg: color-mix(in oklab, var(--c-warn), transparent 88%);
+	--ag-warm-border: color-mix(in oklab, var(--c-warn), transparent 78%);
+
+	/* --- tone: success --- */
+	--ag-success-text: color-mix(in oklab, var(--c-success), var(--c-fg) 50%);
+	--ag-success-bg: color-mix(in oklab, var(--c-success), transparent 88%);
+	--ag-success-border: color-mix(in oklab, var(--c-success), transparent 78%);
+
+	/* --- tone: error --- */
+	--ag-error-text: color-mix(in oklab, var(--c-error), var(--c-fg) 48%);
+	--ag-error-bg: color-mix(in oklab, var(--c-error), transparent 90%);
+	--ag-error-border: color-mix(in oklab, var(--c-error), transparent 74%);
+
+	/* --- text 階層 --- */
+	--ag-text-primary: var(--c-fg);
+	--ag-text-secondary: color-mix(in oklab, var(--c-fg), var(--c-bg) 32%);
+	--ag-text-muted: color-mix(in oklab, var(--c-fg), var(--c-bg) 50%);
+	--ag-text-faint: color-mix(in oklab, var(--c-fg), var(--c-bg) 62%);
+	--text-primary: var(--ag-text-primary);
+	--text-secondary: var(--ag-text-secondary);
+
+	/* ========================================================
+	   非色 token (Radii / Shadow / Motion) — 既存値を維持
+	   ======================================================== */
 	--ag-radius-chip: 9999px;
-	--ag-radius-button: 1rem;
-	--ag-radius-input: 0.5rem;
-	--ag-radius-card: 22px;
-	--ag-radius-widget: 24px;
-	--ag-radius-window: 28px;
-	--ag-radius-palette: 32px;
-	--ag-radius-keyhint: 0.75rem;
+	--ag-radius-button: var(--ag-radius-md);
+	--ag-radius-input: var(--ag-radius-sm);
+	--ag-radius-card: var(--ag-radius-lg);
+	--ag-radius-widget: var(--ag-radius-lg);
+	--ag-radius-window: calc(var(--ag-radius-lg) + 6px);
+	--ag-radius-palette: calc(var(--ag-radius-lg) + 10px);
+	--ag-radius-keyhint: var(--ag-radius-sm);
 
-	/* Elevation / Shadow */
 	--ag-shadow-none: none;
-	--ag-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-	--ag-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
-	--ag-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.1);
-	--ag-shadow-dialog: 0 8px 32px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.1);
-	--ag-shadow-palette: 0 16px 48px rgba(0, 0, 0, 0.24), 0 8px 16px rgba(0, 0, 0, 0.12);
+	--ag-shadow-sm: 0 1px 3px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.04);
+	--ag-shadow-md: 0 4px 12px oklch(0 0 0 / 0.12), 0 2px 4px oklch(0 0 0 / 0.06);
+	--ag-shadow-lg: 0 8px 40px oklch(0 0 0 / 0.18), 0 4px 16px oklch(0 0 0 / 0.1);
+	--ag-shadow-dialog: 0 8px 32px oklch(0 0 0 / 0.18), 0 4px 12px oklch(0 0 0 / 0.1);
+	--ag-shadow-palette: 0 16px 48px oklch(0 0 0 / 0.24), 0 8px 16px oklch(0 0 0 / 0.12);
 
-	/* Motion: Duration */
 	--ag-duration-instant: 80ms;
 	--ag-duration-fast: 120ms;
 	--ag-duration-normal: 200ms;
 	--ag-duration-slow: 300ms;
 
-	/* Motion: Easing */
 	--ag-ease-in-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 	--ag-ease-out: cubic-bezier(0, 0, 0.2, 1);
 	--ag-ease-in: cubic-bezier(0.4, 0, 1, 1);
 	--ag-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-	/* Backdrop filter (Dark / Light テーマが glass 用に override する) */
-	--ag-backdrop: none;
-
-	/* #9: glass 面トークン (base fallback。Dark/Light テーマが override する) */
-	--ag-glass-bg: var(--ag-surface-opaque);
-	--ag-glass-blur: none;
-	--ag-glass-noise: none;
-
-	/* Effect tokens — theme differentiation
-	   --ag-widget-shadow-hover : widget hover 時の box-shadow (base shadow + glow)
-	   --ag-accent-glow         : focus ring / active item の glow (box-shadow 追加値)
-	   --ag-surface-tint        : widget/card surface の gradient overlay (background-image)
-	*/
-	--ag-widget-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
+	/* effect token — theme 差別化 */
+	--ag-backdrop: var(--surface-blur);
+	--ag-widget-shadow-hover: var(--ag-shadow-md);
 	--ag-accent-glow: 0 0 0 0 transparent;
 	--ag-surface-tint: none;
 
-	/* Library card sizing (4:3 aspect, gap fixed) */
+	/* Library card sizing (4:3 aspect) */
 	--ag-card-gap: 1rem;
 	--ag-card-w-s: 144px;
 	--ag-card-w-m: 192px;
 	--ag-card-w-l: 256px;
-
-	/* B-6 + C: Industrial Yellow direction 撤回 (2026-05-07)。--ag-il-* / --prim-il-*
-	   tokens は全削除、components は --ag-accent / --ag-warm-* / --ag-text-* /
-	   --ag-surface-* / --ag-border 等 theme tokens 経由で全 theme 追従するよう書き換え済。
-	   visual elements (panel / hatch / dot / bracket pattern) は keep、color reference
-	   のみ theme tokens 経由。 */
 }
 
-/* PH-305 Canvas 編集モード時はスクロールバー非表示（パン操作専用） */
-.canvas-edit-mode {
-	scrollbar-width: none;
-}
-.canvas-edit-mode::-webkit-scrollbar {
-	display: none;
-}
-
+/* =====================================================================
+   DARK base — seed 差し替えのみ (semantic は :root の派生式が自動再計算)
+   Built-in "Dark (glass)" の aesthetic primitives もここで定義する
+   (Dark/Light は .dark class 切替、 [data-theme] は使わないため)。
+   ===================================================================== */
 .dark {
-	/* Surface hierarchy */
-	--ag-surface-page: #090b10;
-	--ag-surface-0: #0b0f16;
-	--ag-surface-1: #0f1117;
-	--ag-surface-2: rgba(255, 255, 255, 0.03);
-	--ag-surface-3: rgba(255, 255, 255, 0.04);
-	--ag-surface-4: rgba(255, 255, 255, 0.05);
+	--c-bg: oklch(0.17 0.013 260);
+	--c-fg: oklch(0.96 0.004 250);
+	--c-primary: oklch(0.78 0.13 200);
+	--c-glass-tint: oklch(0.99 0.004 250);
+	--c-warn: oklch(0.82 0.15 80);
+	--c-error: oklch(0.68 0.17 25);
+	--c-success: oklch(0.78 0.14 155);
 
-	/* Border */
-	--ag-border: rgba(255, 255, 255, 0.1);
-	--ag-border-hover: rgba(255, 255, 255, 0.2);
-	--ag-border-dashed: rgba(255, 255, 255, 0.15);
+	--scrim: oklch(0 0 0 / 0.6);
+	--scrim-dim: oklch(0 0 0 / 0.2);
 
-	/* Workspace canvas dot grid */
-	--ag-canvas-dot: rgba(255, 255, 255, 0.1);
+	/* Dark (glass) aesthetic — Regular frosted, 磨き込んだ glass */
+	--surface-blur: blur(16px) saturate(180%);
+	--surface-noise-opacity: 0.04;
 
-	/* Accent (primary) */
-	--ag-accent: #22d3ee;
+	/* shadow を dark 向けに深く */
+	--ag-shadow-sm: 0 1px 3px oklch(0 0 0 / 0.3), 0 1px 2px oklch(0 0 0 / 0.2);
+	--ag-shadow-md: 0 4px 12px oklch(0 0 0 / 0.4), 0 2px 4px oklch(0 0 0 / 0.2);
+	--ag-shadow-lg: 0 8px 40px oklch(0 0 0 / 0.5), 0 4px 16px oklch(0 0 0 / 0.3);
+	--ag-shadow-dialog: 0 8px 32px oklch(0 0 0 / 0.5), 0 4px 12px oklch(0 0 0 / 0.3);
+	--ag-shadow-palette: 0 16px 48px oklch(0 0 0 / 0.6), 0 8px 16px oklch(0 0 0 / 0.4);
 
-	/* Tone: accent (cyan) */
-	--ag-accent-border: rgba(34, 211, 238, 0.2);
-	--ag-accent-bg: rgba(34, 211, 238, 0.1);
-	--ag-accent-text: #a5f3fc;
-	--ag-accent-active-bg: rgba(34, 211, 238, 0.12);
-	--ag-accent-active-border: rgba(34, 211, 238, 0.25);
+	--ag-widget-shadow-hover: var(--ag-shadow-md);
+	--ag-surface-tint: linear-gradient(135deg, color-mix(in oklab, var(--c-glass-tint), transparent 96%) 0%, transparent 60%);
+}
 
-	/* D-6 #6: Accent secondary / tertiary (dark default) */
-	--ag-accent-secondary: #f9a8d4;
-	--ag-accent-secondary-bg: rgba(249, 168, 212, 0.1);
-	--ag-accent-secondary-border: rgba(249, 168, 212, 0.2);
-	--ag-accent-tertiary: #a78bfa;
-	--ag-accent-tertiary-bg: rgba(167, 139, 250, 0.1);
-	--ag-accent-tertiary-border: rgba(167, 139, 250, 0.2);
+/* =====================================================================
+   GLASS — 物理積層 (3 層を pseudo-element で構成)
+   .ag-glass を付けた要素は以下の層構造を持つ:
+     base 要素 : backdrop blur + 半透明 fill              (z auto)
+     ::before  : noise grain (fractalNoise)               (z 0)
+     ::after   : 上端 highlight border                     (z 0)
+     直 child  : 実 content                                (z 1, noise より上)
+   .ag-glass-clear は加えて base に dim layer を 1 段挟む
+   (Apple Liquid Glass の「光抑えレイヤー」相当)。
+   ===================================================================== */
+.ag-glass,
+.ag-glass-clear {
+	position: relative;
+	border: 1px solid var(--surface-border);
+	box-shadow: var(--surface-shadow);
+	backdrop-filter: var(--surface-blur);
+	-webkit-backdrop-filter: var(--surface-blur);
+	isolation: isolate;
+}
 
-	/* Tone: warm (amber) */
-	--ag-warm-border: rgba(251, 191, 36, 0.2);
-	--ag-warm-bg: rgba(251, 191, 36, 0.1);
-	--ag-warm-text: #fde68a;
+.ag-glass {
+	background-color: var(--surface-glass-regular);
+}
 
-	/* Tone: success (emerald) */
-	--ag-success-border: rgba(52, 211, 153, 0.2);
-	--ag-success-bg: rgba(52, 211, 153, 0.1);
-	--ag-success-text: #a7f3d0;
+/* clear: dim layer を background-color に、 glass tint を image に重ねる */
+.ag-glass-clear {
+	background-color: var(--scrim-dim);
+	background-image: linear-gradient(var(--surface-glass-clear), var(--surface-glass-clear));
+}
 
-	/* Tone: error (red) */
-	--ag-error-border: rgba(248, 113, 113, 0.25);
-	--ag-error-bg: rgba(248, 113, 113, 0.1);
-	--ag-error-text: #fca5a5;
+/* noise grain — content の下 (z:0)、 pointer 透過 */
+.ag-glass::before,
+.ag-glass-clear::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	border-radius: inherit;
+	opacity: var(--surface-noise-opacity);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-repeat: repeat;
+}
 
-	/* Opaque surface for dialogs/widgets */
-	--ag-surface-opaque: #10141b;
+/* 上端 highlight border — content の下 (z:0) */
+.ag-glass::after,
+.ag-glass-clear::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	border-radius: inherit;
+	background: linear-gradient(
+		to bottom,
+		color-mix(in oklab, var(--c-glass-tint), transparent 78%) 0%,
+		transparent 38%
+	);
+}
 
-	/* Elevation / Shadow (dark — deeper values) */
-	--ag-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-	--ag-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
-	--ag-shadow-dialog: 0 8px 32px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
-	--ag-shadow-palette: 0 16px 48px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4);
-
-	/* Text hierarchy */
-	--ag-text-primary: rgba(255, 255, 255, 0.95);
-	--ag-text-secondary: rgba(255, 255, 255, 0.65);
-	--ag-text-muted: rgba(255, 255, 255, 0.45);
-	--ag-text-faint: rgba(255, 255, 255, 0.35);
-
-	/* Effect tokens (dark — deeper hover shadow) */
-	--ag-widget-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
-
+/* 実 content は noise / highlight より必ず上 */
+.ag-glass > :not(.ag-glass-layer),
+.ag-glass-clear > :not(.ag-glass-layer) {
+	position: relative;
+	z-index: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -228,102 +306,197 @@
 }
 
 /* =====================================================================
-   Dark / Light テーマ — token overrides + glass 質感の構造 CSS
-   #7: builtin テーマは Dark / Light の 2 本のみ。
-     data-theme="dark"   → Dark
-     data-theme="light"  → Light
-   構造的 override (backdrop-filter 等) は両テーマ共通。
+   ACCESSIBILITY OVERRIDES
+   data-* 属性は a11yStore (Settings の 3 トグル) が <html> に付与する。
+   aesthetic 系 token を上書きして OS / システム設定相当の調整を行う。
    ===================================================================== */
 
-/* Effect tokens — Dark
-   #9: glass 面トークン。--ag-glass-bg は壁紙が透ける半透明色、--ag-glass-blur は
-   強めの backdrop-filter、--ag-glass-noise は grain テクスチャ。glass surface は
-   `.ag-glass` utility class でこの 3 つをまとめて適用する。 */
-[data-theme="dark"] {
-	--ag-widget-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-	--ag-accent-glow: 0 0 12px rgba(255, 255, 255, 0.3);
-	--ag-surface-tint: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-	--ag-focus-glow: rgba(255, 255, 255, 0.25);
-	--ag-glass-bg: rgba(20, 25, 34, 0.6);
-	--ag-glass-blur: blur(28px) saturate(200%);
-	--ag-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.35'/%3E%3C/svg%3E");
+/* 透明度を下げる — blur / noise / glass 半透明を撤去し solid surface に */
+:root[data-reduce-transparency] {
+	--surface-blur: none;
+	--surface-noise-opacity: 0;
+	--ag-backdrop: none;
+	--surface-glass-regular: var(--ag-surface-opaque);
+	--surface-glass-clear: var(--ag-surface-opaque);
+	--ag-surface-tint: none;
 }
 
-/* Effect tokens — Light (tonally inverted、blur/radius は css_vars と同値) */
-[data-theme="light"] {
-	--ag-widget-shadow-hover: 0 8px 32px rgba(15, 23, 42, 0.16), 0 0 24px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-	--ag-accent-glow: 0 0 12px rgba(37, 99, 235, 0.25);
-	--ag-surface-tint: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, transparent 50%);
-	--ag-focus-glow: rgba(37, 99, 235, 0.3);
-	--ag-glass-bg: rgba(249, 250, 252, 0.62);
-	--ag-glass-blur: blur(28px) saturate(200%);
-	--ag-glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.22'/%3E%3C/svg%3E");
+/* コントラストを上げる — border 強化 / text の base 混合を弱める */
+:root[data-increase-contrast] {
+	--ag-border: color-mix(in oklab, var(--c-fg), transparent 55%);
+	--ag-border-hover: color-mix(in oklab, var(--c-fg), transparent 35%);
+	--ag-border-dashed: color-mix(in oklab, var(--c-fg), transparent 50%);
+	--ag-text-primary: var(--c-fg);
+	--ag-text-secondary: color-mix(in oklab, var(--c-fg), var(--c-bg) 16%);
+	--ag-text-muted: color-mix(in oklab, var(--c-fg), var(--c-bg) 30%);
+	--ag-text-faint: color-mix(in oklab, var(--c-fg), var(--c-bg) 42%);
 }
 
-/* glass surface utility — 半透明 bg + grain + 強 blur をまとめて適用。
-   popup / dropdown / dialog / widget body / context menu / snackbar 等で使用。 */
-.ag-glass {
-	background-color: var(--ag-glass-bg);
-	background-image: var(--ag-glass-noise);
-	backdrop-filter: var(--ag-glass-blur);
-	-webkit-backdrop-filter: var(--ag-glass-blur);
+/* 動きを減らす — duration を 0 に (prefers-reduced-motion 非依存の明示 override) */
+:root[data-reduce-motion] {
+	--ag-duration-instant: 0ms;
+	--ag-duration-fast: 0ms;
+	--ag-duration-normal: 0ms;
+	--ag-duration-slow: 0ms;
+}
+:root[data-reduce-motion] * {
+	animation-duration: 0ms !important;
+	transition-duration: 0ms !important;
 }
 
-[data-theme="dark"] body,
-[data-theme="light"] body {
-	background: var(--ag-bg);
+/* PH-305 Canvas 編集モード時はスクロールバー非表示（パン操作専用） */
+.canvas-edit-mode {
+	scrollbar-width: none;
+}
+.canvas-edit-mode::-webkit-scrollbar {
+	display: none;
 }
 
-/* Cards, panels, and surface containers get glass effect */
-[data-theme="dark"] [role="dialog"] > div,
-[data-theme="dark"] aside,
-[data-theme="light"] [role="dialog"] > div,
-[data-theme="light"] aside {
-	backdrop-filter: var(--ag-glass-blur);
-	-webkit-backdrop-filter: var(--ag-glass-blur);
+/* =====================================================================
+   BUILT-IN AESTHETIC THEMES (色と直交した 3 軸: Neumorph / Brutalist / HUD)
+   Dark (glass) / Light (whisper) は上の :root / .dark で定義済。
+   各 theme は seeds + aesthetic primitives を差し替えるだけ。
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   Neumorph — pastel solid + inner/outer dual shadow、 blur 無し
+   --------------------------------------------------------------------- */
+[data-theme='neumorph'] {
+	--c-bg: oklch(0.93 0.012 270);
+	--c-fg: oklch(0.34 0.02 270);
+	--c-primary: oklch(0.66 0.09 280);
+	--c-glass-tint: oklch(0.99 0.004 270);
+	--c-warn: oklch(0.78 0.11 75);
+	--c-error: oklch(0.64 0.14 25);
+	--c-success: oklch(0.72 0.10 150);
+
+	--ag-radius-sm: 12px;
+	--ag-radius-md: 18px;
+	--ag-radius-lg: 24px;
+
+	--surface-blur: none;
+	--surface-noise-opacity: 0;
+	--ag-backdrop: none;
+
+	/* neumorph の肝: surface はほぼ bg と同色、 立体感は dual shadow が担う */
+	--ag-surface-opaque: var(--c-bg);
+	--surface-glass-regular: var(--c-bg);
+	--surface-glass-clear: var(--c-bg);
+	--ag-surface-tint: none;
+
+	--shadow-outer-light: -5px -5px 12px oklch(1 0 0 / 0.75);
+	--shadow-outer-dark: 5px 5px 14px oklch(0.55 0.03 270 / 0.35);
+
+	--ag-shadow-sm: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-md: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-lg: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-dialog: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-palette: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-widget-shadow-hover: var(--shadow-inner-dark), var(--shadow-inner-light);
 }
 
-/* Sidebar nav panel */
-[data-theme="dark"] .ag-sidebar,
-[data-theme="light"] .ag-sidebar {
-	backdrop-filter: var(--ag-glass-blur);
-	-webkit-backdrop-filter: var(--ag-glass-blur);
+/* ---------------------------------------------------------------------
+   Brutalist — モノクロ bg + 1 accent + dotted grid + radius 0 + 1px solid
+   --------------------------------------------------------------------- */
+[data-theme='brutalist'] {
+	--c-bg: oklch(0.99 0 0);
+	--c-fg: oklch(0.16 0 0);
+	--c-primary: oklch(0.58 0.24 28);
+	--c-secondary: oklch(0.58 0.24 28);
+	--c-glass-tint: oklch(1 0 0);
+	--c-warn: oklch(0.62 0.18 75);
+	--c-error: oklch(0.52 0.22 25);
+	--c-success: oklch(0.55 0.16 150);
+
+	--ag-radius-sm: 0px;
+	--ag-radius-md: 0px;
+	--ag-radius-lg: 0px;
+
+	--surface-blur: none;
+	--surface-noise-opacity: 0;
+	--ag-backdrop: none;
+
+	--ag-border: var(--c-fg);
+	--ag-border-hover: var(--c-fg);
+	--ag-border-dashed: var(--c-fg);
+
+	--surface-glass-regular: var(--c-bg);
+	--surface-glass-clear: var(--c-bg);
+	--ag-surface-opaque: var(--c-bg);
+	--ag-surface-tint: none;
+
+	--ag-shadow-sm: none;
+	--ag-shadow-md: none;
+	--ag-shadow-lg: none;
+	--ag-shadow-dialog: 6px 6px 0 var(--c-fg);
+	--ag-shadow-palette: 8px 8px 0 var(--c-fg);
+	--ag-widget-shadow-hover: 4px 4px 0 var(--c-fg);
+
+	--font-family-display: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+
+	--bg-pattern: dots;
+	--bg-pattern-opacity: 0.06;
+	--bg-pattern-color: var(--c-fg);
 }
 
-/* Library cards — elevated glass look */
-[data-theme="dark"] [data-testid^="library-card-"],
-[data-theme="light"] [data-testid^="library-card-"] {
-	backdrop-filter: var(--ag-glass-blur);
-	-webkit-backdrop-filter: var(--ag-glass-blur);
-	box-shadow: var(--ag-shadow-sm);
-	transition:
-		border-color var(--ag-duration-fast) var(--ag-ease-in-out),
-		background-color var(--ag-duration-fast) var(--ag-ease-in-out),
-		transform var(--ag-duration-fast) var(--ag-ease-in-out),
-		box-shadow var(--ag-duration-fast) var(--ag-ease-in-out);
+/* Brutalist: dotted grid 背景 overlay */
+[data-theme='brutalist'] body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	opacity: var(--bg-pattern-opacity);
+	background-image: radial-gradient(var(--bg-pattern-color) 1px, transparent 1px);
+	background-size: 16px 16px;
 }
 
-[data-theme="dark"] [data-testid^="library-card-"]:hover,
-[data-theme="light"] [data-testid^="library-card-"]:hover {
-	transform: translateY(-3px);
-	box-shadow: var(--ag-widget-shadow-hover);
-	border-color: var(--ag-border-hover);
-	transition:
-		transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
-		box-shadow 200ms ease-out,
-		border-color 150ms ease-out;
+/* ---------------------------------------------------------------------
+   HUD — 黒地 + 黄/orange accent + monospace + radius 0 + glow + bracket
+   --------------------------------------------------------------------- */
+[data-theme='hud'] {
+	--c-bg: oklch(0.16 0.01 250);
+	--c-fg: oklch(0.92 0.03 95);
+	--c-primary: oklch(0.82 0.17 85);
+	--c-secondary: oklch(0.74 0.18 55);
+	--c-glass-tint: oklch(0.9 0.1 90);
+	--c-warn: oklch(0.82 0.15 80);
+	--c-error: oklch(0.66 0.2 28);
+	--c-success: oklch(0.8 0.14 155);
+
+	--ag-radius-sm: 0px;
+	--ag-radius-md: 0px;
+	--ag-radius-lg: 0px;
+
+	--surface-blur: none;
+	--surface-noise-opacity: 0;
+	--ag-backdrop: none;
+
+	--surface-glass-regular: color-mix(in oklab, var(--c-bg), var(--c-fg) 6%);
+	--surface-glass-clear: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
+	--ag-surface-opaque: color-mix(in oklab, var(--c-bg), var(--c-fg) 5%);
+	--ag-surface-tint: none;
+
+	--ag-border: color-mix(in oklab, var(--c-primary), transparent 64%);
+	--ag-border-hover: color-mix(in oklab, var(--c-primary), transparent 40%);
+
+	--font-family-base: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+	--font-family-display: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+
+	--text-effect-glow: 0 0 6px color-mix(in oklab, var(--c-primary), transparent 45%);
+	--ag-accent-glow: 0 0 10px color-mix(in oklab, var(--c-primary), transparent 40%);
+	--decoration-bracket-corners: 1;
+	--decoration-tickmarks: 1;
+
+	--ag-shadow-dialog: 0 0 0 1px var(--ag-border), 0 8px 32px oklch(0 0 0 / 0.6);
+	--ag-shadow-palette: 0 0 0 1px var(--ag-border), 0 16px 48px oklch(0 0 0 / 0.7);
+	--ag-widget-shadow-hover: 0 0 16px color-mix(in oklab, var(--c-primary), transparent 70%);
 }
 
-/* Palette overlay panel */
-[data-theme="dark"] [role="dialog"][aria-modal="true"] > div,
-[data-theme="light"] [role="dialog"][aria-modal="true"] > div {
-	backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
-	-webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
-	box-shadow: var(--ag-shadow-dialog);
+/* HUD: 見出し / widget title に subtle glow */
+[data-theme='hud'] {
+	color: var(--ag-text-primary);
 }
-
-/* focus-visible に glow を追加 (テーマ別の glow 色は --ag-focus-glow) */
-[data-theme="dark"] :focus-visible,
-[data-theme="light"] :focus-visible {
-	filter: drop-shadow(0 0 8px var(--ag-focus-glow));
+[data-theme='hud'] .widget-shell {
+	box-shadow: inset 0 0 0 1px var(--ag-border);
 }

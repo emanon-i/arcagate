@@ -45,7 +45,7 @@ let btnClass =
 <!-- audit batch (2026-05-13) #11: container p-4 pt-5 → p-3、 mb-3 → mb-1.5、 icon box p-1.5 → p-1 で
      header 縦幅を ~16px 縮小。 PH-issue-015 の title truncate 構造は維持。 -->
 <div
-	class="widget-shell ag-glass flex h-full flex-col rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] p-3 transition-[box-shadow,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-out)] motion-reduce:transition-none"
+	class="widget-shell ag-glass flex h-full flex-col rounded-[var(--ag-radius-widget)] p-3 transition-[box-shadow,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-out)] motion-reduce:transition-none"
 	oncontextmenu={handleWidgetContextMenu}
 >
 	<div class="mb-1.5 shrink-0 flex items-center justify-between gap-2">
@@ -94,12 +94,13 @@ let btnClass =
 </div>
 
 <style>
+/* surface tint は theme 差別化 token (glass theme で subtle gradient overlay)。
+   noise grain / 上端 highlight は .ag-glass の ::before / ::after が担う。 */
 .widget-shell {
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 	background-image: var(--ag-surface-tint);
 }
 
 .widget-shell:hover {
-	box-shadow: var(--ag-widget-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	box-shadow: var(--ag-widget-shadow-hover);
 }
 </style>
