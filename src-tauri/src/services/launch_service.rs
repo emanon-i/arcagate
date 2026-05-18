@@ -148,6 +148,18 @@ pub fn confirm_item(db: &DbState, item_id: &str) -> Result<(), AppError> {
     launch_repository::confirm_item(&conn, item_id)
 }
 
+/// audit F15 (2026-05-18): #11 script widget のスクリプトが実行確認済みか。
+pub fn is_script_confirmed(db: &DbState, script_path: &str) -> Result<bool, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    launch_repository::is_script_confirmed(&conn, script_path)
+}
+
+/// audit F15 (2026-05-18): スクリプトを実行確認済みとして記録する。
+pub fn confirm_script(db: &DbState, script_path: &str) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    launch_repository::confirm_script(&conn, script_path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,5 +296,13 @@ impl LaunchService {
 
     pub fn confirm_item(&self, item_id: &str) -> Result<(), AppError> {
         confirm_item(&self.db, item_id)
+    }
+
+    pub fn is_script_confirmed(&self, script_path: &str) -> Result<bool, AppError> {
+        is_script_confirmed(&self.db, script_path)
+    }
+
+    pub fn confirm_script(&self, script_path: &str) -> Result<(), AppError> {
+        confirm_script(&self.db, script_path)
     }
 }

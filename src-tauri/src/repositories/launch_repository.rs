@@ -111,6 +111,26 @@ pub fn confirm_item(conn: &Connection, item_id: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// audit F15 (2026-05-18): #11 script widget のスクリプト (canonical path) が
+/// 実行確認済みか判定する。
+pub fn is_script_confirmed(conn: &Connection, script_path: &str) -> Result<bool, AppError> {
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM confirmed_scripts WHERE script_path = ?1",
+        params![script_path],
+        |row| row.get(0),
+    )?;
+    Ok(count > 0)
+}
+
+/// audit F15 (2026-05-18): スクリプト (canonical path) を実行確認済みとして記録する (べき等)。
+pub fn confirm_script(conn: &Connection, script_path: &str) -> Result<(), AppError> {
+    conn.execute(
+        "INSERT OR IGNORE INTO confirmed_scripts (script_path) VALUES (?1)",
+        params![script_path],
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,5 +270,23 @@ mod tests {
         item_repository::delete(&conn, "item-001").unwrap();
         // item 削除で confirmed_items も CASCADE 消去される
         assert!(!is_item_confirmed(&conn, "item-001").unwrap());
+    }
+
+    #[test]
+    fn test_script_not_confirmed_by_default() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+        assert!(!is_script_confirmed(&conn, "C:/scripts/build.ps1").unwrap());
+    }
+
+    #[test]
+    fn test_confirm_script_marks_and_is_idempotent() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+        confirm_script(&conn, "C:/scripts/build.ps1").unwrap();
+        confirm_script(&conn, "C:/scripts/build.ps1").unwrap();
+        assert!(is_script_confirmed(&conn, "C:/scripts/build.ps1").unwrap());
+        // 別パスは未確認のまま
+        assert!(!is_script_confirmed(&conn, "C:/scripts/other.ps1").unwrap());
     }
 }
