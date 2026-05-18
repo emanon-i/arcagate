@@ -184,20 +184,20 @@ describe('computeFitZoom', () => {
 		expect(z).toBe(300); // MAX_ZOOM clamp
 	});
 
-	it('2 縦 widget の Fit: 上限未満ならそのまま (262%)', () => {
+	it('2 縦 widget の Fit: 上限未満ならそのまま (273%)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 1, maxY: 2 };
-		// BB 120W × 256H (= 2*120+16). viewport 1200x800:
-		// ratio min(1168/120, 672/256) = min(9.73, 2.625) = 2.625 → 262% (< 300% なので clamp 不要)
+		// 不具合修正 (2026-05-19): 固定 gap は zoom に追従しないため avail から先に引く。
+		// cols=1 rows=2、 availH=672 → cellAvailH=672-16=656 → ratioH=656/240=2.733 → 273%
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
-		expect(z).toBe(262);
+		expect(z).toBe(273);
 	});
 
-	it('4 widget 2x2 の Fit: 上限未満ならそのまま (262%)', () => {
+	it('4 widget 2x2 の Fit: 上限未満ならそのまま (273%)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 2, maxY: 2 };
-		// BB 256W × 256H. viewport 1200x800:
-		// ratio min(1168/256, 672/256) = min(4.56, 2.625) = 2.625 → 262%
+		// cols=2 rows=2、 cellAvailW=1168-16=1152 / cellAvailH=672-16=656。
+		// ratio min(1152/240, 656/240) = min(4.8, 2.733) = 2.733 → 273%
 		const z = computeFitZoom(bb, { clientWidth: 1200, clientHeight: 800 });
-		expect(z).toBe(262);
+		expect(z).toBe(273);
 	});
 
 	it('maxZoom 引数で上限を変更できる (user 設定の widgetMaxZoom 用)', () => {
@@ -216,6 +216,40 @@ describe('computeFitZoom', () => {
 		expect(z).toBeGreaterThanOrEqual(MIN_ZOOM_FIT);
 	});
 
+	it('不具合修正: zoom<100% の複数 widget BB が実 px で availW/availH に必ず収まる', () => {
+		// 旧 computeFitZoom は固定 gap も zoom 倍率で縮む前提だったため、 BB が viewport
+		// より大きい (zoom<100%) ケースで実 BB が availW/availH を (cols-1)*gap*(1-ratio)
+		// 分 overflow し、 fitToContent が top-left fallback に落ちて中央配置が壊れていた。
+		// 複数の cols/rows × viewport で「返した zoom の実 BB px ≤ avail」 を網羅検証する。
+		const viewports = [
+			{ clientWidth: 1200, clientHeight: 800 },
+			{ clientWidth: 1920, clientHeight: 1080 },
+			{ clientWidth: 900, clientHeight: 700 },
+		];
+		const spans = [
+			[8, 6],
+			[12, 10],
+			[20, 14],
+			[5, 5],
+			[30, 4],
+		];
+		for (const v of viewports) {
+			for (const [cols, rows] of spans) {
+				const bb = { minX: 0, minY: 0, maxX: cols, maxY: rows };
+				const z = computeFitZoom(bb, v);
+				const availW = v.clientWidth - 16 * 2; // SIDE_RESERVE * 2
+				const availH = v.clientHeight - 56 - 72; // TOP_RESERVE - BOTTOM_RESERVE
+				const bbWidthPx = cols * cellStrideX(z) - GRID_GAP;
+				const bbHeightPx = rows * cellStrideY(z) - GRID_GAP;
+				// MIN_ZOOM_FIT 飽和時のみ overflow 許容、 それ以外は必ず収まる。
+				if (z > MIN_ZOOM_FIT) {
+					expect(bbWidthPx).toBeLessThanOrEqual(availW);
+					expect(bbHeightPx).toBeLessThanOrEqual(availH);
+				}
+			}
+		}
+	});
+
 	it('BB が 0 サイズなら RESET (100)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 		expect(computeFitZoom(bb, { clientWidth: 1920, clientHeight: 1080 })).toBe(100);
@@ -223,7 +257,7 @@ describe('computeFitZoom', () => {
 });
 
 describe('computeFitScroll - K-8 multi-widget centering', () => {
-	it('1 widget at (0,0): BB center が viewport center に来る scroll を返す', () => {
+	it('1 widget at (0,0): BB center が viewport 幾何中心に来る scroll を返す', () => {
 		const origin = { cellX: 0.5, cellY: 0.5 };
 		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
 		const sx = cellStrideX(200);
@@ -231,10 +265,9 @@ describe('computeFitScroll - K-8 multi-widget centering', () => {
 		const buf = bufferOffsetPx(200);
 		const originPxX = INNER_PAD + buf.x + origin.cellX * sx - GRID_GAP / 2;
 		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
-		const visualCenterX = 1200 / 2;
-		const visualCenterY = 56 + (800 - 56 - 72) / 2;
-		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - visualCenterX), 0);
-		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - visualCenterY), 0);
+		// 不具合修正 (2026-05-19): chrome 補正なしの真の幾何中心 (clientWidth/2, clientHeight/2)。
+		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - 1200 / 2), 0);
+		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - 800 / 2), 0);
 	});
 
 	it('2 縦 widgets at (0,0)+(0,1): X は 1 widget と同じ center scroll、 Y は下方向にシフト', () => {
@@ -249,15 +282,58 @@ describe('computeFitScroll - K-8 multi-widget centering', () => {
 		expect(r2.scrollTop - r1.scrollTop).toBeCloseTo(0.5 * cellStrideY(200), 0);
 	});
 
-	it('4 widget 2x2: BB center origin (1, 1) が viewport visual center に来る', () => {
+	it('4 widget 2x2: BB center origin (1, 1) が viewport 幾何中心に来る', () => {
 		const origin = { cellX: 1, cellY: 1 };
 		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
 		const sx = cellStrideX(200);
 		const buf = bufferOffsetPx(200);
 		const originPxX = INNER_PAD + buf.x + 1 * sx - GRID_GAP / 2;
-		// scroll 後 BB center が viewport visualCenterX に来ること
-		const visualCenterX = 1200 / 2;
-		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - visualCenterX), 0);
+		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - 1200 / 2), 0);
+	});
+});
+
+describe('不具合修正: 複数選択 widget の fit-to-content (2026-05-19)', () => {
+	// 5 つ散在 widget を選択 → 選択集合の BB → fit zoom → fit scroll の一連を検証。
+	const selection = [
+		{ position_x: 3, position_y: 2, width: 4, height: 3 },
+		{ position_x: 12, position_y: 4, width: 3, height: 2 },
+		{ position_x: 7, position_y: 9, width: 2, height: 4 },
+		{ position_x: 18, position_y: 1, width: 5, height: 3 },
+		{ position_x: 9, position_y: 14, width: 4, height: 2 },
+	];
+	const viewport = { clientWidth: 1280, clientHeight: 860 };
+
+	it('選択集合の BB は全選択 widget を内包する', () => {
+		const bb = computeBoundingBox(selection);
+		// minX=3, minY=1, maxX=max(18+5)=23, maxY=max(9+4=13,14+2=16)=16
+		expect(bb).toEqual({ minX: 3, minY: 1, maxX: 23, maxY: 16 });
+	});
+
+	it('fit zoom で選択 BB が実 px で availW/availH に収まる (top-left fallback に落ちない)', () => {
+		const bb = computeBoundingBox(selection);
+		if (!bb) throw new Error('bb null');
+		const z = computeFitZoom(bb, viewport);
+		const availW = viewport.clientWidth - 16 * 2;
+		const availH = viewport.clientHeight - 56 - 72;
+		const bbWidthPx = (bb.maxX - bb.minX) * cellStrideX(z) - GRID_GAP;
+		const bbHeightPx = (bb.maxY - bb.minY) * cellStrideY(z) - GRID_GAP;
+		expect(z).toBeGreaterThan(MIN_ZOOM_FIT);
+		expect(bbWidthPx).toBeLessThanOrEqual(availW);
+		expect(bbHeightPx).toBeLessThanOrEqual(availH);
+	});
+
+	it('fit scroll で選択 BB の重心が viewport 幾何中心に一致する', () => {
+		const bb = computeBoundingBox(selection);
+		if (!bb) throw new Error('bb null');
+		const z = computeFitZoom(bb, viewport);
+		const origin = computeOrigin(bb);
+		const scroll = computeFitScroll(origin, z, viewport);
+		// scroll 後の BB 重心 canvas 座標 − scroll = viewport 幾何中心。
+		const buf = bufferOffsetPx(z);
+		const originPxX = INNER_PAD + buf.x + origin.cellX * cellStrideX(z) - GRID_GAP / 2;
+		const originPxY = INNER_PAD + buf.y + origin.cellY * cellStrideY(z) - GRID_GAP / 2;
+		expect(originPxX - scroll.scrollLeft).toBeCloseTo(viewport.clientWidth / 2, 0);
+		expect(originPxY - scroll.scrollTop).toBeCloseTo(viewport.clientHeight / 2, 0);
 	});
 });
 
@@ -302,14 +378,16 @@ describe('effectiveBottomReserve / hint bar fit-to-content (2026-05-17)', () => 
 		expect(hidden).not.toBe(visible);
 	});
 
-	it('computeFitScroll: ヒントバー state で scrollTop が変わり scrollLeft は不変', () => {
+	it('computeFitScroll: BB 重心は viewport 幾何中心 — ヒントバー state 非依存', () => {
+		// 不具合修正 (2026-05-19): 旧 computeFitScroll は bottomReserve 引数で
+		// visualCenterY を chrome 補正していたため、 ヒントバー ON/OFF で BB 中心位置が
+		// 動いていた。 現在は引数を撤去し常に幾何中心へ — hint bar state に依存しない。
 		const origin = { cellX: 5, cellY: 20 };
 		const viewport = { clientWidth: 1200, clientHeight: 800 };
-		const visible = computeFitScroll(origin, 100, viewport, effectiveBottomReserve(true));
-		const hidden = computeFitScroll(origin, 100, viewport, effectiveBottomReserve(false));
-		// bottomReserve が大きい (表示時) ほど visualCenterY が小さく → scrollTop が大きい。
-		expect(visible.scrollTop).toBeGreaterThan(hidden.scrollTop);
-		// X 軸は bottomReserve 非依存。
-		expect(visible.scrollLeft).toBe(hidden.scrollLeft);
+		const sy = cellStrideY(100);
+		const buf = bufferOffsetPx(100);
+		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
+		const result = computeFitScroll(origin, 100, viewport);
+		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - 800 / 2), 0);
 	});
 });

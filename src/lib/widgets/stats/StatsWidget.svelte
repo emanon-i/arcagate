@@ -52,36 +52,37 @@ async function handleLaunch(id: string) {
 </script>
 
 <WidgetShell title={WIDGET_LABELS.stats} icon={TrendingUp} {menuItems}>
-	<!-- J-3 (2026-05-12): @container query で wide widget で multi-column 化。 -->
-	<div class="@container">
-		<div class="grid gap-1.5 @md:grid-cols-2 @[28rem]:grid-cols-3 @[40rem]:grid-cols-4">
-			{#each visibleTopItems as item, i (item.id)}
-				<button
-					type="button"
-					class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-					onclick={() => void handleLaunch(item.id)}
-					oncontextmenu={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						workspaceContextMenuStore.openMenuFor({
-							itemId: item.id,
-							path: item.target,
-							widgetId: widget?.id ?? null,
-							onOpenSettings: () => (settingsOpen = true),
-							ev: e,
-						});
-					}}
-				>
-					<span class="flex min-w-0 items-center gap-2">
-						<span class="w-4 shrink-0 text-center text-xs text-[var(--ag-text-faint)]">{i + 1}</span>
-						<span class="truncate">{item.label}</span>
-					</span>
-				</button>
-			{/each}
-			{#if visibleTopItems.length === 0}
-				<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">{t('widgets.stats.no_history')}</div>
-			{/if}
-		</div>
+	<!-- 不具合修正 (2026-05-19): 旧 @container の固定 grid-cols (2/3/4) は wide widget で
+	     列数 > item 数になり、 1 item の時セルが 1/4 幅で「左に寄って小さい」状態だった。
+	     auto-fit + minmax で item 数に応じて列が自動収縮 — 1 item は full 幅、
+	     複数 item は min 11rem で自然に折返す。 -->
+	<div class="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-1.5">
+		{#each visibleTopItems as item, i (item.id)}
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-2xl bg-[var(--ag-surface-3)] px-3 py-2.5 text-sm text-[var(--ag-text-secondary)] transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
+				onclick={() => void handleLaunch(item.id)}
+				oncontextmenu={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					workspaceContextMenuStore.openMenuFor({
+						itemId: item.id,
+						path: item.target,
+						widgetId: widget?.id ?? null,
+						onOpenSettings: () => (settingsOpen = true),
+						ev: e,
+					});
+				}}
+			>
+				<span class="flex min-w-0 items-center gap-2">
+					<span class="w-4 shrink-0 text-center text-xs text-[var(--ag-text-faint)]">{i + 1}</span>
+					<span class="truncate">{item.label}</span>
+				</span>
+			</button>
+		{/each}
+		{#if visibleTopItems.length === 0}
+			<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">{t('widgets.stats.no_history')}</div>
+		{/if}
 	</div>
 </WidgetShell>
 

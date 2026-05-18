@@ -2,14 +2,8 @@
 /**
  * StatCard — Library 概要 stats 表示。
  *
- * L2-A A4 (smoke): Industrial Yellow token に切替え。
- * - bg: --ag-il-paper
- * - border: --ag-il-border
- * - radius: --ag-il-radius-card (≤8px、控えめ)
- * - text: --ag-il-ink (label) / --ag-il-ink (value、強調)
- *
- * spec: docs/l1_requirements/design/industrial-yellow-spec.md §2.2 / §3.1
- * 旧 token (--ag-surface-2 等) は他 widget で継続使用、本 component のみ移行。
+ * design tokens v2 の semantic token (--ag-border / --ag-radius-card /
+ * --ag-text-primary) で 5 テーマ共通描画。 旧 Industrial Yellow direction は撤回済。
  */
 interface Props {
 	label: string;

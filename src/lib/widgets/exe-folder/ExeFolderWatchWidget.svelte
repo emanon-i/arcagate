@@ -323,7 +323,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	{:else if scanning}
 		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.common.scanning')}</p>
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-text-error)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
+		<p class="text-sm text-[var(--ag-error-text)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
 	{:else if entries.length === 0}
 		<p class="text-sm text-[var(--ag-text-muted)]">
 			{t('widgets.exe_folder.no_exe_subfolders')}
