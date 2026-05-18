@@ -104,9 +104,9 @@ function menuOpenSettings(): void {
 }
 
 // Phase L-3 (2026-05-07 user 検収 Library 真因 #3):
-// LibraryCard 内で itemSize-only 5 個の $derived (iconClassFilled / iconClassNone / labelPadClass /
-// labelFontClass / targetFontClass) が 690 cards × 5 = 3450 reactive deps を生み、itemSize
-// 変更時 JS longtask 1.2 秒の主因だった。共有 module で 1 回 derive、props 配布で 3450× 効率化。
+// LibraryCard 内で itemSize-only 4 個の $derived (iconClassNone / labelPadClass /
+// labelFontClass / targetFontClass) が 690 cards 分の reactive deps を生み、itemSize
+// 変更時 JS longtask 1.2 秒の主因だった。共有 module で 1 回 derive、props 配布で効率化。
 let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 </script>
 

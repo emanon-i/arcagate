@@ -2,7 +2,7 @@
  * Library card の per-card override 解釈。
  *
  * card_override_json schema (Item.card_override_json field、JSON 文字列):
- * - background?: LibraryCardBackgroundConfig (mode / fillBgColor / focalX / etc.)
+ * - background?: LibraryCardBackgroundConfig (mode 'icon' | 'image' / focalX / focalY)
  * - style?: LibraryCardStyleConfig (textColor / overlay / stroke 等)
  * - opener_id?: string (Opener ID、cascade で widget default / system 起動より優先)
  */

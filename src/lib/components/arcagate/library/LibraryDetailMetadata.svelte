@@ -2,9 +2,9 @@
 import { Info } from '@lucide/svelte';
 import DetailRow from '$lib/components/arcagate/common/DetailRow.svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
-import { artMap, typeLabel } from '$lib/constants/item-type';
+import { typeLabel } from '$lib/constants/item-type';
 import { t } from '$lib/i18n.svelte';
-import { configStore } from '$lib/state/config.svelte';
+import { DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
 import { parseCardOverride } from '$lib/utils/card-override';
@@ -15,7 +15,7 @@ import { parseCardOverride } from '$lib/utils/card-override';
  * E-3 (2026-05-07 user 検収): カード表示設定 section は ItemFormDialog の編集モーダルへ移植
  * (`ItemFormCardOverride.svelte`)。本 component は preview + 詳細表示 + 非表示 toggle のみに簡素化。
  *
- * E-7 (2026-05-07 user 検収): preview の表示を LibraryCard と統一する (image / fill / none で分岐)。
+ * E-7 (2026-05-07 user 検収): preview の表示を LibraryCard と統一する。
  */
 interface Props {
 	item: Item;
@@ -26,28 +26,24 @@ let { item }: Props = $props();
 let cardOverride = $derived(parseCardOverride(item.card_override_json));
 
 let bg = $derived({
-	...configStore.libraryCard.background,
+	...DEFAULT_CARD_BACKGROUND,
 	...(cardOverride?.background ?? {}),
 });
 
-// E-7: LibraryCard と同じ resolvedMode logic で image / fill / none を分岐。
-let resolvedMode = $derived(bg.mode === 'image' && !item.icon_path ? 'fill' : bg.mode);
+// LibraryCard と同じ logic: customImage (mode 'image' + icon_path) のみ全面 cover。
+let isImage = $derived(bg.mode === 'image' && !!item.icon_path);
 
 // F-3 (2026-05-08 user 検収): 「ライブラリで非表示」 toggle の長文説明を info icon に
 // 折り畳む。default 折畳 (showHideDescription=false)、icon click で expand。
 let showHideDescription = $state(false);
 </script>
 
-<!-- E-7 (2026-05-07 user 検収): preview を LibraryCard と同形式で render。
-     image mode は icon を全面 cover (focal 反映)、fill は色 + 中央 icon、none は gradient + icon。
-     LibraryCard 内 logic と同等、card_override 反映で見た目統一。 -->
+<!-- preview を LibraryCard と同形式で render: customImage は全面 cover (focal 反映)、
+     それ以外は共通 surface + 中央アイコン。card_override 反映で見た目統一。 -->
 <div
-	class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--ag-radius-widget)] {resolvedMode ===
-	'none'
-		? `bg-gradient-to-br ${artMap[item.item_type]}`
-		: ''}"
+	class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--ag-radius-widget)] bg-[var(--ag-surface-3)]"
 >
-	{#if resolvedMode === 'image' && item.icon_path}
+	{#if isImage}
 		<ItemIcon
 			iconPath={item.icon_path}
 			itemType={item.item_type}
@@ -55,22 +51,9 @@ let showHideDescription = $state(false);
 			class="absolute inset-0 h-full w-full object-cover"
 			style="object-position: {bg.focalX}% {bg.focalY}%;"
 		/>
-	{:else if resolvedMode === 'fill'}
-		<div
-			class="absolute inset-0 flex items-center justify-center"
-			style="background: {bg.fillBgColor};"
-		>
-			<ItemIcon
-				iconPath={undefined}
-				itemType={item.item_type}
-				alt="{item.label} icon"
-				class="h-20 w-20 object-contain drop-shadow-lg"
-				style="color: {bg.fillIconColor};"
-			/>
-		</div>
 	{:else}
 		<ItemIcon
-			iconPath={undefined}
+			iconPath={item.icon_path}
 			itemType={item.item_type}
 			alt="{item.label} icon"
 			class="h-20 w-20 object-contain drop-shadow-sm"

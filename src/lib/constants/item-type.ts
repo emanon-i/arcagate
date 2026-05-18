@@ -2,15 +2,6 @@ import { Cpu, FolderOpen, Gamepad2, Globe, TerminalSquare } from '@lucide/svelte
 import type { Component } from 'svelte';
 import type { ItemType } from '$lib/types/item';
 
-/** Gradient classes for card / detail panel art area */
-export const artMap: Record<ItemType, string> = {
-	exe: 'from-violet-600 via-fuchsia-600 to-indigo-700',
-	url: 'from-emerald-500 via-teal-500 to-cyan-700',
-	script: 'from-cyan-500 via-sky-500 to-blue-700',
-	folder: 'from-amber-500 via-orange-500 to-yellow-700',
-	command: 'from-pink-500 via-rose-500 to-fuchsia-700',
-};
-
 /** Human-readable display name for each item type */
 export const typeLabel: Record<ItemType, string> = {
 	exe: 'Executable',

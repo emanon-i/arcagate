@@ -6,7 +6,7 @@ import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { countItemReferences, createTag, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { configStore } from '$lib/state/config.svelte';
+import { configStore, DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -209,9 +209,9 @@ let cardOverrideDialogOpen = $state(false);
 function handleCardOverrideToggle(enable: boolean): void {
 	if (!selectedItem) return;
 	if (enable) {
-		// global config を copy で個別調整 enable
+		// default を copy で個別調整 enable
 		const initial = JSON.stringify({
-			background: configStore.libraryCard.background,
+			background: DEFAULT_CARD_BACKGROUND,
 			style: configStore.libraryCard.style,
 		});
 		void itemStore.updateItem(selectedItem.id, { card_override_json: initial });
