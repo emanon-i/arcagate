@@ -70,9 +70,18 @@ export default async function globalSetup(): Promise<void> {
 		const ctx = browser.contexts()[0];
 		// T2-1 fix #2: CI cold start で WebView2 page event が default 30s 内に来ない
 		// 場合があるため、明示 60s に延長 (T1 phase で flaky だった対処の継続)。
-		const page = ctx.pages()[0] ?? (await ctx.waitForEvent('page', { timeout: 60_000 }));
+		// 2026-05-19: Tauri は main window (/) と palette window (/palette) の 2 webview を
+		// 持つ。 ctx.pages()[0] は palette を掴むことがあり main 用 waitForURL が timeout する
+		// flake になっていた。 全 page を polling して main (/) を明示選択する。
+		const mainUrlRe = /^http:\/\/localhost:\d+\/?(\?.*)?$/;
+		let page = ctx.pages().find((p) => mainUrlRe.test(p.url()));
+		for (let i = 0; !page && i < 120; i++) {
+			await new Promise((r) => setTimeout(r, 500));
+			page = ctx.pages().find((p) => mainUrlRe.test(p.url()));
+		}
+		if (!page) throw new Error('main window (/) page did not appear within 60s');
 		// WebView2 が about:blank から devUrl に遷移するまで待機
-		await page.waitForURL(/^http:\/\/localhost:\d+\/?(\?.*)?$/, { timeout: 30_000 });
+		await page.waitForURL(mainUrlRe, { timeout: 30_000 });
 		await page.waitForLoadState('domcontentloaded');
 
 		// 2026-05-15 i18n e2e fix: localStorage に test 強制 locale を pre-inject。

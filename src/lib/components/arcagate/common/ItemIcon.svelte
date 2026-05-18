@@ -35,11 +35,19 @@ let FallbackIcon = $derived(
 </script>
 
 {#if iconSrc && !iconError}
+	<!--
+	  loading="lazy": Library 一覧で全 card の icon が一斉に asset:// fetch される問題の対策。
+	  asset protocol は request を直列処理するため、117 item で 117 件の icon request が
+	  serialize し初期表示が固まる (117 item 計測で確認)。 lazy で viewport 近傍のみ fetch する。
+	  decoding="async": decode を critical path から外す。
+	-->
 	<img
 		src={iconSrc}
 		{alt}
 		class={className}
 		{style}
+		loading="lazy"
+		decoding="async"
 		onerror={() => {
 			iconError = true;
 		}}
