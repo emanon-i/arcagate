@@ -51,28 +51,61 @@ pub fn resolve_with_conn(conn: &rusqlite::Connection, opener_id: &str) -> Result
         .expect("builtin:explorer must exist"))
 }
 
-/// command_template の `<path>` placeholder を target で substitute して shell 起動する。
+/// opener で target (file / folder) を起動する。
 ///
-/// 例:
-///   template = `code "<path>"`
-///   target   = `C:/Users/foo/My Project`
-///   → `code "C:/Users/foo/My Project"`
+/// audit F2 (2026-05-18): 旧実装は `command_template.replace("<path>", target)` で組み立てた
+/// 文字列を `launch_command` に渡していた。 builtin template が `<path>` を `cmd /c` /
+/// PowerShell の引用符コンテキストに埋め込んでいたため、 アポストロフィを含む正規の
+/// フォルダ名や、 `cmd_launch_with_opener` 経由の未検証 target でコマンド / PowerShell
+/// インジェクションが成立した。
 ///
-/// shell-words::split で quoting に対応、Windows パス内のスペースを正しく扱う。
+/// 新実装:
+/// - builtin の explorer / cmd / powershell は id で特別扱いし、 target を引数文字列に
+///   埋め込まず `current_dir` / 構造化引数で渡す (shell 再パースを完全排除)。
+/// - それ以外 (vscode / wt / custom opener) は template を token 化 → `<path>` を **token
+///   単位で**置換 → 構造化引数で実行。 target は単一 argv 要素になり shell 演算子として
+///   再解釈されない。
 pub fn launch_with(opener: &Opener, target: &str) -> Result<(), AppError> {
-    let cmd = substitute_template(&opener.command_template, target)?;
-    launcher::launch_command(&cmd, None)
+    if target.trim().is_empty() {
+        return Err(AppError::InvalidInput("opener target is empty".to_string()));
+    }
+
+    match opener.id.as_str() {
+        "builtin:explorer" => return launcher::launch_folder(target),
+        "builtin:cmd" => return launcher::launch_terminal_in_dir("cmd", &[], target),
+        "builtin:powershell" => {
+            return launcher::launch_terminal_in_dir("powershell", &["-NoExit"], target)
+        }
+        _ => {}
+    }
+
+    let argv = build_opener_argv(&opener.command_template, target)?;
+    launcher::launch_argv(&argv, None)
 }
 
-/// `<path>` placeholder を target で substitute。template 側の quoting は保持。
-/// PH-422 の shell-words 移行と一貫させるため、target 側の quoting は呼び出し側で template に書く。
-fn substitute_template(template: &str, target: &str) -> Result<String, AppError> {
+/// command_template を shell-words で token 化し、 各 token 内の `<path>` placeholder を
+/// target で literal 置換した argv (program + args) を返す。
+///
+/// 置換は **token 分割後**に行うため、 target に空白 / `&` / `'` 等が含まれても単一 token
+/// に収まり、 shell 再パースを受けない。
+fn build_opener_argv(template: &str, target: &str) -> Result<Vec<String>, AppError> {
     if !template.contains("<path>") {
         return Err(AppError::LaunchFailed(format!(
             "opener template missing <path> placeholder: {template}"
         )));
     }
-    Ok(template.replace("<path>", target))
+    let tokens = shell_words::split(template)
+        .map_err(|e| AppError::LaunchFailed(format!("invalid opener template quoting: {e}")))?;
+    let argv: Vec<String> = tokens
+        .into_iter()
+        .map(|token| token.replace("<path>", target))
+        .collect();
+    if argv.is_empty() {
+        return Err(AppError::LaunchFailed(
+            "opener template is empty".to_string(),
+        ));
+    }
+    Ok(argv)
 }
 
 pub fn save(db: &DbState, input: SaveOpenerInput) -> Result<Opener, AppError> {
@@ -127,27 +160,48 @@ mod tests {
     use crate::db::initialize_in_memory;
 
     #[test]
-    fn substitute_template_replaces_path() {
-        let r = substitute_template(r#"code "<path>""#, "C:/foo").unwrap();
-        assert_eq!(r, r#"code "C:/foo""#);
+    fn build_opener_argv_splits_program_and_path() {
+        let argv = build_opener_argv(r#"code "<path>""#, "C:/foo").unwrap();
+        assert_eq!(argv, vec!["code", "C:/foo"]);
     }
 
     #[test]
-    fn substitute_template_handles_spaces_via_template_quoting() {
-        let r = substitute_template(r#"code "<path>""#, "C:/My Project").unwrap();
-        assert_eq!(r, r#"code "C:/My Project""#);
+    fn build_opener_argv_keeps_spaced_path_as_single_token() {
+        // audit F2: token 分割後に置換するため、 空白入りパスでも 2 token のまま。
+        let argv = build_opener_argv(r#"code "<path>""#, "C:/My Project").unwrap();
+        assert_eq!(argv, vec!["code", "C:/My Project"]);
     }
 
     #[test]
-    fn substitute_template_replaces_multiple_occurrences() {
-        let r = substitute_template(r#"echo "<path>" && cd "<path>""#, "C:/x").unwrap();
-        assert_eq!(r, r#"echo "C:/x" && cd "C:/x""#);
+    fn build_opener_argv_keeps_metachar_path_as_single_token() {
+        // audit F2: `&` `'` を含むパスも単一 token に収まり、 shell 演算子化しない。
+        let argv = build_opener_argv(r#"wt -d "<path>""#, "C:/a & b/o'brien").unwrap();
+        assert_eq!(argv, vec!["wt", "-d", "C:/a & b/o'brien"]);
     }
 
     #[test]
-    fn substitute_template_errors_when_placeholder_missing() {
-        let err = substitute_template("notepad", "x").unwrap_err();
+    fn build_opener_argv_does_not_chain_commands() {
+        // template に `&&` があっても、 token 化により literal 引数になりコマンド連鎖しない。
+        let argv = build_opener_argv(r#"echo "<path>" && cd "<path>""#, "C:/x").unwrap();
+        assert_eq!(argv, vec!["echo", "C:/x", "&&", "cd", "C:/x"]);
+    }
+
+    #[test]
+    fn build_opener_argv_errors_when_placeholder_missing() {
+        let err = build_opener_argv("notepad", "x").unwrap_err();
         assert!(matches!(err, AppError::LaunchFailed(_)));
+    }
+
+    #[test]
+    fn launch_with_rejects_empty_target() {
+        let opener = builtin_openers()
+            .into_iter()
+            .find(|o| o.id == "builtin:vscode")
+            .unwrap();
+        assert!(matches!(
+            launch_with(&opener, "   "),
+            Err(AppError::InvalidInput(_))
+        ));
     }
 
     #[test]

@@ -30,7 +30,8 @@ use commands::item_commands::{
 };
 use commands::kill_switch_commands::cmd_check_kill_switch;
 use commands::launch_commands::{
-    cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent, cmd_reveal_in_explorer,
+    cmd_confirm_item, cmd_get_item_stats, cmd_launch_item, cmd_list_frequent, cmd_list_recent,
+    cmd_reveal_in_explorer,
 };
 use commands::metadata_commands::{cmd_get_item_metadata, cmd_get_items_metadata_batch};
 use commands::opener_commands::{
@@ -282,6 +283,7 @@ pub fn run() {
             cmd_check_is_directory,
             cmd_extract_item_icon,
             cmd_launch_item,
+            cmd_confirm_item,
             cmd_list_recent,
             cmd_list_frequent,
             cmd_reveal_in_explorer,

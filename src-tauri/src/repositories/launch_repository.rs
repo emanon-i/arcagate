@@ -92,6 +92,25 @@ pub fn list_frequent(conn: &Connection, limit: i64) -> Result<Vec<ItemStats>, Ap
     Ok(stats)
 }
 
+/// audit F15 (2026-05-18): Command / Script アイテムが起動確認済みか判定する。
+pub fn is_item_confirmed(conn: &Connection, item_id: &str) -> Result<bool, AppError> {
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM confirmed_items WHERE item_id = ?1",
+        params![item_id],
+        |row| row.get(0),
+    )?;
+    Ok(count > 0)
+}
+
+/// audit F15 (2026-05-18): アイテムを起動確認済みとして記録する (べき等)。
+pub fn confirm_item(conn: &Connection, item_id: &str) -> Result<(), AppError> {
+    conn.execute(
+        "INSERT OR IGNORE INTO confirmed_items (item_id) VALUES (?1)",
+        params![item_id],
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -187,5 +206,49 @@ mod tests {
         assert_eq!(stats[0].launch_count, 3);
         assert_eq!(stats[1].item_id, "item-001");
         assert_eq!(stats[1].launch_count, 1);
+    }
+
+    // --- audit F15: 起動確認状態 ---
+
+    #[test]
+    fn test_item_not_confirmed_by_default() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+        item_repository::insert(&conn, &make_item("item-001", "Script")).unwrap();
+
+        assert!(!is_item_confirmed(&conn, "item-001").unwrap());
+    }
+
+    #[test]
+    fn test_confirm_item_marks_confirmed() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+        item_repository::insert(&conn, &make_item("item-001", "Script")).unwrap();
+
+        confirm_item(&conn, "item-001").unwrap();
+        assert!(is_item_confirmed(&conn, "item-001").unwrap());
+    }
+
+    #[test]
+    fn test_confirm_item_is_idempotent() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+        item_repository::insert(&conn, &make_item("item-001", "Script")).unwrap();
+
+        confirm_item(&conn, "item-001").unwrap();
+        confirm_item(&conn, "item-001").unwrap();
+        assert!(is_item_confirmed(&conn, "item-001").unwrap());
+    }
+
+    #[test]
+    fn test_confirm_state_cascade_deleted_with_item() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+        item_repository::insert(&conn, &make_item("item-001", "Script")).unwrap();
+        confirm_item(&conn, "item-001").unwrap();
+
+        item_repository::delete(&conn, "item-001").unwrap();
+        // item 削除で confirmed_items も CASCADE 消去される
+        assert!(!is_item_confirmed(&conn, "item-001").unwrap());
     }
 }

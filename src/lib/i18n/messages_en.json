@@ -45,6 +45,9 @@
 		"dup_image_message": "A widget displaying this image already exists in the Workspace.\n\n• Select existing (recommended): selects that widget\n• Add as new widget: duplicates the image in a new widget\n• Cancel: do nothing",
 		"dup_image_title": "A widget for this image already exists",
 		"dup_select_existing": "Select existing",
+		"script_launch_confirm_message": "This item runs the following command / script. This is a first-run confirmation — review it before running.",
+		"script_launch_confirm_run": "Run",
+		"script_launch_confirm_title": "Run this command / script?",
 		"settings_close_aria": "Close settings",
 		"unsaved_changes": "You have unsaved changes"
 	},

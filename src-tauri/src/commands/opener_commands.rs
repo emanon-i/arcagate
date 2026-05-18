@@ -25,12 +25,17 @@ pub fn cmd_delete_opener(services: State<AppServices>, id: String) -> Result<(),
 
 /// 任意 path を任意 opener で起動 (右クリック「Open with…」用)。
 /// item_id は不要 (path 直起動)、起動ログは記録しない (カジュアル起動扱い)。
+///
+/// audit F8 (2026-05-18): target は WebView から渡る raw path。 起動前に
+/// `validate_existing_path` で制御文字拒否 + 実在検証を行い、 インジェクション目的の
+/// 細工文字列 (実在パスにならない) を opener 実行に到達させない。
 #[tauri::command]
 pub fn cmd_launch_with_opener(
     services: State<AppServices>,
     opener_id: String,
     target: String,
 ) -> Result<(), AppError> {
+    crate::launcher::validate_existing_path(&target)?;
     let opener = services.opener.resolve(&opener_id)?;
     opener_service::launch_with(&opener, &target)
 }
