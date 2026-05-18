@@ -249,11 +249,12 @@ function deselectAllWidgets(): void {
 }
 </script>
 
-<!-- 4/30 user 検収: wallpaper 未設定時の fallback gradient を column 自体に置く。
-     canvas-edit-mode は透明、wallpaper layer (z-0) があれば最前で見え、無ければこの gradient が見える。 -->
+<!-- 4/30 user 検収: wallpaper 未設定時の fallback 背景を column 自体に置く。
+     canvas-edit-mode は透明、wallpaper layer (z-0) があれば最前で見え、無ければこの背景が見える。
+     #512 regression fix: 強い縦グラデを廃し theme 制御の単色 token (--ag-workspace-bg) に。 -->
 <div
 	class="relative flex min-w-0 flex-1 flex-col overflow-hidden"
-	style="background: linear-gradient(180deg,var(--ag-surface-0) 0%,var(--ag-surface-page) 100%);"
+	style="background: var(--ag-workspace-bg);"
 >
 	<!-- 壁紙: 親 (この column) を覆う、scroll しない最背景 -->
 	{#if workspaceStore.activeWorkspace?.wallpaper_path}
