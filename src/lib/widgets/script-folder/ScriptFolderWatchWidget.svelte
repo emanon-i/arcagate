@@ -196,8 +196,9 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	{:else if entries.length === 0}
 		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.script_folder.no_scripts')}</p>
 	{:else}
-		<!-- 並び替え toolbar (ag-glass で widget 本体と同じガラス面に統一)。 -->
-		<div class="ag-glass sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-4 pb-1.5 pt-1 text-xs">
+		<!-- 並び替え toolbar。 ag-sticky-bar で widget 本体 glass 面の継続にする
+		     (独立した塗りつぶし矩形を持たない — border / shadow / 疑似要素なし)。 -->
+		<div class="ag-sticky-bar sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-4 pb-1.5 pt-1 text-xs">
 			<span class="text-[var(--ag-text-muted)]">{t('widgets.common.sort_label')}</span>
 			<button
 				type="button"
