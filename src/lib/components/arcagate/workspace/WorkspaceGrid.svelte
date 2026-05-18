@@ -12,6 +12,7 @@ import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadJSON, saveJSON } from '$lib/utils/local-storage';
 import {
 	bufferOffsetPx,
+	clampZoom,
 	computeBoundingBox,
 	computeFitScroll,
 	computeOrigin,
@@ -81,6 +82,24 @@ function panKey(wsId: string | null): string {
 }
 let panSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+// #6: zoom も pan と同じく **workspace ごと** に永続化する。
+// page (workspace tab) 切替時に復元、zoom 変更時 (wheel / fit / reset) に保存。
+function zoomKey(wsId: string | null): string {
+	return wsId ? `arcagate.workspace.zoom.${wsId}` : 'arcagate.workspace.zoom.__default__';
+}
+let zoomSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+// zoom 変更を debounce して現在 workspace のキーに保存 (fit / reset / wheel すべて追従)。
+$effect(() => {
+	const z = configStore.widgetZoom;
+	const wsId = workspaceStore.activeWorkspaceId;
+	if (!wsId) return;
+	if (zoomSaveTimer) clearTimeout(zoomSaveTimer);
+	zoomSaveTimer = setTimeout(() => {
+		saveJSON(zoomKey(wsId), { zoom: z });
+	}, 200);
+});
+
 /**
  * 初期 scroll 位置を計算 (Q3 確定: Fit と spec 統一)。
  *   - widget あり: zoom-math.computeFitScroll で BB 重心を viewport visual center に置く
@@ -123,6 +142,13 @@ $effect(() => {
 	if (workspaceStore.loading) return;
 	if (lastInitializedWorkspaceId === wsId) return;
 	lastInitializedWorkspaceId = wsId;
+	// #6: pan より先に zoom を復元 (pan の computeInitialScroll が zoom に依存するため)。
+	const savedZoom = loadJSON<{ zoom?: number }>(zoomKey(wsId), {});
+	if (typeof savedZoom.zoom === 'number') {
+		configStore.setWidgetZoom(
+			clampZoom(savedZoom.zoom, configStore.widgetMinZoom, configStore.widgetMaxZoom),
+		);
+	}
 	queueMicrotask(() => {
 		if (!container) return;
 		const saved = loadJSON<{ left?: number; top?: number }>(panKey(wsId), {});

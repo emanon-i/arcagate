@@ -390,6 +390,24 @@
 			"tag_label": "取り込み時にタグを付与 (任意)"
 		},
 		"category_label": "設定カテゴリ",
+		"clean_reset": {
+			"confirm_button": "リセットを実行",
+			"confirm_hint": "実行するには「RESET」と入力してください",
+			"desc": "初期化する対象を選択してください。この操作は取り消せません。",
+			"done": "リセットが完了しました",
+			"failed": "リセットに失敗しました: {error}",
+			"label": "クリーン状態リセット",
+			"open_button": "リセット…",
+			"running": "リセット中…",
+			"scope_library": "ライブラリ",
+			"scope_library_desc": "登録アイテム・タグ・Opener・起動履歴",
+			"scope_settings": "設定",
+			"scope_settings_desc": "ホットキー・自動起動・テーマ・カード表示などの設定",
+			"scope_workspace": "ワークスペース",
+			"scope_workspace_desc": "ワークスペース・ウィジェット配置・監視フォルダ",
+			"section_desc": "設定・ライブラリ・ワークスペースを段階選択で初期化します。",
+			"title": "クリーン状態リセット"
+		},
 		"data": {
 			"heading": "データ",
 			"reset_button": "設定をリセット",

@@ -1,10 +1,11 @@
 <script lang="ts">
-import { RotateCcw } from '@lucide/svelte';
+import { Eraser, RotateCcw } from '@lucide/svelte';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { getErrorMessage } from '$lib/utils/format-error';
+import CleanResetDialog from './CleanResetDialog.svelte';
 import ExportImport from './ExportImport.svelte';
 
 /**
@@ -18,6 +19,7 @@ import ExportImport from './ExportImport.svelte';
  */
 
 let resetting = $state(false);
+let cleanResetOpen = $state(false);
 
 async function handleReset(): Promise<void> {
 	if (resetting) return;
@@ -65,4 +67,29 @@ async function handleReset(): Promise<void> {
 			</Button>
 		</div>
 	</div>
+
+	<!-- #5: クリーン状態リセット (factory reset)。設定/ライブラリ/ワークスペースを
+	     段階選択で初期化。タイプ確認付き dialog 経由。 -->
+	<div class="border-t border-[var(--ag-border)] pt-5">
+		<div class="flex items-start justify-between gap-4">
+			<div class="min-w-0">
+				<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.clean_reset.label')}</p>
+				<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
+					{t('settings.clean_reset.section_desc')}
+				</p>
+			</div>
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				onclick={() => (cleanResetOpen = true)}
+				data-testid="settings-clean-reset"
+			>
+				<Eraser class="h-3.5 w-3.5" />
+				{t('settings.clean_reset.open_button')}
+			</Button>
+		</div>
+	</div>
 </div>
+
+<CleanResetDialog open={cleanResetOpen} onClose={() => (cleanResetOpen = false)} />

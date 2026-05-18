@@ -390,6 +390,24 @@
 			"tag_label": "Assign tags on import (optional)"
 		},
 		"category_label": "Settings category",
+		"clean_reset": {
+			"confirm_button": "Reset",
+			"confirm_hint": "Type \"RESET\" to proceed",
+			"desc": "Select what to reset. This action cannot be undone.",
+			"done": "Reset complete",
+			"failed": "Reset failed: {error}",
+			"label": "Clean-state reset",
+			"open_button": "Reset…",
+			"running": "Resetting…",
+			"scope_library": "Library",
+			"scope_library_desc": "Registered items, tags, openers, and launch history",
+			"scope_settings": "Settings",
+			"scope_settings_desc": "Hotkey, autostart, theme, card display, and other settings",
+			"scope_workspace": "Workspace",
+			"scope_workspace_desc": "Workspaces, widget layout, and watched folders",
+			"section_desc": "Reset settings, library, and workspace data — choose the scope.",
+			"title": "Clean-state reset"
+		},
 		"data": {
 			"heading": "Data",
 			"reset_button": "Reset settings",

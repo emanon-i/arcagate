@@ -31,3 +31,11 @@ export async function isSetupComplete(): Promise<boolean> {
 export async function markSetupComplete(): Promise<void> {
 	return invoke<void>('cmd_mark_setup_complete');
 }
+
+/**
+ * #5: クリーン状態リセット (factory reset)。
+ * library / workspace の DB データを段階選択で初期化する (設定リセットは別経路)。
+ */
+export async function factoryReset(resetLibrary: boolean, resetWorkspace: boolean): Promise<void> {
+	return invoke<void>('cmd_factory_reset', { resetLibrary, resetWorkspace });
+}
