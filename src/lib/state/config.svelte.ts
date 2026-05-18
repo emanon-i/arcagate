@@ -17,7 +17,8 @@ import {
 
 export type ItemSize = 'S' | 'M' | 'L';
 
-export type LibraryCardBackgroundMode = 'fill' | 'image' | 'none';
+// 'icon' = 共通 surface + 中央アイコン (default)、'image' = item.icon_path を全面 cover。
+export type LibraryCardBackgroundMode = 'icon' | 'image';
 
 export interface LibraryCardStyleConfig {
 	textColor: string;
@@ -27,31 +28,31 @@ export interface LibraryCardStyleConfig {
 	overlayEnabled: boolean;
 }
 
+/**
+ * カード背景の per-card override 形。global default は持たず、全カード共通の見た目は
+ * DEFAULT_CARD_BACKGROUND 固定 (共通 surface + 中央アイコン)。card_override_json で
+ * のみ image / focal を上書きする。
+ */
 export interface LibraryCardBackgroundConfig {
 	mode: LibraryCardBackgroundMode;
-	fillBgColor: string;
-	fillIconColor: string;
 	focalX: number;
 	focalY: number;
 }
 
+/** card_override が background を持たないカードの default = 共通 surface + 中央アイコン。 */
+export const DEFAULT_CARD_BACKGROUND: LibraryCardBackgroundConfig = {
+	mode: 'icon',
+	focalX: 50,
+	focalY: 50,
+};
+
 export interface LibraryCardConfig {
-	background: LibraryCardBackgroundConfig;
 	style: LibraryCardStyleConfig;
 }
 
 const LIBRARY_CARD_STORAGE_KEY = 'arcagate-library-card';
 
-// #8: グローバル背景モード選択は撤廃。default は 'none' (タイプ別グラデーション +
-// 中央アイコン) 固定。画像 / カスタム色はカード個別設定 (card_override) で指定する。
 const DEFAULT_LIBRARY_CARD: LibraryCardConfig = {
-	background: {
-		mode: 'none',
-		fillBgColor: '#1f2937',
-		fillIconColor: '#ffffff',
-		focalX: 50,
-		focalY: 50,
-	},
 	style: {
 		textColor: '#ffffff',
 		strokeEnabled: true,
@@ -62,14 +63,10 @@ const DEFAULT_LIBRARY_CARD: LibraryCardConfig = {
 };
 
 function loadLibraryCardFromStorage(): LibraryCardConfig {
-	// nested 構造のため loadJSON の shallow merge では不足。background / style を
-	// それぞれ個別 merge する。
-	const top = loadJSON<{
-		background: Partial<LibraryCardBackgroundConfig>;
-		style: Partial<LibraryCardStyleConfig>;
-	}>(LIBRARY_CARD_STORAGE_KEY, { background: {}, style: {} });
+	const top = loadJSON<{ style: Partial<LibraryCardStyleConfig> }>(LIBRARY_CARD_STORAGE_KEY, {
+		style: {},
+	});
 	return {
-		background: { ...DEFAULT_LIBRARY_CARD.background, ...(top.background ?? {}) },
 		style: { ...DEFAULT_LIBRARY_CARD.style, ...(top.style ?? {}) },
 	};
 }

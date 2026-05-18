@@ -7,6 +7,7 @@ import { t } from '$lib/i18n.svelte';
 import type { Opener } from '$lib/ipc/opener';
 import {
 	configStore,
+	DEFAULT_CARD_BACKGROUND,
 	type LibraryCardBackgroundConfig,
 	type LibraryCardStyleConfig,
 } from '$lib/state/config.svelte';
@@ -30,9 +31,8 @@ import { type CardOverrideJson, parseCardOverride } from '$lib/utils/card-overri
  * - "このカードだけ個別調整" / "グローバル設定に戻す" toggle button
  * - override 有効時のみ展開:
  *   - 起動アプリ Opener override select
- *   - 背景モード select (image / fill / none)
- *   - image 時: focalX / focalY slider
- *   - fill 時: fillBgColor / fillIconColor color picker
+ *   - 表示方法 select (アイコン中央表示 / 画像全面表示)
+ *   - 画像表示時: focalX / focalY slider
  *   - 共通: textColor / overlayEnabled / strokeEnabled / strokeColor
  * - リセット確認 ConfirmDialog (内蔵)
  *
@@ -63,7 +63,7 @@ let cardOverride = $derived(parseCardOverride(item.card_override_json));
 let currentOpenerId = $derived(cardOverride?.opener_id ?? '');
 
 let bg = $derived({
-	...configStore.libraryCard.background,
+	...DEFAULT_CARD_BACKGROUND,
 	...(cardOverride?.background ?? {}),
 });
 let style = $derived({
@@ -93,7 +93,7 @@ async function patchOverride(patch: {
 
 function enableOverride(): void {
 	const current = JSON.stringify({
-		background: configStore.libraryCard.background,
+		background: DEFAULT_CARD_BACKGROUND,
 		style: configStore.libraryCard.style,
 	});
 	void itemStore.updateItem(item.id, { card_override_json: current });
@@ -239,13 +239,12 @@ async function clearIcon(): Promise<void> {
 					onchange={(e) =>
 						void patchOverride({
 							background: {
-								mode: (e.currentTarget as HTMLSelectElement).value as 'image' | 'fill' | 'none',
+								mode: (e.currentTarget as HTMLSelectElement).value as 'icon' | 'image',
 							},
 						})}
 				>
+					<option value="icon">{t('item.card_override.bg_mode_icon')}</option>
 					<option value="image">{t('item.card_override.bg_mode_image')}</option>
-					<option value="fill">{t('item.card_override.bg_mode_fill')}</option>
-					<option value="none">{t('item.card_override.bg_mode_none')}</option>
 				</select>
 			</div>
 			{#if bg.mode === 'image'}
@@ -285,33 +284,6 @@ async function clearIcon(): Promise<void> {
 								background: { focalY: Number((e.currentTarget as HTMLInputElement).value) },
 							})}
 						class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent)]"
-					/>
-				</div>
-			{:else if bg.mode === 'fill'}
-				<div class="space-y-1">
-					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-fill-bg">{t('item.card_override.fill_bg_color_label')}</label>
-					<input
-						id="card-fill-bg"
-						type="color"
-						class="h-8 w-full cursor-pointer rounded border border-[var(--ag-border)] bg-transparent"
-						value={bg.fillBgColor}
-						onchange={(e) =>
-							void patchOverride({
-								background: { fillBgColor: (e.currentTarget as HTMLInputElement).value },
-							})}
-					/>
-				</div>
-				<div class="space-y-1">
-					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-fill-icon">{t('item.card_override.fill_icon_color_label')}</label>
-					<input
-						id="card-fill-icon"
-						type="color"
-						class="h-8 w-full cursor-pointer rounded border border-[var(--ag-border)] bg-transparent"
-						value={bg.fillIconColor}
-						onchange={(e) =>
-							void patchOverride({
-								background: { fillIconColor: (e.currentTarget as HTMLInputElement).value },
-							})}
 					/>
 				</div>
 			{/if}

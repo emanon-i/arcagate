@@ -138,10 +138,9 @@
 	"item": {
 		"card_override": {
 			"badge_active": "個別調整中",
-			"bg_mode_fill": "塗りつぶし (背景色 + 中央アイコン)",
+			"bg_mode_icon": "アイコン (中央表示)",
 			"bg_mode_image": "画像 (アイコンを全面表示)",
-			"bg_mode_label": "背景設定",
-			"bg_mode_none": "なし (グラデーション)",
+			"bg_mode_label": "表示方法",
 			"card_display_label": "カード表示",
 			"confirm_reset_button": "解除する",
 			"confirm_reset_desc": "このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。",
@@ -150,8 +149,6 @@
 			"desc_overriding": "このカードのみグローバル設定とは独立した表示が適用されています。",
 			"enable_aria": "このカードだけ個別調整を有効化",
 			"enable_button": "このカードだけ個別調整",
-			"fill_bg_color_label": "背景色",
-			"fill_icon_color_label": "アイコン色",
 			"filter_icon_image": "アイコン画像",
 			"focal_x_label": "画像位置 X",
 			"focal_y_label": "画像位置 Y",
@@ -464,8 +461,8 @@
 			"press_key": "キーを押してください..."
 		},
 		"library_card": {
-			"bg_desc": "全カードはタイプ別グラデーション + 中央アイコンで表示されます。画像やカスタム色は各アイテムの編集画面（カード個別設定 > 背景設定）で指定できます。",
-			"bg_heading": "カード背景",
+			"bg_desc": "全カードは共通のサーフェスに中央アイコンで表示されます。画像の全面表示やアイコンの差し替えは各アイテムの編集画面（カード個別設定）で指定できます。",
+			"bg_heading": "カードの見た目",
 			"label_text_heading": "ラベルの文字",
 			"overlay": "背景オーバーレイ",
 			"size_desc": "4:3 アスペクト固定。ウィンドウ幅で列数のみ変動します。",

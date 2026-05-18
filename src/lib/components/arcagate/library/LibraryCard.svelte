@@ -1,8 +1,8 @@
 <script lang="ts">
 import { Star } from '@lucide/svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
-import { artMap, typeLabel } from '$lib/constants/item-type';
-import { configStore } from '$lib/state/config.svelte';
+import { typeLabel } from '$lib/constants/item-type';
+import { configStore, DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item } from '$lib/types/item';
 import { parseCardOverride } from '$lib/utils/card-override';
@@ -46,15 +46,15 @@ let metadata = $derived(
 
 let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
 
-// PH-290: per-card override を global にマージ（背景・文字とも部分上書き）。
+// per-card override を default にマージ（背景・文字とも部分上書き）。
 // E-8 fix (2026-05-07): card_override 変更時 LibraryCard 未更新 bug fix (parseCardOverride helper で signal-clean)。
-// L-batch (2026-05-10 perf): override 無し (大半のカード) では configStore の参照を
+// L-batch (2026-05-10 perf): override 無し (大半のカード) では default 参照を
 // そのまま返して spread allocation を回避。N cards × 2 spread の object 生成を回避。
 let cardOverride = $derived(parseCardOverride(item.card_override_json));
 let bg = $derived(
 	cardOverride?.background
-		? { ...configStore.libraryCard.background, ...cardOverride.background }
-		: configStore.libraryCard.background,
+		? { ...DEFAULT_CARD_BACKGROUND, ...cardOverride.background }
+		: DEFAULT_CARD_BACKGROUND,
 );
 let style = $derived(
 	cardOverride?.style
@@ -67,10 +67,9 @@ let labelStyle = $derived.by(() => {
 	return `color: ${style.textColor}; -webkit-text-stroke: ${stroke}; paint-order: stroke fill;`;
 });
 
-let resolvedMode = $derived.by(() => {
-	if (bg.mode === 'image' && !item.icon_path) return 'fill';
-	return bg.mode;
-});
+// customImage (mode 'image' + icon_path) は全面 cover、それ以外は default =
+// 共通 surface + 中央アイコン (item.icon_path or タイプ fallback)。
+let isImage = $derived(bg.mode === 'image' && !!item.icon_path);
 </script>
 
 {#if viewMode === 'list'}
@@ -89,7 +88,7 @@ let resolvedMode = $derived.by(() => {
 		{oncontextmenu}
 	>
 		<div class="relative shrink-0">
-			<div class="flex h-9 w-9 items-center justify-center rounded-[var(--ag-radius-sm)] bg-gradient-to-br {artMap[item.item_type]}">
+			<div class="flex h-9 w-9 items-center justify-center rounded-[var(--ag-radius-sm)] bg-[var(--ag-surface-4)]">
 				<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class="h-5 w-5 object-contain" />
 			</div>
 			{#if isStarred}
@@ -120,7 +119,7 @@ let resolvedMode = $derived.by(() => {
 		{ondblclick}
 		{oncontextmenu}
 	>
-		{#if resolvedMode === 'image' && item.icon_path}
+		{#if isImage}
 			<ItemIcon
 				iconPath={item.icon_path}
 				itemType={item.item_type}
@@ -128,19 +127,9 @@ let resolvedMode = $derived.by(() => {
 				class="absolute inset-0 h-full w-full object-cover"
 				style="object-position: {bg.focalX}% {bg.focalY}%;"
 			/>
-		{:else if resolvedMode === 'fill'}
-			<div class="absolute inset-0 flex items-center justify-center" style="background: {bg.fillBgColor};">
-				<ItemIcon
-					iconPath={undefined}
-					itemType={item.item_type}
-					alt="{item.label} icon"
-					class={sizeClasses.iconClassFilled}
-					style="color: {bg.fillIconColor};"
-				/>
-			</div>
 		{:else}
-			<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br {artMap[item.item_type]}">
-				<ItemIcon iconPath={undefined} itemType={item.item_type} alt="{item.label} icon" class={sizeClasses.iconClassNone} />
+			<div class="absolute inset-0 flex items-center justify-center">
+				<ItemIcon iconPath={item.icon_path} itemType={item.item_type} alt="{item.label} icon" class={sizeClasses.iconClassNone} />
 			</div>
 		{/if}
 

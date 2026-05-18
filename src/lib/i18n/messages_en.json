@@ -138,10 +138,9 @@
 	"item": {
 		"card_override": {
 			"badge_active": "Customized",
-			"bg_mode_fill": "Fill (background color + centered icon)",
+			"bg_mode_icon": "Icon (centered)",
 			"bg_mode_image": "Image (show icon full-bleed)",
-			"bg_mode_label": "Background",
-			"bg_mode_none": "None (gradient)",
+			"bg_mode_label": "Display style",
 			"card_display_label": "Card display",
 			"confirm_reset_button": "Clear",
 			"confirm_reset_desc": "The per-card display settings will be lost and the global settings from Settings > Library will apply.",
@@ -150,8 +149,6 @@
 			"desc_overriding": "This card uses display settings independent of the global configuration.",
 			"enable_aria": "Enable per-card customization for this card",
 			"enable_button": "Customize this card",
-			"fill_bg_color_label": "Background color",
-			"fill_icon_color_label": "Icon color",
 			"filter_icon_image": "Icon image",
 			"focal_x_label": "Image position X",
 			"focal_y_label": "Image position Y",
@@ -464,8 +461,8 @@
 			"press_key": "Press a key…"
 		},
 		"library_card": {
-			"bg_desc": "All cards show a type-based gradient with a centered icon. Set an image or custom color per item from its edit dialog (per-card settings > Background).",
-			"bg_heading": "Card background",
+			"bg_desc": "All cards show a centered icon on a shared surface. Set a full-bleed image or swap the icon per item from its edit dialog (per-card settings).",
+			"bg_heading": "Card appearance",
 			"label_text_heading": "Label text",
 			"overlay": "Background overlay",
 			"size_desc": "Fixed 4:3 aspect ratio. Only the column count changes with window width.",
