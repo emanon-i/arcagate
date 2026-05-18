@@ -1,6 +1,7 @@
-// #7: builtin テーマは Dark / Light の 2 本。
-// activeMode は theme ID ('dark' / 'light' / custom) か 'system' (OS 追従)。
-export type ThemeMode = 'system' | (string & {});
+// builtin テーマは Dark / Light / Neumorph / Brutalist / HUD の 5 本。
+// activeMode は実在する theme ID ('dark' / 'light' / 'neumorph' / 'brutalist' / 'hud' / custom)。
+// OS 追従 ('system') は撤廃済 — aesthetic theme が Dark/Light ペアを持たず矛盾するため。
+export type ThemeMode = string;
 
 export const BUILTIN_THEME_DARK = 'dark';
 export const BUILTIN_THEME_LIGHT = 'light';

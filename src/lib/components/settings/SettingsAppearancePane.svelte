@@ -5,7 +5,6 @@ import Switch from '$lib/components/common/Switch.svelte';
 import { t } from '$lib/i18n.svelte';
 import { a11yStore } from '$lib/state/a11y.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
-import { BUILTIN_THEME_DARK, BUILTIN_THEME_LIGHT } from '$lib/types/theme';
 
 /**
  * Settings の外観カテゴリ pane (theme list + theme editor mount + a11y トグル + JSON import)。
@@ -14,8 +13,8 @@ import { BUILTIN_THEME_DARK, BUILTIN_THEME_LIGHT } from '$lib/types/theme';
  *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、appearance pane 抽出)
  *   docs/l2_foundation/design-tokens.md §E (a11y トグル 3 種)
  *
- * design tokens v2: built-in は Dark / Light / Neumorph / Brutalist / HUD の 5 本 +
- * 'system' (OS 追従)。 built-in / custom theme は DB theme grid に並ぶ。
+ * design tokens v2: built-in は Dark / Light / Neumorph / Brutalist / HUD の 5 本。
+ * built-in / custom theme は DB theme grid に並ぶ。 OS 追従モードは撤廃済。
  */
 
 // PH-381: ThemeEditor は編集ボタンを押した時だけ load する dynamic import。
@@ -69,15 +68,7 @@ async function cloneTheme(sourceId: string) {
 }
 
 async function cloneCurrentTheme() {
-	const activeId = themeStore.activeMode;
-	// 'system' は DB テーマではないので解決後の builtin (Dark/Light) を複製元にする
-	const sourceId =
-		activeId === 'system'
-			? themeStore.resolvedMode === 'light'
-				? BUILTIN_THEME_LIGHT
-				: BUILTIN_THEME_DARK
-			: activeId;
-	await cloneTheme(sourceId);
+	await cloneTheme(themeStore.activeMode);
 }
 
 async function handleExport(id: string) {
@@ -168,21 +159,6 @@ const a11yToggles = $derived([
 			</button>
 		</div>
 		<div class="grid grid-cols-2 gap-2">
-			<!-- OS 追従モード (Dark/Light を自動選択) -->
-			<button
-				type="button"
-				class="col-span-2 flex flex-col gap-1 rounded-lg border px-4 py-3 text-left text-sm transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {themeStore.activeMode ===
-				'system'
-					? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
-					: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
-				onclick={() => {
-					void themeStore.setThemeMode('system');
-					editingThemeId = null;
-				}}
-			>
-				<span class="font-medium">{t('settings.appearance.system')}</span>
-				<span class="text-xs opacity-70">{t('settings.appearance.system_desc')}</span>
-			</button>
 			<!-- テーマ（built-in 5 本 + カスタム） -->
 			{#each themeStore.themes as theme (theme.id)}
 				<div class="flex flex-col gap-1">

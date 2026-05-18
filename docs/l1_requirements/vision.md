@@ -832,7 +832,8 @@ surface-opaque: backdrop-filter が使えない環境用の不透明フォール
 
 Industrial Yellow / 蛍光イエロー路線は撤回済。 v2 では色を seed (`--c-*`) から
 色彩学的に派生し、 aesthetic (glass / neumorph / brutalist / HUD) を色と直交した
-軸として表現する。 built-in は 5 本 + `system` (OS 追従)。
+軸として表現する。 built-in は 5 本。 OS 追従モードは撤廃済 (aesthetic theme が
+Dark/Light ペアを持たず、 `system` 選択時の解決が定義不能になるため)。
 
 ```
 BuiltinTheme（DB 保存、 seed + aesthetic は arcagate-theme.css 側で定義、 css_vars は空）
@@ -842,16 +843,13 @@ BuiltinTheme（DB 保存、 seed + aesthetic は arcagate-theme.css 側で定義
   ├── Brutalist (id='brutalist': light ベース / モノクロ + dotted grid + radius 0)
   └── HUD       (id='hud':       dark ベース / 黒地 + glow + bracket、 monospace)
 
-system（OS 追従）
-  └── OS の prefers-color-scheme で Dark / Light を自動選択
-
 UserCustomTheme（DB 保存）
   └── ユーザが builtin を複製 / JSON import して seed (--c-primary / -secondary) を編集したテーマ
 ```
 
 ### 適用フロー
 
-1. `applyTheme()` が `activeMode` を実テーマ ID へ解決（`system` は OS 設定で Dark/Light）
+1. `applyTheme()` が `activeMode`（実テーマ ID）に対応するテーマを取得
 2. 解決したテーマの `css_vars` JSON (custom theme の seed override) を `:root` に `el.style.setProperty()` で展開
 3. `el.dataset.theme = <解決後 ID>` を設定 → `[data-theme="neumorph"]` 等の aesthetic theme は
    CSS 側で seed + aesthetic primitive を適用
