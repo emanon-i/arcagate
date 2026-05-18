@@ -67,9 +67,9 @@ let labelStyle = $derived.by(() => {
 	return `color: ${style.textColor}; -webkit-text-stroke: ${stroke}; paint-order: stroke fill;`;
 });
 
-// customImage (mode 'image' + icon_path) は全面 cover、それ以外は default =
+// fit 'cover' / 'contain' + icon_path で全面表示、それ以外 (center) は default =
 // 共通 surface + 中央アイコン (item.icon_path or タイプ fallback)。
-let isImage = $derived(bg.mode === 'image' && !!item.icon_path);
+let isFullBleed = $derived(bg.fit !== 'center' && !!item.icon_path);
 </script>
 
 {#if viewMode === 'list'}
@@ -119,13 +119,13 @@ let isImage = $derived(bg.mode === 'image' && !!item.icon_path);
 		{ondblclick}
 		{oncontextmenu}
 	>
-		{#if isImage}
+		{#if isFullBleed}
 			<ItemIcon
 				iconPath={item.icon_path}
 				itemType={item.item_type}
 				alt="{item.label} icon"
-				class="absolute inset-0 h-full w-full object-cover"
-				style="object-position: {bg.focalX}% {bg.focalY}%;"
+				class="absolute inset-0 h-full w-full {bg.fit === 'contain' ? 'object-contain' : 'object-cover'}"
+				style="object-position: {bg.offsetX}% {bg.offsetY}%;"
 			/>
 		{:else}
 			<div class="absolute inset-0 flex items-center justify-center">

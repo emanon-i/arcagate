@@ -17,8 +17,9 @@ import {
 
 export type ItemSize = 'S' | 'M' | 'L';
 
-// 'icon' = 共通 surface + 中央アイコン (default)、'image' = item.icon_path を全面 cover。
-export type LibraryCardBackgroundMode = 'icon' | 'image';
+// 'cover' = item.icon_path を全面 cover、'contain' = 全体を収めて表示、
+// 'center' = 共通 surface + 中央アイコン (default)。
+export type LibraryCardImageFit = 'cover' | 'contain' | 'center';
 
 export interface LibraryCardStyleConfig {
 	textColor: string;
@@ -31,19 +32,27 @@ export interface LibraryCardStyleConfig {
 /**
  * カード背景の per-card override 形。global default は持たず、全カード共通の見た目は
  * DEFAULT_CARD_BACKGROUND 固定 (共通 surface + 中央アイコン)。card_override_json で
- * のみ image / focal を上書きする。
+ * のみ fit / offset を上書きする。offsetX / offsetY は cover / contain 時の
+ * object-position (0-100%)。
  */
 export interface LibraryCardBackgroundConfig {
-	mode: LibraryCardBackgroundMode;
-	focalX: number;
-	focalY: number;
+	fit: LibraryCardImageFit;
+	offsetX: number;
+	offsetY: number;
 }
 
 /** card_override が background を持たないカードの default = 共通 surface + 中央アイコン。 */
 export const DEFAULT_CARD_BACKGROUND: LibraryCardBackgroundConfig = {
-	mode: 'icon',
-	focalX: 50,
-	focalY: 50,
+	fit: 'center',
+	offsetX: 50,
+	offsetY: 50,
+};
+
+/** per-card override を新規 enable した時の初期 background。fit の default は cover (user 検収)。 */
+export const CARD_OVERRIDE_INITIAL_BACKGROUND: LibraryCardBackgroundConfig = {
+	fit: 'cover',
+	offsetX: 50,
+	offsetY: 50,
 };
 
 export interface LibraryCardConfig {

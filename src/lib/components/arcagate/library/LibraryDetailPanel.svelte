@@ -1,12 +1,12 @@
 <script lang="ts">
-import { Settings2 } from '@lucide/svelte';
+import { Settings } from '@lucide/svelte';
 import { ask, open } from '@tauri-apps/plugin-dialog';
 import LibraryItemTagSection from '$lib/components/arcagate/library/LibraryItemTagSection.svelte';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { countItemReferences, createTag, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { configStore, DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
+import { CARD_OVERRIDE_INITIAL_BACKGROUND, configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -209,9 +209,9 @@ let cardOverrideDialogOpen = $state(false);
 function handleCardOverrideToggle(enable: boolean): void {
 	if (!selectedItem) return;
 	if (enable) {
-		// default を copy で個別調整 enable
+		// 初期 background (fit: cover) を copy で個別調整 enable
 		const initial = JSON.stringify({
-			background: DEFAULT_CARD_BACKGROUND,
+			background: CARD_OVERRIDE_INITIAL_BACKGROUND,
 			style: configStore.libraryCard.style,
 		});
 		void itemStore.updateItem(selectedItem.id, { card_override_json: initial });
@@ -263,13 +263,14 @@ function handleCardOverrideToggle(enable: boolean): void {
 			<Button
 				type="button"
 				variant="outline"
-				size="sm"
+				size="icon-sm"
 				disabled={!selectedItem.card_override_json}
 				data-testid="card-override-open-dialog"
+				aria-label={t('library.detail.card_override_open')}
+				title={t('library.detail.card_override_open')}
 				onclick={() => (cardOverrideDialogOpen = true)}
 			>
-				<Settings2 class="h-3.5 w-3.5" />
-				{t('library.detail.card_override_open')}
+				<Settings class="h-4 w-4" />
 			</Button>
 		</div>
 

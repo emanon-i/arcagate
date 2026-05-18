@@ -138,9 +138,6 @@
 	"item": {
 		"card_override": {
 			"badge_active": "個別調整中",
-			"bg_mode_icon": "アイコン (中央表示)",
-			"bg_mode_image": "画像 (アイコンを全面表示)",
-			"bg_mode_label": "表示方法",
 			"card_display_label": "カード表示",
 			"confirm_reset_button": "解除する",
 			"confirm_reset_desc": "このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。",
@@ -150,11 +147,15 @@
 			"enable_aria": "このカードだけ個別調整を有効化",
 			"enable_button": "このカードだけ個別調整",
 			"filter_icon_image": "アイコン画像",
-			"focal_x_label": "画像位置 X",
-			"focal_y_label": "画像位置 Y",
+			"fit_center": "中央に表示",
+			"fit_contain": "全体を表示 (contain)",
+			"fit_cover": "全面に表示 (cover)",
+			"fit_label": "画像の表示",
 			"icon_label": "アイコン",
 			"icon_none": "なし",
 			"icon_select": "アイコンを選択",
+			"offset_x_label": "横位置",
+			"offset_y_label": "縦位置",
 			"opener_builtin": "組み込み",
 			"opener_default": "既定 (system) / item.default_app に従う",
 			"opener_desc": "このカードのみ指定 Opener で起動。Library / Workspace 両方の click 起動に効く。",
@@ -211,13 +212,13 @@
 	"library": {
 		"add_item": "アイテムを追加",
 		"card_override": {
-			"title": "カード個別設定"
+			"title": "カード個別調整"
 		},
 		"detail": {
 			"alias_label": "別名",
 			"args_label": "引数",
 			"card_override_label": "カード個別調整",
-			"card_override_open": "個別設定を開く",
+			"card_override_open": "カード個別調整を開く",
 			"close_panel": "パネルを閉じる",
 			"default_app": "デフォルトアプリ",
 			"default_app_fallback": "Explorer（既定）",
@@ -459,7 +460,7 @@
 			"press_key": "キーを押してください..."
 		},
 		"library_card": {
-			"bg_desc": "全カードは共通のサーフェスに中央アイコンで表示されます。画像の全面表示やアイコンの差し替えは各アイテムの編集画面（カード個別設定）で指定できます。",
+			"bg_desc": "全カードは共通のサーフェスに中央アイコンで表示されます。画像の全面表示やアイコンの差し替えは各アイテムの編集画面（カード個別調整）で指定できます。",
 			"bg_heading": "カードの見た目",
 			"label_text_heading": "ラベルの文字",
 			"overlay": "背景オーバーレイ",
@@ -634,7 +635,7 @@
 		},
 		"common": {
 			"builtin_suffix": " (組み込み)",
-			"default_opener_desc": "この widget からの起動でこの Opener を使う。Library カード個別設定が指定されてればそちらが優先。",
+			"default_opener_desc": "この widget からの起動でこの Opener を使う。Library カード個別調整が指定されてればそちらが優先。",
 			"default_opener_label": "デフォルト起動アプリ",
 			"default_opener_system": "既定 (system) / item.default_app に従う",
 			"description_label": "説明",

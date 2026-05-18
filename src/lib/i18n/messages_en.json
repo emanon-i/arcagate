@@ -138,9 +138,6 @@
 	"item": {
 		"card_override": {
 			"badge_active": "Customized",
-			"bg_mode_icon": "Icon (centered)",
-			"bg_mode_image": "Image (show icon full-bleed)",
-			"bg_mode_label": "Display style",
 			"card_display_label": "Card display",
 			"confirm_reset_button": "Clear",
 			"confirm_reset_desc": "The per-card display settings will be lost and the global settings from Settings > Library will apply.",
@@ -150,11 +147,15 @@
 			"enable_aria": "Enable per-card customization for this card",
 			"enable_button": "Customize this card",
 			"filter_icon_image": "Icon image",
-			"focal_x_label": "Image position X",
-			"focal_y_label": "Image position Y",
+			"fit_center": "Centered",
+			"fit_contain": "Fit whole image (contain)",
+			"fit_cover": "Full-bleed (cover)",
+			"fit_label": "Image display",
 			"icon_label": "Icon",
 			"icon_none": "None",
 			"icon_select": "Select icon",
+			"offset_x_label": "Horizontal position",
+			"offset_y_label": "Vertical position",
 			"opener_builtin": "built-in",
 			"opener_default": "Default (system) / follow item.default_app",
 			"opener_desc": "Launch with the specified Opener for this card only. Applies to click launches in both Library and Workspace.",
@@ -211,13 +212,13 @@
 	"library": {
 		"add_item": "Add item",
 		"card_override": {
-			"title": "Per-card settings"
+			"title": "Per-card customization"
 		},
 		"detail": {
 			"alias_label": "Aliases",
 			"args_label": "Arguments",
 			"card_override_label": "Per-card customization",
-			"card_override_open": "Open settings",
+			"card_override_open": "Open per-card customization",
 			"close_panel": "Close panel",
 			"default_app": "Default app",
 			"default_app_fallback": "Explorer (default)",
@@ -459,7 +460,7 @@
 			"press_key": "Press a key…"
 		},
 		"library_card": {
-			"bg_desc": "All cards show a centered icon on a shared surface. Set a full-bleed image or swap the icon per item from its edit dialog (per-card settings).",
+			"bg_desc": "All cards show a centered icon on a shared surface. Set a full-bleed image or swap the icon per item from its edit dialog (per-card customization).",
 			"bg_heading": "Card appearance",
 			"label_text_heading": "Label text",
 			"overlay": "Background overlay",
@@ -634,7 +635,7 @@
 		},
 		"common": {
 			"builtin_suffix": " (built-in)",
-			"default_opener_desc": "Use this opener for launches from this widget. Per-item Library card settings take priority if set.",
+			"default_opener_desc": "Use this opener for launches from this widget. Per-card Library customization takes priority if set.",
 			"default_opener_label": "Default launcher app",
 			"default_opener_system": "Default (system) / follows item.default_app",
 			"description_label": "Description",

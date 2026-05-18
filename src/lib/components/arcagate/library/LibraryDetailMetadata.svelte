@@ -30,26 +30,26 @@ let bg = $derived({
 	...(cardOverride?.background ?? {}),
 });
 
-// LibraryCard と同じ logic: customImage (mode 'image' + icon_path) のみ全面 cover。
-let isImage = $derived(bg.mode === 'image' && !!item.icon_path);
+// LibraryCard と同じ logic: fit 'cover' / 'contain' + icon_path で全面表示。
+let isFullBleed = $derived(bg.fit !== 'center' && !!item.icon_path);
 
 // F-3 (2026-05-08 user 検収): 「ライブラリで非表示」 toggle の長文説明を info icon に
 // 折り畳む。default 折畳 (showHideDescription=false)、icon click で expand。
 let showHideDescription = $state(false);
 </script>
 
-<!-- preview を LibraryCard と同形式で render: customImage は全面 cover (focal 反映)、
-     それ以外は共通 surface + 中央アイコン。card_override 反映で見た目統一。 -->
+<!-- preview を LibraryCard と同形式で render: fit cover/contain は全面表示 (offset 反映)、
+     center は共通 surface + 中央アイコン。card_override 反映で見た目統一。 -->
 <div
 	class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--ag-radius-widget)] bg-[var(--ag-surface-3)]"
 >
-	{#if isImage}
+	{#if isFullBleed}
 		<ItemIcon
 			iconPath={item.icon_path}
 			itemType={item.item_type}
 			alt="{item.label} icon"
-			class="absolute inset-0 h-full w-full object-cover"
-			style="object-position: {bg.focalX}% {bg.focalY}%;"
+			class="absolute inset-0 h-full w-full {bg.fit === 'contain' ? 'object-contain' : 'object-cover'}"
+			style="object-position: {bg.offsetX}% {bg.offsetY}%;"
 		/>
 	{:else}
 		<ItemIcon
