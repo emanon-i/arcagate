@@ -36,6 +36,7 @@ const MIGRATION_032: &str = include_str!("../../migrations/032_consolidate_built
 const MIGRATION_033: &str = include_str!("../../migrations/033_confirmed_items.sql");
 const MIGRATION_034: &str = include_str!("../../migrations/034_confirmed_scripts.sql");
 const MIGRATION_035: &str = include_str!("../../migrations/035_design_tokens_v2.sql");
+const MIGRATION_036: &str = include_str!("../../migrations/036_drop_system_theme_mode.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -74,6 +75,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_033),
         M::up(MIGRATION_034),
         M::up(MIGRATION_035),
+        M::up(MIGRATION_036),
     ])
 }
 
@@ -195,6 +197,32 @@ mod tests {
             )
             .unwrap();
         assert_eq!(mode, "light");
+    }
+
+    #[test]
+    fn test_migration_036_remaps_system_theme_mode_to_dark() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // migration 035 まで適用し、theme_mode = 'system' の既存 user を再現
+        m.to_version(&mut conn, 35).unwrap();
+        conn.execute(
+            "INSERT OR REPLACE INTO config (key, value) VALUES ('theme_mode', 'system')",
+            [],
+        )
+        .unwrap();
+
+        // migration 036 適用 → OS 追従撤廃により 'system' は 'dark' へフォールバック
+        m.to_version(&mut conn, 36).unwrap();
+        let mode: String = conn
+            .query_row(
+                "SELECT value FROM config WHERE key = 'theme_mode'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(mode, "dark");
     }
 
     #[test]

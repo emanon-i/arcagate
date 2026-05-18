@@ -97,14 +97,9 @@ pub fn get_active_theme_mode(db: &DbState) -> Result<String, AppError> {
 pub fn set_active_theme_mode(db: &DbState, mode: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
 
-    // #7: 'system' (OS 追従) のみ特殊値で、それ以外は実在する theme ID
-    // ('dark' / 'light' / custom) でなければならない。
-    match mode {
-        "system" => {}
-        theme_id => {
-            theme_repository::find_by_id(&conn, theme_id)?;
-        }
-    }
+    // mode は実在する theme ID ('dark' / 'light' / 'neumorph' / 'brutalist' /
+    // 'hud' / custom) でなければならない。 OS 追従 ('system') は撤廃済。
+    theme_repository::find_by_id(&conn, mode)?;
 
     config_repository::set(&conn, KEY_THEME_MODE, mode)
 }
@@ -320,12 +315,12 @@ mod tests {
     #[test]
     fn test_set_active_theme_mode_valid() {
         let db = initialize_in_memory();
-        // #7: builtin theme ID ('dark' / 'light') と 'system' (OS 追従) が有効値
+        // 有効値は実在する builtin theme ID ('dark' / 'light' / 'hud' 等)。
         set_active_theme_mode(&db, "light").unwrap();
         assert_eq!(get_active_theme_mode(&db).unwrap(), "light");
 
-        set_active_theme_mode(&db, "system").unwrap();
-        assert_eq!(get_active_theme_mode(&db).unwrap(), "system");
+        set_active_theme_mode(&db, "hud").unwrap();
+        assert_eq!(get_active_theme_mode(&db).unwrap(), "hud");
 
         set_active_theme_mode(&db, "dark").unwrap();
         assert_eq!(get_active_theme_mode(&db).unwrap(), "dark");
@@ -336,6 +331,8 @@ mod tests {
         let db = initialize_in_memory();
         // 実在しない theme ID は reject
         assert!(set_active_theme_mode(&db, "no-such-theme").is_err());
+        // OS 追従撤廃: 'system' も実在 theme ID ではないので reject される
+        assert!(set_active_theme_mode(&db, "system").is_err());
     }
 
     #[test]

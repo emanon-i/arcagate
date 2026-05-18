@@ -372,8 +372,6 @@
 			"seed_random": "Random",
 			"seed_secondary": "Secondary color",
 			"seed_secondary_auto": "Auto (complementary)",
-			"system": "Match system",
-			"system_desc": "Auto-switch with the OS dark / light setting",
 			"theme_brutalist": "Brutalist",
 			"theme_dark": "Dark",
 			"theme_default_name": "Theme",

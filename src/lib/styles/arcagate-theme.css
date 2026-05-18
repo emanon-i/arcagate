@@ -190,6 +190,10 @@
 	--ag-accent-glow: 0 0 0 0 transparent;
 	--ag-surface-tint: none;
 
+	/* workspace canvas 背景 (wallpaper 未設定時の fallback)。
+	   既定は surface-page の静かな単色。 theme が暗黒空間等を表現する場合は上書き。 */
+	--ag-workspace-bg: var(--ag-surface-page);
+
 	/* Library card sizing (4:3 aspect) */
 	--ag-card-gap: 1rem;
 	--ag-card-w-s: 144px;
@@ -241,12 +245,22 @@
    ===================================================================== */
 .ag-glass,
 .ag-glass-clear {
-	position: relative;
 	border: 1px solid var(--surface-border);
 	box-shadow: var(--surface-shadow);
 	backdrop-filter: var(--surface-blur);
 	-webkit-backdrop-filter: var(--surface-blur);
 	isolation: isolate;
+}
+
+/* position だけは @layer components へ。 unlayered だと Tailwind の position
+   utility (fixed / absolute / sticky) より強く、 modal / context menu /
+   sticky toolbar / dropdown を glass 面にすると配置が壊れる (#512 regression)。
+   layered にすることで未指定時は relative に default しつつ utility に道を譲る。 */
+@layer components {
+	.ag-glass,
+	.ag-glass-clear {
+		position: relative;
+	}
 }
 
 .ag-glass {
@@ -476,6 +490,10 @@
 	--surface-glass-clear: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
 	--ag-surface-opaque: color-mix(in oklab, var(--c-bg), var(--c-fg) 5%);
 	--ag-surface-tint: none;
+
+	/* HUD: workspace 背景は sci-fi の暗黒空間 — uniform な near-black。
+	   雰囲気は surface (panel) / bracket / glow 等の content chrome 側で出す。 */
+	--ag-workspace-bg: oklch(0.07 0.012 250);
 
 	--ag-border: color-mix(in oklab, var(--c-primary), transparent 64%);
 	--ag-border-hover: color-mix(in oklab, var(--c-primary), transparent 40%);

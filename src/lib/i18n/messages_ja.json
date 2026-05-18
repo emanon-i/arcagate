@@ -372,8 +372,6 @@
 			"seed_random": "ランダム",
 			"seed_secondary": "サブカラー",
 			"seed_secondary_auto": "自動 (補色)",
-			"system": "OS 設定に合わせる",
-			"system_desc": "OS のダーク / ライト設定で自動切替",
 			"theme_brutalist": "ブルータリスト",
 			"theme_dark": "ダーク",
 			"theme_default_name": "テーマ",

@@ -25,7 +25,8 @@ function readCachedMode(): ThemeMode {
 	try {
 		const v = window.localStorage.getItem(THEME_MODE_CACHE_KEY);
 		if (!v) return BUILTIN_THEME_DARK;
-		if (v === 'system') return 'system';
+		// OS 追従撤廃: 旧 'system' cache は Dark へ読み替え
+		if (v === 'system') return BUILTIN_THEME_DARK;
 		// #7: 旧 theme ID (theme-builtin-*) は 'dark' / 'light' へ読み替え
 		if (v === 'theme-builtin-light' || v === 'theme-builtin-liquid-glass-light') {
 			return BUILTIN_THEME_LIGHT;
@@ -53,34 +54,15 @@ let activeMode = $state<ThemeMode>(readCachedMode());
 const resolvedMode = $derived(resolveMode(activeMode));
 let error = $state<string | null>(null);
 
-let systemMediaQuery: MediaQueryList | null = null;
-let systemListener: ((e: MediaQueryListEvent) => void) | null = null;
 let themeChangedUnlisten: (() => void) | null = null;
 
-/** OS が dark を要求しているか (system mode 解決用)。 */
-function systemPrefersDark(): boolean {
-	if (typeof window === 'undefined') return true;
-	return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-/**
- * activeMode を実際に適用する builtin/custom theme ID へ解決する。
- * 'system' は OS 設定で Dark / Light テーマを自動選択。
- */
-function resolveThemeId(mode: ThemeMode): string {
-	if (mode === 'system') {
-		return systemPrefersDark() ? BUILTIN_THEME_DARK : BUILTIN_THEME_LIGHT;
-	}
-	return mode;
-}
-
+/** activeMode (theme ID) を base mode (dark/light) へ解決する。 */
 function resolveMode(mode: ThemeMode): 'dark' | 'light' {
-	const id = resolveThemeId(mode);
 	// builtin Dark / Light は themes 配列未 load でも同期解決 (起動時ちらつき防止、E-1)
-	if (id === BUILTIN_THEME_DARK) return 'dark';
-	if (id === BUILTIN_THEME_LIGHT) return 'light';
-	// custom theme: base_theme から解決
-	const theme = themes.find((t) => t.id === id);
+	if (mode === BUILTIN_THEME_DARK) return 'dark';
+	if (mode === BUILTIN_THEME_LIGHT) return 'light';
+	// aesthetic / custom theme: base_theme から解決
+	const theme = themes.find((t) => t.id === mode);
 	return theme ? (theme.base_theme as 'dark' | 'light') : 'dark';
 }
 
@@ -109,10 +91,8 @@ function applyTheme(): void {
 		el.classList.remove('dark');
 	}
 
-	// 3. Apply effective theme CSS variables + data-theme attribute.
-	//    #7: 全 mode が theme へ解決される ('system' は OS 設定で Dark/Light 自動選択)。
-	const effectiveId = resolveThemeId(activeMode);
-	const theme = themes.find((t) => t.id === effectiveId);
+	// 3. Apply theme CSS variables + data-theme attribute.
+	const theme = themes.find((t) => t.id === activeMode);
 	if (theme) {
 		try {
 			const vars = JSON.parse(theme.css_vars) as Record<string, string>;
@@ -123,30 +103,7 @@ function applyTheme(): void {
 			// Invalid JSON — ignore
 		}
 	}
-	el.dataset.theme = effectiveId;
-
-	// 4. System mode listener
-	setupSystemListener();
-}
-
-function setupSystemListener(): void {
-	cleanupSystemListener();
-
-	if (activeMode !== 'system' || typeof window === 'undefined') return;
-
-	systemMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-	systemListener = () => {
-		applyTheme();
-	};
-	systemMediaQuery.addEventListener('change', systemListener);
-}
-
-function cleanupSystemListener(): void {
-	if (systemMediaQuery && systemListener) {
-		systemMediaQuery.removeEventListener('change', systemListener);
-	}
-	systemMediaQuery = null;
-	systemListener = null;
+	el.dataset.theme = activeMode;
 }
 
 async function loadTheme(): Promise<void> {
