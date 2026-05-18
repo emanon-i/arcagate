@@ -1,6 +1,7 @@
 import type { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
+import { computeRenderExtent } from '$lib/utils/zoom-math';
 
 interface InputOpts {
 	getContainer: () => HTMLDivElement | null;
@@ -104,7 +105,8 @@ export function useWorkspaceInput(opts: InputOpts) {
 					workspaceSelection.size > 0
 						? workspaceStore.widgets.filter((w) => workspaceSelection.has(w.id))
 						: workspaceStore.widgets;
-				opts.zoom.fitToContent(target);
+				// 無限 canvas: scroll 計算は実際の render extent (全 widget 基準) に合わせる。
+				opts.zoom.fitToContent(target, computeRenderExtent(workspaceStore.widgets));
 				return;
 			}
 			const id = opts.getSelectedId();

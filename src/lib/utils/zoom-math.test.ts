@@ -3,9 +3,6 @@ import {
 	BASE_H,
 	BASE_W,
 	BOTTOM_RESERVE,
-	BUFFER_COLS_LEFT,
-	BUFFER_ROWS_TOP,
-	bufferOffsetPx,
 	cellStrideX,
 	cellStrideY,
 	clampZoom,
@@ -14,14 +11,25 @@ import {
 	computeFitScroll,
 	computeFitZoom,
 	computeOrigin,
+	computeRenderExtent,
 	effectiveBottomReserve,
 	GRID_GAP,
 	HINT_BAR_RESERVE,
 	INNER_PAD,
+	MARGIN_CELLS,
 	MAX_ZOOM,
 	MIN_ZOOM,
 	MIN_ZOOM_FIT,
 } from './zoom-math';
+
+/**
+ * 2026-05-19 無限 canvas: computeFitScroll は render extent (origin) を 4 番目の引数に取る。
+ * canvas pixel of cell c = INNER_PAD + (c − extent.originX) × stride。
+ * test では「widget 群 → computeRenderExtent」 で実 render origin と同じ extent を作って渡す。
+ */
+const EXTENT_AT_ORIGIN = computeRenderExtent([
+	{ position_x: 0, position_y: 0, width: 4, height: 3 },
+]);
 
 /**
  * T4-1 (PR-Z2): zoom-math pure function test (clampZoom + computeBoundingBox + computeOrigin)。
@@ -107,58 +115,75 @@ describe('cellStrideX / cellStrideY', () => {
 	});
 });
 
-describe('bufferOffsetPx (2026-05-07 wall fix)', () => {
-	it('100% zoom は BUFFER_COLS_LEFT * cellStrideX(100), BUFFER_ROWS_TOP * cellStrideY(100)', () => {
-		const buf = bufferOffsetPx(100);
-		expect(buf.x).toBe(BUFFER_COLS_LEFT * cellStrideX(100));
-		expect(buf.y).toBe(BUFFER_ROWS_TOP * cellStrideY(100));
+describe('computeRenderExtent (2026-05-19 無限 canvas)', () => {
+	it('空 workspace は (0,0) を中心に 2×MARGIN 四方の grid', () => {
+		const ext = computeRenderExtent([]);
+		expect(ext).toEqual({
+			originX: -MARGIN_CELLS,
+			originY: -MARGIN_CELLS,
+			cols: 2 * MARGIN_CELLS,
+			rows: 2 * MARGIN_CELLS,
+		});
 	});
 
-	it('zoom と一緒に scale する (200% は 2 倍)', () => {
-		const buf100 = bufferOffsetPx(100);
-		const buf200 = bufferOffsetPx(200);
-		// stride は (BASE * zoom/100) + GRID_GAP のため厳密に 2 倍ではないが、
-		// 大体 (BASE 部分) は 2 倍。verify cellStrideX 関係。
-		expect(buf200.x).toBe(BUFFER_COLS_LEFT * cellStrideX(200));
-		expect(buf200.x).toBeGreaterThan(buf100.x);
+	it('widget あり: origin は BB 最小座標 − MARGIN、 extent は BB + 両側 MARGIN', () => {
+		const ext = computeRenderExtent([{ position_x: 5, position_y: 8, width: 2, height: 3 }]);
+		// BB = {5, 8, 7, 11}
+		expect(ext.originX).toBe(5 - MARGIN_CELLS);
+		expect(ext.originY).toBe(8 - MARGIN_CELLS);
+		expect(ext.cols).toBe(2 + 2 * MARGIN_CELLS);
+		expect(ext.rows).toBe(3 + 2 * MARGIN_CELLS);
 	});
 
-	it('BUFFER 値は十分大きい (壁が遠い)', () => {
-		// 12 cols × 64 rows は実用 viewport (1920×1080) で 1 画面以上の buffer。
-		expect(BUFFER_COLS_LEFT).toBeGreaterThanOrEqual(8);
-		expect(BUFFER_ROWS_TOP).toBeGreaterThanOrEqual(32);
+	it('負座標 widget も BB に含めて origin を伸ばす (無限 canvas の左/上 拡張)', () => {
+		const ext = computeRenderExtent([
+			{ position_x: -10, position_y: -7, width: 2, height: 2 },
+			{ position_x: 3, position_y: 4, width: 2, height: 2 },
+		]);
+		// BB = {-10, -7, 5, 6}
+		expect(ext.originX).toBe(-10 - MARGIN_CELLS);
+		expect(ext.originY).toBe(-7 - MARGIN_CELLS);
+	});
+
+	it('MARGIN は十分大きく leading pan 余白を確保する', () => {
+		expect(MARGIN_CELLS).toBeGreaterThanOrEqual(16);
 	});
 });
 
-describe('computeFitScroll (buffer 込み)', () => {
-	it('widget at (0, 0) は scroll が buffer 分以上、left/top wall を回避', () => {
+describe('computeFitScroll (render origin 込み)', () => {
+	// canvas pixel of cell c = INNER_PAD + (c − extent.originX) × stride。
+	it('widget at (0, 0) は MARGIN 分 scroll され、left/top wall を回避', () => {
 		// widget (0,0) size (4, 3) → BB = {0, 0, 4, 3}, origin = (2, 1.5)
 		const origin = { cellX: 2, cellY: 1.5 };
-		const result = computeFitScroll(origin, 100, { clientWidth: 1920, clientHeight: 1080 });
-		// buffer (12 cols × ~256 + 64 rows × ~151) → ~3072 / ~9664
-		// origin px = INNER_PAD + buffer + origin.cell * stride
-		// scrollLeft = max(0, originPxX - viewport_w/2)
-		// 期待: scrollLeft >> 0 (buffer のおかげで widget 中央に scroll しても left wall 触らない)
-		const buf = bufferOffsetPx(100);
+		const ext = EXTENT_AT_ORIGIN;
+		const result = computeFitScroll(origin, 100, { clientWidth: 1920, clientHeight: 1080 }, ext);
 		const expectedScrollLeft =
-			INNER_PAD + buf.x + origin.cellX * cellStrideX(100) - GRID_GAP / 2 - 1920 / 2;
+			INNER_PAD + (origin.cellX - ext.originX) * cellStrideX(100) - GRID_GAP / 2 - 1920 / 2;
 		expect(result.scrollLeft).toBeCloseTo(Math.max(0, expectedScrollLeft), 0);
-		expect(result.scrollLeft).toBeGreaterThan(buf.x - 1920); // buffer の半分以上は確実に scroll する
+		// MARGIN_CELLS のおかげで widget 中央へ scroll しても left wall (scroll 0) を触らない。
+		expect(result.scrollLeft).toBeGreaterThan(0);
 	});
 
 	it('viewport が極小でも widget BB を center に置こうとする', () => {
 		const origin = { cellX: 5, cellY: 10 };
-		const result = computeFitScroll(origin, 100, { clientWidth: 600, clientHeight: 400 });
+		const result = computeFitScroll(
+			origin,
+			100,
+			{ clientWidth: 600, clientHeight: 400 },
+			EXTENT_AT_ORIGIN,
+		);
 		expect(result.scrollLeft).toBeGreaterThan(0);
 		expect(result.scrollTop).toBeGreaterThan(0);
 	});
 
 	it('grid 原点 (0, 0) の widget でも scrollLeft / scrollTop > 0 (壁 回避)', () => {
-		// 旧 fix では BB が小さい / top-left 配置 で scroll = 0 にクランプされ「壁」体感していた。
-		// 新 fix では buffer のおかげで widget at (0, 0) でも scroll > 0 になる。
-		const origin = { cellX: 0.5, cellY: 0.5 }; // 1×1 widget at (0,0)
-		const result = computeFitScroll(origin, 100, { clientWidth: 1920, clientHeight: 1080 });
-		// buffer.x ≈ 12 * 256 = 3072, viewport_w/2 = 960 → originPx > 960 → scrollLeft > 0
+		const origin = { cellX: 0.5, cellY: 0.5 };
+		const result = computeFitScroll(
+			origin,
+			100,
+			{ clientWidth: 1920, clientHeight: 1080 },
+			EXTENT_AT_ORIGIN,
+		);
 		expect(result.scrollLeft).toBeGreaterThan(0);
 		expect(result.scrollTop).toBeGreaterThan(0);
 	});
@@ -259,12 +284,12 @@ describe('computeFitZoom', () => {
 describe('computeFitScroll - K-8 multi-widget centering', () => {
 	it('1 widget at (0,0): BB center が viewport 幾何中心に来る scroll を返す', () => {
 		const origin = { cellX: 0.5, cellY: 0.5 };
-		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
+		const ext = EXTENT_AT_ORIGIN;
+		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 }, ext);
 		const sx = cellStrideX(200);
 		const sy = cellStrideY(200);
-		const buf = bufferOffsetPx(200);
-		const originPxX = INNER_PAD + buf.x + origin.cellX * sx - GRID_GAP / 2;
-		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
+		const originPxX = INNER_PAD + (origin.cellX - ext.originX) * sx - GRID_GAP / 2;
+		const originPxY = INNER_PAD + (origin.cellY - ext.originY) * sy - GRID_GAP / 2;
 		// 不具合修正 (2026-05-19): chrome 補正なしの真の幾何中心 (clientWidth/2, clientHeight/2)。
 		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - 1200 / 2), 0);
 		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - 800 / 2), 0);
@@ -274,8 +299,8 @@ describe('computeFitScroll - K-8 multi-widget centering', () => {
 		const origin1 = { cellX: 0.5, cellY: 0.5 };
 		const origin2 = { cellX: 0.5, cellY: 1.0 };
 		const v = { clientWidth: 1200, clientHeight: 800 };
-		const r1 = computeFitScroll(origin1, 200, v);
-		const r2 = computeFitScroll(origin2, 200, v);
+		const r1 = computeFitScroll(origin1, 200, v, EXTENT_AT_ORIGIN);
+		const r2 = computeFitScroll(origin2, 200, v, EXTENT_AT_ORIGIN);
 		// X scroll は origin.cellX が同じなので同一
 		expect(r2.scrollLeft).toBe(r1.scrollLeft);
 		// Y scroll は origin.cellY が +0.5 大きいので 0.5 * sy 大きい
@@ -284,10 +309,10 @@ describe('computeFitScroll - K-8 multi-widget centering', () => {
 
 	it('4 widget 2x2: BB center origin (1, 1) が viewport 幾何中心に来る', () => {
 		const origin = { cellX: 1, cellY: 1 };
-		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
+		const ext = EXTENT_AT_ORIGIN;
+		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 }, ext);
 		const sx = cellStrideX(200);
-		const buf = bufferOffsetPx(200);
-		const originPxX = INNER_PAD + buf.x + 1 * sx - GRID_GAP / 2;
+		const originPxX = INNER_PAD + (origin.cellX - ext.originX) * sx - GRID_GAP / 2;
 		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - 1200 / 2), 0);
 	});
 });
@@ -327,11 +352,11 @@ describe('不具合修正: 複数選択 widget の fit-to-content (2026-05-19)',
 		if (!bb) throw new Error('bb null');
 		const z = computeFitZoom(bb, viewport);
 		const origin = computeOrigin(bb);
-		const scroll = computeFitScroll(origin, z, viewport);
+		const ext = computeRenderExtent(selection);
+		const scroll = computeFitScroll(origin, z, viewport, ext);
 		// scroll 後の BB 重心 canvas 座標 − scroll = viewport 幾何中心。
-		const buf = bufferOffsetPx(z);
-		const originPxX = INNER_PAD + buf.x + origin.cellX * cellStrideX(z) - GRID_GAP / 2;
-		const originPxY = INNER_PAD + buf.y + origin.cellY * cellStrideY(z) - GRID_GAP / 2;
+		const originPxX = INNER_PAD + (origin.cellX - ext.originX) * cellStrideX(z) - GRID_GAP / 2;
+		const originPxY = INNER_PAD + (origin.cellY - ext.originY) * cellStrideY(z) - GRID_GAP / 2;
 		expect(originPxX - scroll.scrollLeft).toBeCloseTo(viewport.clientWidth / 2, 0);
 		expect(originPxY - scroll.scrollTop).toBeCloseTo(viewport.clientHeight / 2, 0);
 	});
@@ -384,10 +409,10 @@ describe('effectiveBottomReserve / hint bar fit-to-content (2026-05-17)', () => 
 		// 動いていた。 現在は引数を撤去し常に幾何中心へ — hint bar state に依存しない。
 		const origin = { cellX: 5, cellY: 20 };
 		const viewport = { clientWidth: 1200, clientHeight: 800 };
+		const ext = EXTENT_AT_ORIGIN;
 		const sy = cellStrideY(100);
-		const buf = bufferOffsetPx(100);
-		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
-		const result = computeFitScroll(origin, 100, viewport);
+		const originPxY = INNER_PAD + (origin.cellY - ext.originY) * sy - GRID_GAP / 2;
+		const result = computeFitScroll(origin, 100, viewport, ext);
 		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - 800 / 2), 0);
 	});
 });

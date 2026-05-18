@@ -28,12 +28,7 @@ import { workspaceConfig } from '$lib/state/workspace-config.svelte';
 import { type SimpleHistoryEntry, workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
-import {
-	findFreePosition,
-	findFreePositionNear,
-	type Rect,
-	wouldOverlapAt,
-} from '$lib/utils/widget-grid';
+import { findFreePositionNear, type Rect, wouldOverlapAt } from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
 
 /**
@@ -92,19 +87,8 @@ function defaultSizeFor(type: WidgetType): { w: number; h: number } {
 }
 
 /**
- * PH-issue-003: 配置 / 移動の overlap 判定は `$lib/utils/widget-grid` の純粋関数に統一。
- * 旧 (0,0) fallback バグ排除のため `findFreePosition` は null 返却版を使う。
- */
-const DEFAULT_GRID_COLS = 4;
-// 5/04 user 検収 (post-redo3 #4): MIN_PAN_ROWS と整合させ 128 に拡大。
-// findFreePosition / addWidgetAt の row bound check は y + h <= DEFAULT_MAX_ROW + 1 (= 129)。
-const DEFAULT_MAX_ROW = 128;
-
-/**
  * audit batch deferred (2026-05-13) #1+#2: 既存 widget 群の bounding box 中心を seed cell として返す。
- * D&D / sidebar add で nearCell が無い時、 (0,0) から逐次 scan すると既存 cluster から
- * 離れた所に置かれる risk が高い。 既存 widget の BB 中心近傍を seed にすることで
- * 「画面外配置 + fit-to-content でも救えない」 状態を回避。
+ * seedCell が無い時、 既存 widget の BB 中心近傍を seed にすることで cluster から離れた配置を回避。
  */
 function computeClusterAnchor(rects: Rect[]): { x: number; y: number } | null {
 	if (rects.length === 0) return null;
@@ -162,11 +146,7 @@ class WorkspaceWidgets {
 		}
 	}
 
-	async addWidget(
-		widgetType: WidgetType,
-		nearCell?: { x: number; y: number },
-		cols?: number,
-	): Promise<void> {
+	async addWidget(widgetType: WidgetType, seedCell?: { x: number; y: number }): Promise<void> {
 		const activeWorkspaceId = workspaceConfig.activeWorkspaceId;
 		if (!activeWorkspaceId) return;
 		this.loading = true;
@@ -175,29 +155,12 @@ class WorkspaceWidgets {
 			// 検収 #7: widget タイプ別 defaultSize (Clock 1x1 等の極小化を防止)。
 			// Rust 側はサイズ 2x2 で row 末尾に作成するため、追加直後に widget タイプ別サイズに更新する。
 			const { w, h } = defaultSizeFor(widgetType);
-			// 検収 #5 + Codex Critical #1: nearCell 起点の **spiral 探索**。
-			// 指定 cell が埋まっていたら top-left に飛ばず、最寄りの空きセルを spiral で探す
-			// (top-left fallback は near が見つからない時のみ)。
-			// Codex r3 #1 / r4 HIGH #1: viewport 幅から導出された responsive `cols` を **そのまま** 尊重。
-			// 旧 `Math.max(DEFAULT_GRID_COLS, cols ?? DEFAULT_GRID_COLS)` は cols<4 の narrow viewport で
-			// 強制的に 4 にしていたため、preview (dynamicCols=2 等) と判定が乖離する新たな mismatch を発生させていた。
-			// 引数未指定時のみ DEFAULT_GRID_COLS にフォールバック。負/0 は最低 1 で sanity guard。
 			const rects = widgetsToRects(this.widgets);
-			// image-widget-critical fix (2026-05-13): cols 未指定 + 既存 widget が wider viewport で
-			// 配置されていた場合、 既存 widget の最大右端を下回らないよう effectiveCols を補正。
-			// 旧実装: cols=undefined → effectiveCols=DEFAULT_GRID_COLS(4) で spiral 探索範囲が x∈[0..1] に
-			// clamp され、 cluster 中心 seed (例 x=4) が無効化 → 結果 widget が既存 cluster の真下に
-			// 配置され「画面外配置」 となる症状の root cause fix。
-			const widgetMaxRight = rects.reduce((m, r) => Math.max(m, r.x + r.w), 0);
-			const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS, widgetMaxRight);
-			// audit batch deferred (2026-05-13) #1+#2 + #13: nearCell 無し時、 (0,0) ではなく
-			// 既存 widget BB 中心近傍に置く。 D&D / sidebar add で「とんでもなく離れて配置」
-			// → 「fit-to-content でも viewport range 外」 という症状の root cause fix。
-			// 既存 widget 無しなら (0,0)、 既存有りなら中心の最寄り cell から spiral 探索。
-			const seedCell = nearCell ?? computeClusterAnchor(rects);
-			const pos = seedCell
-				? findFreePositionNear(seedCell.x, seedCell.y, w, h, rects, effectiveCols, DEFAULT_MAX_ROW)
-				: findFreePosition(w, h, rects, effectiveCols, DEFAULT_MAX_ROW);
+			// 2026-05-19 無限 canvas: seedCell (D&D drop / viewport 中央) 優先。 無ければ既存
+			// widget cluster の中心、 さらに無ければ (0,0)。 grid 端の壁が無いため負座標を含む
+			// 任意の cell から spiral 探索して最寄りの空きセルへ配置する。
+			const seed = seedCell ?? computeClusterAnchor(rects) ?? { x: 0, y: 0 };
+			const pos = findFreePositionNear(seed.x, seed.y, w, h, rects);
 			if (pos === null) {
 				toastStore.add(t('toast.widget_no_space'), 'error');
 				return;
@@ -225,7 +188,7 @@ class WorkspaceWidgets {
 		}
 	}
 
-	async addWidgetAt(widgetType: WidgetType, x: number, y: number, cols?: number): Promise<void> {
+	async addWidgetAt(widgetType: WidgetType, x: number, y: number): Promise<void> {
 		const activeWorkspaceId = workspaceConfig.activeWorkspaceId;
 		if (!activeWorkspaceId) return;
 		this.loading = true;
@@ -233,15 +196,8 @@ class WorkspaceWidgets {
 		try {
 			// 検収 #7: widget タイプ別 defaultSize を使う。
 			const { w, h } = defaultSizeFor(widgetType);
-			// Codex r2 #2 + r3 #1 + r4 HIGH #1: grid 右端越え reject。preview と一致する `cols` を caller から
-			// 受け取り、wide / narrow 両 canvas で同じ判定に。下限を 4 に強制すると narrow viewport
-			// (dynamicCols<4) で preview と addWidgetAt の判定が乖離するため、`cols` を **そのまま** 採用する
-			// (未指定時のみ DEFAULT_GRID_COLS、負/0 は最低 1 で sanity guard)。
-			const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
-			if (x + w > effectiveCols || y + h > DEFAULT_MAX_ROW + 1) {
-				toastStore.add(t('toast.grid_out_of_bounds_place'), 'error');
-				return;
-			}
+			// 2026-05-19 無限 canvas: grid 端の壁を撤廃したため越境 reject は無く、
+			// overlap のみ拒否する。
 			if (wouldOverlapAt(x, y, w, h, widgetsToRects(this.widgets))) {
 				toastStore.add(t('toast.widgets_overlap_place'), 'error');
 				return;
@@ -271,7 +227,7 @@ class WorkspaceWidgets {
 
 	/**
 	 * PH-issue-025 / Issue 8: 複数 itemId を一括で ItemWidget として配置。
-	 * 1 つずつ findFreePosition で配置、overlap が解消できなくなったら toast でその時点までで停止。
+	 * 1 つずつ cluster 近傍へ spiral 配置、overlap が解消できなくなったら toast でその時点までで停止。
 	 * 戻り値: 実際に配置成功した個数。
 	 */
 	async bulkAddItemWidgets(itemIds: string[]): Promise<number> {
@@ -283,13 +239,10 @@ class WorkspaceWidgets {
 		try {
 			for (const itemId of itemIds) {
 				const { w, h } = defaultSizeFor('item');
-				const pos = findFreePosition(
-					w,
-					h,
-					widgetsToRects(this.widgets),
-					DEFAULT_GRID_COLS,
-					DEFAULT_MAX_ROW,
-				);
+				const rects = widgetsToRects(this.widgets);
+				// 2026-05-19 無限 canvas: 既存 cluster 中心 (無ければ原点) 近傍へ spiral 配置。
+				const seed = computeClusterAnchor(rects) ?? { x: 0, y: 0 };
+				const pos = findFreePositionNear(seed.x, seed.y, w, h, rects);
 				if (pos === null) {
 					toastStore.add(
 						t('toast.widget_no_space_stopped', { count: itemIds.length - placed }),
@@ -454,7 +407,7 @@ class WorkspaceWidgets {
 		}
 	}
 
-	async moveWidget(id: string, x: number, y: number, cols?: number): Promise<void> {
+	async moveWidget(id: string, x: number, y: number): Promise<void> {
 		const target = this.widgets.find((w) => w.id === id);
 		if (!target) return;
 		this.error = null;
@@ -466,23 +419,7 @@ class WorkspaceWidgets {
 			h: target.height,
 		};
 
-		// Codex r4 HIGH #2: drop preview は overflowsRight / 下端越えを blocked 表示するが、
-		// pointerup で moveWidget を呼ぶ経路に bound check が無いと「赤プレビュー」のまま
-		// commit して overflow 位置が DB に永続化される (UI と論理の乖離)。
-		// → addWidgetAt と同一の bound check を caller の dynamicCols 付きで実行する。
-		// Codex r5 HIGH #1: narrow viewport (dynamicCols<4) でも preview と一致させるため、
-		// `cols` をそのまま採用 (旧 Math.max(4, ...) は同じ class の mismatch を発生させていた)。
-		const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
-		if (
-			x < 0 ||
-			y < 0 ||
-			x + target.width > effectiveCols ||
-			y + target.height > DEFAULT_MAX_ROW + 1
-		) {
-			toastStore.add(t('toast.grid_out_of_bounds_move'), 'error');
-			return;
-		}
-
+		// 2026-05-19 無限 canvas: grid 端の壁を撤廃したため越境 reject は無く、 負座標も許容。
 		// PH-issue-003: 移動先 overlap なら拒否 + toast、auto-rearrange 廃止
 		// (user fb 「単純に重ならない」)。
 		const others = widgetsToRects(this.widgets, id);
@@ -521,11 +458,11 @@ class WorkspaceWidgets {
 	 * 全 target が grid 範囲内かつ非選択 widget と overlap しない場合のみ commit、
 	 * 1 件でも違反すれば全体を reject (atomic) + toast 表示。
 	 */
-	async moveMany(moves: { id: string; toX: number; toY: number }[], cols?: number): Promise<void> {
+	async moveMany(moves: { id: string; toX: number; toY: number }[]): Promise<void> {
 		if (moves.length === 0) return;
 		if (moves.length === 1) {
 			const m = moves[0];
-			await this.moveWidget(m.id, m.toX, m.toY, cols);
+			await this.moveWidget(m.id, m.toX, m.toY);
 			return;
 		}
 		this.error = null;
@@ -536,20 +473,8 @@ class WorkspaceWidgets {
 		if (targets.some((tg) => tg === null)) return;
 		const ts = targets as Array<{ src: WorkspaceWidget; toX: number; toY: number }>;
 
-		const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS);
-		// 1) 範囲内チェック
-		for (const tg of ts) {
-			if (
-				tg.toX < 0 ||
-				tg.toY < 0 ||
-				tg.toX + tg.src.width > effectiveCols ||
-				tg.toY + tg.src.height > DEFAULT_MAX_ROW + 1
-			) {
-				toastStore.add(t('toast.grid_out_of_bounds_move'), 'error');
-				return;
-			}
-		}
-		// 2) overlap チェック (移動 widget 群同士の衝突 + 非移動 widget との衝突)
+		// 2026-05-19 無限 canvas: grid 端の壁を撤廃したため範囲内チェックは無く、 負座標も許容。
+		// overlap チェック (移動 widget 群同士の衝突 + 非移動 widget との衝突) のみ行う。
 		const movingIds = new Set(ts.map((tg) => tg.src.id));
 		const stationaryRects = this.widgets
 			.filter((w) => !movingIds.has(w.id))

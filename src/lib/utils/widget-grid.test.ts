@@ -1,20 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
-	clampWidget,
 	computeMoveDragPreviews,
-	findFreePosition,
 	findFreePositionNear,
 	type Rect,
 	wouldOverlapAt,
 } from './widget-grid';
 
 /**
- * T4-1 (PR-Z2): widget-grid pure function test (wouldOverlapAt + findFreePosition)。
- * T4-2 (PR-Z3): clampWidget + findFreePositionNear test 追加。
+ * widget-grid pure function test。
  *
- * 引用元: docs/l1_requirements/test-rebuild/index.md (T4 phase、PH-issue-003)
+ * scope: overlap 判定 + spiral 空きセル探索 + 複数選択 drag preview。
  *
- * scope: overlap 判定 + 空きセル探索 + grid bound clamp + spiral 探索 (near 起点)。
+ * 2026-05-19 無限 canvas 化: grid 端の壁を撤廃したため clampWidget / findFreePosition (有界
+ * top-left scan) は廃止。 配置は findFreePositionNear (無界 spiral、 負座標可) に一本化、
+ * drag preview の blocked 判定は overlap のみ。
  */
 describe('wouldOverlapAt', () => {
 	const others: Rect[] = [
@@ -35,93 +34,60 @@ describe('wouldOverlapAt', () => {
 	});
 
 	it('境界で接する (touching but not overlapping) は false', () => {
-		// 左上 (0,0,2,2) の右に隣接 (2,0,2,2) は重ならない
 		expect(wouldOverlapAt(2, 0, 2, 2, others)).toBe(false);
 	});
 
 	it('others 空配列は常に false', () => {
 		expect(wouldOverlapAt(0, 0, 10, 10, [])).toBe(false);
 	});
-});
 
-describe('findFreePosition', () => {
-	it('空 grid なら (0, 0) を返す', () => {
-		expect(findFreePosition(2, 2, [], 4, 10)).toEqual({ x: 0, y: 0 });
-	});
-
-	it('左上が埋まっていたら次の空きを返す', () => {
-		const others: Rect[] = [{ x: 0, y: 0, w: 2, h: 2 }];
-		const r = findFreePosition(2, 2, others, 4, 10);
-		expect(r).not.toBeNull();
-		// (2, 0) または (0, 2) のいずれか
-		expect(r).toMatchObject({ x: expect.any(Number), y: expect.any(Number) });
-		// 既存と重ならない
-		expect(wouldOverlapAt(r!.x, r!.y, 2, 2, others)).toBe(false);
-	});
-
-	it('grid 全埋まりなら null', () => {
-		// 4x2 grid (cols=4, maxRow=1) を 2x1 widget 4 個で埋める
-		const others: Rect[] = [
-			{ x: 0, y: 0, w: 2, h: 1 },
-			{ x: 2, y: 0, w: 2, h: 1 },
-			{ x: 0, y: 1, w: 2, h: 1 },
-			{ x: 2, y: 1, w: 2, h: 1 },
-		];
-		expect(findFreePosition(2, 1, others, 4, 1)).toBeNull();
-	});
-
-	it('cols より大きい widget は null', () => {
-		// cols=4 で 5x1 widget は配置不可
-		expect(findFreePosition(5, 1, [], 4, 10)).toBeNull();
-	});
-});
-
-describe('clampWidget', () => {
-	it('範囲内はそのまま', () => {
-		expect(clampWidget({ position_x: 1, width: 2 }, 4)).toEqual({ x: 1, span: 2 });
-	});
-
-	it('position_x が cols 超過は cols-1 に clamp + span 1', () => {
-		expect(clampWidget({ position_x: 10, width: 2 }, 4)).toEqual({ x: 3, span: 1 });
-	});
-
-	it('width が cols 超過は span を残り cell に clamp', () => {
-		expect(clampWidget({ position_x: 0, width: 10 }, 4)).toEqual({ x: 0, span: 4 });
-	});
-
-	it('width 0 は最低 1 に clamp', () => {
-		expect(clampWidget({ position_x: 0, width: 0 }, 4)).toEqual({ x: 0, span: 1 });
+	it('負座標同士の overlap も検出する', () => {
+		const neg: Rect[] = [{ x: -5, y: -5, w: 3, h: 3 }];
+		expect(wouldOverlapAt(-4, -4, 2, 2, neg)).toBe(true);
+		expect(wouldOverlapAt(-2, -2, 2, 2, neg)).toBe(false);
 	});
 });
 
 describe('findFreePositionNear', () => {
 	it('seed 位置が空きならそこを返す', () => {
-		expect(findFreePositionNear(2, 3, 1, 1, [], 10, 10)).toEqual({ x: 2, y: 3 });
+		expect(findFreePositionNear(2, 3, 1, 1, [])).toEqual({ x: 2, y: 3 });
 	});
 
-	it('seed 位置が埋まってたら spiral 近隣を返す', () => {
+	it('seed 位置が埋まってたら spiral 近隣 (chebyshev=1) を返す', () => {
 		const others: Rect[] = [{ x: 2, y: 3, w: 1, h: 1 }];
-		const r = findFreePositionNear(2, 3, 1, 1, others, 10, 10);
+		const r = findFreePositionNear(2, 3, 1, 1, others);
 		expect(r).not.toBeNull();
-		// 隣接 cell (chebyshev=1) のいずれか
-		const dx = Math.abs(r!.x - 2);
-		const dy = Math.abs(r!.y - 3);
+		const dx = Math.abs((r as { x: number }).x - 2);
+		const dy = Math.abs((r as { y: number }).y - 3);
 		expect(Math.max(dx, dy)).toBe(1);
 	});
 
-	it('cols/maxRow を widget が超過する場合 null', () => {
-		expect(findFreePositionNear(0, 0, 5, 1, [], 4, 10)).toBeNull();
-		expect(findFreePositionNear(0, 0, 1, 100, [], 10, 10)).toBeNull();
+	it('無限 canvas: 負座標の seed をそのまま使い、 負座標を返せる', () => {
+		expect(findFreePositionNear(-10, -7, 2, 2, [])).toEqual({ x: -10, y: -7 });
 	});
 
-	it('seed が範囲外なら範囲内に clamp して探索', () => {
-		// seed (-5, -5) は範囲内 (0, 0) に clamp、空 grid なので (0, 0)
-		expect(findFreePositionNear(-5, -5, 1, 1, [], 4, 4)).toEqual({ x: 0, y: 0 });
+	it('無限 canvas: seed 周辺が埋まっていても壁に阻まれず外側リングへ拡張する', () => {
+		// seed (0,0) を中心に chebyshev<=1 の 3x3 を 1x1 widget で全部埋める。
+		const others: Rect[] = [];
+		for (let x = -1; x <= 1; x++) {
+			for (let y = -1; y <= 1; y++) others.push({ x, y, w: 1, h: 1 });
+		}
+		const r = findFreePositionNear(0, 0, 1, 1, others);
+		expect(r).not.toBeNull();
+		// chebyshev=2 のリング上に置かれる (左/上の壁が無いので負座標も候補)。
+		const dx = Math.abs((r as { x: number }).x);
+		const dy = Math.abs((r as { y: number }).y);
+		expect(Math.max(dx, dy)).toBe(2);
+		expect(wouldOverlapAt((r as Rect).x, (r as Rect).y, 1, 1, others)).toBe(false);
+	});
+
+	it('seed が小数でも floor して整数 cell から探索する', () => {
+		expect(findFreePositionNear(3.8, 2.2, 1, 1, [])).toEqual({ x: 3, y: 2 });
 	});
 });
 
 /**
- * #12: computeMoveDragPreviews — 複数選択 widget の同 delta drag preview。
+ * computeMoveDragPreviews — 複数選択 widget の同 delta drag preview。
  */
 describe('computeMoveDragPreviews', () => {
 	const widgets = [
@@ -131,30 +97,29 @@ describe('computeMoveDragPreviews', () => {
 	];
 
 	it('複数選択 widget を同 delta で移動した box を返す', () => {
-		const r = computeMoveDragPreviews(widgets, new Set(['a', 'b']), 1, 3, 12, 32);
+		const r = computeMoveDragPreviews(widgets, new Set(['a', 'b']), 1, 3);
 		expect(r).toHaveLength(2);
 		expect(r[0]).toMatchObject({ x: 1, y: 3, w: 2, h: 2, blocked: false });
 		expect(r[1]).toMatchObject({ x: 5, y: 3, w: 2, h: 2, blocked: false });
 	});
 
 	it('非移動 widget と重なる移動先は blocked', () => {
-		const r = computeMoveDragPreviews(widgets, new Set(['a']), 4, 0, 12, 32);
+		const r = computeMoveDragPreviews(widgets, new Set(['a']), 4, 0);
 		expect(r[0].blocked).toBe(true);
 	});
 
-	it('grid 右端を越える移動先は blocked', () => {
-		const r = computeMoveDragPreviews(widgets, new Set(['c']), 3, 0, 12, 32);
-		expect(r[0].blocked).toBe(true);
+	it('無限 canvas: 負座標への移動は壁無しで blocked にならない', () => {
+		const r = computeMoveDragPreviews(widgets, new Set(['a']), -3, -5);
+		expect(r[0]).toMatchObject({ x: -3, y: -5, blocked: false });
 	});
 
-	it('負座標は描画用に 0 クランプ、blocked は実座標で判定', () => {
-		const r = computeMoveDragPreviews(widgets, new Set(['a']), -3, 0, 12, 32);
-		expect(r[0].x).toBe(0);
-		expect(r[0].blocked).toBe(true);
+	it('無限 canvas: 右へ大きく移動しても壁無しで blocked にならない', () => {
+		const r = computeMoveDragPreviews(widgets, new Set(['c']), 100, 100);
+		expect(r[0]).toMatchObject({ x: 108, y: 100, blocked: false });
 	});
 
 	it('移動グループ同士は衝突扱いしない (rigid に同 delta 移動)', () => {
-		const r = computeMoveDragPreviews(widgets, new Set(['a', 'b']), 2, 0, 12, 32);
+		const r = computeMoveDragPreviews(widgets, new Set(['a', 'b']), 2, 0);
 		expect(r.every((p) => !p.blocked)).toBe(true);
 	});
 });

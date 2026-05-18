@@ -11,12 +11,14 @@ import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.sve
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadJSON, saveJSON } from '$lib/utils/local-storage';
 import {
-	bufferOffsetPx,
+	cellStrideX,
+	cellStrideY,
 	clampZoom,
 	computeBoundingBox,
 	computeFitScroll,
 	computeOrigin,
 	effectiveBottomReserve,
+	type RenderExtent,
 } from '$lib/utils/zoom-math';
 import { widgetRegistry } from '$lib/widgets';
 import PageTabBar from './PageTabBar.svelte';
@@ -29,15 +31,15 @@ import WorkspaceWidgetGrid from './WorkspaceWidgetGrid.svelte';
  * 引用元 guideline:
  *   docs/l1_requirements/code-refactor/a3-frontend-shape.md §3.1 (V5 解消、Grid render を抽出)
  *
- * 親 (WorkspaceLayout) は ResizeObserver / dynamicCols / maxRow を持ち、本 component は受け取った値で
+ * 親 (WorkspaceLayout) は ResizeObserver / render extent を持ち、本 component は受け取った値で
  * canvas size derive と canvas template の render に集中する。
  */
 interface Props {
 	container?: HTMLDivElement | null;
 	containerWidth: number;
 	containerHeight: number;
-	dynamicCols: number;
-	maxRow: number;
+	/** 無限 canvas の render origin + grid 全体 cell 範囲 (zoom-math.computeRenderExtent)。 */
+	extent: RenderExtent;
 	deleteConfirmId: string | null;
 	zoom: ReturnType<typeof useWidgetZoom>;
 	onEditItem?: (id: string) => void;
@@ -59,8 +61,7 @@ let {
 	container = $bindable(null),
 	containerWidth,
 	containerHeight,
-	dynamicCols,
-	maxRow,
+	extent,
 	deleteConfirmId,
 	zoom,
 	onEditItem,
@@ -121,10 +122,12 @@ function computeInitialScroll(el: HTMLElement): { left: number; top: number } {
 		};
 	}
 	const origin = computeOrigin(bb);
-	const fit = computeFitScroll(origin, configStore.widgetZoom, {
-		clientWidth: el.clientWidth,
-		clientHeight: el.clientHeight,
-	});
+	const fit = computeFitScroll(
+		origin,
+		configStore.widgetZoom,
+		{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
+		extent,
+	);
 	return {
 		left: Math.min(el.scrollWidth - el.clientWidth, fit.scrollLeft),
 		top: Math.min(el.scrollHeight - el.clientHeight, fit.scrollTop),
@@ -175,41 +178,59 @@ function onWorkspaceScroll() {
 }
 
 // canvas inner box size (grid 込みの flex container 全体): grid と viewport の大きい方。
-//   gridContentW = bufferPx.x + dynamicCols × (widgetW + gap) + flex p-5 padding (40)
-//   gridContentH = bufferPx.y + maxRow × (widgetH + gap) + flex p-5 padding (40)
 //
-// 2026-05-07 user 検収「左/上の壁が戻った」 fix: canvas に buffer 領域 (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP)
-// を持たせ、grid origin (0,0) を canvas 内側へ offset する。これで widget が grid 端に置かれても
-// canvas 上は buffer 分だけ右下にあり、user は更に上/左へ pan できる empty 領域を持つ (Obsidian Canvas 風)。
+// 2026-05-19 無限 canvas: grid 全体は render extent (BB + 全方位 MARGIN_CELLS) で決まる。
+// MARGIN_CELLS 分の空き領域が leading 余白 (上/左へ pan できる empty 領域) を担い、
+// trailing には viewport 1 画面分を足して任意の content 点を viewport 中心へ scroll 可能にする。
+// widget を端へ移動すると extent が伸びて MARGIN が再展開されるため、 上下左右無限に pan できる。
 const FLEX_PADDING = 40; // p-5 = 20px × 2
 const GRID_GAP = 16;
-let bufferPx = $derived(bufferOffsetPx(configStore.widgetZoom));
-// 不具合修正 (2026-05-19): canvas 末尾に viewport 1 画面分の trailing 余白を確保する。
-// 旧実装は grid content 右端 / 下端直後に scroll 余地が無く、 grid 端付近の widget /
-// 選択集合を fit-to-content しても BB 重心を viewport 中心へ運ぶ scroll 量に canvas が
-// 足りず browser に clamp され「中央に来ない」 不具合になっていた。 leading は bufferPx
-// (BUFFER_COLS_LEFT/ROWS_TOP) が担うので trailing を pixel 基準で足し、 任意の content 点を
-// viewport 中心へ scroll 可能にする (Obsidian 無限 canvas 相当)。
 let canvasW = $derived(
-	Math.max(
-		containerWidth,
-		bufferPx.x + dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING + containerWidth,
-	),
+	Math.max(containerWidth, extent.cols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING + containerWidth),
 );
-// K-6 fix (2026-05-15): 旧 canvasH は FLEX_PADDING のみで bottom reserve なし → 最下段 widget が
-// floating bottom toolbar (Undo / Zoom / Fit) の裏に隠れ、 scroll で逃せなかった (user 報告)。
-// canvasH に BOTTOM_RESERVE を加算 → 最下段 widget の下に reserve 分の scroll-able 空白を確保、
-// 全 widget が toolbar 上に出るまで scroll できる。
+// K-6 fix (2026-05-15): canvasH に bottom reserve を加算 → 最下段 widget の下に reserve 分の
+// scroll-able 空白を確保し、 floating bottom toolbar (Undo / Zoom / Fit) の裏に隠れないようにする。
 let canvasH = $derived(
 	Math.max(
 		containerHeight,
-		bufferPx.y +
-			maxRow * (zoom.widgetH + GRID_GAP) +
+		extent.rows * (zoom.widgetH + GRID_GAP) +
 			FLEX_PADDING +
 			effectiveBottomReserve(configStore.hintBarVisible) +
 			containerHeight,
 	),
 );
+
+// 2026-05-19 無限 canvas: render origin (extent.originX/Y) は widget 群の BB に追従して動く。
+// origin が変わると全 widget の CSS grid 位置が一斉に shift するため、 同フレームで scroll を
+// 逆方向に補償して widget を視覚的に固定する ($effect は paint 前に走るので flicker 無し)。
+// workspace 切替時は補償せず baseline を貼り直す (初期 scroll は別 effect が担当)。
+let compWorkspaceId: string | null = null;
+let appliedOriginX = 0;
+let appliedOriginY = 0;
+$effect(() => {
+	const wsId = workspaceStore.activeWorkspaceId;
+	const loading = workspaceStore.loading;
+	const ox = extent.originX;
+	const oy = extent.originY;
+	const el = container;
+	if (!el) return;
+	// workspace 切替 / widget ロード中は補償せず baseline を貼り直す。
+	// (初期 scroll は lastInitializedWorkspaceId の effect が computeInitialScroll で担当)
+	if (wsId !== compWorkspaceId || loading) {
+		compWorkspaceId = wsId;
+		appliedOriginX = ox;
+		appliedOriginY = oy;
+		return;
+	}
+	if (ox !== appliedOriginX) {
+		el.scrollLeft += (appliedOriginX - ox) * cellStrideX(configStore.widgetZoom);
+		appliedOriginX = ox;
+	}
+	if (oy !== appliedOriginY) {
+		el.scrollTop += (appliedOriginY - oy) * cellStrideY(configStore.widgetZoom);
+		appliedOriginY = oy;
+	}
+});
 
 const widgetComponents = Object.fromEntries(
 	Object.entries(widgetRegistry).map(([type, meta]) => [type, meta.Component]),
@@ -303,9 +324,9 @@ function deselectAllWidgets(): void {
 		onscroll={onWorkspaceScroll}
 		oncontextmenu={handleCanvasContextMenu}
 	>
-		<!-- 5/04 user 検収 (post-redo3 #2): canvas size = max(viewport, grid)、padding 0。
-		     2026-05-07 fix: canvas に buffer 領域 (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP) を持たせ、
-		     widget grid origin (0,0) を canvas 内側へ offset することで「左/上の壁」を解消。 -->
+		<!-- canvas size = max(viewport, grid extent)。
+		     2026-05-19 無限 canvas: grid 範囲は render extent (BB + 全方位 MARGIN_CELLS) で決まり、
+		     widget を端へ移動すると extent が伸びて margin が再展開される (上下左右無限 pan)。 -->
 		<div
 			class="relative"
 			style="width: {canvasW}px; height: {canvasH}px; background-image: radial-gradient(circle, var(--ag-canvas-dot) 1.5px, transparent 1.5px); background-size: 24px 24px;"
@@ -321,16 +342,12 @@ function deselectAllWidgets(): void {
 					aria-hidden="true"
 				></div>
 			{/if}
-			<div
-				class="flex gap-4 p-5"
-				style="padding-left: {bufferPx.x + 20}px; padding-top: {bufferPx.y + 20}px;"
-			>
+			<div class="flex gap-4 p-5">
 				<div class="relative min-w-0 flex-1">
 					<!-- 検収 #6: WorkspaceWidgetGrid は **常時** 描画する。
 					     widgets.length === 0 時の grid unmount で pointerup → addWidget 失敗を起こすため。 -->
 					<WorkspaceWidgetGrid
-						{dynamicCols}
-						{maxRow}
+						{extent}
 						widgetW={zoom.widgetW}
 						widgetH={zoom.widgetH}
 						{widgetComponents}

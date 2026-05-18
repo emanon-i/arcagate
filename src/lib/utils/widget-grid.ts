@@ -1,5 +1,5 @@
 /**
- * Widget grid utilities — overlap 検出 / 空きスペース探索 / clamp。
+ * Widget grid utilities — overlap 検出 / 空きスペース探索。
  *
  * 引用元 guideline:
  * - docs/desktop_ui_ux_agent_rules.md P1 (状態) / P2 (失敗前提)
@@ -8,18 +8,13 @@
  *
  * PH-issue-003: 追加 / 移動 / リサイズ全経路で overlap reject を強制するため、
  * 各 store メソッドが共通利用する純粋関数を集約する。
+ *
+ * 2026-05-19 無限 canvas 化: widget cell 座標は **符号付き整数 (負値許容)**。 grid の
+ * 右端 / 下端 / 左端 / 上端の壁を撤廃したため、 配置可能範囲のクランプは行わない。
+ * 唯一の配置制約は「widget 同士は重ならない」 のみ。
  */
 
 export type Rect = { x: number; y: number; w: number; h: number };
-
-export function clampWidget(
-	widget: { position_x: number; width: number },
-	cols: number,
-): { x: number; span: number } {
-	const x = Math.min(widget.position_x, Math.max(0, cols - 1));
-	const span = Math.max(1, Math.min(widget.width, cols - x));
-	return { x, span };
-}
 
 /**
  * AABB (axis-aligned bounding box) overlap check.
@@ -35,50 +30,21 @@ export function wouldOverlapAt(
 	return others.some((o) => x < o.x + o.w && x + w > o.x && y < o.y + o.h && y + h > o.y);
 }
 
-/**
- * 空きセルを左上から走査して最初の空き位置を返す。
- * **見つからなければ null** (PH-issue-003: (0,0) fallback バグ排除のため明示的 null)。
- *
- * @param w 配置 widget の幅
- * @param h 配置 widget の高さ
- * @param others 既存 widget の rect 配列
- * @param maxCols グリッド列数
- * @param maxRow 走査上限行 (これより下は配置不可)
- */
-export function findFreePosition(
-	w: number,
-	h: number,
-	others: Rect[],
-	maxCols: number,
-	maxRow: number,
-): { x: number; y: number } | null {
-	// Codex r4 MEDIUM #3 (consistency): bottom 制限は **height-aware**。
-	// addWidgetAt の bound check (`y + h > maxRow + 1` で reject) と揃えるには
-	// `y` の最大値は `maxRow - h + 1` (widget 末尾が maxRow 行を占有する状態)。
-	// 旧コードは `y <= maxRow` で h=2/maxRow=32 のとき y=32 → 行 32,33 に跨る不正解を返していた。
-	if (w > maxCols || h > maxRow + 1) return null;
-	const yMax = maxRow - h + 1;
-	for (let y = 0; y <= yMax; y++) {
-		for (let x = 0; x <= maxCols - w; x++) {
-			if (!wouldOverlapAt(x, y, w, h, others)) return { x, y };
-		}
-	}
-	return null;
-}
+/** spiral 探索のリング上限 (これを超えたら探索打ち切り、 通常到達しない安全網)。 */
+const MAX_SEARCH_RING = 128;
 
 /**
- * Codex Critical #1: viewport center 起点の **spiral 探索**。
- * クリックで widget を追加した時、指定 cell が埋まっていたら top-left に飛ぶのでなく、
- * 指定 cell から広がる**同心円 (チェビシェフ距離)** で最寄りの空きセルを探す。
- * 見つからなければ findFreePosition (top-left 線形 scan) に fallback。
+ * seed cell を起点に **同心円 (チェビシェフ距離) で最寄りの空きセル**を探す。
  *
- * @param seedX 起点 x（負値は 0 にクランプ）
- * @param seedY 起点 y（負値は 0 にクランプ）
+ * 無限 canvas 化 (2026-05-19): grid 端の壁を撤廃したため探索範囲に上下左右の境界は無い。
+ * 負座標も探索対象。 seed が空きならそのまま seed を返し、 埋まっていれば外側リングへ拡張する。
+ * MAX_SEARCH_RING まで探して見つからなければ null (現実的には到達しない安全網)。
+ *
+ * @param seedX 起点 x (整数化される、 負値可)
+ * @param seedY 起点 y (整数化される、 負値可)
  * @param w 配置 widget の幅
  * @param h 配置 widget の高さ
  * @param others 既存 widget の rect 配列
- * @param maxCols グリッド列数
- * @param maxRow 走査上限行
  */
 export function findFreePositionNear(
 	seedX: number,
@@ -86,37 +52,25 @@ export function findFreePositionNear(
 	w: number,
 	h: number,
 	others: Rect[],
-	maxCols: number,
-	maxRow: number,
 ): { x: number; y: number } | null {
-	// widget が grid に収まらないなら探索不要
-	if (w > maxCols || h > maxRow + 1) return null;
-	// Codex r4 MEDIUM #3: seed と候補双方の bottom 制限を **height-aware** に。
-	// 旧 `Math.min(maxRow, ...)` / `y > maxRow` だと h=2 の widget が y=maxRow に張り付き、
-	// 末尾 1 行が grid 外 (addWidgetAt の reject 条件 `y + h > maxRow + 1` と乖離) になる。
-	// 正しくは `y + h <= maxRow + 1`、つまり `y <= maxRow - h + 1`。
-	const yMax = maxRow - h + 1;
-	const sx = Math.max(0, Math.min(maxCols - w, Math.floor(seedX)));
-	const sy = Math.max(0, Math.min(yMax, Math.floor(seedY)));
+	const sx = Math.floor(seedX);
+	const sy = Math.floor(seedY);
 	if (!wouldOverlapAt(sx, sy, w, h, others)) return { x: sx, y: sy };
-	const maxRing = Math.max(maxCols, maxRow);
-	for (let r = 1; r <= maxRing; r++) {
-		// チェビシェフ距離 r のリングを上→右→下→左で走査
+	for (let r = 1; r <= MAX_SEARCH_RING; r++) {
+		// チェビシェフ距離 r のリングを走査
 		for (let dy = -r; dy <= r; dy++) {
 			for (let dx = -r; dx <= r; dx++) {
 				if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
 				const x = sx + dx;
 				const y = sy + dy;
-				if (x < 0 || y < 0 || x + w > maxCols || y + h > maxRow + 1) continue;
 				if (!wouldOverlapAt(x, y, w, h, others)) return { x, y };
 			}
 		}
 	}
-	// near では見つからないなら通常 scan で fallback
-	return findFreePosition(w, h, others, maxCols, maxRow);
+	return null;
 }
 
-/** #12: drag preview の 1 box。x/y は描画用に 0 クランプ済、blocked は実座標で判定。 */
+/** #12: drag preview の 1 box。x/y は実 cell 座標 (負値可)、blocked は overlap 判定。 */
 export interface DragPreviewBox {
 	x: number;
 	y: number;
@@ -136,18 +90,17 @@ type GridWidget = {
 /**
  * #12: 複数選択 widget を同 delta (dx, dy) で移動したときの drag preview box 群を計算する。
  *
- * `movingIds` に含まれる widget を delta 移動し、各 box の blocked (非移動 widget との
- * overlap または grid 越境) を判定する。複数選択 drag で「他選択 widget も同 delta で追従」
- * を視覚化するための pure 関数。box の x/y は grid-column 負値を避けるため 0 にクランプし、
- * blocked 判定はクランプ前の実座標で行う (moveMany の atomic reject 条件と一致)。
+ * `movingIds` に含まれる widget を delta 移動し、各 box の blocked (非移動 widget との overlap)
+ * を判定する。複数選択 drag で「他選択 widget も同 delta で追従」を視覚化するための pure 関数。
+ *
+ * 2026-05-19 無限 canvas 化: grid 端の壁を撤廃したため越境判定は無く、 blocked は
+ * 「非移動 widget との overlap」のみ。 移動 widget 同士は rigid に同 delta 移動するため衝突扱いしない。
  */
 export function computeMoveDragPreviews(
 	widgets: GridWidget[],
 	movingIds: Set<string>,
 	dx: number,
 	dy: number,
-	dynamicCols: number,
-	maxRow: number,
 ): DragPreviewBox[] {
 	const stationary: Rect[] = widgets
 		.filter((w) => !movingIds.has(w.id))
@@ -157,8 +110,7 @@ export function computeMoveDragPreviews(
 		.map((w) => {
 			const px = w.position_x + dx;
 			const py = w.position_y + dy;
-			const overflows = px < 0 || py < 0 || px + w.width > dynamicCols || py + w.height > maxRow;
-			const blocked = overflows || wouldOverlapAt(px, py, w.width, w.height, stationary);
-			return { x: Math.max(0, px), y: Math.max(0, py), w: w.width, h: w.height, blocked };
+			const blocked = wouldOverlapAt(px, py, w.width, w.height, stationary);
+			return { x: px, y: py, w: w.width, h: w.height, blocked };
 		});
 }

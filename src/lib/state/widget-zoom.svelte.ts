@@ -4,7 +4,6 @@ import { normalizeWheelStep } from '$lib/utils/wheel-normalize';
 import {
 	BASE_H,
 	BASE_W,
-	bufferOffsetPx,
 	cellStrideX,
 	cellStrideY,
 	clampAnchor,
@@ -21,6 +20,7 @@ import {
 	MIN_ZOOM,
 	MIN_ZOOM_FIT,
 	RESET_ZOOM,
+	type RenderExtent,
 	SIDE_RESERVE,
 	TOP_RESERVE,
 } from '$lib/utils/zoom-math';
@@ -160,7 +160,7 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 	 *     - 多数広域 (BB 大)              → 5-100% 想定 + BB center
 	 *     - 極端 (BB が 5% でも入らない)  → 5% + BB top-left align
 	 */
-	function fitToContent(widgets: WorkspaceWidget[]) {
+	function fitToContent(widgets: WorkspaceWidget[], extent: RenderExtent) {
 		const el = containerRef();
 		if (!el) return;
 		if (widgets.length === 0) {
@@ -212,19 +212,21 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 			if (overflows) {
 				const sx = cellStrideX(targetZoom);
 				const sy = cellStrideY(targetZoom);
-				const buffer = bufferOffsetPx(targetZoom);
-				const minPxX = INNER_PAD + buffer.x + bb.minX * sx;
-				const minPxY = INNER_PAD + buffer.y + bb.minY * sy;
+				// 2026-05-19 無限 canvas: BB top-left の canvas pixel = INNER_PAD + (cell − origin) × stride。
+				const minPxX = INNER_PAD + (bb.minX - extent.originX) * sx;
+				const minPxY = INNER_PAD + (bb.minY - extent.originY) * sy;
 				el.scrollTo({
 					left: Math.max(0, minPxX - SIDE_RESERVE),
 					top: Math.max(0, minPxY - TOP_RESERVE),
 					behavior: 'instant',
 				});
 			} else {
-				const target = computeFitScroll(origin, targetZoom, {
-					clientWidth: el.clientWidth,
-					clientHeight: el.clientHeight,
-				});
+				const target = computeFitScroll(
+					origin,
+					targetZoom,
+					{ clientWidth: el.clientWidth, clientHeight: el.clientHeight },
+					extent,
+				);
 				el.scrollTo({
 					left: target.scrollLeft,
 					top: target.scrollTop,

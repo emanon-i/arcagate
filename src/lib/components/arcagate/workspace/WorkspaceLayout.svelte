@@ -13,7 +13,13 @@ import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { useWorkspaceInput } from '$lib/state/workspace-input.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadBool, saveBool } from '$lib/utils/local-storage';
-import { HINT_BAR_RESERVE } from '$lib/utils/zoom-math';
+import {
+	cellStrideX,
+	cellStrideY,
+	computeRenderExtent,
+	HINT_BAR_RESERVE,
+	INNER_PAD,
+} from '$lib/utils/zoom-math';
 import WidgetItemContextMenu from '$lib/widgets/_shared/WidgetItemContextMenu.svelte';
 import WorkspaceGrid from './WorkspaceGrid.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
@@ -123,27 +129,26 @@ $effect(() => {
 	return () => ro.disconnect();
 });
 
-// 5/04 user 検収 (post-redo3 #4): 24 cols × 128 rows の pan 余裕で「壁」体感を解消。
-const MIN_PAN_COLS = 24;
-const MIN_PAN_ROWS = 128;
+// 2026-05-19 無限 canvas: grid 範囲は widget 群の BB + 全方位 MARGIN_CELLS で動的に決まる。
+// widget を端へ移動すると extent が伸び margin が再展開されるため上下左右どこへでも配置できる。
+let extent = $derived(computeRenderExtent(workspaceStore.widgets));
 
-let minGridCols = $derived(
-	workspaceStore.widgets.length > 0
-		? Math.max(1, ...workspaceStore.widgets.map((w) => w.position_x + w.width))
-		: 1,
-);
-
-let dynamicCols = $derived(
-	Math.max(
-		minGridCols,
-		MIN_PAN_COLS,
-		containerWidth > 0 && zoom.widgetW > 0 ? Math.floor(containerWidth / zoom.widgetW) : 4,
-	),
-);
-
-let maxRow = $derived(
-	Math.max(MIN_PAN_ROWS, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
-);
+/**
+ * 現在 viewport 中央の絶対 grid cell 座標を返す (widget が無い / container 未取得なら null)。
+ * sidebar の keyboard add や canvas 外 release 時の widget 配置 seed として使う。
+ */
+function viewportCenterCell(): { x: number; y: number } | null {
+	const el = workspaceContainer;
+	if (!el) return null;
+	const sx = cellStrideX(configStore.widgetZoom);
+	const sy = cellStrideY(configStore.widgetZoom);
+	const cx = el.scrollLeft + el.clientWidth / 2;
+	const cy = el.scrollTop + el.clientHeight / 2;
+	return {
+		x: Math.floor(extent.originX + (cx - INNER_PAD) / sx),
+		y: Math.floor(extent.originY + (cy - INNER_PAD) / sy),
+	};
+}
 
 const input = useWorkspaceInput({
 	getContainer: () => workspaceContainer,
@@ -202,7 +207,7 @@ function confirmRename(name: string) {
      selection 色だけ theme に連動させる方針。 -->
 <div class="relative flex h-full">
 	{#if sidebarOpen}
-		<WorkspaceSidebar {dynamicCols} onClose={() => (sidebarOpen = false)} />
+		<WorkspaceSidebar getSeedCell={viewportCenterCell} onClose={() => (sidebarOpen = false)} />
 	{:else}
 		<!-- PH-issue-028: sidebar 非表示時は左端に再オープン用 narrow toggle bar -->
 		<button
@@ -220,8 +225,7 @@ function confirmRename(name: string) {
 		bind:container={workspaceContainer}
 		{containerWidth}
 		{containerHeight}
-		{dynamicCols}
-		{maxRow}
+		{extent}
 		{deleteConfirmId}
 		{zoom}
 		{onEditItem}
@@ -316,7 +320,7 @@ function confirmRename(name: string) {
 					workspaceSelection.size > 0
 						? workspaceStore.widgets.filter((w) => workspaceSelection.has(w.id))
 						: workspaceStore.widgets;
-				zoom.fitToContent(target);
+				zoom.fitToContent(target, extent);
 			}}
 		>
 			<Maximize2 class="h-4 w-4" />

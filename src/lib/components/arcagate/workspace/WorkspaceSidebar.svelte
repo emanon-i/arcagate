@@ -19,15 +19,14 @@ import { WIDGET_CATEGORIES, type WidgetMeta } from '$lib/widgets/_shared/types';
 interface Props {
 	onClose?: () => void;
 	/**
-	 * Codex r4 HIGH #1: viewport 幅から導出された responsive cols。
-	 * keyboard 経路 (Enter/Space) と pointer 経路 (drag/click) の placement 判定を
-	 * 一致させるため、Sidebar から workspaceStore.addWidget へ伝搬する。
-	 * 未指定時は store 側 fallback (DEFAULT_GRID_COLS=4) で動作。
+	 * 2026-05-19 無限 canvas: keyboard 経路 (Enter/Space) で widget を追加する際、
+	 * 現在 viewport 中央の絶対 cell を seed として workspaceStore.addWidget に渡す。
+	 * 親 (WorkspaceLayout) が container scroll / zoom / render origin から算出する。
 	 */
-	dynamicCols?: number;
+	getSeedCell?: () => { x: number; y: number } | null;
 }
 
-let { onClose, dynamicCols }: Props = $props();
+let { onClose, getSeedCell }: Props = $props();
 
 /**
  * 4/30 user 検収: widget palette を **用途別グルーピング** で表示。
@@ -88,15 +87,14 @@ function startDrag(e: PointerEvent, widgetType: WidgetType) {
  * **`e.repeat` を必ず guard**：キー長押しで keydown が連射 → widget 大量追加される spam を防ぐ
  * (Codex 再 review High #1 指摘の regression)。
  *
- * Codex r4 HIGH #1: pointer 経路 (WorkspaceWidgetGrid) は dynamicCols を渡しているため、
- * keyboard 経路でも同じ cols を渡さないと cols>=5 の wide canvas で false "no space" を出す。
- * → dynamicCols を 3 番目の引数に伝搬し、placement bound を pointer 経路と一致させる。
+ * 2026-05-19 無限 canvas: keyboard 経路でも viewport 中央 cell を seed として渡し、
+ * pointer drop 経路と同じく「画面に見えている所」 に widget が配置されるようにする。
  */
 function keyboardAdd(e: KeyboardEvent, widgetType: WidgetType) {
 	if (e.key !== 'Enter' && e.key !== ' ') return;
 	if (e.repeat) return;
 	e.preventDefault();
-	void workspaceStore.addWidget(widgetType, undefined, dynamicCols);
+	void workspaceStore.addWidget(widgetType, getSeedCell?.() ?? undefined);
 }
 </script>
 

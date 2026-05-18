@@ -48,22 +48,19 @@ export const ZOOM_LIMIT_MIN = 10;
 export const MIN_ZOOM_FIT = 5;
 
 /**
- * 2026-05-07 user 検収: 「左/上の壁が戻った」 regression 対応。
+ * 2026-05-19 user 検収: 真の無限 canvas 化。
  *
- * 旧 fix (06a1955) は MIN_PAN_COLS=24 / MIN_PAN_ROWS=128 で grid を広く確保し、初期 scroll を
- * BB 重心 viewport 中央に置く戦略だった。しかし widget が row 0 / col 0 付近に配置されると
- * BB 重心 < viewport/2 で scroll が 0 にクランプ、結果 user は左/上の壁を直接触る。
+ * 旧実装は固定 buffer (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP) で grid origin を canvas 内側へ
+ * offset していたが、 widget cell 座標は依然 0 以上にクランプされ「左/上の壁」が残っていた。
  *
- * 構造 fix: canvas に **buffer 領域 (top/left)** を持たせ、grid origin (0,0) を canvas 内側にオフセット。
- *   - `BUFFER_COLS_LEFT` 列ぶん grid 全体を右に offset
- *   - `BUFFER_ROWS_TOP` 行ぶん grid 全体を下に offset
- *   - canvas size と initial/Fit scroll はこの offset を考慮 (`bufferOffsetPx()` 経由)
+ * 新方式: widget cell 座標を **符号付き整数 (負値許容)** とし、 render 時に widget 群の
+ * bounding box から動的な **render origin** を算出する。 origin は BB 最小座標から
+ * `MARGIN_CELLS` だけ外側に取り、 全方位に空き pan 領域を確保する。 widget を端へ移動すると
+ * BB が伸び origin が再算出されるため、 上下左右どこへでも無限に配置できる (Obsidian Canvas 風)。
  *
- * これで widget が grid (0,0) でも canvas 上は buffer 分だけ右下にあり、user は更に上/左へ pan
- * できる empty 領域を持つ。Obsidian Canvas 等の「無限平面」体験に近づく。
+ * canvas 上の任意 cell `c` の pixel 位置 = `INNER_PAD + (c − originX) × stride`。
  */
-export const BUFFER_COLS_LEFT = 12;
-export const BUFFER_ROWS_TOP = 64;
+export const MARGIN_CELLS = 24;
 
 /**
  * chrome reserve (上下左右の toolbar 高さ + 安全マージン)。
@@ -141,14 +138,39 @@ export function clampZoomFit(zoom: number, max: number = MAX_ZOOM): number {
 	return Math.max(MIN_ZOOM_FIT, Math.min(max, Math.round(zoom)));
 }
 
+/** render origin (canvas 上で grid を描画する基準) + grid 全体の cell 範囲。 */
+export interface RenderExtent {
+	/** canvas pixel `INNER_PAD` に対応する絶対 grid cell 座標 (X)。 */
+	originX: number;
+	/** canvas pixel `INNER_PAD` に対応する絶対 grid cell 座標 (Y)。 */
+	originY: number;
+	/** grid 全体の列数 (= BB 幅 + 両側 MARGIN_CELLS)。 */
+	cols: number;
+	/** grid 全体の行数 (= BB 高さ + 両側 MARGIN_CELLS)。 */
+	rows: number;
+}
+
 /**
- * 2026-05-07 fix: canvas 内側で grid (0, 0) が始まる位置を px で返す (buffer 領域分オフセット)。
- * canvas-size 計算 / initial scroll / Fit scroll / 任意の BB→canvas 変換で共有して使う。
+ * 無限 canvas の render origin / extent を widget 群から算出する。
+ *
+ * widget 群の BB を求め、 全方位に `margin` cell の空き領域を足した矩形を grid 描画範囲とする。
+ * widget を端へ移動すると BB が伸びて origin/extent が再算出され、 margin が再展開されるため
+ * 上下左右どこへでも無限に配置できる。 widget が無い空 workspace は (0,0) を中心に
+ * `2×margin` 四方の空 grid を返す。
  */
-export function bufferOffsetPx(zoom: number): { x: number; y: number } {
+export function computeRenderExtent(
+	widgets: Widget[],
+	margin: number = MARGIN_CELLS,
+): RenderExtent {
+	const bb = computeBoundingBox(widgets);
+	if (!bb) {
+		return { originX: -margin, originY: -margin, cols: 2 * margin, rows: 2 * margin };
+	}
 	return {
-		x: BUFFER_COLS_LEFT * cellStrideX(zoom),
-		y: BUFFER_ROWS_TOP * cellStrideY(zoom),
+		originX: bb.minX - margin,
+		originY: bb.minY - margin,
+		cols: bb.maxX - bb.minX + 2 * margin,
+		rows: bb.maxY - bb.minY + 2 * margin,
 	};
 }
 
@@ -209,23 +231,20 @@ export function computeZoomAnchorScroll(
 		? clampAnchor(anchor, viewport)
 		: { x: viewport.clientWidth / 2, y: viewport.clientHeight / 2 };
 	// 5/05 Phase 1.1: cell-coord based ratio。
-	// anchor 下の canvas point を「どの cell の何分の位置か」 で表現 (oldZoom 基準)、
+	// anchor 下の canvas point を「render origin から何 cell 分の位置か」 で表現 (oldZoom 基準)、
 	// 新 zoom の cell stride で px に再変換。INNER_PAD は scale 対象外なので別扱い。
+	// render origin (cell 単位) は zoom 非依存なので、 render-relative cell index は zoom 前後で
+	// 保存される → buffer 項なしで anchor が厳密保存される。
 	// boundary 注: scrollLeft + ax < INNER_PAD で cellAtAnchor が負になった場合、
-	// 結果 scroll が `Math.max(0, ...)` で 0 にクランプされる。これは canvas top-left
-	// 境界で anchor 厳密保存ができない既知の振る舞い (Codex L2)。
-	// 2026-05-07: buffer (canvas 上の grid origin offset) も zoom 連動するため、
-	// cell 座標を buffer 込み effective cell で扱う (buffer 内の anchor は cellAtAnchor < 0)。
+	// 結果 scroll が `Math.max(0, ...)` で 0 にクランプされる (canvas top-left 境界の既知挙動)。
 	const sxOld = cellStrideX(oldZoom);
 	const syOld = cellStrideY(oldZoom);
 	const sxNew = cellStrideX(newZoom);
 	const syNew = cellStrideY(newZoom);
-	const bufOld = bufferOffsetPx(oldZoom);
-	const bufNew = bufferOffsetPx(newZoom);
-	const cellAtAnchorX = (viewport.scrollLeft + ax - INNER_PAD - bufOld.x) / sxOld;
-	const cellAtAnchorY = (viewport.scrollTop + ay - INNER_PAD - bufOld.y) / syOld;
-	const newCanvasX = INNER_PAD + bufNew.x + cellAtAnchorX * sxNew;
-	const newCanvasY = INNER_PAD + bufNew.y + cellAtAnchorY * syNew;
+	const cellAtAnchorX = (viewport.scrollLeft + ax - INNER_PAD) / sxOld;
+	const cellAtAnchorY = (viewport.scrollTop + ay - INNER_PAD) / syOld;
+	const newCanvasX = INNER_PAD + cellAtAnchorX * sxNew;
+	const newCanvasY = INNER_PAD + cellAtAnchorY * syNew;
 	return {
 		scrollLeft: Math.max(0, newCanvasX - ax),
 		scrollTop: Math.max(0, newCanvasY - ay),
@@ -368,18 +387,16 @@ export function computeFitScroll(
 	origin: { cellX: number; cellY: number },
 	zoom: number,
 	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight'>,
+	extent: Pick<RenderExtent, 'originX' | 'originY'>,
 ): { scrollLeft: number; scrollTop: number } {
 	const sx = cellStrideX(zoom);
 	const sy = cellStrideY(zoom);
-	// 2026-05-07 fix: canvas は buffer (BUFFER_COLS_LEFT × BUFFER_ROWS_TOP) を持つため、
-	// grid origin (0, 0) は canvas 内では (INNER_PAD + buffer.x, INNER_PAD + buffer.y) から始まる。
-	// origin.cellX / origin.cellY は **grid 座標** なので canvas 座標へ変換時に buffer を加算する。
-	const buffer = bufferOffsetPx(zoom);
-	// 5/05 Codex H1 fix: BB center px の正確な計算。
-	// BB 端 = INNER_PAD + buffer + (minX × stride) 〜 INNER_PAD + buffer + (maxX × stride − gap)
-	// → BB center = INNER_PAD + buffer + ((minX + maxX) / 2) × stride − gap/2
-	const originPxX = INNER_PAD + buffer.x + origin.cellX * sx - GRID_GAP / 2;
-	const originPxY = INNER_PAD + buffer.y + origin.cellY * sy - GRID_GAP / 2;
+	// 2026-05-19 無限 canvas: 絶対 cell 座標 `origin` を render origin (extent) 基準で
+	// canvas pixel へ変換する。 canvas pixel of cell c = INNER_PAD + (c − originX) × stride。
+	// 5/05 Codex H1 fix: BB center px の正確な計算 (cell 端の gap 半分補正)。
+	// → BB center = INNER_PAD + (origin.cell − extent.origin) × stride − gap/2
+	const originPxX = INNER_PAD + (origin.cellX - extent.originX) * sx - GRID_GAP / 2;
+	const originPxY = INNER_PAD + (origin.cellY - extent.originY) * sy - GRID_GAP / 2;
 	return {
 		scrollLeft: Math.max(0, originPxX - viewport.clientWidth / 2),
 		scrollTop: Math.max(0, originPxY - viewport.clientHeight / 2),

@@ -11,7 +11,6 @@ export interface Rect {
 
 export interface ComputeRectOptions {
 	maxSpan?: number;
-	maxCols?: number;
 }
 
 /**
@@ -26,24 +25,25 @@ export interface ComputeRectOptions {
  */
 // J-3 (2026-05-12 user 検収): widget の resize 上限が `maxSpan=4` (4×4 cell まで) と
 // 早すぎ問題。 cell 12×12 まで拡張、現実的な大画面 1 widget の利用も可能に。
-// maxCols=32 grid なので 12 cell は viewport 中央領域に収まる目安。
+//
+// 2026-05-19 無限 canvas 化: grid 端の壁を撤廃したため `maxCols` clamp を廃止。
+// 左/上辺 resize で widget 起点が負座標になることを許容する (size 上限は `maxSpan` のみ)。
 export function computeResize(
 	start: Rect,
 	stepDx: number,
 	stepDy: number,
 	dir: ResizeDir,
-	{ maxSpan = 12, maxCols = 32 }: ComputeRectOptions = {},
+	{ maxSpan = 12 }: ComputeRectOptions = {},
 ): Rect {
 	const minSize = 1;
 	let { x, y, w, h } = start;
 
 	// 横軸処理
 	if (dir === 'e' || dir === 'ne' || dir === 'se') {
-		w = clamp(start.w + stepDx, minSize, Math.min(maxSpan, maxCols - start.x));
+		w = clamp(start.w + stepDx, minSize, maxSpan);
 	} else if (dir === 'w' || dir === 'nw' || dir === 'sw') {
-		const newW = clamp(start.w - stepDx, minSize, Math.min(maxSpan, start.x + start.w));
-		const newX = start.x + (start.w - newW);
-		x = clamp(newX, 0, maxCols - 1);
+		const newW = clamp(start.w - stepDx, minSize, maxSpan);
+		x = start.x + (start.w - newW);
 		w = newW;
 	}
 
@@ -51,9 +51,8 @@ export function computeResize(
 	if (dir === 's' || dir === 'sw' || dir === 'se') {
 		h = clamp(start.h + stepDy, minSize, maxSpan);
 	} else if (dir === 'n' || dir === 'nw' || dir === 'ne') {
-		const newH = clamp(start.h - stepDy, minSize, start.y + start.h);
-		const newY = start.y + (start.h - newH);
-		y = Math.max(0, newY);
+		const newH = clamp(start.h - stepDy, minSize, maxSpan);
+		y = start.y + (start.h - newH);
 		h = newH;
 	}
 

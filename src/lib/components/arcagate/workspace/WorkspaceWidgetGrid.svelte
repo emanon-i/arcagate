@@ -5,17 +5,17 @@ import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { WIDGET_LABELS } from '$lib/types/workspace';
 import {
-	clampWidget,
 	computeMoveDragPreviews,
 	type DragPreviewBox,
 	wouldOverlapAt,
 } from '$lib/utils/widget-grid';
+import type { RenderExtent } from '$lib/utils/zoom-math';
 import { widgetRegistry } from '$lib/widgets';
 import WidgetHandles from './WidgetHandles.svelte';
 
 interface Props {
-	dynamicCols: number;
-	maxRow: number;
+	/** 無限 canvas の render origin + grid 全体 cell 範囲 (zoom-math.computeRenderExtent)。 */
+	extent: RenderExtent;
 	widgetW: number;
 	widgetH: number;
 	widgetComponents: Record<string, Component>;
@@ -30,8 +30,7 @@ interface Props {
 }
 
 let {
-	dynamicCols,
-	maxRow,
+	extent,
 	widgetW,
 	widgetH,
 	widgetComponents,
@@ -54,16 +53,19 @@ let dropZoneEl = $state<HTMLDivElement | null>(null);
 
 function calcDropCell(clientX: number, clientY: number): { x: number; y: number } {
 	const ref = dropZoneEl;
-	if (!ref) return { x: 0, y: 0 };
+	if (!ref) return { x: extent.originX, y: extent.originY };
 	const rect = ref.getBoundingClientRect();
 	const relX = clientX - rect.left;
 	const relY = clientY - rect.top;
 	const gap = 16;
 	const cellW = widgetW + gap;
 	const cellH = widgetH + gap;
-	const x = Math.max(0, Math.min(dynamicCols - 1, Math.floor(relX / cellW)));
-	const y = Math.max(0, Math.floor(relY / cellH));
-	return { x, y };
+	// 2026-05-19 無限 canvas: dropZone 左上 = grid cell (originX, originY)。
+	// render-relative cell index に render origin を足して絶対 cell 座標へ変換 (負値可、 clamp なし)。
+	return {
+		x: extent.originX + Math.floor(relX / cellW),
+		y: extent.originY + Math.floor(relY / cellH),
+	};
 }
 
 function isOverDropZone(clientX: number, clientY: number): boolean {
@@ -142,13 +144,13 @@ $effect(() => {
 
 		if (!src) return;
 		if (src.kind === 'add') {
-			// 検収 #5/#6 + Codex r3 #1: 配置経路に dynamicCols を渡し、preview の bounds と一致させる
-			// (responsive widt で 5 列以上ある時、addWidgetAt が fix=4 で reject していた regression を解消)。
+			// 2026-05-19 無限 canvas: drop cell があればそこへ、 無ければ (canvas 外で release)
+			// viewport 中央 cell を seed に配置する。 grid 端の壁が無いため bounds 引数は不要。
 			if (cell) {
-				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y, dynamicCols);
+				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y);
 			} else {
 				const near = viewportCenterCell() ?? undefined;
-				void workspaceStore.addWidget(src.widgetType, near, dynamicCols);
+				void workspaceStore.addWidget(src.widgetType, near);
 			}
 		} else if (src.kind === 'move') {
 			if (cell) {
@@ -165,12 +167,10 @@ $effect(() => {
 								return w ? { id, toX: w.position_x + dx, toY: w.position_y + dy } : null;
 							})
 							.filter((m): m is { id: string; toX: number; toY: number } => m !== null);
-						void workspaceStore.moveMany(moves, dynamicCols);
+						void workspaceStore.moveMany(moves);
 					}
 				} else {
-					// Codex r4 HIGH #2: move 経路にも dynamicCols を渡し、preview の bound 判定と
-					// store の commit 判定を同期させる。preview が「越境 = 赤」表示なのに commit が通る乖離を防止。
-					void workspaceStore.moveWidget(src.widgetId, cell.x, cell.y, dynamicCols);
+					void workspaceStore.moveWidget(src.widgetId, cell.x, cell.y);
 				}
 			}
 		}
@@ -229,8 +229,9 @@ $effect(() => {
  * - move (単): primary 1 box。
  * - move (複数選択かつ primary が選択内): 選択 widget 全部を同 delta で preview box 化
  *   → 「複数選択中の 1 つを drag すると他選択 widget も同 delta で追従」を視覚化。
- * blocked 判定は非移動 widget との overlap + grid 越境。1 box でも違反なら moveMany は
- * atomic reject するため、dragBlocked は OR で全 box を赤表示する。
+ * 2026-05-19 無限 canvas: grid 端の壁を撤廃したため blocked 判定は非移動 widget との
+ * overlap のみ。1 box でも違反なら moveMany は atomic reject するため、dragBlocked は
+ * OR で全 box を赤表示する。
  */
 let dragPreviews = $derived.by<DragPreviewBox[]>(() => {
 	const active = pointerDrag.active;
@@ -245,8 +246,7 @@ let dragPreviews = $derived.by<DragPreviewBox[]>(() => {
 			w: w.width,
 			h: w.height,
 		}));
-		const blocked =
-			cell.x + sz.w > dynamicCols || wouldOverlapAt(cell.x, cell.y, sz.w, sz.h, others);
+		const blocked = wouldOverlapAt(cell.x, cell.y, sz.w, sz.h, others);
 		return [{ x: cell.x, y: cell.y, w: sz.w, h: sz.h, blocked }];
 	}
 	const primary = workspaceStore.widgets.find((w) => w.id === active.widgetId);
@@ -256,7 +256,7 @@ let dragPreviews = $derived.by<DragPreviewBox[]>(() => {
 	// 複数選択 drag (primary が選択内) なら選択全部、それ以外は primary のみ移動。
 	const isMulti = workspaceSelection.size > 1 && workspaceSelection.has(active.widgetId);
 	const movingIds = new Set(isMulti ? workspaceSelection.asArray() : [active.widgetId]);
-	return computeMoveDragPreviews(workspaceStore.widgets, movingIds, dx, dy, dynamicCols, maxRow);
+	return computeMoveDragPreviews(workspaceStore.widgets, movingIds, dx, dy);
 });
 
 let dragBlocked = $derived(dragPreviews.some((p) => p.blocked));
@@ -269,12 +269,13 @@ let dragBlocked = $derived(dragPreviews.some((p) => p.blocked));
 	data-testid="workspace-drop-zone"
 	bind:this={dropZoneEl}
 >
-	<!-- Grid lines overlay (in flow — defines drop zone height) -->
+	<!-- Grid lines overlay (in flow — defines drop zone height)。
+	     2026-05-19 無限 canvas: grid 範囲は render extent (BB + 全方位 margin) で決まる。 -->
 	<div
 		class="pointer-events-none"
-		style="display: grid; grid-template-columns: repeat({dynamicCols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
+		style="display: grid; grid-template-columns: repeat({extent.cols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
 	>
-		{#each Array(dynamicCols * maxRow) as _, i}
+		{#each Array(extent.cols * extent.rows) as _, i}
 			<div class="border border-dashed border-[var(--ag-border)]/30"></div>
 		{/each}
 	</div>
@@ -285,12 +286,11 @@ let dragBlocked = $derived(dragPreviews.some((p) => p.blocked));
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		class="absolute inset-0 z-10"
-		style="display: grid; grid-template-columns: repeat({dynamicCols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
+		style="display: grid; grid-template-columns: repeat({extent.cols}, var(--widget-w)); grid-auto-rows: var(--widget-h); gap: 16px;"
 		onclick={() => { workspaceSelection.clear(); }}
 	>
 		{#each workspaceStore.widgets as widget (widget.id)}
 			{@const WidgetComp = widgetComponents[widget.widget_type as keyof typeof widgetComponents]}
-			{@const clamped = clampWidget(widget, dynamicCols)}
 			{@const isMoving = pointerDrag.active?.kind === 'move' && pointerDrag.active.widgetId === widget.id}
 			{@const isSelected = editMode && workspaceSelection.has(widget.id)}
 			{#if WidgetComp}
@@ -309,7 +309,7 @@ let dragBlocked = $derived(dragPreviews.some((p) => p.blocked));
 					aria-label={WIDGET_LABELS[widget.widget_type] ?? widget.widget_type}
 					tabindex={editMode ? 0 : -1}
 					data-widget-id={widget.id}
-					style="grid-column: {clamped.x + 1} / span {clamped.span}; grid-row: {widget.position_y + 1} / span {widget.height};"
+					style="grid-column: {widget.position_x - extent.originX + 1} / span {widget.width}; grid-row: {widget.position_y - extent.originY + 1} / span {widget.height};"
 					onclick={(e) => handleWidgetClick(e, widget.id)}
 				>
 					<WidgetComp {widget} {onItemContext} />
@@ -317,7 +317,6 @@ let dragBlocked = $derived(dragPreviews.some((p) => p.blocked));
 						<WidgetHandles
 							widgetId={widget.id}
 							{isSelected}
-							{dynamicCols}
 							{widgetW}
 							{widgetH}
 							{onDeleteConfirmIdChange}
@@ -335,8 +334,8 @@ let dragBlocked = $derived(dragPreviews.some((p) => p.blocked));
 			<div
 				class="pointer-events-none rounded-lg border-2 border-dashed transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none"
 				style="
-					grid-column: {p.x + 1} / span {p.w};
-					grid-row: {p.y + 1} / span {p.h};
+					grid-column: {p.x - extent.originX + 1} / span {p.w};
+					grid-row: {p.y - extent.originY + 1} / span {p.h};
 					border-color: {colorVar};
 					background: color-mix(in srgb, {colorVar} 10%, transparent);
 					box-shadow: 0 0 0 2px {colorVar};

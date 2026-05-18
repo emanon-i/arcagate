@@ -21,12 +21,10 @@
  * 設計判断 (自分の判断で書いた箇所):
  * - 旧 single `loading` / `error` を `workspaceConfig.loading || workspaceWidgets.loading` の
  *   OR で derived 風に表現。consumer は読み取り専用なので互換性を保つ。
- * - findFreePosition も旧 store が re-export していたので維持 (consumer 側で利用)。
  */
 
 import { workspaceConfig } from '$lib/state/workspace-config.svelte';
 import { workspaceWidgets } from '$lib/state/workspace-widgets.svelte';
-import { findFreePosition } from '$lib/utils/widget-grid';
 
 export const workspaceStore = {
 	get workspaces() {
@@ -59,15 +57,13 @@ export const workspaceStore = {
 	loadWidgets: (workspaceId: string) => workspaceWidgets.loadWidgets(workspaceId),
 	addWidget: (
 		widgetType: Parameters<typeof workspaceWidgets.addWidget>[0],
-		nearCell?: Parameters<typeof workspaceWidgets.addWidget>[1],
-		cols?: Parameters<typeof workspaceWidgets.addWidget>[2],
-	) => workspaceWidgets.addWidget(widgetType, nearCell, cols),
+		seedCell?: Parameters<typeof workspaceWidgets.addWidget>[1],
+	) => workspaceWidgets.addWidget(widgetType, seedCell),
 	addWidgetAt: (
 		widgetType: Parameters<typeof workspaceWidgets.addWidgetAt>[0],
 		x: number,
 		y: number,
-		cols?: number,
-	) => workspaceWidgets.addWidgetAt(widgetType, x, y, cols),
+	) => workspaceWidgets.addWidgetAt(widgetType, x, y),
 	bulkAddItemWidgets: (itemIds: string[]) => workspaceWidgets.bulkAddItemWidgets(itemIds),
 	removeWidget: (id: string) => workspaceWidgets.removeWidget(id),
 	// H-2 Tier B: 複数 widget をまとめて削除 (history 1 batch)
@@ -78,11 +74,10 @@ export const workspaceStore = {
 		workspaceWidgets.persistWidgetOrder(orderedWidgets),
 	resizeWidget: (id: string, width: number, height: number) =>
 		workspaceWidgets.resizeWidget(id, width, height),
-	moveWidget: (id: string, x: number, y: number, cols?: number) =>
-		workspaceWidgets.moveWidget(id, x, y, cols),
+	moveWidget: (id: string, x: number, y: number) => workspaceWidgets.moveWidget(id, x, y),
 	// H-2 Tier B: 複数 widget を同時移動 (history 1 batch)
-	moveMany: (moves: Parameters<typeof workspaceWidgets.moveMany>[0], cols?: number) =>
-		workspaceWidgets.moveMany(moves, cols),
+	moveMany: (moves: Parameters<typeof workspaceWidgets.moveMany>[0]) =>
+		workspaceWidgets.moveMany(moves),
 	optimisticResize: (id: string, width: number, height: number) =>
 		workspaceWidgets.optimisticResize(id, width, height),
 	optimisticMoveAndResize: (id: string, x: number, y: number, width: number, height: number) =>
@@ -97,5 +92,4 @@ export const workspaceStore = {
 	) => workspaceWidgets.commitMoveAndResize(id, before, after, kind),
 	undo: () => workspaceWidgets.undo(),
 	redo: () => workspaceWidgets.redo(),
-	findFreePosition,
 };

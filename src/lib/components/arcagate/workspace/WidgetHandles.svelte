@@ -32,14 +32,12 @@ import {
 interface Props {
 	widgetId: string;
 	isSelected: boolean;
-	dynamicCols: number;
 	widgetW: number;
 	widgetH: number;
 	onDeleteConfirmIdChange: (id: string | null) => void;
 }
 
-let { widgetId, isSelected, dynamicCols, widgetW, widgetH, onDeleteConfirmIdChange }: Props =
-	$props();
+let { widgetId, isSelected, widgetW, widgetH, onDeleteConfirmIdChange }: Props = $props();
 
 // J-3 (2026-05-12): resize 上限を 4 cell → 12 cell に拡張。
 // 大画面 1 widget の利用や 全画面 widget も対応できる現実的な上限。
@@ -81,7 +79,6 @@ function handleResizeStart(e: PointerEvent, dir: ResizeDir) {
 		const stepDy = Math.round(dy / cellH);
 		const proposed = computeResize(start, stepDx, stepDy, dir, {
 			maxSpan: MAX_SPAN,
-			maxCols: dynamicCols,
 		});
 		const others = workspaceStore.widgets
 			.filter((ww) => ww.id !== widgetId)
