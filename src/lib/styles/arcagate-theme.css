@@ -100,6 +100,12 @@
 	--surface-glass-regular: color-mix(in oklab, var(--c-bg), transparent 28%);
 	--surface-glass-clear: color-mix(in oklab, var(--c-bg), transparent 55%);
 
+	/* widget 内 sticky toolbar の背景 (.ag-sticky-bar)。
+	   blur theme (Dark/Light) は transparent — 本体 glass tint をそのまま見せ、
+	   scroll する rows は backdrop blur のみで frost する (独立 fill を持たない)。
+	   非 blur theme と reduce-transparency は下の各 block で solid fill に差し替え。 */
+	--ag-sticky-bar-bg: transparent;
+
 	/* --- border --- */
 	--ag-border: color-mix(in oklab, var(--c-fg), transparent 88%);
 	--ag-border-hover: color-mix(in oklab, var(--c-fg), transparent 76%);
@@ -320,6 +326,21 @@
 	}
 }
 
+/* =====================================================================
+   STICKY TOOLBAR — widget 本体 glass 面の継続 (独立 card にしない)
+   widget 内の sort / filter / search 行に使う。 .ag-glass と違い
+   border / box-shadow / noise / highlight を一切持たず「浮いた矩形」に
+   ならない。 occlude は backdrop blur (blur theme) または本体同色の
+   solid fill (--ag-sticky-bar-bg、 非 blur theme / reduce-transparency)
+   が担う。 sort 行の下端 divider は呼出側の border-b utility が描く。
+   position は付与しない — Tailwind の sticky utility にそのまま委ねる。
+   ===================================================================== */
+.ag-sticky-bar {
+	background-color: var(--ag-sticky-bar-bg);
+	backdrop-filter: var(--surface-blur);
+	-webkit-backdrop-filter: var(--surface-blur);
+}
+
 @media (prefers-reduced-motion: reduce) {
 	:root {
 		--ag-duration-instant: 0ms;
@@ -343,6 +364,8 @@
 	--surface-glass-regular: var(--ag-surface-opaque);
 	--surface-glass-clear: var(--ag-surface-opaque);
 	--ag-surface-tint: none;
+	/* blur 無効化済 — sticky toolbar は本体同色の solid fill で occlude */
+	--ag-sticky-bar-bg: var(--ag-surface-opaque);
 }
 
 /* コントラストを上げる — border 強化 / text の base 混合を弱める */
@@ -407,6 +430,8 @@
 	--surface-glass-regular: var(--c-bg);
 	--surface-glass-clear: var(--c-bg);
 	--ag-surface-tint: none;
+	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
+	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
 	--shadow-outer-light: -5px -5px 12px oklch(1 0 0 / 0.75);
 	--shadow-outer-dark: 5px 5px 14px oklch(0.55 0.03 270 / 0.35);
@@ -448,6 +473,8 @@
 	--surface-glass-clear: var(--c-bg);
 	--ag-surface-opaque: var(--c-bg);
 	--ag-surface-tint: none;
+	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
+	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
 	--ag-shadow-sm: none;
 	--ag-shadow-md: none;
@@ -500,6 +527,8 @@
 	--surface-glass-clear: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
 	--ag-surface-opaque: color-mix(in oklab, var(--c-bg), var(--c-fg) 5%);
 	--ag-surface-tint: none;
+	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
+	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
 	/* HUD: workspace 背景は sci-fi の暗黒空間 — uniform な near-black。
 	   雰囲気は surface (panel) / bracket / glow 等の content chrome 側で出す。 */

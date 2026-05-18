@@ -307,9 +307,10 @@ async function handleLaunch(item: Item) {
 			</div>
 		{/if}
 		<!-- I-4 (2026-05-10 user 検収): 並び替え toolbar (ExeFolder I-3 と同じ sticky pattern)。
-		     widget header に pin して scroll 中も常時操作可能。 -->
+		     widget header に pin して scroll 中も常時操作可能。
+		     ag-sticky-bar で widget 本体 glass 面の継続にする (独立した塗りつぶし矩形を持たない)。 -->
 		<div
-			class="ag-glass sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-4 pb-1.5 pt-1 text-xs"
+			class="ag-sticky-bar sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-4 pb-1.5 pt-1 text-xs"
 		>
 			<span class="text-[var(--ag-text-muted)]">{t('widgets.common.sort_label')}</span>
 			<button
