@@ -6,9 +6,11 @@ import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { t } from '$lib/i18n.svelte';
 import type { Opener } from '$lib/ipc/opener';
 import {
+	CARD_OVERRIDE_INITIAL_BACKGROUND,
 	configStore,
 	DEFAULT_CARD_BACKGROUND,
 	type LibraryCardBackgroundConfig,
+	type LibraryCardImageFit,
 	type LibraryCardStyleConfig,
 } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
@@ -31,8 +33,8 @@ import { type CardOverrideJson, parseCardOverride } from '$lib/utils/card-overri
  * - "このカードだけ個別調整" / "グローバル設定に戻す" toggle button
  * - override 有効時のみ展開:
  *   - 起動アプリ Opener override select
- *   - 表示方法 select (アイコン中央表示 / 画像全面表示)
- *   - 画像表示時: focalX / focalY slider
+ *   - 画像の表示 select (cover / contain / center)
+ *   - cover / contain 時: offsetX / offsetY slider
  *   - 共通: textColor / overlayEnabled / strokeEnabled / strokeColor
  * - リセット確認 ConfirmDialog (内蔵)
  *
@@ -93,7 +95,7 @@ async function patchOverride(patch: {
 
 function enableOverride(): void {
 	const current = JSON.stringify({
-		background: DEFAULT_CARD_BACKGROUND,
+		background: CARD_OVERRIDE_INITIAL_BACKGROUND,
 		style: configStore.libraryCard.style,
 	});
 	void itemStore.updateItem(item.id, { card_override_json: current });
@@ -229,59 +231,63 @@ async function clearIcon(): Promise<void> {
 		</div>
 		<div class="mt-3 space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<div class="space-y-1">
-				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-bg-mode">
-					{t('item.card_override.bg_mode_label')}
+				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-bg-fit">
+					{t('item.card_override.fit_label')}
 				</label>
 				<select
-					id="card-bg-mode"
+					id="card-bg-fit"
 					class="w-full rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					value={bg.mode}
+					data-testid="card-override-fit"
+					value={bg.fit}
 					onchange={(e) =>
 						void patchOverride({
 							background: {
-								mode: (e.currentTarget as HTMLSelectElement).value as 'icon' | 'image',
+								fit: (e.currentTarget as HTMLSelectElement).value as LibraryCardImageFit,
 							},
 						})}
 				>
-					<option value="icon">{t('item.card_override.bg_mode_icon')}</option>
-					<option value="image">{t('item.card_override.bg_mode_image')}</option>
+					<option value="cover">{t('item.card_override.fit_cover')}</option>
+					<option value="contain">{t('item.card_override.fit_contain')}</option>
+					<option value="center">{t('item.card_override.fit_center')}</option>
 				</select>
 			</div>
-			{#if bg.mode === 'image'}
+			{#if bg.fit !== 'center'}
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-focal-x">{t('item.card_override.focal_x_label')}</label>
-						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.focalX}%</span>
+						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-x">{t('item.card_override.offset_x_label')}</label>
+						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.offsetX}%</span>
 					</div>
 					<input
-						id="card-focal-x"
+						id="card-offset-x"
 						type="range"
 						min="0"
 						max="100"
 						step="5"
-						value={bg.focalX}
+						value={bg.offsetX}
+						data-testid="card-override-offset-x"
 						oninput={(e) =>
 							void patchOverride({
-								background: { focalX: Number((e.currentTarget as HTMLInputElement).value) },
+								background: { offsetX: Number((e.currentTarget as HTMLInputElement).value) },
 							})}
 						class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent)]"
 					/>
 				</div>
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-focal-y">{t('item.card_override.focal_y_label')}</label>
-						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.focalY}%</span>
+						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-y">{t('item.card_override.offset_y_label')}</label>
+						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.offsetY}%</span>
 					</div>
 					<input
-						id="card-focal-y"
+						id="card-offset-y"
 						type="range"
 						min="0"
 						max="100"
 						step="5"
-						value={bg.focalY}
+						value={bg.offsetY}
+						data-testid="card-override-offset-y"
 						oninput={(e) =>
 							void patchOverride({
-								background: { focalY: Number((e.currentTarget as HTMLInputElement).value) },
+								background: { offsetY: Number((e.currentTarget as HTMLInputElement).value) },
 							})}
 						class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent)]"
 					/>
