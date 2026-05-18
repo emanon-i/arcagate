@@ -303,11 +303,21 @@
 	);
 }
 
-/* 実 content は noise / highlight より必ず上 */
+/* 実 content は noise / highlight より必ず上。
+   z-index は unlayered で固定 — content を ::before/::after (z:0) より必ず上に。
+   position だけは @layer components へ。 unlayered だと #514 と同型の regression で
+   direct child の Tailwind position utility (absolute / fixed / sticky) を上書きする。
+   #514 は .ag-glass 自身のみ layer 化し、 この子要素 rule は横展開漏れだった。 */
 .ag-glass > :not(.ag-glass-layer),
 .ag-glass-clear > :not(.ag-glass-layer) {
-	position: relative;
 	z-index: 1;
+}
+
+@layer components {
+	.ag-glass > :not(.ag-glass-layer),
+	.ag-glass-clear > :not(.ag-glass-layer) {
+		position: relative;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
