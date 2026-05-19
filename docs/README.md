@@ -34,6 +34,7 @@ PC 上に散在する起動元を集約する個人用ランチャー。 Tauri v
 | [`l2_foundation/test_scenarios.md`](./l2_foundation/test_scenarios.md) | テストシナリオ ⇄ テスト実装 link (T1-T4 plan + critical path + regression)          |
 | [`l2_foundation/lessons.md`](./l2_foundation/lessons.md)               | 失敗駆動メモリ (「verify pass = 治った」 禁止等のメタ教訓)                          |
 | [`l2_foundation/screens/`](./l2_foundation/screens/)                   | 画面別機能カタログ (palette / library / workspace / settings / onboarding)          |
+| [`l2_foundation/features/`](./l2_foundation/features/)                 | 全 feature / module の機能契約 (Functional Spec、「やらないこと」明示で事故防止)    |
 
 ## navigation
 
