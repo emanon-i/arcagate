@@ -1,38 +1,58 @@
-監査を実施し、`§4` の 12 パターンを `spec ⇄ 実装` で照合した結果、**新規の契約逸脱は 0 件**でした。  
-また、既存例 `W-1〜W-8` はコード上でも **対処済み（#526）** を確認しました。
-
-ただし、この実行環境は `read-only` のため、指定の report ファイルへの書き込みはポリシーで拒否されました（`Set-Content` が blocked）。  
-そのため、以下をそのまま `docs/l2_foundation/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md` の内容として提示します。
+実施結果です。`read-only` サンドボックスのため、指定先ファイルへの書き出しはできませんでした。  
+そのため、以下をそのまま `docs/l2_foundation/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md` に保存してください。
 
 ```markdown
 # 無駄処理 audit (Functional Spec ベース)
 
-> 2026-05-19 実施。`docs/l2_foundation/features/` の機能契約（特に「やらないこと」「性能予算」「副作用」「依存」）と `src/`, `src-tauri/` 実装を突き合わせて棚卸し。
+> 2026-05-19 実施。Arcagate を Functional Spec の「やらないこと」「性能予算」と突き合わせて棚卸し。
 
 ## サマリ
 
-- spec 外 / 契約逸脱の発見: 0 件
-- うち Critical 0 / High 0 / Medium 0 / Low 0
-- 推定削減効果: 新規対応不要（既存是正の維持確認）
+- spec 外 / 契約逸脱の発見: 2 件
+- うち Critical 0 / High 1 / Medium 0 / Low 1
+- 推定削減効果:
+  - perf: Projects 初回登録時の DB lock 競合による待ち時間を削減
+  - 認知負荷: poll 最小値契約の実行時保証を明確化
 
 ### 検証して clean だった項目 (誤検知防止のため明記)
 
 | 項目 | 結論 |
-| ---- | ---- |
-| W-1系: DB lock 保持中 heavy I/O | `src-tauri/src/services/launch_service.rs` で lock スコープ分離済み（preflight/spawn は lock 外） |
-| W-2系: heavy I/O command の sync 実行 | 主要 command は `async + spawn_blocking` 化済み（例: `file_search_commands.rs`, `exe_scanner_commands.rs`, `script_commands.rs`, `file_preview_commands.rs`, `url_commands.rs`, `launch_commands.rs`） |
-| W-3系: Exe scan cancel 不在 | `cmd_cancel_exe_scan` と `ExeScanState` 実装済み (`src-tauri/src/commands/exe_scanner_commands.rs`, `src-tauri/src/services/file_search_state.rs`) |
-| W-4系: Item sort recent no-op | `ItemSettings.svelte` / `ItemWidget.svelte` の `sort_field` は `manual | name` のみ（`recent` 露出なし） |
-| W-5/6/7系 dead code | `cmd_git_status` / `cmd_get_item_metadata` / `plugin_api` は現行コードに残存なし（コメント言及のみ） |
-| W-8系 legacy chart fallback | System Monitor の旧 `chart_type` fallback 撤去済み（per-metric key のみ） |
-| backdrop-filter 過剰 | `src/lib/styles/arcagate-theme.css` の限定箇所のみで、widget 全面適用なし |
-| polling 過剰 | spec 下限を満たす clamp 実装（例: clipboard `>=500ms`, system-monitor `>=500ms`, projects `>=10s`） |
-| per-card 個別 metadata IPC | `metadataStore` の batch/cached 経路に集約、LibraryCard 側の個別 IPC 撤去済み |
+| --- | --- |
+| W-1〜W-8 (既存 audit) | 対処済を確認。`cmd_scan_exe_folders` async 化+cancel、`cmd_read_file_preview` async 化、Item sort no-op除去、legacy chart fallback除去済。重複カウントなし（既対処 #526） |
+| polling 禁止 widget の timer 混入 | Favorites/Recent/Stats/Item で `setInterval` 混入なし |
+| backdrop-filter 過剰適用 | `src/lib/styles/arcagate-theme.css` の限定クラスのみ |
+| per-card metadata 個別IPC | batch/store 経路に統一済、単発 command 復活なし |
 
 ## 発見項目
 
-新規発見なし（0件）。
+### W-9: `auto_register_folder_items` が DB lock 保持中にフォルダ走査を実行
+
+- 重大度: High
+- 無駄度: 確実に無駄
+- 関連 spec: `docs/l2_foundation/features/cross-cutting/persistence.md`
+- 該当コード: `src-tauri/src/services/item_service.rs:316`, `:328`, `:333`, `:335`, `:336`
+- spec で禁止されてること: 「重い処理を `Mutex<Connection>` を握ったまま実行しない (lock 解放後に I/O)」
+- 現実装が実際にやってること: `auto_register_folder_items` で `db.0.lock()` 取得後、`std::fs::read_dir` と各 entry の `path.is_dir()` をループ処理している
+- なぜ無駄か: 監視フォルダが大きいほど lock 保持時間が伸び、同時刻の他 DB 操作（検索・表示更新・設定保存）を待たせる
+- 推奨対処: 先に FS 走査で候補 path を集め、DB lock は「既存判定/insert/tag付与」区間だけに縮小
+- 工数感: 半日
+
+### W-10: Projects の poll 間隔が実行時 clamp されず、契約下限を破る設定値をそのまま使用可能
+
+- 重大度: Low
+- 無駄度: 多分無駄
+- 関連 spec: `docs/l2_foundation/features/widgets/projects.md`
+- 該当コード: `src/lib/widgets/projects/ProjectsWidget.svelte:226`, `:227` / 参考 `src/lib/widgets/projects/ProjectsSettings.svelte:89`
+- spec で禁止されてること: 「poll 間隔を短くしすぎない (最小 10 秒)」
+- 現実装が実際にやってること: Settings では clamp しているが、実行側は `config.git_poll_interval_sec * 1000` をそのまま `setInterval` に渡す
+- なぜ無駄か: import/手編集/旧データで 10 秒未満が入ると過剰 polling になり、不要な IPC/CPU 負荷を招く
+- 推奨対処: 実行側でも `Math.max(10, Math.min(600, ...))` で最終 clamp し、契約を二重化
+- 工数感: 〜30分
 ```
 
-stdout 用サマリ:
-- **発見 0 件 / Critical 0・High 0・Medium 0・Low 0 / 推定削減効果: 新規対応不要（既存是正の維持確認）**
+stdout 用 summary:
+- 発見 2 件 / Critical 0・High 1・Medium 0・Low 1 / 推定削減効果: DB lock 競合時間削減 + 過剰 polling 抑止
+
+補足:
+- 指示どおり実装変更は未実施です。
+- ファイル書き出しのみ、環境制約（read-only）で未実行です。
