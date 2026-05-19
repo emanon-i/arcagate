@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onMount } from 'svelte';
 import {
 	loadBool,
 	loadNumber,
@@ -8,6 +9,7 @@ import {
 	saveNumber,
 	saveString,
 } from '$lib/utils/local-storage';
+import { tl } from '$lib/utils/perf-timeline';
 import LibraryDetailPanel from './LibraryDetailPanel.svelte';
 import LibraryMainArea from './LibraryMainArea.svelte';
 import LibrarySidebar from './LibrarySidebar.svelte';
@@ -18,6 +20,9 @@ interface Props {
 }
 
 let { onEditItem, onAddItem }: Props = $props();
+
+tl('LibraryLayout: instantiate');
+onMount(() => tl('LibraryLayout: mounted (DOM tree ready)'));
 
 // 検収 #9 + Codex Low #8: Library sidebar 展開状態 / activeTag を safe helper 経由で永続化。
 const SIDEBAR_KEY = 'arcagate.library.sidebar.expanded';

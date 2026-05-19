@@ -15,7 +15,15 @@ pub fn cmd_create_item(
 
 #[tauri::command]
 pub fn cmd_list_items(services: State<AppServices>) -> Result<Vec<Item>, AppError> {
-    services.item.list_items()
+    // perf observability (prototype): command 入口→出口の所要を log 出力。
+    let started = std::time::Instant::now();
+    let r = services.item.list_items();
+    log::debug!(
+        "[cmd-timing] cmd_list_items {:.1}ms (n={})",
+        started.elapsed().as_secs_f64() * 1000.0,
+        r.as_ref().map(Vec::len).unwrap_or(0)
+    );
+    r
 }
 
 #[tauri::command]
@@ -115,7 +123,13 @@ pub fn cmd_delete_tag(services: State<AppServices>, id: String) -> Result<(), Ap
 
 #[tauri::command]
 pub fn cmd_get_library_stats(services: State<AppServices>) -> Result<LibraryStats, AppError> {
-    services.item.get_library_stats()
+    let started = std::time::Instant::now();
+    let r = services.item.get_library_stats();
+    log::debug!(
+        "[cmd-timing] cmd_get_library_stats {:.1}ms",
+        started.elapsed().as_secs_f64() * 1000.0
+    );
+    r
 }
 
 #[tauri::command]
@@ -137,7 +151,15 @@ pub fn cmd_search_items_in_tag(
     tag_id: String,
     query: String,
 ) -> Result<Vec<Item>, AppError> {
-    services.item.search_items_in_tag(&tag_id, &query)
+    let started = std::time::Instant::now();
+    let r = services.item.search_items_in_tag(&tag_id, &query);
+    log::debug!(
+        "[cmd-timing] cmd_search_items_in_tag(tag={}) {:.1}ms (n={})",
+        tag_id,
+        started.elapsed().as_secs_f64() * 1000.0,
+        r.as_ref().map(Vec::len).unwrap_or(0)
+    );
+    r
 }
 
 #[tauri::command]

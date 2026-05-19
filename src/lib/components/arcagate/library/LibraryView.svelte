@@ -11,11 +11,17 @@ import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
 import { markEnd, markStart, PERF_LABELS } from '$lib/utils/perf';
+import { tl } from '$lib/utils/perf-timeline';
 import LibraryCard from './LibraryCard.svelte';
 import { getSizeClasses } from './library-card-sizes';
 
 // Library hot path 計測 (mount/unmount)。
-onMount(() => markStart(PERF_LABELS.libraryViewMount));
+tl('LibraryView: instantiate (before card {#each})');
+onMount(() => {
+	markStart(PERF_LABELS.libraryViewMount);
+	// Svelte は親 onMount を全子 mount 後に呼ぶ → ここ = 全 LibraryCard mount 完了点。
+	tl('LibraryView: mounted (all LibraryCard mounted)');
+});
 onDestroy(() => {
 	const dur = markEnd(PERF_LABELS.libraryViewMount);
 	if (dur !== null && dur > 200) {
