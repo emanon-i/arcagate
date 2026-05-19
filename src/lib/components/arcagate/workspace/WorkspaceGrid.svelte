@@ -48,6 +48,8 @@ interface Props {
 	onCanvasPointerDown?: (e: PointerEvent) => void;
 	onCanvasPointerMove?: (e: PointerEvent) => void;
 	onCanvasPointerUp?: (e: PointerEvent) => void;
+	/** 現在 viewport 中央の grid cell を返す (新規 widget の位置情報なし配置 seed 用)。 */
+	getViewportCenterCell: () => { x: number; y: number } | null;
 	/** audit batch deferred (2026-05-13) #12 part 2: Box (rubber-band) selection overlay rect。 */
 	boxSelectState?: {
 		readonly active: boolean;
@@ -71,6 +73,7 @@ let {
 	onCanvasPointerDown,
 	onCanvasPointerMove,
 	onCanvasPointerUp,
+	getViewportCenterCell,
 	boxSelectState,
 }: Props = $props();
 
@@ -184,22 +187,23 @@ function onWorkspaceScroll() {
 const FLEX_PADDING = 40; // p-5 = 20px × 2
 const GRID_GAP = 16;
 let bufferPx = $derived(bufferOffsetPx(configStore.widgetZoom));
-// 不具合修正 (2026-05-19): canvas 末尾に viewport 1 画面分の trailing 余白を確保する。
-// 旧実装は grid content 右端 / 下端直後に scroll 余地が無く、 grid 端付近の widget /
-// 選択集合を fit-to-content しても BB 重心を viewport 中心へ運ぶ scroll 量に canvas が
-// 足りず browser に clamp され「中央に来ない」 不具合になっていた。 leading は bufferPx
-// (BUFFER_COLS_LEFT/ROWS_TOP) が担うので trailing を pixel 基準で足し、 任意の content 点を
-// viewport 中心へ scroll 可能にする (Obsidian 無限 canvas 相当)。
+// canvas 末尾の trailing 余白。
+// 2026-05-19 (C 案): leading buffer (bufferPx) を widget 約 50 個分まで拡大したため、
+// trailing 側にも **同等の bufferPx** を加算する。 これで grid content が canvas の中央付近に
+// 来て、 空 workspace でも初期 scroll (canvas 中央) で grid が viewport に入る。 旧実装の
+// trailing = containerWidth のみだと grid が左寄りになり「開いたら空白しか見えない」 状態。
 let canvasW = $derived(
 	Math.max(
 		containerWidth,
-		bufferPx.x + dynamicCols * (zoom.widgetW + GRID_GAP) + FLEX_PADDING + containerWidth,
+		bufferPx.x +
+			dynamicCols * (zoom.widgetW + GRID_GAP) +
+			FLEX_PADDING +
+			bufferPx.x +
+			containerWidth,
 	),
 );
-// K-6 fix (2026-05-15): 旧 canvasH は FLEX_PADDING のみで bottom reserve なし → 最下段 widget が
-// floating bottom toolbar (Undo / Zoom / Fit) の裏に隠れ、 scroll で逃せなかった (user 報告)。
-// canvasH に BOTTOM_RESERVE を加算 → 最下段 widget の下に reserve 分の scroll-able 空白を確保、
-// 全 widget が toolbar 上に出るまで scroll できる。
+// K-6 fix (2026-05-15): canvasH に bottom reserve を加算 → 最下段 widget が floating bottom
+// toolbar の裏に隠れず scroll で逃せる。 2026-05-19 (C 案): trailing にも bufferPx.y を加算。
 let canvasH = $derived(
 	Math.max(
 		containerHeight,
@@ -207,6 +211,7 @@ let canvasH = $derived(
 			maxRow * (zoom.widgetH + GRID_GAP) +
 			FLEX_PADDING +
 			effectiveBottomReserve(configStore.hintBarVisible) +
+			bufferPx.y +
 			containerHeight,
 	),
 );
@@ -335,6 +340,7 @@ function deselectAllWidgets(): void {
 						widgetH={zoom.widgetH}
 						{widgetComponents}
 						{deleteConfirmId}
+						{getViewportCenterCell}
 						editMode={true}
 						onItemContext={handleItemContext}
 						onDeleteConfirmIdChange={onDeleteConfirmIdChange}

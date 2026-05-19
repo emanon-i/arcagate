@@ -21,6 +21,8 @@ interface Props {
 	widgetComponents: Record<string, Component>;
 	deleteConfirmId: string | null;
 	editMode?: boolean;
+	/** 現在 viewport 中央の grid cell を返す (canvas 外 drop 時の widget 配置 seed 用)。 */
+	getViewportCenterCell: () => { x: number; y: number } | null;
 	/**
 	 * PH-issue-024: 第 2 引数 ev で context menu の表示位置を取る (clientX/Y)。
 	 * 旧 callback 互換のため引数 1 個でも呼べるが、新規実装は ev を受け取って x/y で popup 位置を決める。
@@ -36,6 +38,7 @@ let {
 	widgetH,
 	widgetComponents,
 	editMode = true,
+	getViewportCenterCell,
 	onItemContext,
 	onDeleteConfirmIdChange,
 }: Props = $props();
@@ -104,27 +107,6 @@ $effect(() => {
 		}
 	}
 
-	/**
-	 * 検収 #5: dropZone の viewport-visible 中央セルを返す。click 追加時に widget が画面外に
-	 * 配置される問題への対策。dropZone (= 全 grid) の中で、scroll コンテナの可視矩形と交差する
-	 * 領域の中央セルを計算する。
-	 */
-	function viewportCenterCell(): { x: number; y: number } | null {
-		const ref = dropZoneEl;
-		if (!ref) return null;
-		const dropRect = ref.getBoundingClientRect();
-		// 可視矩形 = window viewport (Workspace canvas は overflow-auto なので getBoundingClientRect は
-		// scroll 後の絶対座標を返す)。dropZone の可視範囲は dropRect ∩ window viewport。
-		const vpLeft = Math.max(0, dropRect.left);
-		const vpTop = Math.max(0, dropRect.top);
-		const vpRight = Math.min(window.innerWidth, dropRect.right);
-		const vpBottom = Math.min(window.innerHeight, dropRect.bottom);
-		if (vpRight <= vpLeft || vpBottom <= vpTop) return null;
-		const cx = (vpLeft + vpRight) / 2;
-		const cy = (vpTop + vpBottom) / 2;
-		return calcDropCell(cx, cy);
-	}
-
 	function onUp(e: PointerEvent) {
 		// audit 2026-05-13 Codex Round 3 fix: pending rAF を flush してから dropCell 読込。
 		// 旧: rAF が pending のまま onUp 発火 → stale dropCell で誤位置 commit (very fast release)。
@@ -142,12 +124,14 @@ $effect(() => {
 
 		if (!src) return;
 		if (src.kind === 'add') {
-			// 検収 #5/#6 + Codex r3 #1: 配置経路に dynamicCols を渡し、preview の bounds と一致させる
-			// (responsive widt で 5 列以上ある時、addWidgetAt が fix=4 で reject していた regression を解消)。
+			// drop cell があれば drop した cursor 位置へ。 canvas 外 (drop zone 外) で release した
+			// 場合は drop cell が null になるため、 現在 viewport 中央 cell を seed に配置する
+			// (2026-05-19 C 案: 旧 dropZone∩viewport 中央算出は grid が画面端の時に壁際へ寄る
+			// 不具合があったため、 scroll container 基準の getViewportCenterCell に統一)。
 			if (cell) {
 				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y, dynamicCols);
 			} else {
-				const near = viewportCenterCell() ?? undefined;
+				const near = getViewportCenterCell() ?? undefined;
 				void workspaceStore.addWidget(src.widgetType, near, dynamicCols);
 			}
 		} else if (src.kind === 'move') {

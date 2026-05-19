@@ -13,7 +13,7 @@ import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { useWorkspaceInput } from '$lib/state/workspace-input.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { loadBool, saveBool } from '$lib/utils/local-storage';
-import { HINT_BAR_RESERVE } from '$lib/utils/zoom-math';
+import { computeViewportCenterCell, HINT_BAR_RESERVE } from '$lib/utils/zoom-math';
 import WidgetItemContextMenu from '$lib/widgets/_shared/WidgetItemContextMenu.svelte';
 import WorkspaceGrid from './WorkspaceGrid.svelte';
 import WorkspaceRenameDialog from './WorkspaceRenameDialog.svelte';
@@ -145,6 +145,27 @@ let maxRow = $derived(
 	Math.max(MIN_PAN_ROWS, ...workspaceStore.widgets.map((w) => w.position_y + w.height + 4)),
 );
 
+/**
+ * 現在 viewport 中央の grid cell を返す (container 未取得なら null)。
+ * 新規 widget を「位置情報なし」 で追加する経路 (sidebar keyboard add / canvas 外 drop) の
+ * 配置 seed に使い、 widget が現在見えている領域の中央に置かれるようにする。
+ */
+function viewportCenterCell(): { x: number; y: number } | null {
+	const el = workspaceContainer;
+	if (!el) return null;
+	return computeViewportCenterCell(
+		{
+			scrollLeft: el.scrollLeft,
+			scrollTop: el.scrollTop,
+			clientWidth: el.clientWidth,
+			clientHeight: el.clientHeight,
+		},
+		configStore.widgetZoom,
+		dynamicCols,
+		maxRow,
+	);
+}
+
 const input = useWorkspaceInput({
 	getContainer: () => workspaceContainer,
 	getSelectedId: () => workspaceSelection.singleId,
@@ -202,7 +223,11 @@ function confirmRename(name: string) {
      selection 色だけ theme に連動させる方針。 -->
 <div class="relative flex h-full">
 	{#if sidebarOpen}
-		<WorkspaceSidebar {dynamicCols} onClose={() => (sidebarOpen = false)} />
+		<WorkspaceSidebar
+			{dynamicCols}
+			getViewportCenterCell={viewportCenterCell}
+			onClose={() => (sidebarOpen = false)}
+		/>
 	{:else}
 		<!-- PH-issue-028: sidebar 非表示時は左端に再オープン用 narrow toggle bar -->
 		<button
@@ -224,6 +249,7 @@ function confirmRename(name: string) {
 		{maxRow}
 		{deleteConfirmId}
 		{zoom}
+		getViewportCenterCell={viewportCenterCell}
 		{onEditItem}
 		onSelectWorkspace={handleSelectWorkspace}
 		onRenameActive={() => (renameOpen = true)}
