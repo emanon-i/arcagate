@@ -1,15 +1,18 @@
 <script lang="ts">
-import { HelpCircle, Package, Play, Settings2, Star } from '@lucide/svelte';
+import { Check, HelpCircle, Package, Play, Settings2, Star } from '@lucide/svelte';
 import { onDestroy, onMount } from 'svelte';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
+import type { Opener } from '$lib/ipc/opener';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { openersStore } from '$lib/state/openers.svelte';
 import type { Item } from '$lib/types/item';
+import { getCardOpenerId, parseCardOverride } from '$lib/utils/card-override';
 import { markEnd, markStart, PERF_LABELS } from '$lib/utils/perf';
 import { tl } from '$lib/utils/perf-timeline';
 import LibraryCard from './LibraryCard.svelte';
@@ -107,6 +110,37 @@ function menuOpenSettings(): void {
 	const item = cardMenu.item;
 	closeCardMenu();
 	if (item) onEditItem?.(item.id);
+}
+
+// 2026-05-20 user 指示: 起動アプリ (Opener override) を見た目設定モーダルから
+// 右クリックメニューへ移設。card_override_json.opener_id を直接編集する。
+let cardMenuOpeners = $state<Opener[]>([]);
+
+$effect(() => {
+	if (!cardMenu.open) return;
+	void openersStore
+		.load()
+		.then((list) => {
+			cardMenuOpeners = list;
+		})
+		.catch(() => {
+			// best-effort: opener 取得失敗時は「既定」のみ表示
+		});
+});
+
+let currentCardOpenerId = $derived(cardMenu.item ? getCardOpenerId(cardMenu.item) : null);
+
+async function setCardOpener(openerId: string): Promise<void> {
+	const item = cardMenu.item;
+	closeCardMenu();
+	if (!item) return;
+	const current = parseCardOverride(item.card_override_json) ?? {};
+	const next = { ...current, opener_id: openerId || null };
+	// background / style / opener いずれも無い空 override は null に畳む
+	const isEmpty = !next.background && !next.style && !next.opener_id;
+	await itemStore.updateItem(item.id, {
+		card_override_json: isEmpty ? null : JSON.stringify(next),
+	});
 }
 
 // Phase L-3 (2026-05-07 user 検収 Library 真因 #3):
@@ -265,5 +299,35 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 			<Settings2 class="h-3.5 w-3.5" />
 			{t('context_menu.open_settings')}
 		</button>
+		<div class="my-1 border-t border-[var(--ag-border)]"></div>
+		<p class="px-3 pb-1 pt-1 text-xs text-[var(--ag-text-muted)]">{t('context_menu.opener_section')}</p>
+		<button
+			type="button"
+			role="menuitem"
+			class="flex w-full items-center justify-between gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-primary)] focus-visible:bg-[var(--ag-surface-3)] focus-visible:outline-none hover:bg-[var(--ag-surface-3)]"
+			data-testid="library-context-opener-default"
+			onclick={() => void setCardOpener('')}
+		>
+			<span class="min-w-0 flex-1 truncate">{t('context_menu.opener_default')}</span>
+			{#if !currentCardOpenerId}
+				<Check class="h-3.5 w-3.5 shrink-0 text-[var(--ag-accent-text)]" aria-label={t('context_menu.opener_current')} />
+			{/if}
+		</button>
+		{#each cardMenuOpeners as op (op.id)}
+			<button
+				type="button"
+				role="menuitem"
+				class="flex w-full items-center justify-between gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-primary)] focus-visible:bg-[var(--ag-surface-3)] focus-visible:outline-none hover:bg-[var(--ag-surface-3)]"
+				data-testid="library-context-opener-{op.id}"
+				onclick={() => void setCardOpener(op.id)}
+			>
+				<span class="min-w-0 flex-1 truncate">{op.name}</span>
+				{#if op.id === currentCardOpenerId}
+					<Check class="h-3.5 w-3.5 shrink-0 text-[var(--ag-accent-text)]" aria-label={t('context_menu.opener_current')} />
+				{:else if op.is_builtin}
+					<span class="shrink-0 text-xs text-[var(--ag-text-muted)]">{t('context_menu.opener_builtin')}</span>
+				{/if}
+			</button>
+		{/each}
 	{/if}
 </ContextMenu>
