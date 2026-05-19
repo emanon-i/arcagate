@@ -563,6 +563,7 @@
 		"hide_failed": "非表示にできませんでした: {error}",
 		"icon_changed": "アイコンを変更しました",
 		"icon_removed": "アイコンを削除しました",
+		"icon_save_failed": "アイコンの保存に失敗: {error}",
 		"image_open_failed": "画像を開けませんでした: {error}",
 		"image_save_failed": "画像の保存に失敗: {error}",
 		"image_widget_placed": "画像 widget を配置しました",

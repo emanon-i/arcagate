@@ -244,3 +244,19 @@ pub async fn cmd_extract_item_icon(app: AppHandle, exe_path: String) -> Result<S
     .await
     .map_err(|e| AppError::Io(std::io::Error::other(format!("spawn_blocking failed: {e}"))))?
 }
+
+/// 見た目設定で選んだアイコン画像を `$APPDATA/icons/` に copy し保存先 path を返す。
+/// 生の picker path は asset protocol scope 外で webview が読めないため必須
+/// (cmd_save_image_scrap と同 pattern、file copy は worker thread に逃がす)。
+#[tauri::command]
+pub async fn cmd_save_icon_file(app: AppHandle, source_path: String) -> Result<String, AppError> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::item_service::save_icon_file(&app_data_dir, &source_path)
+    })
+    .await
+    .map_err(|e| AppError::Io(std::io::Error::other(format!("spawn_blocking failed: {e}"))))?
+}

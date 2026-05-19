@@ -1,4 +1,5 @@
 <script lang="ts">
+import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
@@ -18,6 +19,7 @@ import { openersStore } from '$lib/state/openers.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import { type CardOverrideJson, parseCardOverride } from '$lib/utils/card-override';
+import { getErrorMessage } from '$lib/utils/format-error';
 
 /**
  * E-3 (2026-05-07 user 検収): カード表示設定を detail panel から ItemForm modal へ移植。
@@ -75,6 +77,19 @@ let style = $derived({
 
 let resetConfirmOpen = $state(false);
 
+// offset slider: drag 中は local draft で thumb / 数値ラベルを追従させ、persist は
+// release 時 (onchange) のみ。oninput ごとに updateItem を呼ぶと IPC が殺到し、解決
+// 順序の逆転で「drag した位置と違う値が確定する」(= 位置調整が効かない) 不具合になる。
+// 初期値は const default、 実値は下の $effect が mount 直後に bg から同期する。
+let offsetXDraft = $state(DEFAULT_CARD_BACKGROUND.offsetX);
+let offsetYDraft = $state(DEFAULT_CARD_BACKGROUND.offsetY);
+$effect(() => {
+	offsetXDraft = bg.offsetX;
+});
+$effect(() => {
+	offsetYDraft = bg.offsetY;
+});
+
 async function setOpenerId(value: string): Promise<void> {
 	const next: CardOverrideJson = { ...(cardOverride ?? {}), opener_id: value || null };
 	await itemStore.updateItem(item.id, { card_override_json: JSON.stringify(next) });
@@ -121,9 +136,17 @@ async function selectIcon(): Promise<void> {
 			},
 		],
 	});
-	if (selected) {
-		await itemStore.updateItem(item.id, { icon_path: selected as string });
+	if (!selected) return;
+	try {
+		// 生の picker path は asset protocol scope (`$APPDATA/icons/**`) 外で webview が
+		// 描画できないため、`$APPDATA/icons/` へ copy した path を icon_path に保存する。
+		const saved = await invoke<string>('cmd_save_icon_file', {
+			sourcePath: selected as string,
+		});
+		await itemStore.updateItem(item.id, { icon_path: saved });
 		toastStore.add(t('toast.icon_changed'), 'success');
+	} catch (e) {
+		toastStore.add(t('toast.icon_save_failed', { error: getErrorMessage(e) }), 'error');
 	}
 }
 
@@ -255,7 +278,7 @@ async function clearIcon(): Promise<void> {
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
 						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-x">{t('item.appearance_settings.offset_x_label')}</label>
-						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.offsetX}%</span>
+						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{offsetXDraft}%</span>
 					</div>
 					<input
 						id="card-offset-x"
@@ -263,9 +286,10 @@ async function clearIcon(): Promise<void> {
 						min="0"
 						max="100"
 						step="5"
-						value={bg.offsetX}
+						value={offsetXDraft}
 						data-testid="card-override-offset-x"
-						oninput={(e) =>
+						oninput={(e) => (offsetXDraft = Number((e.currentTarget as HTMLInputElement).value))}
+						onchange={(e) =>
 							void patchOverride({
 								background: { offsetX: Number((e.currentTarget as HTMLInputElement).value) },
 							})}
@@ -275,7 +299,7 @@ async function clearIcon(): Promise<void> {
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
 						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-y">{t('item.appearance_settings.offset_y_label')}</label>
-						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.offsetY}%</span>
+						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{offsetYDraft}%</span>
 					</div>
 					<input
 						id="card-offset-y"
@@ -283,9 +307,10 @@ async function clearIcon(): Promise<void> {
 						min="0"
 						max="100"
 						step="5"
-						value={bg.offsetY}
+						value={offsetYDraft}
 						data-testid="card-override-offset-y"
-						oninput={(e) =>
+						oninput={(e) => (offsetYDraft = Number((e.currentTarget as HTMLInputElement).value))}
+						onchange={(e) =>
 							void patchOverride({
 								background: { offsetY: Number((e.currentTarget as HTMLInputElement).value) },
 							})}

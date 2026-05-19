@@ -173,7 +173,10 @@ pub struct UpdateItemInput {
     pub target: Option<String>,
     pub args: Option<String>,
     pub working_dir: Option<String>,
-    pub icon_path: Option<String>,
+    /// `null` 渡しで icon を明示的に解除する。double_option で field 不在 (= 変更なし) と
+    /// `null` (= クリア) を区別する (serde 既定では両者を区別できず「アイコン削除」が無効化されていた)。
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    pub icon_path: Option<Option<String>>,
     pub aliases: Option<Vec<String>>,
     pub is_enabled: Option<bool>,
     pub is_tracked: Option<bool>,
