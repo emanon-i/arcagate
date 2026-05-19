@@ -551,7 +551,7 @@ fn cmd_update(
         target: parsed.target,
         args: parsed.args,
         working_dir: parsed.working_dir,
-        icon_path: parsed.icon_path,
+        icon_path: parsed.icon_path.map(Some),
         aliases: parsed.aliases,
         is_enabled: parsed.is_enabled,
         is_tracked: None,

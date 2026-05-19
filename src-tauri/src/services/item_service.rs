@@ -599,6 +599,47 @@ pub fn extract_item_icon_cached(
     Ok(new_path)
 }
 
+/// 見た目設定で選んだアイコン画像が copy 可能な拡張子。
+const ICON_ALLOWED_EXTENSIONS: &[&str] =
+    &["png", "ico", "jpg", "jpeg", "svg", "webp", "gif", "bmp"];
+
+/// 見た目設定でユーザーが選んだアイコン画像を `<app_data_dir>/icons/<uuid>.<ext>` へ
+/// copy し、保存先 path を返す。
+///
+/// 真因 (2026-05-19): file picker で得た生 path をそのまま `icon_path` に保存すると、
+/// asset protocol scope (`$APPDATA/icons/**`) 外のため webview が画像を読めず、
+/// fallback アイコンが中央に小さく表示されていた。image-scrap / wallpaper と同じく
+/// scope 内 dir へ copy してから保存する。
+pub fn save_icon_file(
+    app_data_dir: &std::path::Path,
+    source_path: &str,
+) -> Result<String, AppError> {
+    let source = std::path::Path::new(source_path);
+    if !source.exists() {
+        return Err(AppError::InvalidInput(format!(
+            "icon source not found: {source_path}"
+        )));
+    }
+    let ext = source
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase())
+        .ok_or_else(|| AppError::InvalidInput("icon file has no extension".into()))?;
+    if !ICON_ALLOWED_EXTENSIONS.contains(&ext.as_str()) {
+        return Err(AppError::InvalidInput(format!(
+            "unsupported icon format: {ext}. allowed: {}",
+            ICON_ALLOWED_EXTENSIONS.join(", ")
+        )));
+    }
+    let icons_dir = app_data_dir.join("icons");
+    std::fs::create_dir_all(&icons_dir)?;
+    let dest_path = icons_dir.join(format!("{}.{ext}", Uuid::now_v7()));
+    std::fs::copy(source, &dest_path)?;
+    // Tauri v2 asset:// は Windows backslash path で intermittent load 失敗するため
+    // forward slash に正規化して返す (image_scrap_service と同 pattern)。
+    Ok(dest_path.to_string_lossy().into_owned().replace('\\', "/"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -618,6 +659,48 @@ mod tests {
             tag_ids: vec![],
             is_tracked: true,
         }
+    }
+
+    #[test]
+    fn save_icon_file_copies_into_icons_dir() {
+        let app_data = std::env::temp_dir().join(format!("arcagate-icon-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&app_data).unwrap();
+        let src = app_data.join("source.png");
+        std::fs::write(&src, b"\x89PNG\r\n\x1a\n").unwrap();
+
+        let dest = save_icon_file(&app_data, src.to_str().unwrap()).unwrap();
+
+        assert!(
+            dest.contains("icons"),
+            "dest must be under icons dir: {dest}"
+        );
+        assert!(dest.ends_with(".png"));
+        assert!(
+            !dest.contains('\\'),
+            "dest must use forward slashes: {dest}"
+        );
+        assert!(std::path::Path::new(&dest).exists());
+        std::fs::remove_dir_all(&app_data).ok();
+    }
+
+    #[test]
+    fn save_icon_file_rejects_missing_source() {
+        let app_data = std::env::temp_dir().join(format!("arcagate-icon-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&app_data).unwrap();
+        let result = save_icon_file(&app_data, "Z:/__never_exists__/x.png");
+        assert!(result.is_err());
+        std::fs::remove_dir_all(&app_data).ok();
+    }
+
+    #[test]
+    fn save_icon_file_rejects_unsupported_extension() {
+        let app_data = std::env::temp_dir().join(format!("arcagate-icon-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&app_data).unwrap();
+        let src = app_data.join("doc.pdf");
+        std::fs::write(&src, b"%PDF").unwrap();
+        let result = save_icon_file(&app_data, src.to_str().unwrap());
+        assert!(result.is_err());
+        std::fs::remove_dir_all(&app_data).ok();
     }
 
     #[test]

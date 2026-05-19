@@ -563,6 +563,7 @@
 		"hide_failed": "Failed to hide: {error}",
 		"icon_changed": "Icon changed",
 		"icon_removed": "Icon removed",
+		"icon_save_failed": "Failed to save icon: {error}",
 		"image_open_failed": "Could not open image: {error}",
 		"image_save_failed": "Failed to save image: {error}",
 		"image_widget_placed": "Image widget placed",
