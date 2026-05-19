@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::Serialize;
 
@@ -26,13 +27,26 @@ pub struct ExeCandidate {
     pub name: String,
 }
 
+/// `root` 配下の各サブフォルダから .exe を見つけて entries を作る (cancel 非対応)。
+/// テスト・内部利用向け。 IPC 経由は `scan_exe_folders_with_cancel` を使う。
+#[cfg(test)]
+pub fn scan_exe_folders(root: &str, depth: u8) -> Result<Vec<ExeFolderEntry>, AppError> {
+    scan_exe_folders_with_cancel(root, depth, &AtomicBool::new(false))
+}
+
 /// `root` 配下の各サブフォルダから .exe を見つけて entries を作る。
 ///
 /// - `depth` は 1..=3 にクランプ（深すぎる scan を防止）
 /// - exe が 0 件のサブフォルダは除外
 /// - `*.ico` が同フォルダにあれば `icon_path` に最初の 1 件
 /// - 不在 root は空 Vec を返す（best-effort、AppError なし）
-pub fn scan_exe_folders(root: &str, depth: u8) -> Result<Vec<ExeFolderEntry>, AppError> {
+/// - W-3 (2026-05-19): `cancel` が true になると walk を中断し `AppError::Cancelled` を返す。
+///   File Search と同じ cancel 機構 (path / depth 変更時の re-scan で旧 scan を中断)。
+pub fn scan_exe_folders_with_cancel(
+    root: &str,
+    depth: u8,
+    cancel: &AtomicBool,
+) -> Result<Vec<ExeFolderEntry>, AppError> {
     let depth = depth.clamp(1, 3);
     let root_path = Path::new(root);
     if !root_path.is_dir() {
@@ -40,11 +54,23 @@ pub fn scan_exe_folders(root: &str, depth: u8) -> Result<Vec<ExeFolderEntry>, Ap
     }
 
     let mut entries = Vec::new();
-    walk(root_path, root_path, depth, &mut entries);
+    walk(root_path, root_path, depth, &mut entries, cancel);
+    if cancel.load(Ordering::Relaxed) {
+        return Err(AppError::Cancelled);
+    }
     Ok(entries)
 }
 
-fn walk(root: &Path, dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEntry>) {
+fn walk(
+    root: &Path,
+    dir: &Path,
+    remaining_depth: u8,
+    out: &mut Vec<ExeFolderEntry>,
+    cancel: &AtomicBool,
+) {
+    if cancel.load(Ordering::Relaxed) {
+        return;
+    }
     let read = match fs::read_dir(dir) {
         Ok(r) => r,
         Err(_) => return,
@@ -134,7 +160,10 @@ fn walk(root: &Path, dir: &Path, remaining_depth: u8, out: &mut Vec<ExeFolderEnt
 
     if remaining_depth > 1 {
         for sub in subdirs {
-            walk(root, &sub, remaining_depth - 1, out);
+            if cancel.load(Ordering::Relaxed) {
+                return;
+            }
+            walk(root, &sub, remaining_depth - 1, out, cancel);
         }
     }
 }

@@ -109,6 +109,16 @@ async function setSort(field: WidgetSortField) {
 }
 // 古い path の async 結果が新 path に書き戻されないよう request id で stale response を破棄。
 let scanRequestId = 0;
+// W-3: backend scan の cancel 用。widget ごとに stable な search_id を持ち、
+// 同 id で再 scan すると backend が前回 scan を自動 cancel する (path/depth 変更時)。
+const scanSearchId = crypto.randomUUID();
+
+// W-3: widget unmount 時に進行中の backend scan を中断する。
+$effect(() => {
+	return () => {
+		void invoke('cmd_cancel_exe_scan', { searchId: scanSearchId });
+	};
+});
 
 // optimisticMoveAndResize が widget object を作り直して config 新参照 → `entries = []` が
 // 毎フレーム実行され scan 結果が消える bug 対策。前回 path/depth を覚えて実値変化時のみ reset。
@@ -147,7 +157,7 @@ $effect(() => {
 	void ensureWatchedPath(path);
 	const myId = ++scanRequestId;
 	scanning = true;
-	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { root: path, depth })
+	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { searchId: scanSearchId, root: path, depth })
 		.then(async (result) => {
 			if (myId !== scanRequestId) return;
 			entries = result;

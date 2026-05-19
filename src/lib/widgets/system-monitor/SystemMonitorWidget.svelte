@@ -56,8 +56,6 @@ interface SystemMonitorConfig {
 	show_memory?: boolean;
 	show_disk?: boolean;
 	show_network?: boolean;
-	/** 4/30 user 検収: 旧 `chart_type` (CPU 専用) → metric 別に独立。下位互換のため残す。 */
-	chart_type?: ChartType;
 	cpu_chart_type?: ChartType;
 	memory_chart_type?: ChartType;
 	disk_chart_type?: ChartType;
@@ -79,16 +77,14 @@ let showCpu = $derived(config.show_cpu ?? true);
 let showMemory = $derived(config.show_memory ?? true);
 let showDisk = $derived(config.show_disk ?? false);
 let showNetwork = $derived(config.show_network ?? false);
-// 4/30 user 検収: per-metric chart_type。各 metric は metric 専用 config が無ければ
-// 旧 `chart_type` (legacy 共通) → 既定値の順に fallback。後方互換 + 新 settings UI。
+// 4/30 user 検収: per-metric chart_type。各 metric は専用 config が無ければ既定値。
 // audit batch deferred (2026-05-13) #6: default を bar + value 表示に統一 (CPU / Memory / Disk)。
 // network は rate 値が直感的に把握しやすい sparkline default を維持。
-let cpuChartType = $derived<ChartType>(config.cpu_chart_type ?? config.chart_type ?? 'bar');
-let memChartType = $derived<ChartType>(config.memory_chart_type ?? config.chart_type ?? 'bar');
-let diskChartType = $derived<ChartType>(config.disk_chart_type ?? config.chart_type ?? 'bar');
-let networkChartType = $derived<ChartType>(
-	config.network_chart_type ?? config.chart_type ?? 'sparkline',
-);
+// W-8 (2026-05-19): 旧共通 `chart_type` fallback は migration 037 で per-metric key へ展開済のため撤去。
+let cpuChartType = $derived<ChartType>(config.cpu_chart_type ?? 'bar');
+let memChartType = $derived<ChartType>(config.memory_chart_type ?? 'bar');
+let diskChartType = $derived<ChartType>(config.disk_chart_type ?? 'bar');
+let networkChartType = $derived<ChartType>(config.network_chart_type ?? 'sparkline');
 
 let stats = $state<SystemStats | null>(null);
 let disks = $state<DiskStats[]>([]);

@@ -176,15 +176,21 @@ pub fn cmd_toggle_star(
     services.item.toggle_star(&item_id, starred)
 }
 
+/// W-2 (2026-05-19): 監視フォルダ配下の dir walk + DB 一括登録は main thread を
+/// block するため `spawn_blocking` で worker thread に逃がす。
 #[tauri::command]
-pub fn cmd_auto_register_folder_items(
-    services: State<AppServices>,
+pub async fn cmd_auto_register_folder_items(
+    app: AppHandle,
     root_path: String,
     workspace_id: Option<String>,
 ) -> Result<Vec<Item>, AppError> {
-    services
-        .item
-        .auto_register_folder_items(&root_path, workspace_id.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<AppServices>()
+            .item
+            .auto_register_folder_items(&root_path, workspace_id.as_deref())
+    })
+    .await
+    .map_err(AppError::from_join_error)?
 }
 
 /// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録。

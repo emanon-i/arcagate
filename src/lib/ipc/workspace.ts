@@ -94,10 +94,6 @@ export async function getFolderItems(): Promise<Item[]> {
 	return invoke<Item[]>('cmd_get_folder_items');
 }
 
-export async function getGitStatus(path: string): Promise<GitStatus> {
-	return invoke<GitStatus>('cmd_git_status', { path });
-}
-
 /**
  * Phase L-1 (2026-05-07 user 検収 Library 真因 #1):
  * 複数 path の git_status を 1 IPC に集約。backend で並列実行。

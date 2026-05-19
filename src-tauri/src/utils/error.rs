@@ -78,6 +78,13 @@ impl AppError {
             AppError::Http(_) => "http.error",
         }
     }
+
+    /// W-2 (2026-05-19): `tauri::async_runtime::spawn_blocking` の `JoinError` → AppError 変換。
+    /// heavy I/O command を worker thread に逃がす際の共通変換。 JoinError は closure が
+    /// panic した時のみ発生する (通常運用では起きない)。
+    pub fn from_join_error(e: impl std::fmt::Display) -> Self {
+        AppError::Io(std::io::Error::other(format!("spawn_blocking failed: {e}")))
+    }
 }
 
 /// audit 2026-05-14 F9: rusqlite result → AppError 変換 trait。

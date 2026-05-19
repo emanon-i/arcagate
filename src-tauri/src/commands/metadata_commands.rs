@@ -1,16 +1,8 @@
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 
 use crate::services::metadata_service::ItemMetadata;
 use crate::services::AppServices;
 use crate::utils::error::AppError;
-
-#[tauri::command]
-pub fn cmd_get_item_metadata(
-    services: State<AppServices>,
-    item_id: String,
-) -> Result<ItemMetadata, AppError> {
-    services.metadata.get_item_metadata(&item_id)
-}
 
 /// 複数 item の metadata を一括取得 (LibraryCard 一覧の card 副情報)。
 ///

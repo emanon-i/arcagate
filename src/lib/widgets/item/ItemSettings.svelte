@@ -30,7 +30,7 @@ interface Props {
 	config: {
 		item_ids?: string[];
 		view_mode?: 'grid' | 'list';
-		sort_field?: 'manual' | 'name' | 'recent';
+		sort_field?: 'manual' | 'name';
 		/** C-15 #19: Widget レベルの起動アプリ default。 */
 		default_opener_id?: string | null;
 	};
@@ -58,7 +58,7 @@ onMount(() => {
 
 let itemIds = $derived.by<string[]>(() => config.item_ids ?? []);
 
-let sortField = $derived<'manual' | 'name' | 'recent'>(config.sort_field ?? 'manual');
+let sortField = $derived<'manual' | 'name'>(config.sort_field ?? 'manual');
 
 let pinnedItems = $derived.by<Item[]>(() =>
 	itemIds
@@ -109,7 +109,7 @@ function clearAll() {
 	config = { ...config, item_ids: [] };
 }
 
-function setSort(value: 'manual' | 'name' | 'recent') {
+function setSort(value: 'manual' | 'name') {
 	config = { ...config, sort_field: value };
 }
 </script>
@@ -199,11 +199,10 @@ function setSort(value: 'manual' | 'name' | 'recent') {
 				class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 				value={sortField}
 				onchange={(e) =>
-					setSort((e.currentTarget as HTMLSelectElement).value as 'manual' | 'name' | 'recent')}
+					setSort((e.currentTarget as HTMLSelectElement).value as 'manual' | 'name')}
 			>
 				<option value="manual">{t('widgets.item.sort_manual')}</option>
 				<option value="name">{t('widgets.item.sort_name')}</option>
-				<option value="recent">{t('widgets.item.sort_recent')}</option>
 			</select>
 		</div>
 	{/if}

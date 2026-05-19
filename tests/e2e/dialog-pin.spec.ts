@@ -1,5 +1,23 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/tauri.js';
 import { addWidget, createWorkspace, listWidgets, listWorkspaces } from '../helpers/ipc.js';
+
+/**
+ * 開いている dialog を Escape で確実に閉じる。
+ *
+ * e2e は単一 Tauri/WebView2 プロセスを worker 全 test で共有 (fixture: sharedBrowser)、
+ * かつ test 間で page.reload() しないため DOM state が次 test / retry に漏れる。
+ * ある test が dialog を開いたまま fail すると、後続 test / 同 test の retry は
+ * modal overlay に阻まれて add-item-button 等が click 不能になり連鎖失敗する。
+ * 各 test の前後でこの helper を呼び、clean state を保証して retry を自己回復させる。
+ */
+async function closeAnyDialog(page: Page): Promise<void> {
+	const dialog = page.getByRole('dialog').first();
+	if (await dialog.isVisible().catch(() => false)) {
+		await page.keyboard.press('Escape').catch(() => {});
+		await dialog.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
+	}
+}
 
 /**
  * Dialog pin tests (refactor 前 lock 用)。
@@ -25,10 +43,26 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 	// 操作した test の後に必ず Library tab に戻す。
 	// audit 2026-05-14 rank 10: hard sleep waitForTimeout(300) を signal wait に置換、
 	// Library wrapper (= data-testid="library-main-wrapper") の visible 待ち。
+	// 各 test 開始前に clean state を保証 (前 test / 前 attempt が dialog を開いたまま
+	// fail した場合の state 漏れを解消し、retry を自己回復させる)。
+	test.beforeEach(async ({ page }) => {
+		await closeAnyDialog(page);
+		// WebView2 cold start で <main> は出ても Library toolbar (add-item-button 等) の
+		// hydration が遅れることがある。Library wrapper の visible を待ち、最初の test の
+		// 1 回目から add-item-button が確実に DOM にある状態にする。
+		await page
+			.getByTestId('library-main-wrapper')
+			.waitFor({ state: 'visible', timeout: 15_000 })
+			.catch(() => {});
+	});
+
 	test.afterEach(async ({ page }) => {
+		// 先に dialog を閉じる。modal が残っていると Library button が overlay に阻まれ
+		// click が actionability 待ちで test timeout まで hang する。
+		await closeAnyDialog(page);
 		await page
 			.getByRole('button', { name: 'Library', exact: true })
-			.click()
+			.click({ timeout: 5_000 })
 			.catch(() => {});
 		await page
 			.getByTestId('library-main-wrapper')
@@ -40,7 +74,7 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 		page,
 	}) => {
 		// Library tab is default
-		await page.locator('[data-testid="add-item-button"]').first().click();
+		await page.locator('[data-testid="add-item-button"]').first().click({ timeout: 10_000 });
 		const dialog = page.getByRole('dialog').filter({ hasText: 'アイテムを追加' }).first();
 		await expect(dialog).toBeVisible({ timeout: 5_000 });
 
@@ -49,7 +83,7 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 	});
 
 	test('ItemFormDialog: backdrop click で閉じる', async ({ page }) => {
-		await page.locator('[data-testid="add-item-button"]').first().click();
+		await page.locator('[data-testid="add-item-button"]').first().click({ timeout: 10_000 });
 		const dialog = page.getByRole('dialog').filter({ hasText: 'アイテムを追加' }).first();
 		await expect(dialog).toBeVisible({ timeout: 5_000 });
 

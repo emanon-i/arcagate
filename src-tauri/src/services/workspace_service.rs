@@ -2,7 +2,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::db::DbState;
-use crate::models::git::{GitStatus, GitStatusBatchEntry};
+use crate::models::git::GitStatusBatchEntry;
 use crate::models::item::Item;
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
@@ -191,10 +191,6 @@ pub fn get_frecency_items(db: &DbState, limit: i64) -> Result<Vec<Item>, AppErro
 pub fn get_folder_items(db: &DbState) -> Result<Vec<Item>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     workspace_repository::list_folder_items(&conn)
-}
-
-pub fn git_status(path: &str) -> Result<GitStatus, AppError> {
-    git::git_status(path)
 }
 
 /// Phase L-1: git_status batch (並列実行) — Library freeze 主因の N+1 IPC を 1 IPC に集約。
@@ -623,7 +619,7 @@ mod tests {
 
 /// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
 /// 各 method は同 module の free function に delegate (scope 限定のため既存実装は維持)。
-/// 注: `git_status` (db 不要) と `sync_workspace_item_tags` (内部 helper) は struct method 化しない。
+/// 注: `git_statuses_batch` (db 不要) と `sync_workspace_item_tags` (内部 helper) は struct method 化しない。
 pub struct WorkspaceService {
     db: std::sync::Arc<crate::db::DbState>,
 }

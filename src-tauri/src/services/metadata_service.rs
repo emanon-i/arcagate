@@ -42,20 +42,6 @@ pub struct ItemMetadata {
     pub image_format: Option<String>,
 }
 
-/// item_id から該当 item の type に応じたメタデータを取得。
-///
-/// 失敗時（パス不在など）は AppError ではなく **空 ItemMetadata** を返す。
-/// メタデータ表示は best-effort であり、エラーで UI を崩さないため。
-pub fn get_item_metadata(db: &DbState, item_id: &str) -> Result<ItemMetadata, AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    let item = item_repository::find_by_id(&conn, item_id)?;
-    drop(conn);
-    Ok(metadata_from_item_type(
-        item.item_type.as_str(),
-        &item.target,
-    ))
-}
-
 /// 複数 item_id の metadata を一括取得。LibraryCard 一覧表示で per-card IPC 並列を回避する用途。
 ///
 /// - DB lookup は単一 Mutex lock (ids 件数 N に対して N 回の find_by_id だが lock 1 回)
@@ -436,10 +422,6 @@ pub struct MetadataService {
 impl MetadataService {
     pub fn new(db: std::sync::Arc<crate::db::DbState>) -> Self {
         Self { db }
-    }
-
-    pub fn get_item_metadata(&self, item_id: &str) -> Result<ItemMetadata, AppError> {
-        get_item_metadata(&self.db, item_id)
     }
 
     pub fn get_items_metadata_batch(

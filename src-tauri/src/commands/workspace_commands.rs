@@ -1,6 +1,6 @@
 use tauri::{AppHandle, Manager, State};
 
-use crate::models::git::{GitStatus, GitStatusBatchEntry};
+use crate::models::git::GitStatusBatchEntry;
 use crate::models::item::Item;
 use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
@@ -129,39 +129,55 @@ pub fn cmd_get_folder_items(services: State<AppServices>) -> Result<Vec<Item>, A
     services.workspace.get_folder_items()
 }
 
-#[tauri::command]
-pub fn cmd_git_status(path: String) -> Result<GitStatus, AppError> {
-    workspace_service::git_status(&path)
-}
-
 /// Phase L-1 (2026-05-07 user 検収 Library 真因 #1):
-/// 旧 cmd_git_status は ProjectsWidget で各フォルダ別に N+1 IPC を発火し、累積数秒の遅延に
-/// なっていた。本 IPC は paths を batch で受け、内部で並列に実行して 1 roundtrip にまとめる。
+/// ProjectsWidget で各フォルダ別に N+1 IPC を発火すると累積数秒の遅延になるため、
+/// 本 IPC は paths を batch で受け、内部で並列に実行して 1 roundtrip にまとめる。
+///
+/// W-2 (2026-05-19): 内部で git process を thread spawn するが、 thread join は
+/// main thread を block するため command 全体を `spawn_blocking` で worker thread に逃がす。
 #[tauri::command]
-pub fn cmd_get_git_statuses_batch(
+pub async fn cmd_get_git_statuses_batch(
     paths: Vec<String>,
 ) -> Result<Vec<GitStatusBatchEntry>, AppError> {
-    Ok(workspace_service::git_statuses_batch(paths))
+    tauri::async_runtime::spawn_blocking(move || workspace_service::git_statuses_batch(paths))
+        .await
+        .map_err(AppError::from_join_error)
 }
 
 /// #10: フォルダの実 mtime (filesystem 更新日時) を batch 取得する。
 /// フォルダ監視 widget の「更新日時」ソートで DB の `updated_at` ではなく
 /// 実フォルダの mtime を参照するため。ロジックは workspace_service に集約。
+///
+/// W-2 (2026-05-19): N 件の filesystem stat を worker thread に逃がす。
+/// JoinError (closure panic) 時は best-effort で空 Vec。
 #[tauri::command]
-pub fn cmd_get_folder_mtimes_batch(paths: Vec<String>) -> Vec<workspace_service::FolderMtimeEntry> {
-    workspace_service::folder_mtimes_batch(paths)
+pub async fn cmd_get_folder_mtimes_batch(
+    paths: Vec<String>,
+) -> Vec<workspace_service::FolderMtimeEntry> {
+    tauri::async_runtime::spawn_blocking(move || workspace_service::folder_mtimes_batch(paths))
+        .await
+        .unwrap_or_default()
 }
 
 /// PH-issue-009: 画像を `<app_data_dir>/wallpapers/<uuid>.<ext>` にコピーして保存先パスを返す。
 /// UI 側で file picker → このコマンドを呼んで保存後 path を取得し、
 /// `cmd_set_workspace_wallpaper` で workspace に紐付ける。
+///
+/// W-2 (2026-05-19): 画像 file copy を worker thread に逃がす。
 #[tauri::command]
-pub fn cmd_save_wallpaper_file(app: AppHandle, source_path: String) -> Result<String, AppError> {
+pub async fn cmd_save_wallpaper_file(
+    app: AppHandle,
+    source_path: String,
+) -> Result<String, AppError> {
     let app_data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
-    wallpaper_service::save_wallpaper_file(&app_data_dir, &source_path)
+    tauri::async_runtime::spawn_blocking(move || {
+        wallpaper_service::save_wallpaper_file(&app_data_dir, &source_path)
+    })
+    .await
+    .map_err(AppError::from_join_error)?
 }
 
 /// PH-issue-009: Workspace の壁紙設定を更新 (path / opacity / blur)。
