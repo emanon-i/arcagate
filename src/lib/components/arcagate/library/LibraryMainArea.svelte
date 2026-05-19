@@ -14,6 +14,7 @@ import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { sortItems } from '$lib/utils/library-sort';
 import { markEnd, markStart, PERF_LABELS } from '$lib/utils/perf';
+import { tl } from '$lib/utils/perf-timeline';
 import LibrarySearchBar from './LibrarySearchBar.svelte';
 import LibrarySortControls from './LibrarySortControls.svelte';
 import LibraryUndoSnackbar from './LibraryUndoSnackbar.svelte';
@@ -49,6 +50,8 @@ interface Props {
 }
 
 let { activeTag, onSelectItem, onAddItem, onEditItem }: Props = $props();
+
+tl('LibraryMainArea: instantiate');
 
 let searchQuery = $state('');
 let debouncedQuery = $state('');
@@ -175,6 +178,7 @@ $effect(() => {
 		return;
 	}
 	markStart(PERF_LABELS.libraryStarredFetch);
+	tl('starred fetch: cmd_search_items_in_tag(sys-starred) invoke', { thread: 'bg' });
 	searchItemsInTag('sys-starred', '')
 		.then((items) => {
 			starredIds = new Set(items.map((i) => i.id));
@@ -183,6 +187,7 @@ $effect(() => {
 			// best-effort、失敗時は前回の値を維持
 		})
 		.finally(() => {
+			tl('starred fetch: done');
 			const dur = markEnd(PERF_LABELS.libraryStarredFetch);
 			if (dur !== null && dur > 100) {
 				console.warn(`[perf] starred fetch ${dur.toFixed(1)}ms (items=${itemStore.items.length})`);
@@ -197,6 +202,7 @@ $effect(() => {
 // アイテムを除外。toggle で表示切替可能 (LibrarySortControls 経由)。
 let filteredItems = $derived.by(() => {
 	markStart(PERF_LABELS.libraryFilteredItemsCompute);
+	tl('filteredItems compute: start (sort/filter)');
 	const rawSource = activeTag ? localTagItems : itemStore.items;
 	const source = configStore.libraryShowHidden ? rawSource : rawSource.filter((i) => i.is_enabled);
 	let result: import('$lib/types/item').Item[];
@@ -205,6 +211,7 @@ let filteredItems = $derived.by(() => {
 	} else {
 		result = sortItems(source, configStore.librarySort);
 	}
+	tl('filteredItems compute: end', { note: `result=${result.length}` });
 	const dur = markEnd(PERF_LABELS.libraryFilteredItemsCompute);
 	if (dur !== null && dur > 30) {
 		console.warn(
@@ -219,7 +226,12 @@ $effect(() => {
 	if (viewMode !== 'grid' || configStore.itemSize === 'S') return;
 	const ids = filteredItems.map((i) => i.id);
 	markStart(PERF_LABELS.libraryMetadataWarmup);
+	tl('metadata warmup: cmd_get_items_metadata_batch invoke', {
+		thread: 'bg',
+		note: `${ids.length} ids`,
+	});
 	void metadataStore.loadMetadataForItems(ids).finally(() => {
+		tl('metadata warmup: done');
 		const dur = markEnd(PERF_LABELS.libraryMetadataWarmup);
 		if (dur !== null && dur > 100) {
 			console.warn(`[perf] metadata warmup ${dur.toFixed(1)}ms (n=${ids.length})`);

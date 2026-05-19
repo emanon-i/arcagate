@@ -7,6 +7,8 @@ import ScriptLaunchConfirmDialog from '$lib/components/common/ScriptLaunchConfir
 import { detectOsLocale, type Locale, setLocale } from '$lib/i18n.svelte';
 import { installErrorMonitor, uninstallErrorMonitor } from '$lib/state/error-monitor.svelte';
 import { installLongtaskObserver, installResourceObserver } from '$lib/utils/perf';
+// Library 遷移 timeline collector (prototype): 起動時に window.__agTimeline__ を用意する。
+import '$lib/utils/perf-timeline';
 
 let { children } = $props();
 

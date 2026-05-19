@@ -17,5 +17,13 @@ pub fn cmd_get_items_metadata_batch(
     services: State<AppServices>,
     ids: Vec<String>,
 ) -> Result<Vec<(String, ItemMetadata)>, AppError> {
-    services.metadata.get_items_metadata_batch(&ids)
+    let started = std::time::Instant::now();
+    let n = ids.len();
+    let r = services.metadata.get_items_metadata_batch(&ids);
+    log::debug!(
+        "[cmd-timing] cmd_get_items_metadata_batch {:.1}ms (ids={})",
+        started.elapsed().as_secs_f64() * 1000.0,
+        n
+    );
+    r
 }
