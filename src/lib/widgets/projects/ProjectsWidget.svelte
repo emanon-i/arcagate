@@ -44,6 +44,7 @@ import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
 import type { WidgetSortField, WidgetSortOrder } from '../_shared/types';
+import { clampGitPollIntervalSec } from './git-poll';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -223,7 +224,9 @@ $effect(() => {
 // ポーリング (git status 更新)
 $effect(() => {
 	if (folderItems.length === 0) return;
-	const interval = config.git_poll_interval_sec * 1000;
+	// W-10 (2026-05-19): config 値が契約下限 (10 秒) を破っていても、実行直前で
+	// clamp して setInterval が 10 秒未満で発火しないことを保証する。
+	const interval = clampGitPollIntervalSec(config.git_poll_interval_sec) * 1000;
 	const timer = setInterval(() => {
 		void fetchGitStatuses(folderItems);
 		// #10: poll 毎にフォルダ実 mtime も再取得 → 監視中の更新で自動再ソート。

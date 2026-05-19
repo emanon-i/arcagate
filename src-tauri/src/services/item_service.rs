@@ -325,17 +325,24 @@ pub fn auto_register_folder_items(
             root_path
         )));
     }
+    // W-9 (2026-05-19): filesystem walk (read_dir + path.is_dir()) は DB lock を
+    // 握る前に完了させる。旧実装は `db.0.lock()` 保持中に walk しており、SMR HDD の
+    // cold path で walk が秒級になると他の全 IPC が `Mutex<Connection>` 待ちで
+    // freeze する (#524 / W-1 と同型の lock 占有)。
+    let mut sub_dirs: Vec<std::path::PathBuf> = Vec::new();
+    for entry in std::fs::read_dir(root).map_err(AppError::Io)?.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            sub_dirs.push(path);
+        }
+    }
+
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     // 4/30 user 検収 retrospective: 旧実装は **新規登録分のみ返却** していたため、
     // 2 回目以降の呼び出しで `[]` が返り ProjectsWidget が「サブフォルダがありません」と
     // 誤判定していた。挙動変更: 既存 item も含めて root 直下の全サブフォルダを返す。
     let mut all_items: Vec<Item> = Vec::new();
-    let entries = std::fs::read_dir(root).map_err(AppError::Io)?;
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
+    for path in sub_dirs {
         let target = path.to_string_lossy().to_string();
         if let Some(existing) = item_repository::find_by_target(&conn, &target)? {
             all_items.push(existing);
