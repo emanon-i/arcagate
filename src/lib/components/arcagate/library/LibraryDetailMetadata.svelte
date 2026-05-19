@@ -7,7 +7,7 @@ import { t } from '$lib/i18n.svelte';
 import { DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
-import { parseCardOverride } from '$lib/utils/card-override';
+import { fullBleedImageStyle, parseCardOverride } from '$lib/utils/card-override';
 
 /**
  * Library detail panel メタデータセクション (preview + DetailRows + visibility)。
@@ -30,16 +30,16 @@ let bg = $derived({
 	...(cardOverride?.background ?? {}),
 });
 
-// LibraryCard と同じ logic: fit 'cover' / 'contain' + icon_path で全面表示。
-let isFullBleed = $derived(bg.fit !== 'center' && !!item.icon_path);
+// LibraryCard と同じ logic: background override + icon_path で全面表示 (cover 固定)。
+let isFullBleed = $derived(!!cardOverride?.background && !!item.icon_path);
 
 // F-3 (2026-05-08 user 検収): 「ライブラリで非表示」 toggle の長文説明を info icon に
 // 折り畳む。default 折畳 (showHideDescription=false)、icon click で expand。
 let showHideDescription = $state(false);
 </script>
 
-<!-- preview を LibraryCard と同形式で render: fit cover/contain は全面表示 (offset 反映)、
-     center は共通 surface + 中央アイコン。card_override 反映で見た目統一。 -->
+<!-- preview を LibraryCard と同形式で render: background override 在りは全面 cover 表示
+     (offset + 回転 反映)、無しは共通 surface + 中央アイコン。card_override 反映で見た目統一。 -->
 <div
 	class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--ag-radius-widget)] bg-[var(--ag-surface-3)]"
 >
@@ -48,8 +48,8 @@ let showHideDescription = $state(false);
 			iconPath={item.icon_path}
 			itemType={item.item_type}
 			alt="{item.label} icon"
-			class="absolute inset-0 h-full w-full {bg.fit === 'contain' ? 'object-contain' : 'object-cover'}"
-			style="object-position: {bg.offsetX}% {bg.offsetY}%;"
+			class="object-cover"
+			style={fullBleedImageStyle(bg)}
 		/>
 	{:else}
 		<ItemIcon

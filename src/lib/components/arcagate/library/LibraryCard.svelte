@@ -5,7 +5,7 @@ import { typeLabel } from '$lib/constants/item-type';
 import { configStore, DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item } from '$lib/types/item';
-import { parseCardOverride } from '$lib/utils/card-override';
+import { fullBleedImageStyle, parseCardOverride } from '$lib/utils/card-override';
 import { formatItemMeta } from '$lib/utils/format-meta';
 import type { SizeClasses } from './library-card-sizes';
 
@@ -67,9 +67,9 @@ let labelStyle = $derived.by(() => {
 	return `color: ${style.textColor}; -webkit-text-stroke: ${stroke}; paint-order: stroke fill;`;
 });
 
-// fit 'cover' / 'contain' + icon_path で全面表示、それ以外 (center) は default =
+// background override + icon_path で全面表示 (cover 固定)、override 無しは default =
 // 共通 surface + 中央アイコン (item.icon_path or タイプ fallback)。
-let isFullBleed = $derived(bg.fit !== 'center' && !!item.icon_path);
+let isFullBleed = $derived(!!cardOverride?.background && !!item.icon_path);
 </script>
 
 {#if viewMode === 'list'}
@@ -124,8 +124,8 @@ let isFullBleed = $derived(bg.fit !== 'center' && !!item.icon_path);
 				iconPath={item.icon_path}
 				itemType={item.item_type}
 				alt="{item.label} icon"
-				class="absolute inset-0 h-full w-full {bg.fit === 'contain' ? 'object-contain' : 'object-cover'}"
-				style="object-position: {bg.offsetX}% {bg.offsetY}%;"
+				class="object-cover"
+				style={fullBleedImageStyle(bg)}
 			/>
 		{:else}
 			<div class="absolute inset-0 flex items-center justify-center">

@@ -6,10 +6,13 @@ import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
+import type { Opener } from '$lib/ipc/opener';
 import { configStore } from '$lib/state/config.svelte';
 import { helpStore } from '$lib/state/help.svelte';
 import { itemStore } from '$lib/state/items.svelte';
+import { openersStore } from '$lib/state/openers.svelte';
 import type { Item } from '$lib/types/item';
+import { parseCardOverride, serializeCardOverride } from '$lib/utils/card-override';
 import { markEnd, markStart, PERF_LABELS } from '$lib/utils/perf';
 import { tl } from '$lib/utils/perf-timeline';
 import LibraryCard from './LibraryCard.svelte';
@@ -107,6 +110,34 @@ function menuOpenSettings(): void {
 	const item = cardMenu.item;
 	closeCardMenu();
 	if (item) onEditItem?.(item.id);
+}
+
+// 起動アプリ (Opener override): 見た目設定モーダルから移設 (2026-05-20 user 指示
+// 「起動アプリの設定は見た目の設定じゃない」)。card_override_json.opener_id を per-card で
+// 上書きする。背景 / style override とは独立。
+let openers = $state<Opener[]>([]);
+onMount(() => {
+	void openersStore
+		.load()
+		.then((list) => {
+			openers = list;
+		})
+		.catch(() => {
+			// best-effort: 失敗時は既定起動のみ (OpenerSettings 経路で error UI)。
+		});
+});
+
+let cardOpenerId = $derived(
+	cardMenu.item ? (parseCardOverride(cardMenu.item.card_override_json)?.opener_id ?? '') : '',
+);
+
+function setCardOpener(value: string): void {
+	const item = cardMenu.item;
+	closeCardMenu();
+	if (!item) return;
+	const current = parseCardOverride(item.card_override_json) ?? {};
+	const next = serializeCardOverride({ ...current, opener_id: value || null });
+	void itemStore.updateItem(item.id, { card_override_json: next });
 }
 
 // Phase L-3 (2026-05-07 user 検収 Library 真因 #3):
@@ -265,5 +296,22 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 			<Settings2 class="h-3.5 w-3.5" />
 			{t('context_menu.open_settings')}
 		</button>
+		<div class="mt-1 border-t border-[var(--ag-border)] px-3 pb-1 pt-2">
+			<label for="library-context-opener" class="mb-1 block text-xs text-[var(--ag-text-muted)]">
+				{t('context_menu.opener_label')}
+			</label>
+			<select
+				id="library-context-opener"
+				class="w-full rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				data-testid="library-context-opener"
+				value={cardOpenerId}
+				onchange={(e) => setCardOpener((e.currentTarget as HTMLSelectElement).value)}
+			>
+				<option value="">{t('context_menu.opener_default')}</option>
+				{#each openers as op (op.id)}
+					<option value={op.id}>{op.name}{op.is_builtin ? ` (${t('context_menu.opener_builtin')})` : ''}</option>
+				{/each}
+			</select>
+		</div>
 	{/if}
 </ContextMenu>

@@ -6,11 +6,16 @@ import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { countItemReferences, createTag, getItemTags } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { CARD_OVERRIDE_INITIAL_BACKGROUND, configStore } from '$lib/state/config.svelte';
+import { configStore, DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
+import {
+	hasAppearanceOverride,
+	parseCardOverride,
+	serializeCardOverride,
+} from '$lib/utils/card-override';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import CardOverrideDialog from './CardOverrideDialog.svelte';
 import LibraryDetailActions from './LibraryDetailActions.svelte';
@@ -208,17 +213,20 @@ let cardOverrideDialogOpen = $state(false);
 
 function handleCardOverrideToggle(enable: boolean): void {
 	if (!selectedItem) return;
+	// 起動アプリ override (opener_id) は見た目とは独立に保持する。
+	const current = parseCardOverride(selectedItem.card_override_json) ?? {};
 	if (enable) {
-		// 初期 background (fit: cover) を copy で見た目設定 enable
-		const initial = JSON.stringify({
-			background: CARD_OVERRIDE_INITIAL_BACKGROUND,
-			style: configStore.libraryCard.style,
+		const next = serializeCardOverride({
+			...current,
+			background: { ...DEFAULT_CARD_BACKGROUND },
+			style: { ...configStore.libraryCard.style },
 		});
-		void itemStore.updateItem(selectedItem.id, { card_override_json: initial });
+		void itemStore.updateItem(selectedItem.id, { card_override_json: next });
 		toastStore.add(t('toast.appearance_settings_started'), 'success');
 	} else {
-		// reset: 見た目設定解除
-		void itemStore.updateItem(selectedItem.id, { card_override_json: null });
+		// 見た目 (background / style) のみ解除、opener_id は残す。
+		const next = serializeCardOverride({ opener_id: current.opener_id ?? null });
+		void itemStore.updateItem(selectedItem.id, { card_override_json: next });
 		toastStore.add(t('toast.appearance_settings_cleared'), 'info');
 	}
 }
@@ -254,7 +262,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 					type="checkbox"
 					class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
 					data-testid="card-override-toggle"
-					checked={!!selectedItem.card_override_json}
+					checked={hasAppearanceOverride(selectedItem.card_override_json)}
 					onchange={(e) =>
 						handleCardOverrideToggle((e.currentTarget as HTMLInputElement).checked)}
 				/>
@@ -264,7 +272,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 				type="button"
 				variant="outline"
 				size="icon-sm"
-				disabled={!selectedItem.card_override_json}
+				disabled={!hasAppearanceOverride(selectedItem.card_override_json)}
 				data-testid="card-override-open-dialog"
 				aria-label={t('library.detail.appearance_settings_open')}
 				title={t('library.detail.appearance_settings_open')}

@@ -1,44 +1,36 @@
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { t } from '$lib/i18n.svelte';
-import type { Opener } from '$lib/ipc/opener';
 import {
-	CARD_OVERRIDE_INITIAL_BACKGROUND,
 	configStore,
 	DEFAULT_CARD_BACKGROUND,
 	type LibraryCardBackgroundConfig,
-	type LibraryCardImageFit,
+	type LibraryCardRotation,
 	type LibraryCardStyleConfig,
 } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
-import { openersStore } from '$lib/state/openers.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
-import { type CardOverrideJson, parseCardOverride } from '$lib/utils/card-override';
+import {
+	type CardOverrideJson,
+	hasAppearanceOverride,
+	parseCardOverride,
+	serializeCardOverride,
+} from '$lib/utils/card-override';
 import { getErrorMessage } from '$lib/utils/format-error';
 
 /**
- * E-3 (2026-05-07 user 検収): カード表示設定を detail panel から ItemForm modal へ移植。
+ * カード見た目設定モーダルの編集 UI。
  *
- * 旧: LibraryDetailMetadata の "カード表示" section に背景モード / focal / colors / overlay /
- *     stroke / Opener override を全部詰め込んでいて、panel 横幅圧迫 + UX 一貫性が低い
- *     (他項目はモーダル編集なのにカード表示だけ panel 内 inline 編集)。
- * 新: 編集モーダル (ItemFormDialog) の中の section として統合。 panel は preview + 詳細
- *     表示のみに簡素化、編集は全てモーダルで完結。
+ * 構成 (上から): アイコン → 画像の表示 (回転 + 位置) → ラベル設定。
+ * 起動アプリ (Opener override) は「見た目」ではないため本モーダルから撤去、
+ * Library カードの右クリックメニューへ移設した (card_override_json.opener_id は維持)。
  *
- * 仕様 (LibraryDetailMetadata から移植):
- * - "見た目設定中" badge (override 有効時)
- * - "このカードだけ見た目設定" / "グローバル設定に戻す" toggle button
- * - override 有効時のみ展開:
- *   - 起動アプリ Opener override select
- *   - 画像の表示 select (cover / contain / center)
- *   - cover / contain 時: offsetX / offsetY slider
- *   - 共通: textColor / overlayEnabled / strokeEnabled / strokeColor
- * - リセット確認 ConfirmDialog (内蔵)
+ * 画像の表示モード選択 (cover / contain / center) は撤廃。background override を持つ
+ * カードは常に全面 cover 表示で、回転 (0/90/180/270°) と位置 (offsetX/Y) のみ調整する。
  *
  * 即時保存: itemStore.updateItem を直接呼ぶ (form の onSubmit と独立、instant feedback)。
  */
@@ -49,22 +41,9 @@ interface Props {
 
 let { item }: Props = $props();
 
-// audit 2026-05-13 G4: shared openersStore 経由 fetch。
-// Codex Round 3 fix: error 時は best-effort (空 list)。
-let openers = $state<Opener[]>([]);
-onMount(() => {
-	openersStore
-		.load()
-		.then((list) => {
-			openers = list;
-		})
-		.catch(() => {
-			// best-effort: OpenerSettings 経路で error UI を出す。
-		});
-});
-
 let cardOverride = $derived(parseCardOverride(item.card_override_json));
-let currentOpenerId = $derived(cardOverride?.opener_id ?? '');
+// 「見た目設定中」 = background / style が在る状態。opener_id 単独では見た目扱いしない。
+let appearanceActive = $derived(hasAppearanceOverride(item.card_override_json));
 
 let bg = $derived({
 	...DEFAULT_CARD_BACKGROUND,
@@ -77,10 +56,11 @@ let style = $derived({
 
 let resetConfirmOpen = $state(false);
 
-// offset slider: drag 中は local draft で thumb / 数値ラベルを追従させ、persist は
-// release 時 (onchange) のみ。oninput ごとに updateItem を呼ぶと IPC が殺到し、解決
-// 順序の逆転で「drag した位置と違う値が確定する」(= 位置調整が効かない) 不具合になる。
-// 初期値は const default、 実値は下の $effect が mount 直後に bg から同期する。
+const ROTATIONS: LibraryCardRotation[] = [0, 90, 180, 270];
+
+// offset slider: drag 中は local draft で thumb / 数値ラベルを追従させ、persist は release
+// (onchange) のみ。oninput ごとに updateItem を呼ぶと IPC 殺到 + 解決順逆転で「drag した
+// 位置と違う値が確定する」不具合になる (#531)。実値は下の $effect が bg から同期する。
 let offsetXDraft = $state(DEFAULT_CARD_BACKGROUND.offsetX);
 let offsetYDraft = $state(DEFAULT_CARD_BACKGROUND.offsetY);
 $effect(() => {
@@ -89,11 +69,6 @@ $effect(() => {
 $effect(() => {
 	offsetYDraft = bg.offsetY;
 });
-
-async function setOpenerId(value: string): Promise<void> {
-	const next: CardOverrideJson = { ...(cardOverride ?? {}), opener_id: value || null };
-	await itemStore.updateItem(item.id, { card_override_json: JSON.stringify(next) });
-}
 
 async function patchOverride(patch: {
 	background?: Partial<LibraryCardBackgroundConfig>;
@@ -105,21 +80,25 @@ async function patchOverride(patch: {
 		background: { ...(current.background ?? {}), ...(patch.background ?? {}) },
 		style: { ...(current.style ?? {}), ...(patch.style ?? {}) },
 	};
-	await itemStore.updateItem(item.id, { card_override_json: JSON.stringify(next) });
+	await itemStore.updateItem(item.id, { card_override_json: serializeCardOverride(next) });
 }
 
 function enableOverride(): void {
-	const current = JSON.stringify({
-		background: CARD_OVERRIDE_INITIAL_BACKGROUND,
-		style: configStore.libraryCard.style,
+	// opener_id は維持したまま background / style を初期値で付与する。
+	const next = serializeCardOverride({
+		...(cardOverride ?? {}),
+		background: { ...DEFAULT_CARD_BACKGROUND },
+		style: { ...configStore.libraryCard.style },
 	});
-	void itemStore.updateItem(item.id, { card_override_json: current });
+	void itemStore.updateItem(item.id, { card_override_json: next });
 	toastStore.add(t('toast.appearance_settings_started'), 'success');
 }
 
 function resetOverride(): void {
+	// 見た目 (background / style) のみ解除、起動アプリ override は残す。
 	resetConfirmOpen = false;
-	void itemStore.updateItem(item.id, { card_override_json: null });
+	const next = serializeCardOverride({ opener_id: cardOverride?.opener_id ?? null });
+	void itemStore.updateItem(item.id, { card_override_json: next });
 	toastStore.add(t('toast.appearance_settings_cleared'), 'success');
 }
 
@@ -195,7 +174,7 @@ async function clearIcon(): Promise<void> {
 		<div class="min-w-0 flex-1">
 			<div class="flex items-center gap-2">
 				<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.appearance_settings.card_display_label')}</p>
-				{#if item.card_override_json}
+				{#if appearanceActive}
 					<span
 						class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-xs font-medium text-[var(--ag-accent-text)]"
 						data-testid="card-override-badge"
@@ -205,12 +184,12 @@ async function clearIcon(): Promise<void> {
 				{/if}
 			</div>
 			<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
-				{item.card_override_json
+				{appearanceActive
 					? t('item.appearance_settings.desc_overriding')
 					: t('item.appearance_settings.desc_global')}
 			</p>
 		</div>
-		{#if item.card_override_json}
+		{#if appearanceActive}
 			<button
 				type="button"
 				data-testid="card-override-reset"
@@ -232,92 +211,75 @@ async function clearIcon(): Promise<void> {
 			</button>
 		{/if}
 	</div>
-	{#if item.card_override_json}
-		<div class="mt-3 space-y-2 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
-			<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-opener">
-				{t('item.appearance_settings.opener_label')}
-			</label>
-			<select
-				id="card-opener"
-				class="w-full rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-				value={currentOpenerId}
-				onchange={(e) => void setOpenerId((e.currentTarget as HTMLSelectElement).value)}
-			>
-				<option value="">{t('item.appearance_settings.opener_default')}</option>
-				{#each openers as op (op.id)}
-					<option value={op.id}>{op.name}{op.is_builtin ? ` (${t('item.appearance_settings.opener_builtin')})` : ''}</option>
-				{/each}
-			</select>
-			<p class="text-xs text-[var(--ag-text-muted)]">
-				{t('item.appearance_settings.opener_desc')}
-			</p>
-		</div>
+	{#if appearanceActive}
+		<!-- 画像の表示: 回転 (90° 刻み) + 位置 -->
 		<div class="mt-3 space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
+			<p class="text-xs font-semibold text-[var(--ag-text-secondary)]">{t('item.appearance_settings.section_image')}</p>
 			<div class="space-y-1">
-				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-bg-fit">
-					{t('item.appearance_settings.fit_label')}
-				</label>
-				<select
-					id="card-bg-fit"
-					class="w-full rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-2 py-1 text-sm text-[var(--ag-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					data-testid="card-override-fit"
-					value={bg.fit}
+				<span class="text-xs font-medium text-[var(--ag-text-secondary)]">{t('item.appearance_settings.rotation_label')}</span>
+				<div class="flex gap-1" role="group" aria-label={t('item.appearance_settings.rotation_label')}>
+					{#each ROTATIONS as deg (deg)}
+						<button
+							type="button"
+							data-testid="card-override-rotation-{deg}"
+							aria-pressed={bg.rotation === deg}
+							class="flex-1 rounded-md border px-2 py-1 text-sm tabular-nums transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {bg.rotation ===
+							deg
+								? 'border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
+								: 'border-[var(--ag-border)] bg-[var(--ag-surface-3)] text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-4)]'}"
+							onclick={() => void patchOverride({ background: { rotation: deg } })}
+						>
+							{deg}°
+						</button>
+					{/each}
+				</div>
+			</div>
+			<div class="space-y-1">
+				<div class="flex items-center justify-between">
+					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-x">{t('item.appearance_settings.offset_x_label')}</label>
+					<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{offsetXDraft}%</span>
+				</div>
+				<input
+					id="card-offset-x"
+					type="range"
+					min="0"
+					max="100"
+					step="5"
+					value={offsetXDraft}
+					data-testid="card-override-offset-x"
+					oninput={(e) => (offsetXDraft = Number((e.currentTarget as HTMLInputElement).value))}
 					onchange={(e) =>
 						void patchOverride({
-							background: {
-								fit: (e.currentTarget as HTMLSelectElement).value as LibraryCardImageFit,
-							},
+							background: { offsetX: Number((e.currentTarget as HTMLInputElement).value) },
 						})}
-				>
-					<option value="cover">{t('item.appearance_settings.fit_cover')}</option>
-					<option value="contain">{t('item.appearance_settings.fit_contain')}</option>
-					<option value="center">{t('item.appearance_settings.fit_center')}</option>
-				</select>
+					class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent)]"
+				/>
 			</div>
-			{#if bg.fit !== 'center'}
-				<div class="space-y-1">
-					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-x">{t('item.appearance_settings.offset_x_label')}</label>
-						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{offsetXDraft}%</span>
-					</div>
-					<input
-						id="card-offset-x"
-						type="range"
-						min="0"
-						max="100"
-						step="5"
-						value={offsetXDraft}
-						data-testid="card-override-offset-x"
-						oninput={(e) => (offsetXDraft = Number((e.currentTarget as HTMLInputElement).value))}
-						onchange={(e) =>
-							void patchOverride({
-								background: { offsetX: Number((e.currentTarget as HTMLInputElement).value) },
-							})}
-						class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent)]"
-					/>
+			<div class="space-y-1">
+				<div class="flex items-center justify-between">
+					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-y">{t('item.appearance_settings.offset_y_label')}</label>
+					<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{offsetYDraft}%</span>
 				</div>
-				<div class="space-y-1">
-					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-y">{t('item.appearance_settings.offset_y_label')}</label>
-						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{offsetYDraft}%</span>
-					</div>
-					<input
-						id="card-offset-y"
-						type="range"
-						min="0"
-						max="100"
-						step="5"
-						value={offsetYDraft}
-						data-testid="card-override-offset-y"
-						oninput={(e) => (offsetYDraft = Number((e.currentTarget as HTMLInputElement).value))}
-						onchange={(e) =>
-							void patchOverride({
-								background: { offsetY: Number((e.currentTarget as HTMLInputElement).value) },
-							})}
-						class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent)]"
-					/>
-				</div>
-			{/if}
+				<input
+					id="card-offset-y"
+					type="range"
+					min="0"
+					max="100"
+					step="5"
+					value={offsetYDraft}
+					data-testid="card-override-offset-y"
+					oninput={(e) => (offsetYDraft = Number((e.currentTarget as HTMLInputElement).value))}
+					onchange={(e) =>
+						void patchOverride({
+							background: { offsetY: Number((e.currentTarget as HTMLInputElement).value) },
+						})}
+					class="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--ag-surface-4)] accent-[var(--ag-accent)]"
+				/>
+			</div>
+		</div>
+		<!-- ラベル設定: 文字色 / オーバーレイ / 縁取り -->
+		<div class="mt-3 space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
+			<p class="text-xs font-semibold text-[var(--ag-text-secondary)]">{t('item.appearance_settings.section_label')}</p>
 			<div class="space-y-1">
 				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-text-color">{t('item.appearance_settings.text_color_label')}</label>
 				<input
