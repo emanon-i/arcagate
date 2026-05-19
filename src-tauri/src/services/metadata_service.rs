@@ -130,7 +130,15 @@ fn file_metadata(path_str: &str) -> Option<ItemMetadata> {
 ///
 /// 外部 crate を使わず、各フォーマットの仕様に従い必要バイトのみ読む。
 /// 失敗時は None。
+///
+/// 実機計測 (2026-05-19、 SMR HDD 上の 117 exe): 非画像拡張子の判定より **前**に
+/// `fs::File::open` でハンドルを開くと、 exe を含む全 file item でハンドル open が走り、
+/// Windows Defender の real-time scan が exe 本体を SMR HDD から読み込んで cold で
+/// 計 19.5 秒 (Library 遷移を丸ごと freeze)。 画像拡張子でない限り file を開かない。
 fn read_image_dimensions(path: &Path, ext: &str) -> Option<(u32, u32, &'static str)> {
+    if !matches!(ext, "png" | "jpg" | "jpeg" | "gif") {
+        return None;
+    }
     let mut file = fs::File::open(path).ok()?;
     match ext {
         "png" => {
@@ -325,6 +333,14 @@ mod tests {
         std::fs::write(&tmp, b"hello").unwrap();
         let r = read_image_dimensions(&tmp, "txt");
         std::fs::remove_file(&tmp).ok();
+        assert_eq!(r, None);
+    }
+
+    #[test]
+    fn read_image_dimensions_non_image_ext_skips_without_existing_file() {
+        // 2026-05-19 perf 修正: 非画像拡張子は file を一切開かないため、
+        // 実在しない exe path でも (open error 経由ではなく) 拡張子判定で即 None。
+        let r = read_image_dimensions(Path::new("Z:/__no_such__.exe"), "exe");
         assert_eq!(r, None);
     }
 
