@@ -136,16 +136,16 @@
 		}
 	},
 	"item": {
-		"card_override": {
-			"badge_active": "個別調整中",
+		"appearance_settings": {
+			"badge_active": "見た目設定中",
 			"card_display_label": "カード表示",
 			"confirm_reset_button": "解除する",
-			"confirm_reset_desc": "このカードの個別表示設定が失われ、Settings > Library のグローバル設定が適用されます。",
-			"confirm_reset_title": "個別調整を解除しますか？",
+			"confirm_reset_desc": "このカードの見た目設定が失われ、Settings > Library のグローバル設定が適用されます。",
+			"confirm_reset_title": "見た目設定を解除しますか？",
 			"desc_global": "Settings > Library のグローバル設定が適用されています。",
 			"desc_overriding": "このカードのみグローバル設定とは独立した表示が適用されています。",
-			"enable_aria": "このカードだけ個別調整を有効化",
-			"enable_button": "このカードだけ個別調整",
+			"enable_aria": "このカードだけ見た目設定を有効化",
+			"enable_button": "このカードだけ見た目設定",
 			"filter_icon_image": "アイコン画像",
 			"fit_center": "中央に表示",
 			"fit_contain": "全体を表示 (contain)",
@@ -161,7 +161,7 @@
 			"opener_desc": "このカードのみ指定 Opener で起動。Library / Workspace 両方の click 起動に効く。",
 			"opener_label": "起動アプリ (Opener override)",
 			"overlay_label": "下部にグラデーションオーバーレイを表示",
-			"reset_aria": "個別調整を解除してグローバル設定に戻す",
+			"reset_aria": "見た目設定を解除してグローバル設定に戻す",
 			"reset_button": "グローバル設定に戻す",
 			"stroke_color_label": "縁取り色",
 			"stroke_label": "ラベル文字に縁取りを付ける",
@@ -211,14 +211,14 @@
 	},
 	"library": {
 		"add_item": "アイテムを追加",
-		"card_override": {
-			"title": "カード個別調整"
+		"appearance_settings": {
+			"title": "カード見た目設定"
 		},
 		"detail": {
 			"alias_label": "別名",
+			"appearance_settings_label": "見た目設定",
+			"appearance_settings_open": "見た目設定を開く",
 			"args_label": "引数",
-			"card_override_label": "カード個別調整",
-			"card_override_open": "カード個別調整を開く",
 			"close_panel": "パネルを閉じる",
 			"default_app": "デフォルトアプリ",
 			"default_app_fallback": "Explorer（既定）",
@@ -460,7 +460,7 @@
 			"press_key": "キーを押してください..."
 		},
 		"library_card": {
-			"bg_desc": "全カードは共通のサーフェスに中央アイコンで表示されます。画像の全面表示やアイコンの差し替えは各アイテムの編集画面（カード個別調整）で指定できます。",
+			"bg_desc": "全カードは共通のサーフェスに中央アイコンで表示されます。画像の全面表示やアイコンの差し替えは各アイテムの編集画面（カード見た目設定）で指定できます。",
 			"bg_heading": "カードの見た目",
 			"label_text_heading": "ラベルの文字",
 			"overlay": "背景オーバーレイ",
@@ -540,10 +540,10 @@
 		}
 	},
 	"toast": {
+		"appearance_settings_cleared": "見た目設定を解除しました",
+		"appearance_settings_started": "このカードだけ見た目設定を開始しました",
 		"bookmark_read_failed": "読み込み失敗: {error}",
 		"calc_copied_to_clipboard": "計算結果をクリップボードにコピーしました",
-		"card_override_cleared": "個別調整を解除しました",
-		"card_override_started": "このカードだけ個別調整を開始しました",
 		"config_save_failed": "設定保存失敗: {error}",
 		"copied_to_clipboard": "クリップボードにコピーしました",
 		"copy_failed": "コピー失敗: {error}",
@@ -635,7 +635,7 @@
 		},
 		"common": {
 			"builtin_suffix": " (組み込み)",
-			"default_opener_desc": "この widget からの起動でこの Opener を使う。Library カード個別調整が指定されてればそちらが優先。",
+			"default_opener_desc": "この widget からの起動でこの Opener を使う。Library カード見た目設定が指定されてればそちらが優先。",
 			"default_opener_label": "デフォルト起動アプリ",
 			"default_opener_system": "既定 (system) / item.default_app に従う",
 			"description_label": "説明",

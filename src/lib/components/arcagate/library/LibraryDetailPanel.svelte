@@ -201,25 +201,25 @@ let moreMenuItems = $derived.by(() => {
 	];
 });
 
-// F-5 (2026-05-08 user 検収): カード個別調整 toggle + 別 modal 編集に変更。
+// F-5 (2026-05-08 user 検収): カード見た目設定 toggle + 別 modal 編集に変更。
 // E-3 で ItemForm 内に直接埋め込んだ ItemFormCardOverride を撤去、detail panel に
-// checkbox + 「個別設定モーダルを開く」 button を配置、CardOverrideDialog を別 modal で開く。
+// checkbox + 「見た目設定モーダルを開く」 button を配置、CardOverrideDialog を別 modal で開く。
 let cardOverrideDialogOpen = $state(false);
 
 function handleCardOverrideToggle(enable: boolean): void {
 	if (!selectedItem) return;
 	if (enable) {
-		// 初期 background (fit: cover) を copy で個別調整 enable
+		// 初期 background (fit: cover) を copy で見た目設定 enable
 		const initial = JSON.stringify({
 			background: CARD_OVERRIDE_INITIAL_BACKGROUND,
 			style: configStore.libraryCard.style,
 		});
 		void itemStore.updateItem(selectedItem.id, { card_override_json: initial });
-		toastStore.add(t('toast.card_override_started'), 'success');
+		toastStore.add(t('toast.appearance_settings_started'), 'success');
 	} else {
-		// reset: 個別調整解除
+		// reset: 見た目設定解除
 		void itemStore.updateItem(selectedItem.id, { card_override_json: null });
-		toastStore.add(t('toast.card_override_cleared'), 'info');
+		toastStore.add(t('toast.appearance_settings_cleared'), 'info');
 	}
 }
 </script>
@@ -247,7 +247,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 		<LibraryDetailHeader item={selectedItem} {moreMenuItems} {onClose} />
 		<LibraryDetailMetadata item={selectedItem} />
 
-		<!-- F-5 (2026-05-08): カード個別調整 toggle + 別 modal 編集 -->
+		<!-- F-5 (2026-05-08): カード見た目設定 toggle + 別 modal 編集 -->
 		<div class="mt-4 flex items-center justify-between gap-2 border-t border-[var(--ag-border)] pt-4">
 			<label class="flex items-center gap-2 text-sm text-[var(--ag-text-secondary)]">
 				<input
@@ -258,7 +258,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 					onchange={(e) =>
 						handleCardOverrideToggle((e.currentTarget as HTMLInputElement).checked)}
 				/>
-				<span>{t('library.detail.card_override_label')}</span>
+				<span>{t('library.detail.appearance_settings_label')}</span>
 			</label>
 			<Button
 				type="button"
@@ -266,8 +266,8 @@ function handleCardOverrideToggle(enable: boolean): void {
 				size="icon-sm"
 				disabled={!selectedItem.card_override_json}
 				data-testid="card-override-open-dialog"
-				aria-label={t('library.detail.card_override_open')}
-				title={t('library.detail.card_override_open')}
+				aria-label={t('library.detail.appearance_settings_open')}
+				title={t('library.detail.appearance_settings_open')}
 				onclick={() => (cardOverrideDialogOpen = true)}
 			>
 				<Settings class="h-4 w-4" />

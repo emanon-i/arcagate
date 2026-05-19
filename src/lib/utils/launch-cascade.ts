@@ -2,7 +2,7 @@
  * Item 起動の cascade resolve (C-15 #10 + #19 統合)。
  *
  * 優先順:
- * 1. card_override.opener_id (Library カード個別設定の Opener override、最優先)
+ * 1. card_override.opener_id (Library カード見た目設定の Opener override、最優先)
  * 2. widget.default_opener_id (Widget settings、ItemWidget / ExeFolder 等で指定)
  * 3. item.default_app / system default 経由 (cmd_launch_item の既存 cascade)
  *

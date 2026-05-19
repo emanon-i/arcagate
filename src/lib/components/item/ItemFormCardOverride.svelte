@@ -29,8 +29,8 @@ import { type CardOverrideJson, parseCardOverride } from '$lib/utils/card-overri
  *     表示のみに簡素化、編集は全てモーダルで完結。
  *
  * 仕様 (LibraryDetailMetadata から移植):
- * - "個別調整中" badge (override 有効時)
- * - "このカードだけ個別調整" / "グローバル設定に戻す" toggle button
+ * - "見た目設定中" badge (override 有効時)
+ * - "このカードだけ見た目設定" / "グローバル設定に戻す" toggle button
  * - override 有効時のみ展開:
  *   - 起動アプリ Opener override select
  *   - 画像の表示 select (cover / contain / center)
@@ -99,13 +99,13 @@ function enableOverride(): void {
 		style: configStore.libraryCard.style,
 	});
 	void itemStore.updateItem(item.id, { card_override_json: current });
-	toastStore.add(t('toast.card_override_started'), 'success');
+	toastStore.add(t('toast.appearance_settings_started'), 'success');
 }
 
 function resetOverride(): void {
 	resetConfirmOpen = false;
 	void itemStore.updateItem(item.id, { card_override_json: null });
-	toastStore.add(t('toast.card_override_cleared'), 'success');
+	toastStore.add(t('toast.appearance_settings_cleared'), 'success');
 }
 
 // G-6 (2026-05-09 user 検収): ItemForm からアイコン編集を移植。
@@ -116,7 +116,7 @@ async function selectIcon(): Promise<void> {
 		multiple: false,
 		filters: [
 			{
-				name: t('item.card_override.filter_icon_image'),
+				name: t('item.appearance_settings.filter_icon_image'),
 				extensions: ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'],
 			},
 		],
@@ -136,15 +136,15 @@ async function clearIcon(): Promise<void> {
 <!-- G-6 (2026-05-09 user 検収): icon 編集 UI を ItemForm から移植。
      override toggle の上 (常時 visible) に配置し、いつでも item.icon_path を変更可能。 -->
 <div class="space-y-2">
-	<span class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.card_override.icon_label')}</span>
+	<span class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.appearance_settings.icon_label')}</span>
 	<div class="flex items-center gap-3">
 		<div
 			class="flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)]"
 		>
 			{#if item.icon_path}
-				<ItemIcon iconPath={item.icon_path} alt={t('item.card_override.icon_label')} class="h-16 w-16 object-contain" />
+				<ItemIcon iconPath={item.icon_path} alt={t('item.appearance_settings.icon_label')} class="h-16 w-16 object-contain" />
 			{:else}
-				<span class="text-xs text-[var(--ag-text-muted)]">{t('item.card_override.icon_none')}</span>
+				<span class="text-xs text-[var(--ag-text-muted)]">{t('item.appearance_settings.icon_none')}</span>
 			{/if}
 		</div>
 		<button
@@ -153,7 +153,7 @@ async function clearIcon(): Promise<void> {
 			data-testid="card-override-icon-select"
 			onclick={() => void selectIcon()}
 		>
-			{t('item.card_override.icon_select')}
+			{t('item.appearance_settings.icon_select')}
 		</button>
 		{#if item.icon_path}
 			<button
@@ -171,20 +171,20 @@ async function clearIcon(): Promise<void> {
 	<div class="flex items-start justify-between gap-3">
 		<div class="min-w-0 flex-1">
 			<div class="flex items-center gap-2">
-				<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.card_override.card_display_label')}</p>
+				<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('item.appearance_settings.card_display_label')}</p>
 				{#if item.card_override_json}
 					<span
 						class="rounded-full bg-[var(--ag-accent-bg)] px-2 py-0.5 text-xs font-medium text-[var(--ag-accent-text)]"
 						data-testid="card-override-badge"
 					>
-						{t('item.card_override.badge_active')}
+						{t('item.appearance_settings.badge_active')}
 					</span>
 				{/if}
 			</div>
 			<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">
 				{item.card_override_json
-					? t('item.card_override.desc_overriding')
-					: t('item.card_override.desc_global')}
+					? t('item.appearance_settings.desc_overriding')
+					: t('item.appearance_settings.desc_global')}
 			</p>
 		</div>
 		{#if item.card_override_json}
@@ -192,27 +192,27 @@ async function clearIcon(): Promise<void> {
 				type="button"
 				data-testid="card-override-reset"
 				class="shrink-0 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs text-[var(--ag-text-secondary)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
-				aria-label={t('item.card_override.reset_aria')}
+				aria-label={t('item.appearance_settings.reset_aria')}
 				onclick={() => (resetConfirmOpen = true)}
 			>
-				{t('item.card_override.reset_button')}
+				{t('item.appearance_settings.reset_button')}
 			</button>
 		{:else}
 			<button
 				type="button"
 				data-testid="card-override-enable"
 				class="shrink-0 rounded-lg border border-[var(--ag-accent-border)] bg-[var(--ag-accent-bg)] px-3 py-1.5 text-xs text-[var(--ag-accent-text)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-accent-active-bg)]"
-				aria-label={t('item.card_override.enable_aria')}
+				aria-label={t('item.appearance_settings.enable_aria')}
 				onclick={enableOverride}
 			>
-				{t('item.card_override.enable_button')}
+				{t('item.appearance_settings.enable_button')}
 			</button>
 		{/if}
 	</div>
 	{#if item.card_override_json}
 		<div class="mt-3 space-y-2 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-opener">
-				{t('item.card_override.opener_label')}
+				{t('item.appearance_settings.opener_label')}
 			</label>
 			<select
 				id="card-opener"
@@ -220,19 +220,19 @@ async function clearIcon(): Promise<void> {
 				value={currentOpenerId}
 				onchange={(e) => void setOpenerId((e.currentTarget as HTMLSelectElement).value)}
 			>
-				<option value="">{t('item.card_override.opener_default')}</option>
+				<option value="">{t('item.appearance_settings.opener_default')}</option>
 				{#each openers as op (op.id)}
-					<option value={op.id}>{op.name}{op.is_builtin ? ` (${t('item.card_override.opener_builtin')})` : ''}</option>
+					<option value={op.id}>{op.name}{op.is_builtin ? ` (${t('item.appearance_settings.opener_builtin')})` : ''}</option>
 				{/each}
 			</select>
 			<p class="text-xs text-[var(--ag-text-muted)]">
-				{t('item.card_override.opener_desc')}
+				{t('item.appearance_settings.opener_desc')}
 			</p>
 		</div>
 		<div class="mt-3 space-y-3 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-3">
 			<div class="space-y-1">
 				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-bg-fit">
-					{t('item.card_override.fit_label')}
+					{t('item.appearance_settings.fit_label')}
 				</label>
 				<select
 					id="card-bg-fit"
@@ -246,15 +246,15 @@ async function clearIcon(): Promise<void> {
 							},
 						})}
 				>
-					<option value="cover">{t('item.card_override.fit_cover')}</option>
-					<option value="contain">{t('item.card_override.fit_contain')}</option>
-					<option value="center">{t('item.card_override.fit_center')}</option>
+					<option value="cover">{t('item.appearance_settings.fit_cover')}</option>
+					<option value="contain">{t('item.appearance_settings.fit_contain')}</option>
+					<option value="center">{t('item.appearance_settings.fit_center')}</option>
 				</select>
 			</div>
 			{#if bg.fit !== 'center'}
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-x">{t('item.card_override.offset_x_label')}</label>
+						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-x">{t('item.appearance_settings.offset_x_label')}</label>
 						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.offsetX}%</span>
 					</div>
 					<input
@@ -274,7 +274,7 @@ async function clearIcon(): Promise<void> {
 				</div>
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
-						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-y">{t('item.card_override.offset_y_label')}</label>
+						<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-offset-y">{t('item.appearance_settings.offset_y_label')}</label>
 						<span class="text-xs tabular-nums text-[var(--ag-text-muted)]">{bg.offsetY}%</span>
 					</div>
 					<input
@@ -294,7 +294,7 @@ async function clearIcon(): Promise<void> {
 				</div>
 			{/if}
 			<div class="space-y-1">
-				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-text-color">{t('item.card_override.text_color_label')}</label>
+				<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-text-color">{t('item.appearance_settings.text_color_label')}</label>
 				<input
 					id="card-text-color"
 					type="color"
@@ -316,7 +316,7 @@ async function clearIcon(): Promise<void> {
 							style: { overlayEnabled: (e.currentTarget as HTMLInputElement).checked },
 						})}
 				/>
-				<span>{t('item.card_override.overlay_label')}</span>
+				<span>{t('item.appearance_settings.overlay_label')}</span>
 			</label>
 			<label class="flex cursor-pointer items-center gap-2 text-xs text-[var(--ag-text-secondary)]">
 				<input
@@ -328,11 +328,11 @@ async function clearIcon(): Promise<void> {
 							style: { strokeEnabled: (e.currentTarget as HTMLInputElement).checked },
 						})}
 				/>
-				<span>{t('item.card_override.stroke_label')}</span>
+				<span>{t('item.appearance_settings.stroke_label')}</span>
 			</label>
 			{#if style.strokeEnabled}
 				<div class="space-y-1">
-					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-stroke-color">{t('item.card_override.stroke_color_label')}</label>
+					<label class="text-xs font-medium text-[var(--ag-text-secondary)]" for="card-stroke-color">{t('item.appearance_settings.stroke_color_label')}</label>
 					<input
 						id="card-stroke-color"
 						type="color"
@@ -351,9 +351,9 @@ async function clearIcon(): Promise<void> {
 
 <ConfirmDialog
 	open={resetConfirmOpen}
-	title={t('item.card_override.confirm_reset_title')}
-	description={t('item.card_override.confirm_reset_desc')}
-	confirmLabel={t('item.card_override.confirm_reset_button')}
+	title={t('item.appearance_settings.confirm_reset_title')}
+	description={t('item.appearance_settings.confirm_reset_desc')}
+	confirmLabel={t('item.appearance_settings.confirm_reset_button')}
 	confirmVariant="destructive"
 	onConfirm={resetOverride}
 	onCancel={() => (resetConfirmOpen = false)}

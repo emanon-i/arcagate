@@ -4,7 +4,7 @@ import { t } from '$lib/i18n.svelte';
 /**
  * ItemForm の識別フィールド (label / aliases)。
  *
- * G-6 (2026-05-09 user 検収): icon 編集 UI は ItemFormCardOverride (カード個別設定) に移植。
+ * G-6 (2026-05-09 user 検収): icon 編集 UI は ItemFormCardOverride (カード見た目設定) に移植。
  * 「アイコンはアイテム本体属性ではなくカードの見た目に属する」 user 整理。E-3 / F-5 で
  * 確立した「カード見た目は detail panel の checkbox + 別 modal で編集」 line に合流。
  *

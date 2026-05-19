@@ -80,7 +80,7 @@ const SIZES = ['S', 'M', 'L'] as const;
 
 	<!-- グローバル背景設定は持たない。全カード共通の見た目は「共通サーフェス +
 	     中央アイコン」固定。画像の全面表示 / アイコン差し替えは各アイテムの編集画面
-	     (カード個別設定) で指定する。 -->
+	     (カード見た目設定) で指定する。 -->
 	<section class="space-y-1">
 		<h4 class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.library_card.bg_heading')}</h4>
 		<p class="text-xs text-[var(--ag-text-muted)]">{t('settings.library_card.bg_desc')}</p>
