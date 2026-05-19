@@ -633,6 +633,7 @@ arcagate/
 ## 参照
 
 - 画面別カタログ → [`screens/`](./screens/)
+- 機能契約 (Functional Spec、各 feature の「やること / やらないこと / 性能予算」) → [`features/`](./features/)
 - テストシナリオ ⇄ 実装 link → [`test_scenarios.md`](./test_scenarios.md)
 - 製品要求 / Non-goals → [`../l0_ideas/motivation.md`](../l0_ideas/motivation.md)
 - 失敗駆動メモリ → [`./lessons.md`](./lessons.md)
