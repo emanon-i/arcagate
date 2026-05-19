@@ -39,6 +39,7 @@ const MIGRATION_035: &str = include_str!("../../migrations/035_design_tokens_v2.
 const MIGRATION_036: &str = include_str!("../../migrations/036_drop_system_theme_mode.sql");
 const MIGRATION_037: &str =
     include_str!("../../migrations/037_system_monitor_chart_type_per_metric.sql");
+const MIGRATION_038: &str = include_str!("../../migrations/038_card_override_drop_fit.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -79,6 +80,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_035),
         M::up(MIGRATION_036),
         M::up(MIGRATION_037),
+        M::up(MIGRATION_038),
     ])
 }
 
@@ -226,6 +228,69 @@ mod tests {
             )
             .unwrap();
         assert_eq!(mode, "dark");
+    }
+
+    #[test]
+    fn test_migration_038_drops_fit_and_adds_rotation() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // migration 037 まで適用 (card_override_json column が揃った状態)
+        m.to_version(&mut conn, 37).unwrap();
+
+        // background.fit + 旧 schema field を持つ既存 override
+        conn.execute(
+            r##"INSERT INTO items (id, item_type, label, target, card_override_json)
+               VALUES ('it-bg', 'exe', 'A', 'a.exe',
+                       '{"background":{"fit":"center","mode":"image","focalX":10,"focalY":20,"offsetX":30,"offsetY":40},"style":{"textColor":"#fff"}}')"##,
+            [],
+        )
+        .unwrap();
+        // background を持たない override (opener のみ) は対象外
+        conn.execute(
+            r#"INSERT INTO items (id, item_type, label, target, card_override_json)
+               VALUES ('it-nobg', 'url', 'B', 'https://x', '{"opener_id":"op1"}')"#,
+            [],
+        )
+        .unwrap();
+
+        // migration 038 適用
+        m.to_version(&mut conn, 38).unwrap();
+
+        let bg: String = conn
+            .query_row(
+                "SELECT card_override_json FROM items WHERE id = 'it-bg'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        // 撤廃 field は除去
+        assert!(!bg.contains("\"fit\""), "fit should be removed: {bg}");
+        assert!(!bg.contains("\"mode\""), "mode should be removed: {bg}");
+        assert!(!bg.contains("focalX"), "focalX should be removed: {bg}");
+        assert!(!bg.contains("focalY"), "focalY should be removed: {bg}");
+        // offset / style は保持、rotation 0 が付与される
+        assert!(bg.contains("offsetX"), "offsetX should be kept: {bg}");
+        assert!(bg.contains("textColor"), "style should be kept: {bg}");
+        assert!(
+            bg.contains("\"rotation\":0"),
+            "rotation:0 should be added: {bg}"
+        );
+
+        // background 無し override は無変更 (rotation は付与しない)
+        let nobg: String = conn
+            .query_row(
+                "SELECT card_override_json FROM items WHERE id = 'it-nobg'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            !nobg.contains("rotation"),
+            "no background → no rotation: {nobg}"
+        );
+        assert!(nobg.contains("op1"), "opener_id should be kept: {nobg}");
     }
 
     #[test]

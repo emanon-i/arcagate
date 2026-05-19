@@ -17,9 +17,9 @@ import {
 
 export type ItemSize = 'S' | 'M' | 'L';
 
-// 'cover' = item.icon_path を全面 cover、'contain' = 全体を収めて表示、
-// 'center' = 共通 surface + 中央アイコン (default)。
-export type LibraryCardImageFit = 'cover' | 'contain' | 'center';
+// per-card override 画像の 90 度刻み回転。selector 撤廃済 (常に cover 固定) のため
+// fit は持たず、回転のみ調整可能。
+export type LibraryCardRotation = 0 | 90 | 180 | 270;
 
 export interface LibraryCardStyleConfig {
 	textColor: string;
@@ -32,27 +32,27 @@ export interface LibraryCardStyleConfig {
 /**
  * カード背景の per-card override 形。global default は持たず、全カード共通の見た目は
  * DEFAULT_CARD_BACKGROUND 固定 (共通 surface + 中央アイコン)。card_override_json で
- * のみ fit / offset を上書きする。offsetX / offsetY は cover / contain 時の
- * object-position (0-100%)。
+ * のみ offset / rotation を上書きする。画像は常に全面 cover 固定 (表示モード selector
+ * 撤廃済)。offsetX / offsetY は object-position (0-100%)、rotation は 90 度刻み。
  */
 export interface LibraryCardBackgroundConfig {
-	fit: LibraryCardImageFit;
 	offsetX: number;
 	offsetY: number;
+	rotation: LibraryCardRotation;
 }
 
 /** card_override が background を持たないカードの default = 共通 surface + 中央アイコン。 */
 export const DEFAULT_CARD_BACKGROUND: LibraryCardBackgroundConfig = {
-	fit: 'center',
 	offsetX: 50,
 	offsetY: 50,
+	rotation: 0,
 };
 
-/** per-card override を新規 enable した時の初期 background。fit の default は cover (user 検収)。 */
+/** per-card override を新規 enable した時の初期 background (全面 cover + 無回転)。 */
 export const CARD_OVERRIDE_INITIAL_BACKGROUND: LibraryCardBackgroundConfig = {
-	fit: 'cover',
 	offsetX: 50,
 	offsetY: 50,
+	rotation: 0,
 };
 
 export interface LibraryCardConfig {

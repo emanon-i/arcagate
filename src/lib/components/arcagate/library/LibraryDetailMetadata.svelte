@@ -7,7 +7,7 @@ import { t } from '$lib/i18n.svelte';
 import { DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
-import { parseCardOverride } from '$lib/utils/card-override';
+import { cardRotationTransform, parseCardOverride } from '$lib/utils/card-override';
 
 /**
  * Library detail panel メタデータセクション (preview + DetailRows + visibility)。
@@ -30,26 +30,34 @@ let bg = $derived({
 	...(cardOverride?.background ?? {}),
 });
 
-// LibraryCard と同じ logic: fit 'cover' / 'contain' + icon_path で全面表示。
-let isFullBleed = $derived(bg.fit !== 'center' && !!item.icon_path);
+// LibraryCard と同じ logic: override の background + icon_path で全面 cover 表示。
+let isFullBleed = $derived(!!cardOverride?.background && !!item.icon_path);
+
+// LibraryCard と同じ object-position + 90 度刻み回転。
+let bgImageStyle = $derived.by(() => {
+	const transform = cardRotationTransform(bg.rotation);
+	return `object-position: ${bg.offsetX}% ${bg.offsetY}%;${
+		transform ? ` transform: ${transform};` : ''
+	}`;
+});
 
 // F-3 (2026-05-08 user 検収): 「ライブラリで非表示」 toggle の長文説明を info icon に
 // 折り畳む。default 折畳 (showHideDescription=false)、icon click で expand。
 let showHideDescription = $state(false);
 </script>
 
-<!-- preview を LibraryCard と同形式で render: fit cover/contain は全面表示 (offset 反映)、
-     center は共通 surface + 中央アイコン。card_override 反映で見た目統一。 -->
+<!-- preview を LibraryCard と同形式で render: override 有り = 全面 cover (offset / rotation
+     反映)、override 無し = 共通 surface + 中央アイコン。aspect 4:3 で実カードと同形。 -->
 <div
-	class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--ag-radius-widget)] bg-[var(--ag-surface-3)]"
+	class="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[var(--ag-radius-widget)] bg-[var(--ag-surface-3)]"
 >
 	{#if isFullBleed}
 		<ItemIcon
 			iconPath={item.icon_path}
 			itemType={item.item_type}
 			alt="{item.label} icon"
-			class="absolute inset-0 h-full w-full {bg.fit === 'contain' ? 'object-contain' : 'object-cover'}"
-			style="object-position: {bg.offsetX}% {bg.offsetY}%;"
+			class="absolute inset-0 h-full w-full object-cover"
+			style={bgImageStyle}
 		/>
 	{:else}
 		<ItemIcon
