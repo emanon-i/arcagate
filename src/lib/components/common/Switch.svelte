@@ -42,7 +42,7 @@ function handleKey(e: KeyboardEvent) {
 	onkeydown={handleKey}
 >
 	<span
-		class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {checked
+		class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[var(--ag-surface-0)] shadow-[var(--ag-shadow-sm)] transition-transform duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none {checked
 			? 'translate-x-6'
 			: 'translate-x-1'}"
 		aria-hidden="true"

@@ -140,7 +140,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	     title で「ドラッグで移動」を tooltip 表示。 -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="group/drag absolute -top-3 left-1/2 z-20 flex h-6 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] shadow-[var(--ag-shadow-sm,0_2px_4px_rgba(0,0,0,0.1))] transition-[background-color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-2)]"
+		class="group/drag absolute -top-3 left-1/2 z-20 flex h-6 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] shadow-[var(--ag-shadow-sm)] transition-[background-color,border-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-2)]"
 		class:cursor-grab={!isMoving}
 		class:cursor-grabbing={isMoving}
 		role="button"
@@ -158,7 +158,7 @@ function handleDelete(e: MouseEvent | KeyboardEvent) {
 	     PH-widget-polish: title で「削除 (Delete)」を keyboard shortcut hint、cursor-pointer 明示。 -->
 	<button
 		type="button"
-		class="absolute -right-3 -top-3 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] text-[var(--ag-text-secondary)] shadow-[var(--ag-shadow-sm,0_2px_4px_rgba(0,0,0,0.1))] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-destructive hover:text-white active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+		class="absolute -right-3 -top-3 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-[var(--ag-border)] bg-[var(--ag-surface-1)] text-[var(--ag-text-secondary)] shadow-[var(--ag-shadow-sm)] transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-destructive hover:text-white active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
 		aria-label={t('workspace.handles.delete')}
 		title={t('workspace.handles.delete_title')}
 		onclick={handleDelete}

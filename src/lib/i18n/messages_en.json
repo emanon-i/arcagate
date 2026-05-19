@@ -666,7 +666,6 @@
 			"sort_current_oldest": " (currently oldest first)",
 			"sort_default": "Default (IPC order)",
 			"sort_field_label": "Sort order",
-			"sort_label": "Sort:",
 			"sort_mtime": "Updated",
 			"sort_name": "Name",
 			"sort_name_az": "By name (A-Z)",

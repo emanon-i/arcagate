@@ -73,7 +73,7 @@ function handleNext() {
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- B-6 #1: il-zone scope 撤去、accent は theme 追従。 -->
 	<div
-		class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-8"
+		class="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--scrim)] p-8"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="onboarding-title"
@@ -82,7 +82,7 @@ function handleNext() {
 		tabindex="-1"
 	>
 		<div
-			class="flex w-full max-w-md flex-col gap-4 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-6 shadow-xl"
+			class="flex w-full max-w-md flex-col gap-4 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-6 shadow-[var(--ag-shadow-dialog)]"
 			transition:fly={{ y: 16, duration: dNormal }}
 		>
 			<div class="flex items-center justify-between">

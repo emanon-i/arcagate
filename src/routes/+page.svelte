@@ -415,7 +415,7 @@ function handleFormClose() {
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--scrim)]"
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
@@ -445,8 +445,8 @@ function handleFormClose() {
 
 <!-- D&D オーバーレイ -->
 {#if isDraggingOver}
-	<div class="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/30">
-		<div class="rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-surface-1)]/90 px-8 py-6 text-center shadow-lg">
+	<div class="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-[var(--scrim)]">
+		<div class="rounded-lg border-2 border-dashed border-[var(--ag-accent)] bg-[var(--ag-surface-1)] px-8 py-6 text-center shadow-[var(--ag-shadow-md)]">
 			<p class="text-lg font-medium text-[var(--ag-text-primary)]">{t('common.drop_to_register')}</p>
 			<p class="mt-1 text-sm text-[var(--ag-text-muted)]">exe / url / folder / script</p>
 		</div>

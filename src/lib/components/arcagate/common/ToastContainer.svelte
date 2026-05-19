@@ -27,7 +27,7 @@ const typeStyles: Record<string, string> = {
 	>
 		{#each toastStore.toasts as toast (toast.id)}
 			<div
-				class="flex max-w-sm items-center gap-2 rounded-md border px-4 py-3 text-sm shadow-md {typeStyles[
+				class="flex max-w-sm items-center gap-2 rounded-md border px-4 py-3 text-sm shadow-[var(--ag-shadow-md)] {typeStyles[
 					toast.type
 				]}"
 				data-testid="toast-{toast.type}"

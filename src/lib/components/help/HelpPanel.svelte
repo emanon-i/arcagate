@@ -66,7 +66,7 @@ function handleKeydown(e: KeyboardEvent) {
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		bind:this={panelEl}
-		class="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 p-8"
+		class="fixed inset-0 z-[60] flex items-start justify-center bg-[var(--scrim)] p-8"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="help-panel-title"
@@ -80,7 +80,7 @@ function handleKeydown(e: KeyboardEvent) {
 		tabindex="-1"
 	>
 		<div
-			class="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] shadow-xl"
+			class="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] shadow-[var(--ag-shadow-dialog)]"
 			transition:fly={{ y: -16, duration: dNormal }}
 		>
 			<header
