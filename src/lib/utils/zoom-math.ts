@@ -50,10 +50,6 @@ export const MIN_ZOOM_FIT = 5;
 /**
  * 2026-05-07 user 検収: 「左/上の壁が戻った」 regression 対応。
  *
- * 旧 fix (06a1955) は MIN_PAN_COLS=24 / MIN_PAN_ROWS=128 で grid を広く確保し、初期 scroll を
- * BB 重心 viewport 中央に置く戦略だった。しかし widget が row 0 / col 0 付近に配置されると
- * BB 重心 < viewport/2 で scroll が 0 にクランプ、結果 user は左/上の壁を直接触る。
- *
  * 構造 fix: canvas に **buffer 領域 (top/left)** を持たせ、grid origin (0,0) を canvas 内側にオフセット。
  *   - `BUFFER_COLS_LEFT` 列ぶん grid 全体を右に offset
  *   - `BUFFER_ROWS_TOP` 行ぶん grid 全体を下に offset
@@ -61,9 +57,14 @@ export const MIN_ZOOM_FIT = 5;
  *
  * これで widget が grid (0,0) でも canvas 上は buffer 分だけ右下にあり、user は更に上/左へ pan
  * できる empty 領域を持つ。Obsidian Canvas 等の「無限平面」体験に近づく。
+ *
+ * 2026-05-19 user 検収 (C 案): buffer を **実用上「無限」相当**まで拡大。 旧 12×64 では
+ * widget を少し外へ動かすだけで「壁」を体感したため、 widget 約 50 個分の余白 = 256 cells
+ * に拡大する (canvas-size 計算は trailing 側にも同等 buffer を加える、 WorkspaceGrid 参照)。
+ * 配置可能範囲のクランプ (≥0) は維持 — buffer は pan 余白であり配置領域そのものではない。
  */
-export const BUFFER_COLS_LEFT = 12;
-export const BUFFER_ROWS_TOP = 64;
+export const BUFFER_COLS_LEFT = 256;
+export const BUFFER_ROWS_TOP = 256;
 
 /**
  * chrome reserve (上下左右の toolbar 高さ + 安全マージン)。
@@ -149,6 +150,33 @@ export function bufferOffsetPx(zoom: number): { x: number; y: number } {
 	return {
 		x: BUFFER_COLS_LEFT * cellStrideX(zoom),
 		y: BUFFER_ROWS_TOP * cellStrideY(zoom),
+	};
+}
+
+/**
+ * 2026-05-19 (C 案): 現在 viewport の幾何中心に対応する grid cell 座標を返す。
+ *
+ * 新規 widget を「位置情報なし」 で追加する経路 (sidebar / toolbar ボタン / keyboard /
+ * canvas 外 drop) で、 widget を **現在見えている領域の中央**に置くために使う。
+ *
+ * canvas pixel の grid cell (0,0) 左上 = `INNER_PAD + bufferOffsetPx`。
+ * viewport 中央 canvas pixel = `scroll + client/2`。 cell = (中央 − INNER_PAD − buffer) / stride。
+ * 配置可能範囲 `[0, cols) × [0, rows)` に clamp する (grid 端の壁は維持)。
+ */
+export function computeViewportCenterCell(
+	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight' | 'scrollLeft' | 'scrollTop'>,
+	zoom: number,
+	cols: number,
+	rows: number,
+): { x: number; y: number } {
+	const buf = bufferOffsetPx(zoom);
+	const cxPx = viewport.scrollLeft + viewport.clientWidth / 2;
+	const cyPx = viewport.scrollTop + viewport.clientHeight / 2;
+	const cellX = Math.floor((cxPx - INNER_PAD - buf.x) / cellStrideX(zoom));
+	const cellY = Math.floor((cyPx - INNER_PAD - buf.y) / cellStrideY(zoom));
+	return {
+		x: Math.max(0, Math.min(Math.max(0, cols - 1), cellX)),
+		y: Math.max(0, Math.min(Math.max(0, rows - 1), cellY)),
 	};
 }
 

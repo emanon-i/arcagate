@@ -25,9 +25,11 @@ interface Props {
 	 * 未指定時は store 側 fallback (DEFAULT_GRID_COLS=4) で動作。
 	 */
 	dynamicCols?: number;
+	/** 現在 viewport 中央の grid cell を返す (keyboard add の widget 配置 seed 用)。 */
+	getViewportCenterCell?: () => { x: number; y: number } | null;
 }
 
-let { onClose, dynamicCols }: Props = $props();
+let { onClose, dynamicCols, getViewportCenterCell }: Props = $props();
 
 /**
  * 4/30 user 検収: widget palette を **用途別グルーピング** で表示。
@@ -91,12 +93,15 @@ function startDrag(e: PointerEvent, widgetType: WidgetType) {
  * Codex r4 HIGH #1: pointer 経路 (WorkspaceWidgetGrid) は dynamicCols を渡しているため、
  * keyboard 経路でも同じ cols を渡さないと cols>=5 の wide canvas で false "no space" を出す。
  * → dynamicCols を 3 番目の引数に伝搬し、placement bound を pointer 経路と一致させる。
+ *
+ * 2026-05-19 (C 案): keyboard add は位置情報を持たないため、 現在 viewport 中央 cell を
+ * seed として渡し、 widget が画面に見えている領域の中央へ配置されるようにする。
  */
 function keyboardAdd(e: KeyboardEvent, widgetType: WidgetType) {
 	if (e.key !== 'Enter' && e.key !== ' ') return;
 	if (e.repeat) return;
 	e.preventDefault();
-	void workspaceStore.addWidget(widgetType, undefined, dynamicCols);
+	void workspaceStore.addWidget(widgetType, getViewportCenterCell?.() ?? undefined, dynamicCols);
 }
 </script>
 

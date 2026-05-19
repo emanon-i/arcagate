@@ -14,6 +14,7 @@ import {
 	computeFitScroll,
 	computeFitZoom,
 	computeOrigin,
+	computeViewportCenterCell,
 	effectiveBottomReserve,
 	GRID_GAP,
 	HINT_BAR_RESERVE,
@@ -123,10 +124,60 @@ describe('bufferOffsetPx (2026-05-07 wall fix)', () => {
 		expect(buf200.x).toBeGreaterThan(buf100.x);
 	});
 
-	it('BUFFER 値は十分大きい (壁が遠い)', () => {
-		// 12 cols × 64 rows は実用 viewport (1920×1080) で 1 画面以上の buffer。
-		expect(BUFFER_COLS_LEFT).toBeGreaterThanOrEqual(8);
-		expect(BUFFER_ROWS_TOP).toBeGreaterThanOrEqual(32);
+	it('BUFFER 値は実用上「無限」相当に大きい (C 案 2026-05-19)', () => {
+		// widget 約 50 個分 (256 cells) 以上の余白で「壁」を体感しないレベル。
+		expect(BUFFER_COLS_LEFT).toBeGreaterThanOrEqual(200);
+		expect(BUFFER_ROWS_TOP).toBeGreaterThanOrEqual(200);
+	});
+});
+
+describe('computeViewportCenterCell (C 案 2026-05-19)', () => {
+	// canvas pixel of grid cell (0,0) = INNER_PAD + bufferOffsetPx。
+	// viewport 中央 canvas pixel = scroll + client/2。
+	it('scroll 0 + 中央 = buffer 起点近傍の cell を返す', () => {
+		const cell = computeViewportCenterCell(
+			{ scrollLeft: 0, scrollTop: 0, clientWidth: 1200, clientHeight: 800 },
+			100,
+			256,
+			256,
+		);
+		const buf = bufferOffsetPx(100);
+		// 中央 px = 600 / 400。 buffer (256 cells 分) より十分小さいため負 cell → 0 に clamp。
+		expect(buf.x).toBeGreaterThan(600);
+		expect(cell).toEqual({ x: 0, y: 0 });
+	});
+
+	it('grid 領域中央へ scroll した状態では grid 内の cell を返す', () => {
+		// cell c の左上 px = INNER_PAD + buf.x + c * stride。 cell 10 を viewport 中央に置く scroll。
+		const sx = cellStrideX(100);
+		const sy = cellStrideY(100);
+		const buf = bufferOffsetPx(100);
+		const targetCellX = 10;
+		const targetCellY = 7;
+		const cxPx = INNER_PAD + buf.x + targetCellX * sx + sx / 2; // cell 10 の中心
+		const cyPx = INNER_PAD + buf.y + targetCellY * sy + sy / 2;
+		const cell = computeViewportCenterCell(
+			{
+				scrollLeft: cxPx - 600,
+				scrollTop: cyPx - 400,
+				clientWidth: 1200,
+				clientHeight: 800,
+			},
+			100,
+			256,
+			256,
+		);
+		expect(cell).toEqual({ x: targetCellX, y: targetCellY });
+	});
+
+	it('結果は [0, cols) × [0, rows) に clamp される', () => {
+		const huge = computeViewportCenterCell(
+			{ scrollLeft: 9_999_999, scrollTop: 9_999_999, clientWidth: 1200, clientHeight: 800 },
+			100,
+			24,
+			128,
+		);
+		expect(huge).toEqual({ x: 23, y: 127 });
 	});
 });
 
