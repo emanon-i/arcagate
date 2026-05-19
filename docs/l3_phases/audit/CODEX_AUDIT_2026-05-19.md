@@ -1,5 +1,5 @@
-実施結果です。`read-only` サンドボックスのため、指定先ファイルへの書き出しはできませんでした。  
-そのため、以下をそのまま `docs/l2_foundation/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md` に保存してください。
+実施結果です。`read-only` サンドボックスのため、指定先ファイルへの書き出しはできませんでした。\
+そのため、以下をそのまま `docs/l3_phases/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md` に保存してください。
 
 ```markdown
 # 無駄処理 audit (Functional Spec ベース)
@@ -16,12 +16,12 @@
 
 ### 検証して clean だった項目 (誤検知防止のため明記)
 
-| 項目 | 結論 |
-| --- | --- |
-| W-1〜W-8 (既存 audit) | 対処済を確認。`cmd_scan_exe_folders` async 化+cancel、`cmd_read_file_preview` async 化、Item sort no-op除去、legacy chart fallback除去済。重複カウントなし（既対処 #526） |
-| polling 禁止 widget の timer 混入 | Favorites/Recent/Stats/Item で `setInterval` 混入なし |
-| backdrop-filter 過剰適用 | `src/lib/styles/arcagate-theme.css` の限定クラスのみ |
-| per-card metadata 個別IPC | batch/store 経路に統一済、単発 command 復活なし |
+| 項目                              | 結論                                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| W-1〜W-8 (既存 audit)             | 対処済を確認。`cmd_scan_exe_folders` async 化+cancel、`cmd_read_file_preview` async 化、Item sort no-op除去、legacy chart fallback除去済。重複カウントなし（既対処 #526） |
+| polling 禁止 widget の timer 混入 | Favorites/Recent/Stats/Item で `setInterval` 混入なし                                                                                                                     |
+| backdrop-filter 過剰適用          | `src/lib/styles/arcagate-theme.css` の限定クラスのみ                                                                                                                      |
+| per-card metadata 個別IPC         | batch/store 経路に統一済、単発 command 復活なし                                                                                                                           |
 
 ## 発見項目
 
@@ -51,8 +51,10 @@
 ```
 
 stdout 用 summary:
+
 - 発見 2 件 / Critical 0・High 1・Medium 0・Low 1 / 推定削減効果: DB lock 競合時間削減 + 過剰 polling 抑止
 
 補足:
+
 - 指示どおり実装変更は未実施です。
 - ファイル書き出しのみ、環境制約（read-only）で未実行です。

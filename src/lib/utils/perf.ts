@@ -203,7 +203,7 @@ export function installResourceObserver(): void {
 				// Tauri 内 image / asset / IPC 系を主に。長 (>100ms) のみ記録。
 				if (r.duration < 100) continue;
 				slowResources.push({
-					url: r.name.length > 100 ? r.name.slice(0, 97) + '...' : r.name,
+					url: r.name.length > 100 ? `${r.name.slice(0, 97)}...` : r.name,
 					dur: r.duration,
 					type: r.initiatorType,
 				});
