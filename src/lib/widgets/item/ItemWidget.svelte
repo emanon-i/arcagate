@@ -7,7 +7,7 @@
  * 新実装:
  * - config に `item_ids: string[]` (collection)。legacy `item_id` 単一形式は migration 023 で削除済 (A3 PR-H)。
  * - view_mode: 'grid' | 'list' で切替 (toolbar の icon button)。
- * - sort_field: 'manual' | 'name' | 'recent' (settings dialog で選択)。
+ * - sort_field: 'manual' | 'name' (settings dialog で選択)。
  * - container query で widget 幅に応じて grid 列数 / icon サイズ / 余白を自動調整 (見切れ解消)。
  *
  * 引用元 guideline:
@@ -59,7 +59,7 @@ function handleItemContext(item: Item, ev: MouseEvent): void {
 interface ItemWidgetConfig {
 	item_ids?: string[];
 	view_mode?: 'grid' | 'list';
-	sort_field?: 'manual' | 'name' | 'recent';
+	sort_field?: 'manual' | 'name';
 	/** C-15 #19: Widget レベルの起動アプリ default。 */
 	default_opener_id?: string | null;
 }
@@ -76,7 +76,7 @@ let config = $derived.by<ItemWidgetConfig>(() => {
 let itemIds = $derived.by<string[]>(() => config.item_ids ?? []);
 
 let viewMode = $derived<'grid' | 'list'>(config.view_mode ?? 'grid');
-let sortField = $derived<'manual' | 'name' | 'recent'>(config.sort_field ?? 'manual');
+let sortField = $derived<'manual' | 'name'>(config.sort_field ?? 'manual');
 
 let pinnedItems = $derived.by<Item[]>(() => {
 	const list = itemIds
@@ -85,7 +85,7 @@ let pinnedItems = $derived.by<Item[]>(() => {
 	if (sortField === 'name') {
 		return [...list].sort((a, b) => a.label.localeCompare(b.label, 'ja'));
 	}
-	// 'manual' / 'recent' は元順序維持 ('recent' は将来 launch_log と連携予定、未対応時は manual と同等)。
+	// 'manual' は item_ids の登録順をそのまま維持。
 	return list;
 });
 

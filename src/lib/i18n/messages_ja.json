@@ -769,8 +769,7 @@
 			"remove": "{label} を解除",
 			"sort_label": "並び順",
 			"sort_manual": "手動 (↑↓ で並べ替え)",
-			"sort_name": "名前順 (昇順)",
-			"sort_recent": "最近起動した順 (将来対応)"
+			"sort_name": "名前順 (昇順)"
 		},
 		"no_settings": "このウィジェットには設定項目がありません。",
 		"projects": {

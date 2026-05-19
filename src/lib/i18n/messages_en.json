@@ -769,8 +769,7 @@
 			"remove": "Remove {label}",
 			"sort_label": "Sort order",
 			"sort_manual": "Manual (reorder with ↑↓)",
-			"sort_name": "Name (ascending)",
-			"sort_recent": "Recently launched (coming soon)"
+			"sort_name": "Name (ascending)"
 		},
 		"no_settings": "This widget has no settings.",
 		"projects": {
