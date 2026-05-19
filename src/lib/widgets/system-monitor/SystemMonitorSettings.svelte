@@ -3,7 +3,7 @@
  * PH-issue-026 (Issue 23): SystemMonitorSettings polish — 共通 Switch 採用 + clamp 統一。
  * PH-issue-042 (Issue 27/29): ネットワーク表示 toggle + chart_type select 追加。
  * 4/30 user 検収: chart_type を per-metric (CPU / メモリ / ディスク / ネットワーク) で個別 select。
- *  旧 `chart_type` (全 metric 共通) は legacy fallback として残す。
+ * W-8 (2026-05-19): 旧共通 `chart_type` は migration 037 で per-metric key へ展開済、fallback 撤去。
  */
 import Switch from '$lib/components/common/Switch.svelte';
 import { t } from '$lib/i18n.svelte';
@@ -17,7 +17,6 @@ interface Props {
 		show_memory?: boolean;
 		show_disk?: boolean;
 		show_network?: boolean;
-		chart_type?: ChartType;
 		cpu_chart_type?: ChartType;
 		memory_chart_type?: ChartType;
 		disk_chart_type?: ChartType;
@@ -33,10 +32,10 @@ let smShowCpu = $derived(config.show_cpu ?? true);
 let smShowMemory = $derived(config.show_memory ?? true);
 let smShowDisk = $derived(config.show_disk ?? false);
 let smShowNetwork = $derived(config.show_network ?? false);
-let smCpuChart = $derived<ChartType>(config.cpu_chart_type ?? config.chart_type ?? 'sparkline');
-let smMemChart = $derived<ChartType>(config.memory_chart_type ?? config.chart_type ?? 'sparkline');
-let smDiskChart = $derived<ChartType>(config.disk_chart_type ?? config.chart_type ?? 'gauge');
-let smNetChart = $derived<ChartType>(config.network_chart_type ?? config.chart_type ?? 'sparkline');
+let smCpuChart = $derived<ChartType>(config.cpu_chart_type ?? 'sparkline');
+let smMemChart = $derived<ChartType>(config.memory_chart_type ?? 'sparkline');
+let smDiskChart = $derived<ChartType>(config.disk_chart_type ?? 'gauge');
+let smNetChart = $derived<ChartType>(config.network_chart_type ?? 'sparkline');
 let smTitle = $derived(config.title ?? '');
 </script>
 
