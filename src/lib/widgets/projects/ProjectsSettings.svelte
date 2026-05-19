@@ -8,6 +8,12 @@
 import Switch from '$lib/components/common/Switch.svelte';
 import { t } from '$lib/i18n.svelte';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
+import {
+	clampGitPollIntervalSec,
+	DEFAULT_GIT_POLL_INTERVAL_SEC,
+	MAX_GIT_POLL_INTERVAL_SEC,
+	MIN_GIT_POLL_INTERVAL_SEC,
+} from './git-poll';
 
 const DESCRIPTION_MAX = 120;
 
@@ -78,15 +84,17 @@ let autoAdd = $derived(config.auto_add ?? false);
 	<input
 		id="ws-git-poll"
 		type="number"
-		min="10"
-		max="600"
+		min={MIN_GIT_POLL_INTERVAL_SEC}
+		max={MAX_GIT_POLL_INTERVAL_SEC}
 		autocomplete="off"
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={gitPollInterval}
 		onchange={(e) => {
 			config = {
 				...config,
-				git_poll_interval_sec: Math.max(10, Math.min(600, Number((e.currentTarget as HTMLInputElement).value) || 60)),
+				git_poll_interval_sec: clampGitPollIntervalSec(
+					Number((e.currentTarget as HTMLInputElement).value) || DEFAULT_GIT_POLL_INTERVAL_SEC,
+				),
 			};
 		}}
 	/>
