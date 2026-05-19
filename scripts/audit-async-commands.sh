@@ -14,7 +14,7 @@
 #       明示追加する。 これにより「heavy command を sync で足してしまう」事故を構造的に防ぐ。
 #
 # 参照: docs/l2_foundation/features/cross-cutting/ipc-bridge.md (性能予算)
-#       docs/l2_foundation/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md (W-2)
+#       docs/l3_phases/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md (W-2)
 
 set -e
 
@@ -99,7 +99,7 @@ if [ -n "$violations" ]; then
     echo
     echo "heavy I/O (filesystem walk / file open / process spawn / HTTP) を行う command は"
     echo "async fn + tauri::async_runtime::spawn_blocking で worker thread に逃がすこと。"
-    echo "参照: docs/l2_foundation/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md (W-2)"
+    echo "参照: docs/l3_phases/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md (W-2)"
     exit 1
 fi
 
