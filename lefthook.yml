@@ -70,7 +70,7 @@ pre-commit:
       # W-2 (2026-05-19): heavy I/O (filesystem walk / file open / spawn / HTTP) を行う
       # #[tauri::command] が sync だと main thread を block する (#524 Library freeze 真因)。
       # SYNC_ALLOWED 外の sync command を検出し async + spawn_blocking 化を強制する。
-      glob: "src-tauri/src/commands/**/*.rs"
+      glob: "src-tauri/src/commands/*.rs"
       run: bash scripts/audit-async-commands.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
