@@ -71,6 +71,22 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
 	}
 }
 
+/**
+ * In-memory のみの patch。 IPC は走らず DB は更新しない。
+ *
+ * 用途: slider drag 中の live preview。 oninput で連続呼出して LibraryCard / 各 preview
+ * を同 store 経由で即時更新し、 release (onchange) 時のみ updateItem で persist する。
+ * 旧実装は drag 中 IPC 殺到 → race condition で「drag した位置と違う値が確定する」 不具合の
+ * 回避のため draft state を別管理していたが、 LibraryCard 本体が item.card_override_json
+ * を直接購読する経路と分断していたため live 反映されなかった (2026-05-20 user 指摘)。
+ *
+ * 失敗 path 無し (in-memory only)。 onchange の updateItem が server resp で上書きするので
+ * drift しても自動収束する。
+ */
+function applyOptimisticUpdate(id: string, patch: Partial<Item>): void {
+	items = items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+}
+
 async function toggleStar(id: string, starred: boolean): Promise<void> {
 	try {
 		const updated = await itemsIpc.toggleStar(id, starred);
@@ -185,6 +201,7 @@ export const itemStore = {
 	loadItemsByTag,
 	createItem,
 	updateItem,
+	applyOptimisticUpdate,
 	toggleStar,
 	deleteItem,
 	loadTags,
