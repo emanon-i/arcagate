@@ -8,11 +8,7 @@
  * - opener_id?: string (Opener ID、cascade で widget default / system 起動より優先)
  */
 
-import type {
-	LibraryCardBackgroundConfig,
-	LibraryCardRotation,
-	LibraryCardStyleConfig,
-} from '$lib/state/config.svelte';
+import type { LibraryCardBackgroundConfig, LibraryCardStyleConfig } from '$lib/state/config.svelte';
 
 export interface CardOverrideJson {
 	background?: Partial<LibraryCardBackgroundConfig>;
