@@ -41,20 +41,28 @@ fn preflight_check(item_type: ItemType, target: &str) -> Result<(), AppError> {
 ///
 /// `source`: 起動元を示す文字列。"palette" | "tray" | "cli" | "mcp"
 pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    let item = item_repository::find_by_id(&conn, item_id)?;
+    // --- DB read フェーズ: lock スコープを限定する ---
+    // W-1 (2026-05-19): 旧実装は関数末尾まで `Mutex<Connection>` lock を握り続け、
+    // その間 preflight の `path.exists()` stat と `Command::spawn` を実行していた。
+    // SMR HDD cold path の stat は秒級になりうるため、 その間 他の全 DB IPC が
+    // lock 待ちで queue する。 DB query が済んだら即 lock を解放する。
+    let item = {
+        let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+        let item = item_repository::find_by_id(&conn, item_id)?;
 
-    // audit F15 (2026-05-18): Command / Script は任意のコマンド / スクリプトを実行するため、
-    // 初回起動時に確認を要求する。 未確認なら起動を中断し ConfirmationRequired を返す
-    // (frontend が確認ダイアログを表示 → cmd_confirm_item → 再起動)。 CLI / MCP は明示的な
-    // 非対話起動なので gate を適用しない。
-    let needs_confirmation = matches!(item.item_type, ItemType::Command | ItemType::Script)
-        && source != "cli"
-        && source != "mcp";
-    if needs_confirmation && !launch_repository::is_item_confirmed(&conn, item_id)? {
-        log::info!("launch gated (confirmation required): id={}", item_id);
-        return Err(AppError::ConfirmationRequired(item.target.clone()));
-    }
+        // audit F15 (2026-05-18): Command / Script は任意のコマンド / スクリプトを実行するため、
+        // 初回起動時に確認を要求する。 未確認なら起動を中断し ConfirmationRequired を返す
+        // (frontend が確認ダイアログを表示 → cmd_confirm_item → 再起動)。 CLI / MCP は明示的な
+        // 非対話起動なので gate を適用しない。
+        let needs_confirmation = matches!(item.item_type, ItemType::Command | ItemType::Script)
+            && source != "cli"
+            && source != "mcp";
+        if needs_confirmation && !launch_repository::is_item_confirmed(&conn, item_id)? {
+            log::info!("launch gated (confirmation required): id={}", item_id);
+            return Err(AppError::ConfirmationRequired(item.target.clone()));
+        }
+        item
+    };
 
     log::info!(
         "launching item: id={} type={:?} label={} source={}",
@@ -64,6 +72,7 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
         source
     );
 
+    // 以降は lock 非保持。 preflight stat / process spawn は DB lock の外で行う。
     preflight_check(item.item_type, &item.target)?;
 
     let result = match item.item_type {
@@ -82,7 +91,11 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
             if !opener_id.starts_with("builtin:") && !opener_id.starts_with("user:") {
                 launcher::launch_exe_args(&opener_id, &[&item.target], None)
             } else {
-                let opener = opener_service::resolve_with_conn(&conn, &opener_id)?;
+                // opener resolve は DB を引くため短い lock スコープで実体化し、 spawn は lock 外。
+                let opener = {
+                    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+                    opener_service::resolve_with_conn(&conn, &opener_id)?
+                };
                 opener_service::launch_with(&opener, &item.target)
             }
         }
@@ -97,7 +110,10 @@ pub fn launch_item(db: &DbState, item_id: &str, source: &str) -> Result<(), AppE
     match &result {
         Ok(_) => {
             log::info!("launch success: id={}", item_id);
-            let _ = launch_repository::record_launch_and_update_stats(&conn, item_id, source);
+            // 起動ログ記録は best-effort (起動成否に影響させない)。 lock 取得失敗時も握り潰す。
+            if let Ok(conn) = db.0.lock() {
+                let _ = launch_repository::record_launch_and_update_stats(&conn, item_id, source);
+            }
         }
         Err(e) => {
             log::error!("launch failed: id={} error={}", item_id, e);
