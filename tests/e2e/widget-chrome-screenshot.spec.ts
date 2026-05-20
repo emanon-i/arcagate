@@ -20,6 +20,21 @@ test.beforeAll(() => {
 	mkdirSync(SCREENSHOT_DIR, { recursive: true });
 });
 
+/**
+ * 先行 spec (smoke.spec.ts の 'settings modal: 開閉' 等) が overlay を開いたまま
+ * close せず終わるケースが CI で再現 (sharedBrowser で test 間 page state 引継ぎ)。
+ * 本 spec の各 test 開始時に Escape を送って overlay (Settings modal / dialog 等) を
+ * 確実に dismiss し、 後続の click が `role="dialog"` overlay に intercept されないようにする。
+ */
+test.beforeEach(async ({ page }) => {
+	for (let i = 0; i < 5; i++) {
+		const overlay = page.locator('[role="dialog"][aria-modal="true"]').first();
+		if ((await overlay.count()) === 0) break;
+		await page.keyboard.press('Escape');
+		await page.waitForTimeout(200);
+	}
+});
+
 test('screenshot: workspace overview Dark / Light', async ({ page }) => {
 	// workspace タブへ
 	await page.getByRole('button', { name: 'Workspace', exact: true }).click();
