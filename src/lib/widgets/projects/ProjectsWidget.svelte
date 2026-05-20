@@ -316,7 +316,7 @@ async function handleLaunch(item: Item) {
 		     glass 領域内に sticky bar を完全に収める。「並び替え:」 prefix label は
 		     タブ (Name / Updated) で意味が通るため撤去。 -->
 		<div
-			class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-3 pb-1.5 pt-1 text-xs"
+			class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 flex shrink-0 items-center gap-1 px-3 pb-1.5 pt-1 text-xs"
 		>
 			<button
 				type="button"

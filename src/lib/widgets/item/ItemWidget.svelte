@@ -166,7 +166,7 @@ let title = $derived(pinnedItems.length === 1 ? pinnedItems[0].label : WIDGET_LA
 		<!-- 5/03 user 検収 (C): toolbar に view-mode toggle (grid / list)。複数 item 時のみ。 -->
 		{#if pinnedItems.length > 1}
 			<div
-				class="mb-2 flex shrink-0 items-center justify-end gap-1 border-b border-[var(--ag-border)] pb-1.5 text-xs"
+				class="mb-2 flex shrink-0 items-center justify-end gap-1 pb-1.5 text-xs"
 			>
 				<button
 					type="button"

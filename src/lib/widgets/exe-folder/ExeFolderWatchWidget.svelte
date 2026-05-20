@@ -345,7 +345,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		     padding は WidgetShell の p-3 と一致させて (-mx-3 / px-3) widget の rounded
 		     glass 領域内に sticky bar を完全に収める。「並び替え:」 prefix label は
 		     タブ (Name / Updated) で意味が通るため撤去。 -->
-		<div class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-3 pb-1.5 pt-1 text-xs">
+		<div class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 flex shrink-0 items-center gap-1 px-3 pb-1.5 pt-1 text-xs">
 			<button
 				type="button"
 				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
