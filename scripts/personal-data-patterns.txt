@@ -1,0 +1,24 @@
+# personal-data audit patterns (commit 用)
+#
+# 1 行 1 pattern (固定文字列、 大文字小文字無視で substring 検索)。
+# `#` で始まる行と空行は無視される。
+# user 個別 pattern (brand 名 / 実 item 名 / 作品名 等) は
+# `scripts/.personal-data-patterns.local.txt` (gitignored、 commit されない) に書いて
+# 手元だけで管理すること。 ここに書くと自分自身が pattern として GitHub に乗ってしまう。
+#
+# 由来: docs/l3_phases/audit/PERSONAL_DATA_LEAK_AUDIT_2026-05-20.md (L-1〜L-5)
+
+# 個人 Windows username 付きの絶対 path
+C:\Users\gonda
+C:/Users/gonda
+
+# 個人作業 drive layout (Cella は user 固有の workspace root 名)
+E:\Cella
+E:/Cella
+
+# signing key 保管 path
+D:\secrets\arcagate
+D:/secrets/arcagate
+
+# 個人 email (local-part のみ、 完全表記は避ける)
+gonda452@

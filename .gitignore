@@ -53,3 +53,14 @@ tmp/
 test-results/
 .claude/scheduled_tasks.lock
 dist/
+
+# Personal data (user 実機由来の fixture / dump、 commit 禁止)
+# - tmp/ 全体は上で ignored 済 (verify-shots / theme-shots / seed-and-shoot.mjs もここで覆う)
+# - *.db も上で ignored 済 (実 DB 紛れ防止)
+tests/fixtures/personal-*
+tests/fixtures/local-*
+**/agent-verify/
+**/*.personal.*
+
+# audit-personal-data の user 個別 pattern (brand / 実 item 名 等の自分専用辞書)
+scripts/.personal-data-patterns.local.txt
