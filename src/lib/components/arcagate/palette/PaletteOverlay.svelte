@@ -95,10 +95,13 @@ function handleKeydown(e: KeyboardEvent) {
 		onkeydown={handleKeydown}
 	>
 		{#if mode === 'inline'}
-			<!-- Backdrop (inline only) -->
+			<!-- Backdrop (inline only)。 scrim は theme token 経由 (dark/light で違う scrim alpha)。
+			     backdrop-blur-sm は palette overlay の段階的 frost layer 構造 (背景 → glow → card → search)
+			     のため allowlist 経由で example。 ag-glass primitive と独立 (palette 専用 stack)。
+			     allow:design-tokens-v2 -->
 			<button
 				type="button"
-				class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+				class="absolute inset-0 bg-[var(--scrim)] backdrop-blur-sm"
 				aria-label={t('palette.close_aria')}
 				onclick={close}
 				tabindex="-1"
@@ -106,9 +109,14 @@ function handleKeydown(e: KeyboardEvent) {
 			></button>
 		{/if}
 
-		<!-- Palette card (3-section flex column: header / scrollable body / footer) -->
+		<!-- Palette card (3-section flex column: header / scrollable body / footer)。
+		     shadow / surface は theme token 経由 (--ag-shadow-palette, --ag-surface-0)。
+		     旧 `bg-[var(--ag-surface-0)]/92 shadow-[0_40px_120px_rgba(0,0,0,0.6)]` の
+		     alpha + 直 rgba shadow は v2 token 統制違反 (PR #512 横展開漏れ、 2026-05-20 修正)。
+		     backdrop-blur-2xl は palette 専用の card 層 frosted blur (workspace canvas の上
+		     全幅で frost、 ag-glass primitive とは独立した強度)。  allow:design-tokens-v2 -->
 		<div
-			class="relative mx-auto mt-[5vh] flex max-h-[90vh] max-w-5xl flex-col overflow-hidden rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/92 shadow-[0_40px_120px_rgba(0,0,0,0.6)] backdrop-blur-2xl md:mt-[10vh]"
+			class="relative mx-auto mt-[5vh] flex max-h-[90vh] max-w-5xl flex-col overflow-hidden rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)] shadow-[var(--ag-shadow-palette)] backdrop-blur-2xl md:mt-[10vh]"
 			in:fly={{ y: -12, duration: dNormal, easing: cubicOut }}
 			out:fade={{ duration: dFast }}
 		>
@@ -140,9 +148,10 @@ function handleKeydown(e: KeyboardEvent) {
 				<div class="palette-glow pointer-events-none absolute inset-0"></div>
 
 				<!-- Inner container。
-				     overlay-palette cleanup (2026-05-13) #7: p-5 → p-4 で内側余白圧縮。 -->
+				     overlay-palette cleanup (2026-05-13) #7: p-5 → p-4 で内側余白圧縮。
+				     backdrop-blur-xl は palette inner card の追加 frost。 allow:design-tokens-v2 -->
 				<div
-					class="relative mx-auto max-w-4xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)]/95 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+					class="relative mx-auto max-w-4xl rounded-[var(--ag-radius-palette)] border border-[var(--ag-border)] bg-[var(--ag-surface-0)] p-4 shadow-[var(--ag-shadow-lg)] backdrop-blur-xl"
 				>
 					<!-- Search bar -->
 					<PaletteSearchBar bind:query={searchQuery} onSearch={handleSearch} />

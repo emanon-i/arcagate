@@ -142,20 +142,26 @@ let bgImageStyle = $derived.by(() => {
 		{/if}
 
 		{#if isStarred}
-			<div class="absolute right-2 top-2 rounded-full bg-[var(--ag-accent)]/90 p-1 shadow-sm" data-testid="starred-badge">
+			<div class="absolute right-2 top-2 rounded-full bg-[var(--ag-accent)] p-1 shadow-[var(--ag-shadow-sm)]" data-testid="starred-badge">
 				<Star class="h-3 w-3 fill-white text-white" />
 			</div>
 		{/if}
 
+		<!-- Type chip (folder / exe / url 等)。 image cover の上に出る overlay なので
+		     scrim + glass-tint で読みやすさを担保 (theme 横断、 token 経由)。
+		     backdrop-blur-sm は image 上 chip の読みやすさを高める専用 frost (image 無 card
+		     でも害は無い)。  allow:design-tokens-v2 -->
 		<span
-			class="absolute left-2 top-2 rounded-full border border-white/30 bg-black/35 px-1.5 py-0.5 text-xs text-white/95 backdrop-blur-sm"
+			class="absolute left-2 top-2 rounded-full border border-[color-mix(in_oklab,var(--c-glass-tint),transparent_70%)] bg-[var(--scrim)] px-1.5 py-0.5 text-xs text-[var(--c-glass-tint)] backdrop-blur-sm"
 		>
 			{typeLabel[item.item_type]}
 		</span>
 
+		<!-- Label overlay gradient: image 上に label が読めるよう下端を scrim で暗くする。
+		     theme 横断で「画像上 → 文字読みやすい」が変わらないので scrim token 経由。 -->
 		<div
 			class="library-card__label absolute inset-x-0 bottom-0 {style.overlayEnabled
-				? 'bg-gradient-to-t from-black/75 via-black/40 to-transparent'
+				? 'bg-gradient-to-t from-[var(--scrim)] via-[color-mix(in_oklab,var(--scrim),transparent_50%)] to-transparent'
 				: ''} {sizeClasses.labelPadClass}"
 		>
 			<div class="truncate font-semibold {sizeClasses.labelFontClass}" style={labelStyle}>

@@ -205,7 +205,7 @@ function confirmRename(name: string) {
 <!-- Pointer drag ghost -->
 {#if pointerDrag.active}
 	<div
-		class="pointer-events-none fixed z-[999] flex items-center justify-center rounded-lg opacity-80 shadow-lg"
+		class="pointer-events-none fixed z-[999] flex items-center justify-center rounded-lg opacity-80 shadow-[var(--ag-shadow-md)]"
 		style="
 			background: var(--ag-accent);
 			width: 72px;
@@ -279,7 +279,7 @@ function confirmRename(name: string) {
 	     active:scale-[0.97] で触覚フィードバック (P1 操作可視化、P2 反応即時)。 -->
 	<!-- 2026-05-17 user 検収: ヒントバー表示時は toolbar をその高さ分上へずらして重なりを回避。 -->
 	<div
-		class="absolute right-4 z-30 flex items-center gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 shadow-[var(--ag-shadow-md,0_4px_12px_rgba(0,0,0,0.15))]"
+		class="absolute right-4 z-30 flex items-center gap-1 rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] px-2 py-1 shadow-[var(--ag-shadow-md)]"
 		style="bottom: {configStore.hintBarVisible ? HINT_BAR_RESERVE + 8 : 16}px;"
 		data-testid="canvas-toolbar"
 	>

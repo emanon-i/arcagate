@@ -197,9 +197,11 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.script_folder.no_scripts')}</p>
 	{:else}
 		<!-- 並び替え toolbar。 ag-sticky-bar で widget 本体 glass 面の継続にする
-		     (独立した塗りつぶし矩形を持たない — border / shadow / 疑似要素なし)。 -->
-		<div class="ag-sticky-bar sticky top-0 z-10 -mx-4 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-4 pb-1.5 pt-1 text-xs">
-			<span class="text-[var(--ag-text-muted)]">{t('widgets.common.sort_label')}</span>
+		     (独立した塗りつぶし矩形を持たない — border / shadow / 疑似要素なし)。
+		     padding は WidgetShell の p-3 と一致させて (-mx-3 / px-3) widget の rounded
+		     glass 領域内に sticky bar を完全に収める。「並び替え:」 prefix label は
+		     タブ (Name / Updated) で意味が通るため撤去。 -->
+		<div class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 flex shrink-0 items-center gap-1 border-b border-[var(--ag-border)] px-3 pb-1.5 pt-1 text-xs">
 			<button
 				type="button"
 				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===

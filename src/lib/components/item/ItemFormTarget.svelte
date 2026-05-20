@@ -78,7 +78,7 @@ async function handlePickFolder(): Promise<void> {
 			type="button"
 			class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {typeMode ===
 			'local'
-				? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
+				? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-[var(--ag-shadow-sm)]'
 				: 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
 			onclick={() => onTypeModeChange('local')}
 		>
@@ -88,7 +88,7 @@ async function handlePickFolder(): Promise<void> {
 			type="button"
 			class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {typeMode ===
 			'url'
-				? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-sm'
+				? 'bg-[var(--ag-surface-4)] text-[var(--ag-text-primary)] shadow-[var(--ag-shadow-sm)]'
 				: 'text-[var(--ag-text-muted)] hover:text-[var(--ag-text-secondary)]'}"
 			onclick={() => onTypeModeChange('url')}
 		>

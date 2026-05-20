@@ -190,7 +190,8 @@ pub fn run() {
             app.manage(services::file_search_state::FileSearchState::default());
             app.manage(services::file_search_state::ExeScanState::default());
 
-            // グローバルショートカット登録
+            // グローバルショートカット登録。 ARCAGATE_SKIP_HOTKEY=1 で skip (e2e / agent dev で
+            // user dev process と同 hotkey の競合 panic を回避する目的、 production では未設定)。
             let hotkey_str = {
                 let services = app.state::<services::AppServices>();
                 services
@@ -198,7 +199,9 @@ pub fn run() {
                     .get_hotkey()
                     .unwrap_or_else(|_| models::config::DEFAULT_HOTKEY.to_string())
             };
-            app.global_shortcut().register(hotkey_str.as_str())?;
+            if std::env::var("ARCAGATE_SKIP_HOTKEY").is_err() {
+                app.global_shortcut().register(hotkey_str.as_str())?;
+            }
 
             // システムトレイの設定
             let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;

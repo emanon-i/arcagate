@@ -654,7 +654,6 @@
 			"sort_current_oldest": " (現在 古い順)",
 			"sort_default": "デフォルト(IPC 順)",
 			"sort_field_label": "並び順",
-			"sort_label": "並び替え:",
 			"sort_mtime": "Updated",
 			"sort_name": "Name",
 			"sort_name_az": "名前順 (A-Z)",

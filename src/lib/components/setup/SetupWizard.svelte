@@ -8,12 +8,12 @@ let step = $state(1);
 </script>
 
 {#if !configStore.setupComplete}
-  <div data-testid="setup-wizard" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-    <div class="w-full max-w-md rounded-xl bg-background p-8 shadow-2xl">
+  <div data-testid="setup-wizard" class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--scrim)]">
+    <div class="w-full max-w-md rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-8 shadow-[var(--ag-shadow-dialog)]">
       <!-- ステップインジケーター -->
       <div class="mb-6 flex gap-2">
         {#each [1, 2, 3] as s}
-          <div class="h-1 flex-1 rounded {s <= step ? 'bg-primary' : 'bg-muted'}"></div>
+          <div class="h-1 flex-1 rounded {s <= step ? 'bg-[var(--ag-accent)]' : 'bg-[var(--ag-surface-3)]'}"></div>
         {/each}
       </div>
 

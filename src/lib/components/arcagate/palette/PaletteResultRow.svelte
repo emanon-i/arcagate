@@ -65,8 +65,10 @@ let display = $derived(getDisplay(entry));
 	onclick={onclick}
 >
 	<div class="flex min-w-0 items-center gap-3">
+		<!-- icon container: subtle 内側 ring で raised感を出す (gradient bg 上の hairline highlight)。
+		     旧 `ring-white/10` は theme 横断 hardcode 違反、 glass-tint token で透明度を担保。 -->
 		<div
-			class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br {display.accent} ring-1 ring-white/10"
+			class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br {display.accent} ring-1 ring-[color-mix(in_oklab,var(--c-glass-tint),transparent_90%)]"
 		>
 			{#if entry.kind === 'item' && entry.item.icon_path}
 				<ItemIcon iconPath={entry.item.icon_path} itemType={entry.item.item_type} alt="" class="h-6 w-6 object-contain" />

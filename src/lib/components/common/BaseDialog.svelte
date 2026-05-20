@@ -71,7 +71,7 @@ function handleOpenChange(next: boolean): void {
 <Dialog.Root {open} onOpenChange={handleOpenChange}>
 	<Dialog.Portal>
 		<Dialog.Overlay
-			class="fixed inset-0 z-50 bg-black/50"
+			class="fixed inset-0 z-50 bg-[var(--scrim)]"
 			forceMount
 		>
 			{#snippet child({ props, open: isOpen })}

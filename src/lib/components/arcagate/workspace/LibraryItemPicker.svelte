@@ -279,7 +279,7 @@ function getTypeLabels(): Record<ItemType | 'all', string> {
 								/>
 								<input
 									type="checkbox"
-									class="pointer-events-none absolute bottom-2 right-2 z-10 h-4 w-4 cursor-pointer rounded border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] accent-[var(--ag-accent)] shadow-sm"
+									class="pointer-events-none absolute bottom-2 right-2 z-10 h-4 w-4 cursor-pointer rounded border border-[var(--ag-border)] bg-[var(--ag-surface-opaque)] accent-[var(--ag-accent)] shadow-[var(--ag-shadow-sm)]"
 									checked={selectedIds.has(item.id)}
 									aria-label={t('workspace.picker.select_item', { label: item.label })}
 									tabindex="-1"

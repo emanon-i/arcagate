@@ -78,9 +78,12 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 <WidgetShell title={WIDGET_LABELS.quick_note} icon={StickyNote} {menuItems}>
 	<div class="flex h-full flex-col gap-1">
-		<!-- audit batch deferred (2026-05-13) #10: メモ本文は font-content (serif 系) で読み物寄せ。 -->
+		<!-- audit batch deferred (2026-05-13) #10: メモ本文は font-content (serif 系) で読み物寄せ。
+		     focus ring は ring-inset で textarea 内側に描画する。 widget body の
+		     overflow-x-hidden + pr-1.5 によって outset ring (default) は右端 1-2px
+		     clip され「ボーダーが見切れる」 状態になっていたため (2026-05-20 user 検収)。 -->
 		<textarea
-			class="h-0 w-full flex-1 resize-none rounded-lg bg-[var(--ag-surface-2)] p-2 font-content {FONT_SIZE_CLASS[config.font_size]} text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--ag-accent)]"
+			class="h-0 w-full flex-1 resize-none rounded-lg bg-[var(--ag-surface-2)] p-2 font-content {FONT_SIZE_CLASS[config.font_size]} text-[var(--ag-text-primary)] placeholder:text-[var(--ag-text-faint)] focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[var(--ag-accent)]"
 			placeholder={t('widgets.quick_note.placeholder')}
 			value={noteText}
 			oninput={handleInput}

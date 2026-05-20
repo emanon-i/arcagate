@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import process from 'node:process';
 import { chromium } from '@playwright/test';
 import { markOnboardingComplete, markSetupComplete } from '../helpers/ipc.js';
 
@@ -44,11 +45,20 @@ export default async function globalSetup(): Promise<void> {
 	process.env.ARCAGATE_TEST_DB_PATH = DB_PATH;
 	process.env.ARCAGATE_TEST_CDP_PORT = String(CDP_PORT);
 
+	// user dev / 既存 webview2 instance と user-data-folder を共有しないよう e2e 専用 path に隔離。
+	// 共有すると既存 instance に被って --remote-debugging-port が新規 instance に伝わらず
+	// CDP が 60s 内に開かない flake になる。
+	const WV2_DIR = join(DB_DIR, `wv2-e2e-${Date.now()}`);
+	mkdirSync(WV2_DIR, { recursive: true });
+
 	const tauriProcess = execFile(TAURI_EXE, [], {
 		env: {
 			...process.env,
 			ARCAGATE_DB_PATH: DB_PATH,
+			// e2e は user dev と同 OS で同 hotkey を奪い合うので skip (lib.rs 側で env 認識)
+			ARCAGATE_SKIP_HOTKEY: '1',
 			WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}`,
+			WEBVIEW2_USER_DATA_FOLDER: WV2_DIR,
 		},
 	});
 
