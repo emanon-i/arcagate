@@ -1,24 +1,31 @@
 # personal-data audit patterns (commit 用)
 #
-# 1 行 1 pattern (固定文字列、 大文字小文字無視で substring 検索)。
+# 1 行 1 pattern = **POSIX ERE regex** (case-sensitive、 grep -E -f に渡される)。
 # `#` で始まる行と空行は無視される。
-# user 個別 pattern (brand 名 / 実 item 名 / 作品名 等) は
-# `scripts/.personal-data-patterns.local.txt` (gitignored、 commit されない) に書いて
-# 手元だけで管理すること。 ここに書くと自分自身が pattern として GitHub に乗ってしまう。
+#
+# 本 file は **固有名詞ゼロ** の構造的 pattern 専用。
+# user 個別の名詞 (実 Windows username / 実 workspace root 名 / 実 brand 名 /
+# 実 item 名 / 実 email 等) は `scripts/.personal-data-patterns.local.txt`
+# (gitignored、 commit されない) に書いて手元だけで管理する。
+# ここに固有名詞を書くと自分自身が pattern として GitHub に乗ってしまう。
 #
 # 由来: docs/l3_phases/audit/PERSONAL_DATA_LEAK_AUDIT_2026-05-20.md (L-1〜L-5)
 
-# 個人 Windows username 付きの絶対 path
-C:\Users\gonda
-C:/Users/gonda
+# ── Windows user home 配下の絶対 path (実 username が混入する経路)
+# `<username>` / `${USERPROFILE}` / `%USERPROFILE%` 等の placeholder は
+# `<` / `$` / `%` を含むため [a-zA-Z0-9._-]+ には hit しない (false negative)
+[Cc]:[\\/]Users[\\/][a-zA-Z0-9._-]+[\\/]
 
-# 個人作業 drive layout (Cella は user 固有の workspace root 名)
-E:\Cella
-E:/Cella
+# ── /Users/<name>/ 形 (mac / WSL から copy された個人 home)
+(^|[^a-zA-Z0-9])/Users/[a-zA-Z0-9._-]+/
 
-# signing key 保管 path
-D:\secrets\arcagate
-D:/secrets/arcagate
+# ── /home/<name>/ 形 (Linux / WSL の個人 home)
+(^|[^a-zA-Z0-9])/home/[a-zA-Z0-9._-]+/
 
-# 個人 email (local-part のみ、 完全表記は避ける)
-gonda452@
+# ── AppData 配下の app 個人化 path (Windows user-specific)
+[\\/]AppData[\\/](Local|Roaming|LocalLow)[\\/]
+
+# ── 個人 worktree path (`.claude/worktrees/<id>/` を含む絶対 path 系)
+# worktree id 自体は無害だが、 prefix の drive + project root と組合せると
+# 個人 PC の dir layout 全体を晒すため、 drive prefix 込みで検出する。
+[A-Za-z]:[\\/][^\\/[:space:]]+[\\/]\.claude[\\/]worktrees[\\/]

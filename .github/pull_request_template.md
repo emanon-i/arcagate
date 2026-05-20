@@ -12,15 +12,15 @@
 
 PR description / commit body / 追加 file に以下を **含めない** (generic 化推奨):
 
-| 漏れがちな表現                          | generic 置換例                           |
-| --------------------------------------- | ---------------------------------------- |
-| `C:\Users\<name>\...` 個人 path         | `$USERPROFILE\...` / `%USERPROFILE%\...` |
-| `E:\Cella\Projects\...` 個人 drive      | `<repo-root>` / `./` 相対                |
-| `D:\secrets\...` 個人鍵保管 path        | 「個人 PC の cloud 同期外フォルダ」      |
-| 実 item 名 / brand 名 / 作品名          | 「fixture item」 「test target」         |
-| `2TB SMR HDD` 等の実機ハード仕様        | 「低速 disk」 「SMR 系 HDD 環境」        |
-| 個人 email / SNS handle                 | 削除 or `<user>@example.com`             |
-| 「user 実 DB の N 件」 「実 game N 本」 | 「N+ item」 「benchmark fixture」        |
+| 漏れがちな表現                                          | generic 置換例                           |
+| ------------------------------------------------------- | ---------------------------------------- |
+| `C:\Users\<実 username>\...` 個人 path                  | `$USERPROFILE\...` / `%USERPROFILE%\...` |
+| `<workspace-drive>:\<workspace-root>\Projects\...` 絶対 | `<repo-root>` / `./` 相対                |
+| `<drive>:\secrets\...` 個人鍵保管 path                  | 「個人 PC の cloud 同期外フォルダ」      |
+| 実 item 名 / brand 名 / 作品名                          | 「fixture item」 「test target」         |
+| `2TB SMR HDD` 等の実機ハード仕様                        | 「低速 disk」 「SMR 系 HDD 環境」        |
+| 個人 email / SNS handle                                 | 削除 or `<user>@example.com`             |
+| 「user 実 DB の N 件」 「実 game N 本」                 | 「N+ item」 「benchmark fixture」        |
 
 新規追加 line の構造的 leak (個人 path / drive layout / 個人 email) は
 `scripts/audit-personal-data.sh` (lefthook pre-commit) で fail-closed 検出される。
