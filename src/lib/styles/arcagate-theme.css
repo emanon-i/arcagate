@@ -330,15 +330,20 @@
    STICKY TOOLBAR — widget 本体 glass 面の継続 (独立 card にしない)
    widget 内の sort / filter / search 行に使う。 .ag-glass と違い
    border / box-shadow / noise / highlight を一切持たず「浮いた矩形」に
-   ならない。 occlude は backdrop blur (blur theme) または本体同色の
-   solid fill (--ag-sticky-bar-bg、 非 blur theme / reduce-transparency)
-   が担う。 sort 行の下端 divider は呼出側の border-b utility が描く。
+   ならない。
+   PR #535 後続: backdrop-filter を付与すると親 .ag-glass の blur が
+   sticky bar 領域で二重に適用され、 widget body より「濃いトーンの
+   strip」 が残る (user スクショで否定)。 sticky bar は親 .ag-glass の
+   glass 面の継続なので、 自身の backdrop-filter は付与しない。
+   非 blur theme (neumorph / brutalist / hud) と reduce-transparency は
+   --ag-sticky-bar-bg を本体同色 solid に差し替えており、 widget body
+   との継ぎ目はゼロ。 blur theme (Dark / Light) は transparent のまま
+   親 .ag-glass の効果をそのまま継ぐ。
+   下端の divider は呼出側でも描かない (継ぎ目を作らない)。
    position は付与しない — Tailwind の sticky utility にそのまま委ねる。
    ===================================================================== */
 .ag-sticky-bar {
 	background-color: var(--ag-sticky-bar-bg);
-	backdrop-filter: var(--surface-blur);
-	-webkit-backdrop-filter: var(--surface-blur);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -184,7 +184,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		</button>
 	{:else}
 		<!-- toolbar: 「+」 button (常時) + snippet count -->
-		<div class="mb-2 flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] pb-1.5">
+		<div class="mb-2 flex shrink-0 items-center justify-between pb-1.5">
 			<span class="text-xs text-[var(--ag-text-muted)]">{t('widgets.snippet.count', { count: snippets.length })}</span>
 			<button
 				type="button"
