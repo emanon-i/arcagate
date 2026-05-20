@@ -3,13 +3,17 @@
 #
 # 個人パス / 実 item 名 / 個人 email が **新規 commit** に紛れていないか fail-closed で検出。
 #
-# pattern source (どちらも 1 行 1 固定文字列、 `#` コメント / 空行は無視):
-#   - scripts/personal-data-patterns.txt        (commit、 generic な構造 pattern)
-#   - scripts/.personal-data-patterns.local.txt (gitignored、 user 個別の brand / 実 item 名)
+# pattern source (どちらも 1 行 1 ERE regex、 `#` コメント / 空行は無視):
+#   - scripts/personal-data-patterns.txt        (commit、 generic な構造 regex only)
+#   - scripts/.personal-data-patterns.local.txt (gitignored、 user 個別 = 実 username /
+#                                                実 workspace root / 実 brand / 実 email 等)
 #
-# pattern は **case-sensitive 完全一致**。 path / email は canonical 表記が決まっているため
-# 大小違いの bypass はほぼ無いと判断。 必要なら大小両方を pattern file に列挙する。
-# (`grep -F -i -f` は GNU grep 3.0 + MINGW で SIGABRT する既知 bug を回避する意図もある)
+# pattern は **case-sensitive な POSIX ERE** として `grep -E -f` に渡される。
+# committed 側は構造 pattern (`C:[\\/]Users[\\/][a-zA-Z0-9._-]+[\\/]` 等) のみで固有名詞を持たない。
+# 固有名詞 (実 username / 実 brand / 実 email) は手元の local file で個別管理し、
+# commit ファイルに `<username>` 等 placeholder を残す形に generic 化させて bypass する。
+# (`grep -F -i -f` は GNU grep 3.0 + MINGW で SIGABRT する既知 bug があるが、
+#  本 hook は `-E` + 大小区別ありで動作するため当該 bug 経路には乗らない)
 #
 # 設計判断 — diff-based check (= 新規追加 line のみ grep):
 #   既存 commit の leak (CLAUDE.md / archive 等) を毎 commit で再 fail させると lefthook が
@@ -107,8 +111,8 @@ if [[ -z "$added_lines" ]]; then
   exit 0
 fi
 
-# 固定文字列 OR 検索 (case-sensitive、 上記 bug 回避)
-hits=$(printf '%s\n' "$added_lines" | grep -F -f <(printf '%s\n' "${patterns[@]}") || true)
+# ERE regex OR 検索 (case-sensitive)
+hits=$(printf '%s\n' "$added_lines" | grep -E -f <(printf '%s\n' "${patterns[@]}") || true)
 
 if [[ -n "$hits" ]]; then
   echo "❌ personal-data leak detected in staged changes:" >&2
