@@ -3,13 +3,14 @@
 #
 # 個人パス / 実 item 名 / 個人 email が **新規 commit** に紛れていないか fail-closed で検出。
 #
-# pattern source (どちらも 1 行 1 固定文字列、 `#` コメント / 空行は無視):
-#   - scripts/personal-data-patterns.txt        (commit、 generic な構造 pattern)
-#   - scripts/.personal-data-patterns.local.txt (gitignored、 user 個別の brand / 実 item 名)
+# pattern source (2 系統):
+#   - scripts/personal-data-patterns.txt        (commit、 generic な構造 regex、 grep -P 評価)
+#     固有名詞 (実 user 名 / 実 workspace 名 / 実 brand 名) は書かない。
+#     書くと patterns 自身が GitHub に乗ってしまう。
+#   - scripts/.personal-data-patterns.local.txt (gitignored、 固定文字列、 grep -F 評価)
+#     user 個別の brand / 実 item 名 / 実 user 名 / 実 workspace 名 / 実鍵 path 等の具体値はこちら。
 #
-# pattern は **case-sensitive 完全一致**。 path / email は canonical 表記が決まっているため
-# 大小違いの bypass はほぼ無いと判断。 必要なら大小両方を pattern file に列挙する。
-# (`grep -F -i -f` は GNU grep 3.0 + MINGW で SIGABRT する既知 bug を回避する意図もある)
+# どちらも 1 行 1 pattern、 `#` コメント / 空行は無視。
 #
 # 設計判断 — diff-based check (= 新規追加 line のみ grep):
 #   既存 commit の leak (CLAUDE.md / archive 等) を毎 commit で再 fail させると lefthook が
@@ -24,10 +25,8 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-PATTERN_FILES=(
-  "scripts/personal-data-patterns.txt"
-  "scripts/.personal-data-patterns.local.txt"
-)
+REGEX_PATTERN_FILE="scripts/personal-data-patterns.txt"
+LITERAL_PATTERN_FILE="scripts/.personal-data-patterns.local.txt"
 
 # 自己除外: pattern file 本体 / audit doc / 本 script / PR template は pattern を文中に
 # 含む正当な場所なので scan 対象から外す。
@@ -39,21 +38,29 @@ SELF_EXCLUDE=(
   ".github/pull_request_template.md"
 )
 
-# pattern を集約
-patterns=()
-for f in "${PATTERN_FILES[@]}"; do
-  if [[ -f "$f" ]]; then
-    while IFS= read -r line || [[ -n "$line" ]]; do
-      # CRLF 対策
-      line="${line%$'\r'}"
-      [[ -z "${line// }" ]] && continue
-      [[ "$line" =~ ^[[:space:]]*# ]] && continue
-      patterns+=("$line")
-    done < "$f"
-  fi
-done
+# pattern 読み込み helper (CRLF 除去 + コメント / 空行 skip)
+load_patterns() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ -z "${line// }" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    printf '%s\n' "$line"
+  done < "$file"
+}
 
-if [[ ${#patterns[@]} -eq 0 ]]; then
+regex_patterns=()
+while IFS= read -r p; do
+  [[ -n "$p" ]] && regex_patterns+=("$p")
+done < <(load_patterns "$REGEX_PATTERN_FILE")
+
+literal_patterns=()
+while IFS= read -r p; do
+  [[ -n "$p" ]] && literal_patterns+=("$p")
+done < <(load_patterns "$LITERAL_PATTERN_FILE")
+
+if [[ ${#regex_patterns[@]} -eq 0 && ${#literal_patterns[@]} -eq 0 ]]; then
   echo "✓ audit-personal-data: pattern なし、 skip"
   exit 0
 fi
@@ -107,18 +114,41 @@ if [[ -z "$added_lines" ]]; then
   exit 0
 fi
 
-# 固定文字列 OR 検索 (case-sensitive、 上記 bug 回避)
-hits=$(printf '%s\n' "$added_lines" | grep -F -f <(printf '%s\n' "${patterns[@]}") || true)
+# 検査: regex (committed) と literal (local) を別々に評価して hit を集約
+all_hits=""
 
-if [[ -n "$hits" ]]; then
+if [[ ${#regex_patterns[@]} -gt 0 ]]; then
+  # GNU grep 3.0 (MSYS / Git Bash) の `-P -f` は「-P only supports a single pattern」 で fail する。
+  # 各 line を `(?:..)` で囲って `|` で alternation した 1 本の PCRE に合成して回避。
+  # PCRE は LC_ALL=C.UTF-8 を明示しないと「supports only unibyte and UTF-8 locales」 で fail する環境がある。
+  combined_regex=""
+  for p in "${regex_patterns[@]}"; do
+    [[ -n "$combined_regex" ]] && combined_regex+="|"
+    combined_regex+="(?:$p)"
+  done
+  regex_hits=$(printf '%s\n' "$added_lines" \
+    | LC_ALL=C.UTF-8 grep -P "$combined_regex" || true)
+  if [[ -n "$regex_hits" ]]; then
+    all_hits+="[regex pattern (committed)]"$'\n'"$regex_hits"$'\n'
+  fi
+fi
+
+if [[ ${#literal_patterns[@]} -gt 0 ]]; then
+  literal_hits=$(printf '%s\n' "$added_lines" \
+    | grep -F -f <(printf '%s\n' "${literal_patterns[@]}") || true)
+  if [[ -n "$literal_hits" ]]; then
+    all_hits+="[literal pattern (local)]"$'\n'"$literal_hits"$'\n'
+  fi
+fi
+
+if [[ -n "$all_hits" ]]; then
   echo "❌ personal-data leak detected in staged changes:" >&2
   echo "" >&2
-  echo "$hits" >&2
+  echo "$all_hits" >&2
   echo "" >&2
   echo "patterns are loaded from:" >&2
-  for f in "${PATTERN_FILES[@]}"; do
-    [[ -f "$f" ]] && echo "  - $f" >&2
-  done
+  [[ -f "$REGEX_PATTERN_FILE" ]]   && echo "  - $REGEX_PATTERN_FILE (regex, committed)" >&2
+  [[ -f "$LITERAL_PATTERN_FILE" ]] && echo "  - $LITERAL_PATTERN_FILE (literal, local)" >&2
   echo "" >&2
   echo "対処:" >&2
   echo "  1) 該当 line を generic placeholder に書き換える" >&2
