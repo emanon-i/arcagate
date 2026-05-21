@@ -31,6 +31,7 @@ SYNC_ALLOWED="
   cmd_get_autostart cmd_get_config cmd_get_hotkey cmd_is_onboarding_complete
   cmd_is_setup_complete cmd_mark_onboarding_complete cmd_mark_setup_complete
   cmd_set_autostart cmd_set_config cmd_set_hotkey
+  cmd_take_startup_notices
   cmd_cancel_exe_scan cmd_cancel_file_search
   cmd_bulk_add_tag cmd_bulk_delete_items cmd_bulk_remove_tag cmd_check_is_directory
   cmd_count_hidden_items cmd_count_item_references cmd_create_item cmd_create_tag

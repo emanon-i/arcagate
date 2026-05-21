@@ -2,6 +2,7 @@ mod commands;
 pub mod db;
 mod launcher;
 pub mod models;
+mod panic_hook;
 mod repositories;
 pub mod services;
 pub mod utils;
@@ -37,6 +38,7 @@ use commands::opener_commands::{
 };
 use commands::reset_commands::cmd_factory_reset;
 use commands::script_commands::{cmd_confirm_script, cmd_run_script, cmd_scan_script_folder};
+use commands::startup_notice_commands::cmd_take_startup_notices;
 use commands::system_monitor_commands::{
     cmd_get_disk_stats, cmd_get_network_stats, cmd_get_system_stats,
 };
@@ -68,7 +70,11 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    // PH-PQ-100 T2: Builder 構築前に panic_hook を install。
+    // 以降のあらゆる panic は log + WAL checkpoint + dialog で graceful に扱われる。
+    panic_hook::install();
+
+    if let Err(e) = tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
@@ -131,10 +137,12 @@ pub fn run() {
                     .build(),
             )?;
 
+            // PH-PQ-100 T1: app data dir 解決失敗を panic させず setup error として
+            // 伝播。 Tauri が起動失敗を扱い、 panic_hook が dialog を出す。
             let app_data_dir = app
                 .path()
                 .app_data_dir()
-                .expect("failed to resolve app data dir");
+                .map_err(|e| format!("failed to resolve app data dir: {e}"))?;
             std::fs::create_dir_all(&app_data_dir)?;
 
             // K-7 fix (2026-05-16): tauri.conf.json の static assetProtocol scope
@@ -167,14 +175,48 @@ pub fn run() {
             let db_path = std::env::var("ARCAGATE_DB_PATH")
                 .map(std::path::PathBuf::from)
                 .unwrap_or_else(|_| app_data_dir.join("arcagate.db"));
-            let db_state = db::initialize(
-                db_path
-                    .to_str()
-                    .expect("database path contains non-UTF-8 characters"),
-            )
-            .expect("failed to initialize database");
-            let db_arc = std::sync::Arc::new(db_state);
+            // PH-PQ-100 T1: 非 UTF-8 path でも panic させず lossy 変換で継続。
+            // Windows の app_data_dir は実質 UTF-8 だが、 万一の異常 path でも起動を止めない。
+            let db_path_str = match db_path.to_str() {
+                Some(s) => s.to_string(),
+                None => {
+                    log::warn!(
+                        "database path contains non-UTF-8 characters, using lossy conversion"
+                    );
+                    db_path.to_string_lossy().into_owned()
+                }
+            };
+            // PH-PQ-100 T3: DB 破損時は backup 退避 + 新規 DB 再走で self-recovery。
+            let init_outcome = db::initialize_with_recovery(&db_path_str)
+                .map_err(|e| format!("failed to initialize database: {e}"))?;
+            let recovered_backup = init_outcome.recovered_from_corruption.clone();
+            let db_arc = std::sync::Arc::new(init_outcome.state);
+            // panic_hook が WAL checkpoint に使えるよう DB を登録 (T2)。
+            panic_hook::register_db(db_arc.clone());
             app.manage(services::AppServices::new(db_arc.clone()));
+
+            // panic_hook が crash dialog を出せるよう AppHandle を登録 (T2)。
+            panic_hook::register_app_handle(app.handle().clone());
+
+            // PH-PQ-100 T3: DB 破損 recovery が発生したら user に dialog で通知。
+            if let Some(backup) = recovered_backup {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                    handle
+                        .dialog()
+                        .message(format!(
+                            "データベースが破損していたため、 破損ファイルをバックアップに\
+                             退避し、 新しいデータベースで起動しました。\n\
+                             一部のデータが失われた可能性があります。\n\n\
+                             バックアップ: {}",
+                            backup.display()
+                        ))
+                        .title("Arcagate — データベースを復旧しました")
+                        .kind(MessageDialogKind::Warning)
+                        .blocking_show();
+                });
+            }
 
             // sys:starred など必須システムタグの初期化（べき等）
             {
@@ -190,26 +232,52 @@ pub fn run() {
             app.manage(services::file_search_state::FileSearchState::default());
             app.manage(services::file_search_state::ExeScanState::default());
 
+            // PH-PQ-100 T4: 起動時 self-recovery 通知の窓口 (frontend が mount 後に取得)。
+            let startup_notices = services::startup_notice::StartupNotices::default();
+
             // グローバルショートカット登録。 ARCAGATE_SKIP_HOTKEY=1 で skip (e2e / agent dev で
             // user dev process と同 hotkey の競合 panic を回避する目的、 production では未設定)。
-            let hotkey_str = {
+            //
+            // PH-PQ-100 T4: 保存済み hotkey が破損していたら default に縮退し、 起動を止めない。
+            // (1) 構文検証で弾く  (2) register 失敗時も default で再試行。
+            let (mut hotkey_str, mut hotkey_recovered) = {
                 let services = app.state::<services::AppServices>();
                 services
                     .config
-                    .get_hotkey()
-                    .unwrap_or_else(|_| models::config::DEFAULT_HOTKEY.to_string())
+                    .get_hotkey_validated()
+                    .unwrap_or_else(|_| (models::config::DEFAULT_HOTKEY.to_string(), false))
             };
             if std::env::var("ARCAGATE_SKIP_HOTKEY").is_err() {
-                app.global_shortcut().register(hotkey_str.as_str())?;
+                if let Err(e) = app.global_shortcut().register(hotkey_str.as_str()) {
+                    log::warn!("failed to register hotkey, retrying with default: {}", e);
+                    if hotkey_str != models::config::DEFAULT_HOTKEY {
+                        hotkey_recovered = true;
+                        hotkey_str = models::config::DEFAULT_HOTKEY.to_string();
+                        if let Err(e2) = app.global_shortcut().register(hotkey_str.as_str()) {
+                            // default すら失敗 (別 process が占有等) — hotkey なしで起動継続。
+                            log::error!("default hotkey registration also failed: {}", e2);
+                        }
+                    }
+                }
             }
+            if hotkey_recovered {
+                startup_notices.push("config.hotkey_recovered");
+            }
+            app.manage(startup_notices);
 
             // システムトレイの設定
             let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
-            let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+            // PH-PQ-100 T1: window icon が取得できなくても panic させず、
+            // icon なし tray で起動を継続する (機能縮退)。
+            let mut tray_builder = TrayIconBuilder::new();
+            match app.default_window_icon() {
+                Some(icon) => tray_builder = tray_builder.icon(icon.clone()),
+                None => log::warn!("default window icon unavailable, tray starts without icon"),
+            }
+            let _tray = tray_builder
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
@@ -246,6 +314,11 @@ pub fn run() {
                     let _ = palette.hide();
                 }
             });
+
+            // PH-PQ-100 T2 受け入れ検証: debug build + ARCAGATE_PANIC_TEST で
+            // 意図 panic を発生させ panic_hook の dialog を確認できる。
+            #[cfg(debug_assertions)]
+            panic_hook::arm_test_trigger();
 
             Ok(())
         })
@@ -363,7 +436,13 @@ pub fn run() {
             cmd_save_opener,
             cmd_delete_opener,
             cmd_launch_with_opener,
+            cmd_take_startup_notices,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    {
+        // PH-PQ-100 T1: run() 失敗を panic させず log + 非ゼロ exit。
+        log::error!("error while running tauri application: {e}");
+        eprintln!("fatal: error while running tauri application: {e}");
+        std::process::exit(1);
+    }
 }

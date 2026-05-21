@@ -1,0 +1,110 @@
+name: Nightly Soak
+
+# PH-PQ-100 T5: memory soak の自動計測。
+# release-criteria C2 (idle 30min <= +10MB) / C3 (1h heavy <= +50MB) を
+# user 手動検証から脱却し、 nightly で機械判定する。
+#
+# cron は UTC 18:00 = JST 03:00。 既存 3 workflow (ci / e2e / release) と独立。
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      idle_minutes:
+        description: 'idle soak duration (minutes)'
+        default: '30'
+      heavy_minutes:
+        description: 'heavy soak duration (minutes)'
+        default: '60'
+
+permissions:
+  contents: read
+
+jobs:
+  soak:
+    runs-on: windows-latest
+    # build (~15min) + idle 30min + heavy 60min を吸収する余裕を持たせる
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Tauri release build
+        run: pnpm tauri build
+
+      - name: Idle soak (release-criteria C2, <= +10MB)
+        shell: pwsh
+        run: >
+          pwsh scripts/release-checks/measure-memory-soak.ps1
+          -Mode idle
+          -Minutes ${{ github.event.inputs.idle_minutes || '30' }}
+          -SampleEverySec 60
+          -ThresholdMB 10
+          -OutDir tmp/soak
+
+      - name: Heavy soak (release-criteria C3, <= +50MB)
+        shell: pwsh
+        run: >
+          pwsh scripts/release-checks/measure-memory-soak.ps1
+          -Mode heavy
+          -Minutes ${{ github.event.inputs.heavy_minutes || '60' }}
+          -SampleEverySec 60
+          -ThresholdMB 50
+          -DebugPort 9777
+          -OutDir tmp/soak
+
+      - name: Upload soak measurements
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: soak-measurements
+          path: tmp/soak/
+          retention-days: 30
+
+  # soak job が fail したら GitHub issue を自動 open (regression を見落とさない)。
+  report-failure:
+    needs: soak
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Open issue on soak failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          gh issue create \
+            --title "Nightly soak failed ($DATE)" \
+            --label "soak-failure" \
+            --body "Nightly memory soak (PH-PQ-100 T5) が leak rate / delta 閾値を超過、 もしくは process 異常終了しました。
+
+          - idle 閾値: total delta <= +10MB
+          - heavy 閾値: leak rate <= +50MB/h
+
+          実行ログ + soak-measurements artifact (CSV/JSON): $RUN_URL" \
+          || echo "issue creation skipped (label missing or permission denied)"

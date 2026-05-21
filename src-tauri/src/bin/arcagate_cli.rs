@@ -1,3 +1,7 @@
+// PH-PQ-100 T6: arcagate_cli は配布対象外の開発用 CLI binary (plan §やらないこと)。
+// crate 全体の `[lints.clippy]` (unwrap_used = deny 等) からこの bin を明示除外する。
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 use arcagate_lib::{
     db,
     models::{

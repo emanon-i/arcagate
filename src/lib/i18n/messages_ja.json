@@ -532,6 +532,7 @@
 		"appearance_settings_started": "このカードだけ見た目設定を開始しました",
 		"bookmark_read_failed": "読み込み失敗: {error}",
 		"calc_copied_to_clipboard": "計算結果をクリップボードにコピーしました",
+		"config_recovered_to_default": "設定の一部が破損していたため default に戻しました",
 		"config_save_failed": "設定保存失敗: {error}",
 		"copied_to_clipboard": "クリップボードにコピーしました",
 		"copy_failed": "コピー失敗: {error}",

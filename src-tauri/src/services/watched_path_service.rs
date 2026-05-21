@@ -22,7 +22,11 @@ pub fn add_watched_path(
     // watcher 登録を先に試み、失敗したら DB 書き込み前に Err 返却。
     // 検収 #13: ウォッチパスはサブフォルダも再帰監視 (Recursive)。
     {
-        let mut w = watcher.0.lock().map_err(|_| AppError::DbLock)?;
+        let mut guard = watcher.0.lock().map_err(|_| AppError::DbLock)?;
+        let w = guard.as_mut().ok_or_else(|| {
+            log::warn!("watcher unavailable, cannot add '{}'", path_str);
+            AppError::WatchFailed(format!("{}: filesystem watcher unavailable", path_str))
+        })?;
         w.watch(
             std::path::Path::new(&path_str),
             notify::RecursiveMode::Recursive,
@@ -73,9 +77,11 @@ pub fn remove_watched_path(db: &DbState, watcher: &WatcherState, id: &str) -> Re
         path,
         cascade_count
     );
-    if let Ok(mut w) = watcher.0.lock() {
-        if let Err(e) = w.unwatch(std::path::Path::new(&path)) {
-            log::warn!("watcher: failed to unwatch '{}': {}", path, e);
+    if let Ok(mut guard) = watcher.0.lock() {
+        if let Some(w) = guard.as_mut() {
+            if let Err(e) = w.unwatch(std::path::Path::new(&path)) {
+                log::warn!("watcher: failed to unwatch '{}': {}", path, e);
+            }
         }
     }
     Ok(())

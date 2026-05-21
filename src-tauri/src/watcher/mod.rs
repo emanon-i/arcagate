@@ -7,25 +7,49 @@ use tauri::{Emitter, Manager};
 
 use crate::services::{watcher_service, AppServices};
 
-pub struct WatcherState(pub Mutex<notify::RecommendedWatcher>);
+/// PH-PQ-100 T1: watcher 生成失敗時の panic を排除するため `Option` 化。
+/// `None` の場合は file-watch 機能のみ縮退し、 起動全体を継続する。
+/// watch / unwatch 呼び出し側は `Option` を確認して、 None なら `WatchFailed` を返すか
+/// 何もしない (best-effort 系)。
+pub struct WatcherState(pub Mutex<Option<notify::RecommendedWatcher>>);
 
 impl WatcherState {
+    pub fn unavailable() -> Self {
+        WatcherState(Mutex::new(None))
+    }
+
     #[cfg(test)]
     pub fn new_noop() -> Self {
-        let w = notify::recommended_watcher(|_: notify::Result<notify::Event>| {})
-            .expect("failed to create noop watcher");
-        WatcherState(Mutex::new(w))
+        match notify::recommended_watcher(|_: notify::Result<notify::Event>| {}) {
+            Ok(w) => WatcherState(Mutex::new(Some(w))),
+            Err(e) => {
+                log::warn!("test noop watcher unavailable: {}", e);
+                WatcherState::unavailable()
+            }
+        }
     }
 }
 
+/// 起動時の watcher 生成。 失敗しても panic せず `WatcherState::unavailable` を返し、
+/// file-watch 機能のみ縮退する (release-criteria E1 / PH-PQ-100 T1)。
 pub fn start_watcher(app: &tauri::AppHandle) -> WatcherState {
     let app_cb = app.clone();
-    let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+    let watcher_result = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
         if let Ok(event) = res {
             handle_event(&event, &app_cb);
         }
-    })
-    .expect("failed to create watcher");
+    });
+
+    let mut watcher = match watcher_result {
+        Ok(w) => w,
+        Err(e) => {
+            log::error!(
+                "filesystem watcher init failed, file-watch features disabled: {}",
+                e
+            );
+            return WatcherState::unavailable();
+        }
+    };
 
     // DB に登録済みのアクティブパスを先に収集してから監視開始
     // (State<AppServices> の lifetime を watch loop より先に終わらせる、V3 解消で service 経由)
@@ -42,7 +66,7 @@ pub fn start_watcher(app: &tauri::AppHandle) -> WatcherState {
         }
     }
 
-    WatcherState(Mutex::new(watcher))
+    WatcherState(Mutex::new(Some(watcher)))
 }
 
 fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
@@ -91,5 +115,18 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unavailable_returns_state_with_none_inner() {
+        // PH-PQ-100 T1: watcher 失敗 path が panic ではなく縮退状態を返すことを pin。
+        let state = WatcherState::unavailable();
+        let guard = state.0.lock().expect("test lock");
+        assert!(guard.is_none());
     }
 }

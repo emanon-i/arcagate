@@ -13,6 +13,7 @@ pub mod metadata_commands;
 pub mod opener_commands;
 pub mod reset_commands;
 pub mod script_commands;
+pub mod startup_notice_commands;
 pub mod system_monitor_commands;
 pub mod theme_commands;
 pub mod url_commands;

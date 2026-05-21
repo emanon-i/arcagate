@@ -53,3 +53,15 @@ lto = true
 codegen-units = 1
 strip = "symbols"
 opt-level = "z"
+
+# PH-PQ-100 T6: 本番経路 panic の再発防止 (plan PH-PQ-100 §T6)。
+# - unwrap_used = "deny": production code の新規 `.unwrap()` は即 CI fail。
+# - expect_used = "warn" / panic = "warn": CI / lefthook の `cargo clippy -- -D warnings`
+#   が warning を error 化するため、 本番経路の `.expect()` / `panic!` も実質 block される。
+# `#[cfg(test)]` 配下は通常 `cargo clippy` (= 非 --all-targets) の対象外なので test の
+# `.unwrap()` / `.expect()` は許容される。 配布対象外の CLI binary は crate root の
+# `#![allow(...)]` で明示的に除外する。
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "warn"

@@ -4,8 +4,10 @@ import '../app.css';
 import '$lib/state/a11y.svelte';
 import { onDestroy, onMount } from 'svelte';
 import ScriptLaunchConfirmDialog from '$lib/components/common/ScriptLaunchConfirmDialog.svelte';
-import { detectOsLocale, type Locale, setLocale } from '$lib/i18n.svelte';
+import { detectOsLocale, type Locale, setLocale, t } from '$lib/i18n.svelte';
+import { takeStartupNotices } from '$lib/ipc/config';
 import { installErrorMonitor, uninstallErrorMonitor } from '$lib/state/error-monitor.svelte';
+import { toastStore } from '$lib/state/toast.svelte';
 import { installLongtaskObserver, installResourceObserver } from '$lib/utils/perf';
 // Library 遷移 timeline collector (prototype): 起動時に window.__agTimeline__ を用意する。
 import '$lib/utils/perf-timeline';
@@ -37,16 +39,37 @@ function resolveInitialLocale(): Locale {
 	return detectOsLocale();
 }
 
-// audit 2026-05-13 F12: 旧 `cmd_consume_last_panic` 呼出は backend 未登録で silent fail 状態だった
-// (frontend 呼出 → backend 登録漏れ、 try/catch で黙殺 = panic recovery toast は実機で絶対表示されない)。
-// panic hook + consume command の full infrastructure は scope 外、 dead path を撤去。
-// future: panic::set_hook + file-based last_panic.json + cmd_consume_last_panic 一式実装で復活可。
+/**
+ * PH-PQ-100 T4: 起動時 self-recovery 通知 → toast。
+ * notice code (backend) → i18n toast キーの対応表。 未知 code は無視する。
+ */
+const STARTUP_NOTICE_TOAST: Record<string, string> = {
+	'config.hotkey_recovered': 'toast.config_recovered_to_default',
+};
+
+async function showStartupNotices(): Promise<void> {
+	try {
+		const codes = await takeStartupNotices();
+		for (const code of codes) {
+			const key = STARTUP_NOTICE_TOAST[code];
+			if (key) toastStore.add(t(key), 'info');
+		}
+	} catch {
+		// 通知取得失敗は起動の妨げにしない (best-effort)。
+	}
+}
+
+// PH-PQ-100 T2: panic hook の full infrastructure を実装済 (src-tauri/src/panic_hook.rs)。
+// 旧 `cmd_consume_last_panic` 経路は撤去済 — panic 時は backend の panic_hook が
+// log + WAL checkpoint + native dialog を担う。 起動時 config 破損などの軽度 recovery は
+// 下記 showStartupNotices() で toast 表示する (T4)。
 onMount(() => {
 	installErrorMonitor();
 	installLongtaskObserver();
 	installResourceObserver();
 	// rank 3 Phase 2 fix: test 強制 > 保存済 > OS auto-detect > ja fallback。
 	void setLocale(resolveInitialLocale());
+	void showStartupNotices();
 });
 onDestroy(() => {
 	uninstallErrorMonitor();
