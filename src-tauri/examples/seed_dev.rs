@@ -3,10 +3,21 @@
 //!
 //! APPDATA/com.arcagate.desktop/arcagate.db にダミーアイテムを投入する。
 //! 既にデータがある場合はスキップ（label の UNIQUE 制約で重複回避）。
+//!
+//! path は実機 username / drive 構成に依存しないよう env var 経由で解決する
+//! (個人 path を repo に commit させないため、 PERSONAL_DATA_LEAK_AUDIT_2026-05-20.md L-1 参照)。
 
 use arcagate_lib::db;
 use arcagate_lib::models::item::CreateItemInput;
 use arcagate_lib::services::{config_service, item_service};
+
+fn user_profile() -> String {
+    std::env::var("USERPROFILE").unwrap_or_else(|_| std::env::var("HOME").unwrap_or_else(|_| ".".into()))
+}
+
+fn join_user(rel: &str) -> String {
+    format!("{}/{}", user_profile().replace('\\', "/"), rel)
+}
 
 fn main() {
     let db_path = format!(
@@ -20,11 +31,15 @@ fn main() {
     // セットアップ完了にする（SetupWizard スキップ）
     let _ = config_service::mark_setup_complete(&db_state);
 
+    let vscode_path = join_user("AppData/Local/Programs/Microsoft VS Code/Code.exe");
+    let downloads_path = join_user("Downloads");
+    let documents_path = join_user("Documents");
+
     let items = vec![
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Exe,
             label: "Visual Studio Code".into(),
-            target: "C:/Users/gonda/AppData/Local/Programs/Microsoft VS Code/Code.exe".into(),
+            target: vscode_path,
             args: None,
             working_dir: None,
             icon_path: None,
@@ -95,12 +110,12 @@ fn main() {
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Folder,
-            label: "Arcagate Project".into(),
-            target: "E:/Cella/Projects/arcagate".into(),
+            label: "Documents".into(),
+            target: documents_path.clone(),
             args: None,
             working_dir: None,
             icon_path: None,
-            aliases: vec!["project".into()],
+            aliases: vec!["docs".into()],
 
             tag_ids: vec![],
             is_tracked: true,
@@ -108,7 +123,7 @@ fn main() {
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Folder,
             label: "Downloads".into(),
-            target: "C:/Users/gonda/Downloads".into(),
+            target: downloads_path,
             args: None,
             working_dir: None,
             icon_path: None,
@@ -122,7 +137,7 @@ fn main() {
             label: "Git Status All".into(),
             target: "git status".into(),
             args: None,
-            working_dir: Some("E:/Cella/Projects".into()),
+            working_dir: Some(documents_path),
             icon_path: None,
             aliases: vec!["gs".into()],
 

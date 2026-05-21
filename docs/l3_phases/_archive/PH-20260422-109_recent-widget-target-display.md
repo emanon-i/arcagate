@@ -15,7 +15,7 @@ depends_on: []
 ## 背景/目的
 
 `RecentLaunchesWidget` の各行右端に `item.target` をそのまま表示している。
-`C:\Users\gonda\AppData\Roaming\...` のようなフルパスや `https://very-long-domain.example.com/path/to/page` が
+Windows user-specific path のようなフルパスや `https://very-long-domain.example.com/path/to/page` が
 truncate されても視覚的に醜く、情報量も少ない。
 
 現状:

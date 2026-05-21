@@ -3,17 +3,24 @@
 #
 # 個人パス / 実 item 名 / 個人 email が **新規 commit** に紛れていないか fail-closed で検出。
 #
-# pattern source (どちらも 1 行 1 ERE regex、 `#` コメント / 空行は無視):
-#   - scripts/personal-data-patterns.txt        (commit、 generic な構造 regex only)
-#   - scripts/.personal-data-patterns.local.txt (gitignored、 user 個別 = 実 username /
-#                                                実 workspace root / 実 brand / 実 email 等)
+# pattern source (2 系統):
+#   - scripts/personal-data-patterns.txt        (commit、 **regex** = grep -E)
+#       generic 構造マッチ (例: [Cc]:[\\/]Users[\\/]... / [\\/]secrets?[\\/])。
+#       固有名詞 (実 username / workspace 名 / brand 名) は書かない。
+#   - scripts/.personal-data-patterns.local.txt (gitignored、 **固定文字列** = grep -F)
+#       手元の実 username / brand / 実 item 名 / 実 email など固有値を列挙。
 #
-# pattern は **case-sensitive な POSIX ERE** として `grep -E -f` に渡される。
-# committed 側は構造 pattern (`C:[\\/]Users[\\/][a-zA-Z0-9._-]+[\\/]` 等) のみで固有名詞を持たない。
-# 固有名詞 (実 username / 実 brand / 実 email) は手元の local file で個別管理し、
-# commit ファイルに `<username>` 等 placeholder を残す形に generic 化させて bypass する。
+# 設計判断 — 二系統に分けた理由 (2026-05-21):
+#   single-tier (固定文字列のみ) では committed pattern file 自身に実 username
+#   等を書くしかなく、 検出 dictionary が一次 leak source になっていた。 regex を
+#   committed 側に逃がし、 固有名詞は手元の .local 側にだけ置く構成にすることで
+#   公開 repo 内の dictionary に個人情報が一切残らない。 local 側を固定文字列
+#   (grep -F) にした理由: 実 brand 名 / 実 email / 実機構成等は regex 化困難で、
+#   user が思いついた literal をそのまま追加できる UX が現実的。
+#
+# pattern は **case-sensitive** で処理される。
 # (`grep -F -i -f` は GNU grep 3.0 + MINGW で SIGABRT する既知 bug があるが、
-#  本 hook は `-E` + 大小区別ありで動作するため当該 bug 経路には乗らない)
+#  本 hook は大小区別ありで動作するため当該 bug 経路には乗らない)
 #
 # 設計判断 — diff-based check (= 新規追加 line のみ grep):
 #   既存 commit の leak (CLAUDE.md / archive 等) を毎 commit で再 fail させると lefthook が
@@ -28,10 +35,8 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-PATTERN_FILES=(
-  "scripts/personal-data-patterns.txt"
-  "scripts/.personal-data-patterns.local.txt"
-)
+REGEX_PATTERN_FILE="scripts/personal-data-patterns.txt"
+FIXED_PATTERN_FILE="scripts/.personal-data-patterns.local.txt"
 
 # 自己除外: pattern file 本体 / audit doc / 本 script / PR template は pattern を文中に
 # 含む正当な場所なので scan 対象から外す。
@@ -43,21 +48,27 @@ SELF_EXCLUDE=(
   ".github/pull_request_template.md"
 )
 
-# pattern を集約
-patterns=()
-for f in "${PATTERN_FILES[@]}"; do
-  if [[ -f "$f" ]]; then
-    while IFS= read -r line || [[ -n "$line" ]]; do
-      # CRLF 対策
-      line="${line%$'\r'}"
-      [[ -z "${line// }" ]] && continue
-      [[ "$line" =~ ^[[:space:]]*# ]] && continue
-      patterns+=("$line")
-    done < "$f"
+read_patterns() {
+  local file="$1"
+  local -n out_arr="$2"
+  if [[ ! -f "$file" ]]; then
+    return 0
   fi
-done
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    # CRLF 対策
+    line="${line%$'\r'}"
+    [[ -z "${line// }" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    out_arr+=("$line")
+  done < "$file"
+}
 
-if [[ ${#patterns[@]} -eq 0 ]]; then
+regex_patterns=()
+fixed_patterns=()
+read_patterns "$REGEX_PATTERN_FILE" regex_patterns
+read_patterns "$FIXED_PATTERN_FILE" fixed_patterns
+
+if [[ ${#regex_patterns[@]} -eq 0 && ${#fixed_patterns[@]} -eq 0 ]]; then
   echo "✓ audit-personal-data: pattern なし、 skip"
   exit 0
 fi
@@ -111,18 +122,32 @@ if [[ -z "$added_lines" ]]; then
   exit 0
 fi
 
-# ERE regex OR 検索 (case-sensitive)
-hits=$(printf '%s\n' "$added_lines" | grep -E -f <(printf '%s\n' "${patterns[@]}") || true)
+# regex 系 (committed) + 固定文字列系 (local) の両方を検査して結合
+all_hits=""
+if [[ ${#regex_patterns[@]} -gt 0 ]]; then
+  regex_hits=$(printf '%s\n' "$added_lines" | grep -E -f <(printf '%s\n' "${regex_patterns[@]}") || true)
+  if [[ -n "$regex_hits" ]]; then
+    all_hits+="$regex_hits"$'\n'
+  fi
+fi
+if [[ ${#fixed_patterns[@]} -gt 0 ]]; then
+  fixed_hits=$(printf '%s\n' "$added_lines" | grep -F -f <(printf '%s\n' "${fixed_patterns[@]}") || true)
+  if [[ -n "$fixed_hits" ]]; then
+    all_hits+="$fixed_hits"$'\n'
+  fi
+fi
 
-if [[ -n "$hits" ]]; then
+# 末尾の空行を trim
+all_hits="${all_hits%$'\n'}"
+
+if [[ -n "$all_hits" ]]; then
   echo "❌ personal-data leak detected in staged changes:" >&2
   echo "" >&2
-  echo "$hits" >&2
+  echo "$all_hits" >&2
   echo "" >&2
   echo "patterns are loaded from:" >&2
-  for f in "${PATTERN_FILES[@]}"; do
-    [[ -f "$f" ]] && echo "  - $f" >&2
-  done
+  [[ -f "$REGEX_PATTERN_FILE" ]] && echo "  - $REGEX_PATTERN_FILE (regex / committed)" >&2
+  [[ -f "$FIXED_PATTERN_FILE" ]] && echo "  - $FIXED_PATTERN_FILE (fixed / gitignored)" >&2
   echo "" >&2
   echo "対処:" >&2
   echo "  1) 該当 line を generic placeholder に書き換える" >&2

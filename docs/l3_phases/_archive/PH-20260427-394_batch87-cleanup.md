@@ -10,7 +10,7 @@ era: Polish Era
 
 ## 参照した規約
 
-- `~/.claude/projects/E--Cella-Projects-arcagate/memory/feedback_audio_freeze.md` 音声機能凍結、Polish Era で最終判断
+- `~/.claude/projects/<repo-slug>/memory/feedback_audio_freeze.md` 音声機能凍結、Polish Era で最終判断
 - `docs/l0_ideas/arcagate-engineering-principles.md` §9 配布水準客観指標
 
 ## 横展開チェック実施済か

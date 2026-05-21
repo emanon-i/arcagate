@@ -1,19 +1,18 @@
-# personal-data audit patterns (commit 用)
+# personal-data audit patterns (committed、 regex / grep -E)
 #
-# 1 行 1 pattern = **POSIX ERE regex** (case-sensitive、 grep -E -f に渡される)。
-# `#` で始まる行と空行は無視される。
+# 1 行 1 pattern (POSIX ERE)。 `#` で始まる行と空行は無視。
+# このファイルは公開 repo に commit されるため **固有名詞ゼロ** が必須。
+# 実 username / 実 workspace 名 / 実 brand 名 / 実 email 等の具体値は
+# `scripts/.personal-data-patterns.local.txt` (gitignored、 固定文字列 / grep -F)
+# 側にのみ書く。
 #
-# 本 file は **固有名詞ゼロ** の構造的 pattern 専用。
-# user 個別の名詞 (実 Windows username / 実 workspace root 名 / 実 brand 名 /
-# 実 item 名 / 実 email 等) は `scripts/.personal-data-patterns.local.txt`
-# (gitignored、 commit されない) に書いて手元だけで管理する。
-# ここに固有名詞を書くと自分自身が pattern として GitHub に乗ってしまう。
+# `<username>` / `${USERPROFILE}` / `%USERPROFILE%` 等の placeholder は
+# `<` / `$` / `%` を含むため `[a-zA-Z0-9._-]+` 系の class には hit しない
+# (placeholder の false-positive を避ける設計)。
 #
 # 由来: docs/l3_phases/audit/PERSONAL_DATA_LEAK_AUDIT_2026-05-20.md (L-1〜L-5)
 
 # ── Windows user home 配下の絶対 path (実 username が混入する経路)
-# `<username>` / `${USERPROFILE}` / `%USERPROFILE%` 等の placeholder は
-# `<` / `$` / `%` を含むため [a-zA-Z0-9._-]+ には hit しない (false negative)
 [Cc]:[\\/]Users[\\/][a-zA-Z0-9._-]+[\\/]
 
 # ── /Users/<name>/ 形 (mac / WSL から copy された個人 home)
@@ -25,7 +24,21 @@
 # ── AppData 配下の app 個人化 path (Windows user-specific)
 [\\/]AppData[\\/](Local|Roaming|LocalLow)[\\/]
 
+# ── 鍵 / 秘密 file 保管 directory ヒント (`/secrets/` `\secret\` 等)。 path 区切りで
+# はさんで「secret(s)」 が単体 directory 名になっているケースのみマッチ。
+[\\/]secrets?[\\/]
+
+# ── 個人 mail provider 宛 email (gmail / yahoo / outlook / hotmail / icloud /
+# protonmail / live)。 test fixture (`test@test.com` / `x@y.com` /
+# `*@example.com`) は意図的に除外。
+[A-Za-z0-9._%+-]+@(gmail|yahoo|outlook|hotmail|icloud|protonmail|live)\.[A-Za-z]{2,}
+
 # ── 個人 worktree path (`.claude/worktrees/<id>/` を含む絶対 path 系)
 # worktree id 自体は無害だが、 prefix の drive + project root と組合せると
 # 個人 PC の dir layout 全体を晒すため、 drive prefix 込みで検出する。
 [A-Za-z]:[\\/][^\\/[:space:]]+[\\/]\.claude[\\/]worktrees[\\/]
+
+# ── Session UUID 付きの transcript file 参照 (claude code session jsonl)。
+# `<8>-<4>-<4>-<4>-<12>.jsonl` 形式の UUID + 拡張子のみマッチ、 通常 doc では
+# 出現しない (出ていたら個別 session を指している = 個人情報)。
+[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl

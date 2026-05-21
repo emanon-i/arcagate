@@ -15,7 +15,7 @@ batch-100 で auto-kick prompt を「write action MANDATORY」に書き換えた
 
 ## 改修
 
-- 次の auto-kick 走行 transcript を `C:/Users/gonda/.claude/projects/E--Cella-Projects-arcagate/<sessionId>.jsonl` から grep
+- 次の auto-kick 走行 transcript を `$USERPROFILE/.claude/projects/<repo-slug>/<sessionId>.jsonl` から grep
 - send_message tool call の有無確認
 - 検知ロジック (failed CI / idle / checkpoint / PR empty) の各経路実走行記録
 - `docs/lessons.md` に「auto-kick 動作検証 batch-101」追記
