@@ -12,7 +12,8 @@ use arcagate_lib::models::item::CreateItemInput;
 use arcagate_lib::services::{config_service, item_service};
 
 fn user_profile() -> String {
-    std::env::var("USERPROFILE").unwrap_or_else(|_| std::env::var("HOME").unwrap_or_else(|_| ".".into()))
+    std::env::var("USERPROFILE")
+        .unwrap_or_else(|_| std::env::var("HOME").unwrap_or_else(|_| ".".into()))
 }
 
 fn join_user(rel: &str) -> String {
