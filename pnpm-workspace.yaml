@@ -1,0 +1,11 @@
+# pnpm settings (pnpm v10.16+ で .npmrc/package.json から pnpm-workspace.yaml に集約推奨)。
+# 本 repo は workspace を使っていないため `packages:` は未設定。
+#
+# Supply chain hygiene:
+# - minimumReleaseAge: 公開後 N 分未満の version 解決をブロック。
+#   compromised npm publish (lazarus / npm:typosquat 等) を 3 日間の冷却で吸収。
+#   単位は分 (4320 分 = 3 日)。pnpm v10.16+ で導入。
+# - blockExoticSubdeps: transitive で git / direct tarball URL 等の non-registry source を禁止。
+#   pnpm v10.26+ で導入。default は true だが、 将来の挙動 drift 防止と意図の明示のため explicit に宣言。
+minimumReleaseAge: 4320
+blockExoticSubdeps: true
