@@ -71,6 +71,17 @@ export const test = base.extend<{ page: Page }, { sharedBrowser: Browser }>({
 		// 失敗した場合 (Tauri bridge 不通 / cmd 削除 / transient invoke 失敗) は fail-fast
 		// させて誤診断を避ける (Codex P2 review)。
 		await markSetupComplete(mainPage);
+		// markSetupComplete は DB を mark するだけで frontend の reactive state (showWizard) は
+		// refresh されない。 setup-wizard overlay が残っていると UI test (T2-2-5 等) で
+		// pointer event を intercept して 120s timeout になる (CI run 26212348925 で再現)。
+		// visible なら reload で UI を refresh、 hidden が確定するまで wait。
+		const wizard = mainPage.getByTestId('setup-wizard');
+		if (await wizard.isVisible().catch(() => false)) {
+			await mainPage.reload();
+			await mainPage.waitForLoadState('domcontentloaded');
+			await mainPage.locator('main').first().waitFor({ state: 'visible', timeout: 15_000 });
+			await wizard.waitFor({ state: 'hidden', timeout: 10_000 });
+		}
 		await use(mainPage);
 	},
 });
