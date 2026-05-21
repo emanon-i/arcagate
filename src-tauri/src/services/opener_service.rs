@@ -44,11 +44,14 @@ pub fn resolve_with_conn(conn: &rusqlite::Connection, opener_id: &str) -> Result
     if let Some(o) = opener_repository::find_by_id(conn, opener_id)? {
         return Ok(o);
     }
-    // fallback: explorer (default)
-    Ok(builtin_openers()
+    // fallback: explorer (default)。 builtin リストは compile 時に固定されている (`builtin_openers()`)
+    // ため通常 None にならない。 万一不在の場合は `AppError::NotFound` で graceful に縮退し、
+    // 呼び出し側 (launch_with_opener / opener UI) は通常の opener 解決失敗 path に乗る。
+    // PH-PQ-100 T1: 本番 panic 排除。
+    builtin_openers()
         .into_iter()
         .find(|o| o.id == "builtin:explorer")
-        .expect("builtin:explorer must exist"))
+        .ok_or_else(|| AppError::NotFound("builtin:explorer".into()))
 }
 
 /// opener で target (file / folder) を起動する。

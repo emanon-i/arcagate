@@ -39,3 +39,12 @@ export async function markSetupComplete(): Promise<void> {
 export async function factoryReset(resetLibrary: boolean, resetWorkspace: boolean): Promise<void> {
 	return invoke<void>('cmd_factory_reset', { resetLibrary, resetWorkspace });
 }
+
+/**
+ * PH-PQ-100 T4: 起動時 self-recovery 通知 (例: 破損 hotkey の default 縮退) を
+ * 取得してクリアする。 frontend は mount 直後に 1 度だけ呼ぶ。
+ * 返るのは i18n キーに対応する notice code の配列。
+ */
+export async function takeStartupNotices(): Promise<string[]> {
+	return invoke<string[]>('cmd_take_startup_notices');
+}

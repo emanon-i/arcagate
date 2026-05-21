@@ -15,6 +15,7 @@ pub mod metadata_service;
 pub mod opener_service;
 pub mod reset_service;
 pub mod script_runner_service;
+pub mod startup_notice;
 pub mod system_monitor_service;
 pub mod theme_service;
 pub mod url_service;

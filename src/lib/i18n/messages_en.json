@@ -532,6 +532,7 @@
 		"appearance_settings_started": "Appearance settings started",
 		"bookmark_read_failed": "Read failed: {error}",
 		"calc_copied_to_clipboard": "Calculation copied to clipboard",
+		"config_recovered_to_default": "Some settings were corrupted and have been reset to defaults",
 		"config_save_failed": "Failed to save settings: {error}",
 		"copied_to_clipboard": "Copied to clipboard",
 		"copy_failed": "Copy failed: {error}",
