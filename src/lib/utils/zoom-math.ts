@@ -67,19 +67,19 @@ export const BUFFER_COLS_LEFT = 256;
 export const BUFFER_ROWS_TOP = 256;
 
 /**
- * chrome reserve (上下左右の toolbar 高さ + 安全マージン)。
+ * chrome reserve (canvas overlay 領域 + 安全マージン)。
  *
- * J-4 (2026-05-12 user 検収): viewport ギリギリまで攻める、隙間必ず確保 (8-16px)。
- * 旧値 (TOP/BOTTOM=80, SIDE=40) は chrome 高さに余裕を持ちすぎ、fit 後 widget が viewport 中央寄り。
- *
- * K-6 (2026-05-15 user 検収): 下部 toolbar (Undo / Redo / Zoom% / Reset / Fit) は実体 ~56px
- * (bottom-4 16 + icon-sm 32 + py-1 8 = 56) で BOTTOM_RESERVE=40 だと 16px 食い込み → widget が
- * 裏に隠れる + Fit-to-content が下に偏る (visualCenterY 計算が下にずれる) bug。
- * 新値: BOTTOM_RESERVE=72 → 実 chrome 56px + 16px safety margin、 widget が toolbar 裏に潜らない。
+ * 2026-05-22 fix: PageTabBar wrapper を canvas に対する **absolute overlay** に変更し、
+ * TOP_RESERVE / BOTTOM_RESERVE / HINT_BAR_RESERVE すべてが canvas 内に実際に被さる
+ * overlay 領域を表す状態に統一した (旧 wrapper が canvas sibling flex item だった頃は
+ * TOP_RESERVE が canvas 内に対応する overlay を持たない "幽霊 reserve" だった)。
  *
  * - SIDE_RESERVE = 16 → page padding (p-5 = 20px) と重なるので最小値、実 gap は INNER_PAD + 16 = 36px 程度
- * - TOP_RESERVE = 56 → tab bar 約 44px + 12px safety margin
- * - BOTTOM_RESERVE = 72 → floating toolbar 実体 56px + 16px safety (K-6 fix)
+ * - TOP_RESERVE = 56 → PageTabBar pill (canvas 上端 absolute overlay) 実体 約 44px + 12px safety margin
+ * - BOTTOM_RESERVE = 72 → floating toolbar (Undo/Redo/Reset/Fit) 実体 56px + 16px safety
+ *
+ * J-4 (2026-05-12) / K-6 (2026-05-15): viewport ギリギリまで攻めるが、 widget が overlay 裏に
+ * 潜らない安全マージン (8-16px) を保つ設計。
  */
 export const TOP_RESERVE = 56;
 export const BOTTOM_RESERVE = 72;
@@ -381,21 +381,38 @@ export function computeFitZoom(
 /**
  * Fit-to-content の scroll 計算。
  *
- * BB 重心 (origin) を viewport の **幾何中心** に一致させる scroll 値を返す。
+ * BB 重心 (origin) を viewport の **visual center** に一致させる scroll 値を返す。
  *
- * 不具合修正 (2026-05-19): 旧実装は `visualCenterY = TOP_RESERVE + (H − TOP − bottom)/2`
- * の「chrome 補正済 visual center」 に BB を置いていたが、 reserve が非対称
- * (TOP=56 / bottom=72〜116) なため BB 中心は真の viewport 中心から (TOP−bottom)/2 だけ
- * ずれ、 user 報告「中央に来るべきなのにズレてる」 / ヒントバー ON/OFF で位置が動く
- * 不具合になっていた。 user 要求どおり **BB 重心 = viewport 幾何中心** に統一する。
- * (BB が chrome に潜らないための余白確保は computeFitZoom 側の reserve 付き zoom 計算が担う。)
+ * visual center は canvas の幾何中心ではなく **canvas overlay (上の PageTabBar pill /
+ * 下の floating toolbar / hint bar) を除いた "見える領域" の中央**:
+ *   visualCenterY = TOP_RESERVE + (clientHeight − TOP_RESERVE − bottomReserve) / 2
+ *   visualCenterX = clientWidth / 2 (左右 overlay は narrow toggle 以外は無いので幾何中心と同じ)
+ *
+ * 履歴:
+ * - 旧 (PR #500 以前): visual center を採用していたが、 PageTabBar が canvas の **sibling**
+ *   (flex item) になっていて canvas 内に PageTabBar overlay が無いのに TOP_RESERVE=56 を引いて
+ *   いたため、 ヒントバー ON/OFF で BB 中心が動く「不整合 visual center」 になっていた。
+ * - PR #516 (2026-05-19): 「ヒントバー ON/OFF で位置が動く」 を防ぐため **幾何中心**に変更
+ *   (引数 bottomReserve も撤去)。 ただしこれは「使える領域の中央ではなく canvas の中央に置く」
+ *   ことになり、 hint bar / floating toolbar が canvas 下端に overlay する状況で widget 群が
+ *   視覚的に下に寄る別の不具合を生んだ。
+ * - 2026-05-22 (本 fix): PageTabBar wrapper を canvas に対する **absolute overlay** に
+ *   変更し、 TOP_RESERVE / BOTTOM_RESERVE / HINT_BAR_RESERVE すべてが canvas 内の真の
+ *   overlay 領域を表す状態を作る。 visual center を **整合性が取れた形で**復活させ、
+ *   user 要求の「上タブバー下端 〜 下ツールバー上端の中央」 を満たす。 hint bar ON/OFF で
+ *   BB 中心が動くのは正しい挙動 (hint bar が widget を隠す位置に来ないよう少し上にずらす)。
+ *
  * scrollWidth/Height は zoom 変化後に reflow されるので、呼び出し側は max(0, ...) のみ適用し、
  * 上限 clamp は browser の native scrollTo に任せる (browser は自動で scrollWidth/Height に clamp する)。
+ *
+ * @param bottomReserve fitToContent 側で `effectiveBottomReserve(hintBarVisible)` を渡す。
+ *   省略時は BOTTOM_RESERVE のみ (hint bar 無視) — 初期 scroll など hint bar 非関連経路向け。
  */
 export function computeFitScroll(
 	origin: { cellX: number; cellY: number },
 	zoom: number,
 	viewport: Pick<Viewport, 'clientWidth' | 'clientHeight'>,
+	bottomReserve: number = BOTTOM_RESERVE,
 ): { scrollLeft: number; scrollTop: number } {
 	const sx = cellStrideX(zoom);
 	const sy = cellStrideY(zoom);
@@ -408,8 +425,13 @@ export function computeFitScroll(
 	// → BB center = INNER_PAD + buffer + ((minX + maxX) / 2) × stride − gap/2
 	const originPxX = INNER_PAD + buffer.x + origin.cellX * sx - GRID_GAP / 2;
 	const originPxY = INNER_PAD + buffer.y + origin.cellY * sy - GRID_GAP / 2;
+	// visual center: canvas overlay (PageTabBar pill / floating toolbar / hint bar) を除いた
+	// "見える領域" の中央。 左右は overlay が無いので幾何中心と同じ。
+	const visualCenterX = viewport.clientWidth / 2;
+	const visualCenterY =
+		TOP_RESERVE + Math.max(1, viewport.clientHeight - TOP_RESERVE - bottomReserve) / 2;
 	return {
-		scrollLeft: Math.max(0, originPxX - viewport.clientWidth / 2),
-		scrollTop: Math.max(0, originPxY - viewport.clientHeight / 2),
+		scrollLeft: Math.max(0, originPxX - visualCenterX),
+		scrollTop: Math.max(0, originPxY - visualCenterY),
 	};
 }
