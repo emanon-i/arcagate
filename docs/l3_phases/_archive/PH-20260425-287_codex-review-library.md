@@ -38,7 +38,7 @@ printf '%s' "Review src/lib/components/arcagate/library and src/lib/components/s
     --ephemeral \
     -c model_reasoning_effort="medium" \
     -o "$OUT" \
-    -C E:/Cella/Projects/arcagate/.claude/worktrees/interesting-engelbart-e6f255 \
+    -C <repo-root>/.claude/worktrees/<worktree-id> \
     - > /dev/null 2>&1
 cat "$OUT"
 ```

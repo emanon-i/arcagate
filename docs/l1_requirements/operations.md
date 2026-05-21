@@ -302,14 +302,14 @@ TLS だけでは不十分: cert 認証は配信元の身元を保証するが、
 
 ### 推奨 (trade-off 込み)
 
-| 場所                                                                                                                   | 強度               | 手間                                | 注意                                                                                                                                  |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hardware token (YubiKey HSM 等)**                                                                                    | 最高               | 高 (50-70 USD、PIV/PGP wrap が必要) | minisign は smartcard offload に non-native、age/sops で wrap して保管が現実解                                                        |
-| **1Password / Bitwarden CLI**                                                                                          | 高                 | 中                                  | vault unlock per-access、audit log あり、vendor 依存                                                                                  |
-| **passphrase 暗号化 file を非同期 folder に**: 例 `D:\secrets\arcagate\` (NTFS ACL で current user のみ、cloud 同期外) | 中                 | 低                                  | minisign の `-G` がデフォルト scrypt SENSITIVE で暗号化するため file 自体は passphrase 保護済                                         |
-| **Windows Credential Manager**                                                                                         | 中 (passphrase 用) | 低                                  | 同 user で動く全プロセスが UAC なしで読める (Win32 `CredRead`)、つまり agent も読める。**鍵本体ではなく passphrase の保管に限定推奨** |
+| 場所                                                                                                                     | 強度               | 手間                                | 注意                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hardware token (YubiKey HSM 等)**                                                                                      | 最高               | 高 (50-70 USD、PIV/PGP wrap が必要) | minisign は smartcard offload に non-native、age/sops で wrap して保管が現実解                                                        |
+| **1Password / Bitwarden CLI**                                                                                            | 高                 | 中                                  | vault unlock per-access、audit log あり、vendor 依存                                                                                  |
+| **passphrase 暗号化 file を非同期 folder に**: cloud 同期外 drive 配下の鍵保管 directory (NTFS ACL で current user のみ) | 中                 | 低                                  | minisign の `-G` がデフォルト scrypt SENSITIVE で暗号化するため file 自体は passphrase 保護済                                         |
+| **Windows Credential Manager**                                                                                           | 中 (passphrase 用) | 低                                  | 同 user で動く全プロセスが UAC なしで読める (Win32 `CredRead`)、つまり agent も読める。**鍵本体ではなく passphrase の保管に限定推奨** |
 
-**選定**: 個人開発の現実解 = **passphrase 暗号化 minisign 鍵 file を `D:\secrets\arcagate\` (cloud 同期外、NTFS ACL)** + **passphrase を 1Password / Bitwarden に保管**。後で YubiKey に格上げ可能。
+**選定**: 個人開発の現実解 = **passphrase 暗号化 minisign 鍵 file を cloud 同期外 drive 配下の鍵保管 directory (NTFS ACL)** + **passphrase を 1Password / Bitwarden に保管**。後で YubiKey に格上げ可能。具体 path は repo 外の個人 note (memory file 等) で管理する。
 
 ## 4. agent (Claude Code 等) を触らせない理由
 
@@ -320,7 +320,7 @@ Claude Code は user 権限で `Bash` / `Read` 等のツールを実行する。
 3. **Transcript exposure**: agent の対話 / Bash output は vendor のサーバへ送信され abuse review 用に retention される。一度 `cat private.key` した瞬間、bytes が外部 log に永続化
 4. **Tool log leakage**: Claude Code の session jsonl は `~/.claude/projects/.../*.jsonl` に保存され、これが cloud 同期されると更に拡散
 
-**結論**: 鍵本体 / passphrase / 暗号化前の鍵は **agent が `cd` できないドライブ・パス** に置く。`E:\Cella\Projects\` 配下も `D:\Tools\` 配下も agent が触れる前提で考える。本リポは特に NG。
+**結論**: 鍵本体 / passphrase / 暗号化前の鍵は **agent が `cd` できないドライブ・パス** に置く。コード作業 drive 配下も Tools 配下も agent が触れる前提で考える。本リポは特に NG。
 
 ## 5. 手順 A: 鍵生成 (user 必須、agent 代行不可)
 
@@ -328,7 +328,7 @@ Claude Code は user 権限で `Bash` / `Read` 等のツールを実行する。
 
 ```bash
 # 1. cd で生成先 (cloud 同期 NOT) に移動
-cd D:\secrets\arcagate     # 事前に NTFS ACL を current user 限定に絞っておく
+cd <鍵保管 directory>     # cloud 同期外 drive 配下、 NTFS ACL を current user 限定に絞っておく
 
 # 2. Tauri CLI で鍵 pair 生成 (passphrase は対話プロンプトまたは -p で指定)
 pnpm tauri signer generate -w arcagate.key
@@ -346,7 +346,7 @@ pnpm tauri signer generate -w arcagate.key
 
 1. `cat arcagate.key.pub` の中身 (5 行程度の base64) を一時メモ
 2. passphrase を 1Password / Bitwarden の新規 entry に保存 (タイトル例: "arcagate updater minisign passphrase")
-3. `arcagate.key` 自体は `D:\secrets\arcagate\` に置いたまま、別 USB 媒体にも backup (端末故障時用)
+3. `arcagate.key` 自体は鍵保管 directory に置いたまま、別 USB 媒体にも backup (端末故障時用)
 4. `arcagate.key` を **絶対に** リポ / cloud / agent 触る場所にコピーしない
 
 ## 6. 手順 B: 公開鍵を repo に commit (agent 代行可能)

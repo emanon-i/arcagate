@@ -119,7 +119,7 @@ R10 完了時点で:
 
 `docs/l1_requirements/distribution/pubkey-procedure.md` 参照。要約:
 
-1. user 端末で `pnpm tauri signer generate -w D:\secrets\arcagate\arcagate.key` (passphrase 必須)
+1. user 端末で `pnpm tauri signer generate -w <鍵保管 directory>\arcagate.key` (passphrase 必須、 cloud 同期外 drive 配下)
 2. `arcagate.key.pub` を `tauri.conf.json` の `plugins.updater.pubkey` に commit (PR は agent 起票可)
 3. `arcagate.key` 中身全文 を GH Actions secret `TAURI_SIGNING_PRIVATE_KEY` に登録
 4. passphrase を GH Actions secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` に登録

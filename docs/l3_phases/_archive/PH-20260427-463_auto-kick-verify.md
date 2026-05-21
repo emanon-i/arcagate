@@ -16,7 +16,7 @@ batch-100 で auto-kick prompt 「write action MANDATORY」修正後の動作実
 
 ### 走行確認
 
-最新 auto-kick 走行 transcript: `C:/Users/gonda/.claude/projects/E--Cella-Projects-arcagate/b15aeca7-7619-4170-a9e6-ed1c26202aa3.jsonl` (Apr 27 15:13)
+最新 auto-kick 走行 transcript: `$USERPROFILE/.claude/projects/<repo-slug>/<session-uuid>.jsonl` (Apr 27 15:13)
 
 - ✅ scheduled-task 走行している (`enabled: true`、cron `*/20 * * * *`)
 - ✅ session が起動して prompt を実行

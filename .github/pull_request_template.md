@@ -25,6 +25,8 @@ PR description / commit body / 追加 file に以下を **含めない** (generi
 新規追加 line の構造的 leak (個人 path / drive layout / 個人 email) は
 `scripts/audit-personal-data.sh` (lefthook pre-commit) で fail-closed 検出される。
 brand 名 / 実 item 名 等の user 個別 pattern は手元の
-`scripts/.personal-data-patterns.local.txt` (gitignored) に追加して同 hook で守る。
+`scripts/.personal-data-patterns.local.txt` (gitignored、 grep -F 固定文字列)
+に追加して同 hook で守る。 committed 側 `scripts/personal-data-patterns.txt`
+は POSIX ERE regex の generic 構造 only (固有名詞ゼロ)。
 
 既存 leak の一覧と修正方針: `docs/l3_phases/audit/PERSONAL_DATA_LEAK_AUDIT_2026-05-20.md`
