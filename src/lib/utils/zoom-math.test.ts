@@ -22,7 +22,13 @@ import {
 	MAX_ZOOM,
 	MIN_ZOOM,
 	MIN_ZOOM_FIT,
+	TOP_RESERVE,
 } from './zoom-math';
+
+/** visual center Y: PageTabBar / floating toolbar / hint bar overlay を除く領域の中央。 */
+function visualCenterY(clientHeight: number, bottomReserve: number = BOTTOM_RESERVE): number {
+	return TOP_RESERVE + Math.max(1, clientHeight - TOP_RESERVE - bottomReserve) / 2;
+}
 
 /**
  * T4-1 (PR-Z2): zoom-math pure function test (clampZoom + computeBoundingBox + computeOrigin)。
@@ -215,6 +221,51 @@ describe('computeFitScroll (buffer 込み)', () => {
 	});
 });
 
+describe('computeFitScroll - visual center (2026-05-22 fix)', () => {
+	// 2026-05-22 fix: PageTabBar wrapper を canvas overlay (absolute) に変更し、
+	// computeFitScroll を「幾何中心」 → 「visual center (overlay 領域を除く真の使える領域の中央)」 に
+	// 戻した。 BB 重心を canvas の真の visual center に置くことで、 user 期待 ("上タブバー
+	// 下端〜下ツールバー上端の中央") を満たす。
+
+	it('hint bar OFF: BB 重心が visual center (= TOP + (H − TOP − BOTTOM)/2) に来る', () => {
+		const origin = { cellX: 5, cellY: 5 };
+		const result = computeFitScroll(
+			origin,
+			100,
+			{ clientWidth: 1200, clientHeight: 800 },
+			BOTTOM_RESERVE,
+		);
+		const buf = bufferOffsetPx(100);
+		const sx = cellStrideX(100);
+		const sy = cellStrideY(100);
+		const originPxX = INNER_PAD + buf.x + origin.cellX * sx - GRID_GAP / 2;
+		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
+		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - 1200 / 2), 0);
+		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - visualCenterY(800)), 0);
+	});
+
+	it('hint bar ON: visual center は OFF より上 (hint bar 分だけ使える領域が縮む)', () => {
+		const origin = { cellX: 5, cellY: 5 };
+		const v = { clientWidth: 1200, clientHeight: 800 };
+		const off = computeFitScroll(origin, 100, v, effectiveBottomReserve(false));
+		const on = computeFitScroll(origin, 100, v, effectiveBottomReserve(true));
+		// hint bar ON では visual center が上にずれる → scrollTop は大きくなる
+		// (BB を visual center に置くので scroll で BB を上にずらす)。
+		expect(on.scrollTop).toBeGreaterThan(off.scrollTop);
+		// 差分は hint bar 高さの半分 (visual center の Y 移動量)。
+		expect(on.scrollTop - off.scrollTop).toBeCloseTo(HINT_BAR_RESERVE / 2, 0);
+	});
+
+	it('bottomReserve 省略時は BOTTOM_RESERVE (hint bar 非関連経路向け)', () => {
+		const origin = { cellX: 5, cellY: 5 };
+		const v = { clientWidth: 1200, clientHeight: 800 };
+		const omitted = computeFitScroll(origin, 100, v);
+		const explicit = computeFitScroll(origin, 100, v, BOTTOM_RESERVE);
+		expect(omitted.scrollTop).toBe(explicit.scrollTop);
+		expect(omitted.scrollLeft).toBe(explicit.scrollLeft);
+	});
+});
+
 describe('computeFitZoom', () => {
 	it('BB が viewport より小さければ viewport を埋めるよう拡大 (K-8: 100% 縛り撤廃)', () => {
 		const bb = { minX: 0, minY: 0, maxX: 2, maxY: 2 };
@@ -308,7 +359,7 @@ describe('computeFitZoom', () => {
 });
 
 describe('computeFitScroll - K-8 multi-widget centering', () => {
-	it('1 widget at (0,0): BB center が viewport 幾何中心に来る scroll を返す', () => {
+	it('1 widget at (0,0): BB center が viewport visual center に来る scroll を返す', () => {
 		const origin = { cellX: 0.5, cellY: 0.5 };
 		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
 		const sx = cellStrideX(200);
@@ -316,9 +367,9 @@ describe('computeFitScroll - K-8 multi-widget centering', () => {
 		const buf = bufferOffsetPx(200);
 		const originPxX = INNER_PAD + buf.x + origin.cellX * sx - GRID_GAP / 2;
 		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
-		// 不具合修正 (2026-05-19): chrome 補正なしの真の幾何中心 (clientWidth/2, clientHeight/2)。
+		// 2026-05-22 fix: visual center (overlay 領域を除く)。 左右は overlay 無しなので幾何中心。
 		expect(result.scrollLeft).toBeCloseTo(Math.max(0, originPxX - 1200 / 2), 0);
-		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - 800 / 2), 0);
+		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - visualCenterY(800)), 0);
 	});
 
 	it('2 縦 widgets at (0,0)+(0,1): X は 1 widget と同じ center scroll、 Y は下方向にシフト', () => {
@@ -333,7 +384,7 @@ describe('computeFitScroll - K-8 multi-widget centering', () => {
 		expect(r2.scrollTop - r1.scrollTop).toBeCloseTo(0.5 * cellStrideY(200), 0);
 	});
 
-	it('4 widget 2x2: BB center origin (1, 1) が viewport 幾何中心に来る', () => {
+	it('4 widget 2x2: BB center origin (1, 1) が viewport visual center に来る', () => {
 		const origin = { cellX: 1, cellY: 1 };
 		const result = computeFitScroll(origin, 200, { clientWidth: 1200, clientHeight: 800 });
 		const sx = cellStrideX(200);
@@ -373,18 +424,19 @@ describe('不具合修正: 複数選択 widget の fit-to-content (2026-05-19)',
 		expect(bbHeightPx).toBeLessThanOrEqual(availH);
 	});
 
-	it('fit scroll で選択 BB の重心が viewport 幾何中心に一致する', () => {
+	it('fit scroll で選択 BB の重心が viewport visual center に一致する', () => {
 		const bb = computeBoundingBox(selection);
 		if (!bb) throw new Error('bb null');
 		const z = computeFitZoom(bb, viewport);
 		const origin = computeOrigin(bb);
 		const scroll = computeFitScroll(origin, z, viewport);
-		// scroll 後の BB 重心 canvas 座標 − scroll = viewport 幾何中心。
+		// scroll 後の BB 重心 canvas 座標 − scroll = viewport visual center。
+		// 2026-05-22 fix: 左右は overlay 無しで幾何中心、 上下は visual center (overlay 除外)。
 		const buf = bufferOffsetPx(z);
 		const originPxX = INNER_PAD + buf.x + origin.cellX * cellStrideX(z) - GRID_GAP / 2;
 		const originPxY = INNER_PAD + buf.y + origin.cellY * cellStrideY(z) - GRID_GAP / 2;
 		expect(originPxX - scroll.scrollLeft).toBeCloseTo(viewport.clientWidth / 2, 0);
-		expect(originPxY - scroll.scrollTop).toBeCloseTo(viewport.clientHeight / 2, 0);
+		expect(originPxY - scroll.scrollTop).toBeCloseTo(visualCenterY(viewport.clientHeight), 0);
 	});
 });
 
@@ -429,16 +481,27 @@ describe('effectiveBottomReserve / hint bar fit-to-content (2026-05-17)', () => 
 		expect(hidden).not.toBe(visible);
 	});
 
-	it('computeFitScroll: BB 重心は viewport 幾何中心 — ヒントバー state 非依存', () => {
-		// 不具合修正 (2026-05-19): 旧 computeFitScroll は bottomReserve 引数で
-		// visualCenterY を chrome 補正していたため、 ヒントバー ON/OFF で BB 中心位置が
-		// 動いていた。 現在は引数を撤去し常に幾何中心へ — hint bar state に依存しない。
+	it('computeFitScroll: hint bar 状態に応じて visual center が動く (overlay を避ける正しい挙動)', () => {
+		// 2026-05-22 fix: PageTabBar wrapper を canvas absolute overlay に変更し、 TOP/BOTTOM/HINT
+		// reserve すべてが canvas 内の真の overlay 領域を表す状態を作った上で、 computeFitScroll
+		// を visual center (overlay 除外領域の中央) に戻した。 hint bar ON のときは hint bar が
+		// canvas 下端に被さるので visual center が上にずれる → BB を上にずらす scroll が必要。
 		const origin = { cellX: 5, cellY: 20 };
 		const viewport = { clientWidth: 1200, clientHeight: 800 };
 		const sy = cellStrideY(100);
 		const buf = bufferOffsetPx(100);
 		const originPxY = INNER_PAD + buf.y + origin.cellY * sy - GRID_GAP / 2;
-		const result = computeFitScroll(origin, 100, viewport);
-		expect(result.scrollTop).toBeCloseTo(Math.max(0, originPxY - 800 / 2), 0);
+		const off = computeFitScroll(origin, 100, viewport, effectiveBottomReserve(false));
+		const on = computeFitScroll(origin, 100, viewport, effectiveBottomReserve(true));
+		expect(off.scrollTop).toBeCloseTo(
+			Math.max(0, originPxY - visualCenterY(800, BOTTOM_RESERVE)),
+			0,
+		);
+		expect(on.scrollTop).toBeCloseTo(
+			Math.max(0, originPxY - visualCenterY(800, BOTTOM_RESERVE + HINT_BAR_RESERVE)),
+			0,
+		);
+		// ON は OFF より BB を上にずらす (HINT_BAR_RESERVE/2 ほど)。
+		expect(on.scrollTop - off.scrollTop).toBeCloseTo(HINT_BAR_RESERVE / 2, 0);
 	});
 });

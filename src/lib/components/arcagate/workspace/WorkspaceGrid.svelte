@@ -124,10 +124,15 @@ function computeInitialScroll(el: HTMLElement): { left: number; top: number } {
 		};
 	}
 	const origin = computeOrigin(bb);
-	const fit = computeFitScroll(origin, configStore.widgetZoom, {
-		clientWidth: el.clientWidth,
-		clientHeight: el.clientHeight,
-	});
+	const fit = computeFitScroll(
+		origin,
+		configStore.widgetZoom,
+		{
+			clientWidth: el.clientWidth,
+			clientHeight: el.clientHeight,
+		},
+		effectiveBottomReserve(configStore.hintBarVisible),
+	);
 	return {
 		left: Math.min(el.scrollWidth - el.clientWidth, fit.scrollLeft),
 		top: Math.min(el.scrollHeight - el.clientHeight, fit.scrollTop),
@@ -282,15 +287,28 @@ function deselectAllWidgets(): void {
 	{/if}
 
 	<!-- 上部 PageTabBar (workspace 切替 + 壁紙設定 button)。
-	     設計方針 (2026-05-19 user 指示): 全幅 bar / 区切り線は持たない。 PageTabBar 自身が
+	     設計方針 (2026-05-22 user 指示): 全幅 bar / 区切り線は持たない。 PageTabBar 自身が
 	     frosted glass pill (ag-glass) で、 canvas 上に浮かぶ単一 pill として中央に配置する。
-	     wallpaper は pill 越しにうっすら透ける。 -->
-	<div class="relative z-20 flex shrink-0 justify-center px-5 py-3">
-		<PageTabBar
-			onSelectWorkspace={onSelectWorkspace}
-			onRenameActive={onRenameActive}
-			onEditWallpaper={onEditWallpaper}
-		/>
+	     wallpaper は pill 越しにうっすら透ける。
+
+	     2026-05-22 fix (#536 後続): 旧実装は wrapper が **flex item** で canvas column の sibling
+	     として高さを占有 → canvas が wrapper の下に押し込まれ、 pill 外側の wrapper 領域 (透明)
+	     も widget レイヤー (z-10) より前面 (z-20) で canvas 上端の widget が「切れて見える」
+	     user 報告。 wrapper を canvas に対する **absolute overlay** (pointer-events-none) に
+	     変更し、 canvas は full-height (wrapper の下に押し込まれない) + pill 部分のみ canvas
+	     上端を visually 占有 + pill 外側の透明領域は pointer-events 透過で widget が完全に
+	     生きる構造に統一。 これで TOP_RESERVE が canvas 内で意味を持ち、 fit-to-content の
+	     visual center 計算が user 期待 (上タブバー下端〜下ツールバー上端の中央) と一致する。 -->
+	<div
+		class="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center px-5 py-3"
+	>
+		<div class="pointer-events-auto">
+			<PageTabBar
+				onSelectWorkspace={onSelectWorkspace}
+				onRenameActive={onRenameActive}
+				onEditWallpaper={onEditWallpaper}
+			/>
+		</div>
 	</div>
 
 	<!-- Canvas: widget grid のみが scroll/pan 可能。

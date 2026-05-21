@@ -221,10 +221,15 @@ export function useWidgetZoom(containerRef: () => HTMLElement | null) {
 					behavior: 'instant',
 				});
 			} else {
-				const target = computeFitScroll(origin, targetZoom, {
-					clientWidth: el.clientWidth,
-					clientHeight: el.clientHeight,
-				});
+				const target = computeFitScroll(
+					origin,
+					targetZoom,
+					{
+						clientWidth: el.clientWidth,
+						clientHeight: el.clientHeight,
+					},
+					bottomReserve,
+				);
 				el.scrollTo({
 					left: target.scrollLeft,
 					top: target.scrollTop,
