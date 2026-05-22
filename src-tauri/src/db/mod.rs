@@ -7,7 +7,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use self::migrations::{apply_pragmas, migrations};
 
-#[allow(dead_code)]
 pub struct DbState(pub Mutex<Connection>);
 
 /// DB 初期化の結果を呼び出し側 (lib.rs setup) に伝えるための補助情報。

@@ -316,7 +316,6 @@
 		"keyguide": {
 			"calculator": "電卓",
 			"detail": "詳細",
-			"hidden_items": "非表示アイテム",
 			"move": "移動"
 		},
 		"launch_hint": "Enter で起動",
@@ -635,6 +634,7 @@
 		},
 		"common": {
 			"builtin_suffix": " (組み込み)",
+			"card_view": "カード表示",
 			"default_opener_desc": "この widget からの起動でこの Opener を使う。Library カード見た目設定が指定されてればそちらが優先。",
 			"default_opener_label": "デフォルト起動アプリ",
 			"default_opener_system": "既定 (system) / item.default_app に従う",
@@ -653,11 +653,11 @@
 			},
 			"launch_label": "{label} を起動",
 			"launch_with_context": "{label} を起動 (右クリックで詳細)",
+			"list_view": "リスト表示",
 			"max_items_label": "表示件数 (1〜100)",
 			"open_settings": "設定を開く",
 			"operation_save_settings": "設定の保存",
 			"scanning": "Scanning…",
-			"show_description": "説明を表示",
 			"sort_by_mtime": "更新日時で並び替え",
 			"sort_by_name": "名前で並び替え",
 			"sort_current_asc": " (現在 昇順)",

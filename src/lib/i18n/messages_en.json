@@ -316,7 +316,6 @@
 		"keyguide": {
 			"calculator": "Calculator",
 			"detail": "Detail",
-			"hidden_items": "Hidden items",
 			"move": "Move"
 		},
 		"launch_hint": "Press Enter to launch",
@@ -635,6 +634,7 @@
 		},
 		"common": {
 			"builtin_suffix": " (built-in)",
+			"card_view": "Card view",
 			"default_opener_desc": "Use this opener for launches from this widget. The card's Library appearance settings take priority if set.",
 			"default_opener_label": "Default launcher app",
 			"default_opener_system": "Default (system) / follows item.default_app",
@@ -653,11 +653,11 @@
 			},
 			"launch_label": "Launch {label}",
 			"launch_with_context": "Launch {label} (right-click for details)",
+			"list_view": "List view",
 			"max_items_label": "Items to display (1-100)",
 			"open_settings": "Open settings",
 			"operation_save_settings": "Save settings",
 			"scanning": "Scanning…",
-			"show_description": "Show description",
 			"sort_by_mtime": "Sort by modified date",
 			"sort_by_name": "Sort by name",
 			"sort_current_asc": " (currently ascending)",

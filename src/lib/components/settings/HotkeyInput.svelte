@@ -11,9 +11,13 @@ let {
 } = $props();
 
 let recording = $state(false);
+let inputEl = $state<HTMLInputElement | null>(null);
 
 function startRecording() {
 	recording = true;
+	// 「変更」 button click 後はフォーカスが button に残り input の onkeydown が
+	// 発火しない。 input に明示フォーカスして即座にキー入力を拾えるようにする。
+	inputEl?.focus();
 }
 
 function cancelRecording() {
@@ -46,6 +50,7 @@ function handleBlur() {
      button hover transition + title hint で「変更 / キャンセル (Esc)」 -->
 <div class="flex items-center gap-2">
   <input
+    bind:this={inputEl}
     type="text"
     autocomplete="off"
     tabindex="0"

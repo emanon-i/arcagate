@@ -10,7 +10,7 @@ Library から選んだ item を pin して 1 widget に集めるコレクショ
 
 - `item_ids[]` で指定した Library item を grid または list で表示
 - view_mode (grid / list) の切替。grid は container query で widget 幅に応じ 2/3/4 列に動的調整
-- sort_field (manual / name / recent)。manual 時は ↑↓ で並び替え
+- sort_field (manual / name)。manual 時は ↑↓ で並び替え
 - item click で起動 (cascade resolve: item default → widget default → system)、右クリック context menu
 - Settings dialog で item picker (add / remove / clear all)、並び替え、default opener 選択
 
@@ -34,10 +34,10 @@ Library から選んだ item を pin して 1 widget に集めるコレクショ
 
 - IPC: `cmd_launch_item` (cascade)
 - DB: `items` (itemStore 経由で read)
-- config schema: `item_ids: string[]` / `view_mode: 'grid' | 'list'` (default grid) / `sort_field: 'manual' | 'name' | 'recent'` (default manual) / `default_opener_id`
+- config schema: `item_ids: string[]` / `view_mode: 'grid' | 'list'` (default grid) / `sort_field: 'manual' | 'name'` (default manual) / `default_opener_id`
 - backend: [Launcher](../backend/launcher.md)
 
 ## 既知の判断
 
 - legacy の単一 `item_id` は migration 023 で `item_ids[]` に統合済
-- ⚠️ `sort_field: 'recent'` は現状 placeholder で manual と同等 (launch_log 連携は未実装)。別 issue 候補
+- `sort_field: 'recent'` は WASTEFUL_PROCESSING W-4 の判断で撤去済 (placeholder で manual と同等の no-op だった、 PH-PQ-500 で型・UI から完全除去)

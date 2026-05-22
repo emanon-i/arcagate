@@ -21,6 +21,8 @@ import {
 	FolderKanban,
 	GitBranch,
 	Info,
+	LayoutGrid,
+	LayoutList,
 	Settings,
 } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
@@ -32,7 +34,7 @@ import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
-import { getFolderItems, getFolderMtimesBatch, getGitStatusesBatch } from '$lib/ipc/workspace';
+import { getFolderMtimesBatch, getGitStatusesBatch } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
@@ -63,6 +65,7 @@ let folderMtimes = $state<Record<string, number>>({});
 let settingsOpen = $state(false);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
+let descExpanded = $state(false);
 
 const PROJECT_CONFIG_DEFAULTS = {
 	max_items: 10,
@@ -111,6 +114,19 @@ async function setSort(field: WidgetSortField) {
 	if (!widget) return;
 	const nextOrder: WidgetSortOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
 	const next = { ...config, sort_field: field, sort_order: nextOrder };
+	try {
+		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
+	} catch (e: unknown) {
+		toastStore.add(
+			formatIpcError({ operation: t('widgets.common.operation_save_settings') }, e),
+			'error',
+		);
+	}
+}
+
+async function setViewMode(mode: 'list' | 'card') {
+	if (!widget || viewMode === mode) return;
+	const next = { ...config, view_mode: mode };
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(next));
 	} catch (e: unknown) {
@@ -303,18 +319,22 @@ async function handleLaunch(item: Item) {
 			testId="projects-no-subfolders-state"
 		/>
 	{:else}
-		<!-- B-7 #9: Settings description は info icon + hover tooltip に変更 (widget 領域圧迫防止) -->
+		<!-- B-7 #9 / PH-PQ-500: description は disclosure button。click で inline 展開
+		     (旧実装は onclick 無しの dead button + native title tooltip だった)。 -->
 		{#if config.description}
-			<div class="mb-3 flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
+			<div class="mb-3 text-xs text-[var(--ag-text-muted)]">
 				<button
 					type="button"
-					aria-label={t('widgets.common.show_description')}
-					class="flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					title={config.description}
+					class="flex items-center gap-1 rounded px-0.5 py-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					aria-expanded={descExpanded}
+					onclick={() => (descExpanded = !descExpanded)}
 				>
-					<Info class="h-3.5 w-3.5" />
+					<Info class="h-3.5 w-3.5 shrink-0" />
+					<span class="truncate">{t('widgets.common.description_label')}</span>
 				</button>
-				<span class="truncate">{t('widgets.common.description_label')}</span>
+				{#if descExpanded}
+					<p class="mt-1 whitespace-pre-wrap break-words pl-0.5 text-[var(--ag-text-secondary)]">{config.description}</p>
+				{/if}
 			</div>
 		{/if}
 		<!-- I-4 (2026-05-10 user 検収): 並び替え toolbar (ExeFolder I-3 と同じ sticky pattern)。
@@ -366,6 +386,35 @@ async function handleLaunch(item: Item) {
 						/>{/if}
 				{/if}
 			</button>
+			<!-- card / list view 切替 (PH-PQ-500: config.view_mode を操作する UI を追加)。 -->
+			<div class="ml-auto flex items-center gap-0.5">
+				<button
+					type="button"
+					class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {viewMode ===
+					'card'
+						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+						: 'text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
+					aria-label={t('widgets.common.card_view')}
+					aria-pressed={viewMode === 'card'}
+					title={t('widgets.common.card_view')}
+					onclick={() => void setViewMode('card')}
+				>
+					<LayoutGrid class="h-3 w-3" />
+				</button>
+				<button
+					type="button"
+					class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {viewMode ===
+					'list'
+						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+						: 'text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
+					aria-label={t('widgets.common.list_view')}
+					aria-pressed={viewMode === 'list'}
+					title={t('widgets.common.list_view')}
+					onclick={() => void setViewMode('list')}
+				>
+					<LayoutList class="h-3 w-3" />
+				</button>
+			</div>
 		</div>
 		<!-- PH-issue-039 / 検収項目 #18: container query で widget 幅に応じて 1/2/3 列に動的調整。
 		     PH-issue-039 / 検収項目 #17: 各 row のアイコンを削除 (folder 型では meaningless)。

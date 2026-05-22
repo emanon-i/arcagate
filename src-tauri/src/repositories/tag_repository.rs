@@ -87,18 +87,6 @@ pub fn find_by_item_id(conn: &Connection, item_id: &str) -> Result<Vec<Tag>, App
     Ok(tags)
 }
 
-#[allow(dead_code)]
-pub fn find_system_tags(conn: &Connection) -> Result<Vec<Tag>, AppError> {
-    let mut stmt = conn.prepare(
-        "SELECT id, name, is_hidden, is_system, prefix, icon, sort_order, created_at
-         FROM tags WHERE is_system = 1 ORDER BY sort_order, name",
-    )?;
-    let tags = stmt
-        .query_map([], Tag::from_row)?
-        .collect::<rusqlite::Result<Vec<Tag>>>()?;
-    Ok(tags)
-}
-
 /// システムタグでないことを検証。システムタグなら InvalidInput を返す。
 fn guard_not_system(conn: &Connection, id: &str) -> Result<(), AppError> {
     // audit F9: ToAppError trait 経由 (map_err match block 撤去)。
@@ -327,15 +315,4 @@ mod tests {
     }
 
     // G-7: test_delete_system_tag_by_id 撤去 (関数自体削除に伴う)。
-
-    #[test]
-    fn test_find_system_tags() {
-        let db = initialize_in_memory();
-        let conn = db.0.lock().unwrap();
-
-        let system_tags = find_system_tags(&conn).unwrap();
-        // Migration creates 5 system tags (exe, url, folder, script, command)
-        assert_eq!(system_tags.len(), 5);
-        assert!(system_tags.iter().all(|t| t.is_system));
-    }
 }

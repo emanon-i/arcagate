@@ -14,10 +14,11 @@ import { t } from '$lib/i18n.svelte';
  *   - ↑↓ 移動 (実装あり)
  *   - Tab 詳細 (実装あり、 tab-complete)
  *   - = で電卓 (実装あり、 # 3 で chip → bar 移動)
- *   - Ctrl+H 非表示アイテム表示 (#5 で bar 移動、 実装無し hint は撤去対象だが user 指示で「下部に残す」)
  *
- * 撤去 (#6 = 不要 action 整理):
- *   - Ctrl+K アクション (実装無し、 user 8 点に明示無しだが本 cleanup で撤去)
+ * 撤去:
+ *   - Ctrl+K アクション (実装無し、 #6 で撤去)
+ *   - Ctrl+H 非表示アイテム表示 (実装無し hint、 PH-PQ-500 完全性 sweep で撤去。
+ *     動かない keybinding hint を残すと paid product の信頼を損なうため)
  */
 </script>
 
@@ -25,5 +26,4 @@ import { t } from '$lib/i18n.svelte';
 	<KeyHint keys="↑ ↓" description={t('palette.keyguide.move')} />
 	<KeyHint keys="Tab" description={t('palette.keyguide.detail')} />
 	<KeyHint keys="=" description={t('palette.keyguide.calculator')} />
-	<KeyHint keys="Ctrl+H" description={t('palette.keyguide.hidden_items')} />
 </div>

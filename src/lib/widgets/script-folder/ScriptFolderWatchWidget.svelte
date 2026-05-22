@@ -56,6 +56,7 @@ let config = $derived.by<WidgetConfig>(() => {
 let entries = $state<ScriptEntry[]>([]);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
+let descExpanded = $state(false);
 
 let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
 let sortOrder = $derived<WidgetSortOrder>(config.sort_order ?? 'asc');
@@ -166,17 +167,22 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <WidgetShell title={config.title || t('widgets.widget_label.script_folder')} icon={Terminal} {menuItems} path={config.watch_path}>
+	<!-- PH-PQ-500: description は disclosure button。click で inline 展開
+	     (旧実装は onclick 無しの dead button + native title tooltip だった)。 -->
 	{#if config.description}
-		<div class="mb-2 flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
+		<div class="mb-2 text-xs text-[var(--ag-text-muted)]">
 			<button
 				type="button"
-				aria-label={t('widgets.common.show_description')}
-				class="flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-				title={config.description}
+				class="flex items-center gap-1 rounded px-0.5 py-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				aria-expanded={descExpanded}
+				onclick={() => (descExpanded = !descExpanded)}
 			>
-				<Info class="h-3.5 w-3.5" />
+				<Info class="h-3.5 w-3.5 shrink-0" />
+				<span class="truncate">{t('widgets.common.description_label')}</span>
 			</button>
-			<span class="truncate">{t('widgets.common.description_label')}</span>
+			{#if descExpanded}
+				<p class="mt-1 whitespace-pre-wrap break-words pl-0.5 text-[var(--ag-text-secondary)]">{config.description}</p>
+			{/if}
 		</div>
 	{/if}
 	{#if !config.watch_path}
