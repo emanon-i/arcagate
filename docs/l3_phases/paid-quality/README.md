@@ -117,6 +117,10 @@ era: Polish → Distribution Hardening
 
 `messages_en.json` は 909 key parity だが、 EN value は 30 件が ja 同一 / 1 件に日本語残存 (本 plan の audit で判明)。 「**parity OK**」 を「**EN として自然**」 に。 日付 / 数値 / 通貨 formatter のロケール対応、 RTL 準備、 文化中立 icon / wording / 色 (祝日色等の前提排除)。 欧米向け a11y 要件 (PQ-300 と連動)。
 
+### [PH-PQ-800 パーソナル observability: 活動追跡 + システム履歴 × アイテムモデル相互強化](./PH-PQ-800_personal-observability.md) — **v2 (v1 リリース後)**
+
+**v1 paid-quality sweep の scope 外**。 PH-PQ-700 完了 + GitHub への v1 リリース完了後に着手する v2 機能。 「ActivityWatch の見やすい版 + 個人スケールの軽量 observability」。 アクティブウィンドウ / メディア / ブラウザタブの活動追跡 + システムメトリクス履歴 + アプリ別リソース消費を、 Arcagate の item model (登録 item + tag) と相互強化させる。 構想記録のための plan doc であり、 PQ-100〜700 と異なり今は着手しない。
+
 ---
 
 ## 各 phase 共通の進め方
