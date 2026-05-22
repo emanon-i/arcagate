@@ -15,6 +15,7 @@ import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 
 interface Props {
 	config: {
@@ -101,7 +102,7 @@ function clearAll() {
 <!-- 束ねるアイテム -->
 <div class="space-y-1">
 	<span class="text-sm font-medium text-[var(--ag-text-primary)]">
-		{t('widgets.routine.item_count', { count: itemIds.length })}
+		{tPlural('widgets.routine.item_count', itemIds.length)}
 	</span>
 	{#if itemIds.length === 0}
 		<button

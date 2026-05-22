@@ -9,6 +9,7 @@ import { configStore } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item, ItemType } from '$lib/types/item';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 
 /**
  * ItemPicker (rebuild、user 「standard がずっとおかしい」を受けてスクラッチ再構築)。
@@ -234,7 +235,7 @@ function getTypeLabels(): Record<ItemType | 'all', string> {
 
 			<!-- 件数 + リセット -->
 			<span class="text-[var(--ag-text-muted)]">
-				{t('workspace.picker.count', { n: filteredItems.length })}
+				{tPlural('workspace.picker.count', filteredItems.length, { n: filteredItems.length })}
 			</span>
 			{#if searchQuery || filterType !== 'all' || starredOnly}
 				<button

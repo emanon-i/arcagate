@@ -43,6 +43,7 @@ import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.sve
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
@@ -454,7 +455,7 @@ async function handleLaunch(item: Item) {
 								{#if gs.has_changes}
 									<span
 										class="flex shrink-0 items-center gap-0.5 text-[var(--ag-warm-text)]"
-										title={t('widgets.projects.changed_count', { count: gs.changed_count })}
+										title={tPlural('widgets.projects.changed_count', gs.changed_count)}
 									>
 										<CircleDot class="h-3 w-3" />
 										{gs.changed_count}

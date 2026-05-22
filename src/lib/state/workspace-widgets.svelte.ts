@@ -28,6 +28,7 @@ import { workspaceConfig } from '$lib/state/workspace-config.svelte';
 import { type SimpleHistoryEntry, workspaceHistory } from '$lib/state/workspace-history.svelte';
 import type { WidgetType, WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 import {
 	findFreePosition,
 	findFreePositionNear,
@@ -292,7 +293,7 @@ class WorkspaceWidgets {
 				);
 				if (pos === null) {
 					toastStore.add(
-						t('toast.widget_no_space_stopped', { count: itemIds.length - placed }),
+						tPlural('toast.widget_no_space_stopped', itemIds.length - placed),
 						'error',
 					);
 					break;
