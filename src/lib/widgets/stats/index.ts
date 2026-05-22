@@ -1,7 +1,7 @@
 import { TrendingUp } from '@lucide/svelte';
 import { widgetLabel } from '$lib/types/workspace';
-import CommonMaxItemsSettings from '../_shared/CommonMaxItemsSettings.svelte';
 import type { WidgetMeta } from '../_shared/types';
+import StatsSettings from './StatsSettings.svelte';
 import Component from './StatsWidget.svelte';
 
 export const widgetType = 'stats' as const;
@@ -19,5 +19,5 @@ export const meta: WidgetMeta = {
 	addable: true,
 	category: 'library',
 	categoryOrder: 4,
-	SettingsContent: CommonMaxItemsSettings,
+	SettingsContent: StatsSettings,
 };

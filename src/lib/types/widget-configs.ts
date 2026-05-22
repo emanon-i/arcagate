@@ -16,7 +16,7 @@ export interface ItemWidgetConfig {
 	/** 5/03 user 検収 (C): collection の item id 配列。空 = 未設定。 */
 	item_ids?: string[];
 	view_mode?: 'grid' | 'list';
-	sort_field?: 'manual' | 'name' | 'recent';
+	sort_field?: 'manual' | 'name';
 }
 
 export const ITEM_WIDGET_DEFAULTS: ItemWidgetConfig = {

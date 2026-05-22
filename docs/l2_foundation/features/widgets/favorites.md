@@ -9,7 +9,7 @@ Library で starred (お気に入り) にした item を最大 N 件表示し、
 ## やること (必要処理)
 
 - starred tag の item を `cmd_search_items_in_tag` で取得
-- max_items 上限と sort_field (name / recent) を適用
+- max_items 上限と sort_field (default / name) を適用
 - is_enabled=false の item と per-widget hide 対象を除外
 - item click で起動、右クリック context menu
 

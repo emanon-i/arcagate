@@ -178,6 +178,25 @@ CDP 接続 / 入力キャプチャ / D&D の罠は多数。詳細は 削除済 (
 
 ---
 
+## <severity>medium</severity> 「動くと言って動かない」 半端機能を残さない (2026-05-22 / PH-PQ-500)
+
+### 観測
+
+- spec / config schema / 型に列挙されているのに UI から到達できない・選んでも no-op な option が複数残っていた
+  (item の `sort_field: 'recent'`、stats の並び順 select、`view_mode` orphan、Ctrl+H dead hint、onclick 無し Info button)
+- code 内 TODO はゼロでも「TODO を書かずに未完のまま放置された機能」 は誰も気づかず残る
+- paid product では「click したのに動かない」 が最大の信頼破壊要因
+
+### 再発防止
+
+- 未完機能は「完成 / 削除」 で今確定する。「将来 trigger」 で隠して先送りしない (`do-it-now-philosophy`)
+- spec ⇄ 型 ⇄ UI ⇄ backend の 4 層が揃って初めて「動く機能」。1 層でも欠けたら半端
+- `scripts/audit-stub-action.sh` が空 handler / stub command を CI gate。新規 half-feature の再混入を機械検出
+
+参照: `docs/l3_phases/paid-quality/audit/completeness-matrix.md`
+
+---
+
 ## <severity>reference</severity> よく踏む細かい罠（archive 参照）
 
 具体パターンは 削除済 (git log で参照可能) を on-demand で grep:

@@ -5,6 +5,8 @@ import {
 	ArrowUp,
 	FolderOpen,
 	Info,
+	LayoutGrid,
+	LayoutList,
 	MoreHorizontal,
 	Settings,
 } from '@lucide/svelte';
@@ -79,6 +81,7 @@ let config = $derived.by<WidgetConfig>(() => {
 let entries = $state<ExeFolderEntry[]>([]);
 let scanning = $state(false);
 let scanError = $state<string | null>(null);
+let descExpanded = $state(false);
 
 // sort 適用済 entries (元 entries は immutable、表示のみ並べ替え)
 let sortField = $derived<WidgetSortField>(config.sort_field ?? 'name');
@@ -108,6 +111,11 @@ $effect(() => {
 async function setSort(field: WidgetSortField) {
 	const nextOrder: WidgetSortOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
 	await persistConfig({ ...config, sort_field: field, sort_order: nextOrder });
+}
+
+async function setViewMode(mode: 'list' | 'card') {
+	if (viewMode === mode) return;
+	await persistConfig({ ...config, view_mode: mode });
 }
 // 古い path の async 結果が新 path に書き戻されないよう request id で stale response を破棄。
 let scanRequestId = 0;
@@ -304,19 +312,22 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 <!-- Lateral sweep (2026-05-12): config.watch_path を WidgetShell に渡し、 widget body 右クリック menu
      で「監視 folder のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。 -->
 <WidgetShell title={config.title || t('widgets.widget_label.exe_folder')} icon={AppWindow} {menuItems} path={config.watch_path}>
-	<!-- B-7 #9: Settings の description は info icon + hover tooltip に。inline 表示で
-	     widget 領域を圧迫していた問題への root-cause 対応。 -->
+	<!-- B-7 #9 / PH-PQ-500: description は disclosure button。click で inline 展開
+	     (旧実装は onclick 無しの dead button + native title tooltip だった)。 -->
 	{#if config.description}
-		<div class="mb-2 flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
+		<div class="mb-2 text-xs text-[var(--ag-text-muted)]">
 			<button
 				type="button"
-				aria-label={t('widgets.common.show_description')}
-				class="flex shrink-0 items-center justify-center rounded p-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-				title={config.description}
+				class="flex items-center gap-1 rounded px-0.5 py-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				aria-expanded={descExpanded}
+				onclick={() => (descExpanded = !descExpanded)}
 			>
-				<Info class="h-3.5 w-3.5" />
+				<Info class="h-3.5 w-3.5 shrink-0" />
+				<span class="truncate">{t('widgets.common.description_label')}</span>
 			</button>
-			<span class="truncate">{t('widgets.common.description_label')}</span>
+			{#if descExpanded}
+				<p class="mt-1 whitespace-pre-wrap break-words pl-0.5 text-[var(--ag-text-secondary)]">{config.description}</p>
+			{/if}
 		</div>
 	{/if}
 	{#if !config.watch_path}
@@ -394,6 +405,35 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						/>{/if}
 				{/if}
 			</button>
+			<!-- list / card view 切替 (PH-PQ-500: config.view_mode を操作する UI を追加)。 -->
+			<div class="ml-auto flex items-center gap-0.5">
+				<button
+					type="button"
+					class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {viewMode ===
+					'list'
+						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+						: 'text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
+					aria-label={t('widgets.common.list_view')}
+					aria-pressed={viewMode === 'list'}
+					title={t('widgets.common.list_view')}
+					onclick={() => void setViewMode('list')}
+				>
+					<LayoutList class="h-3 w-3" />
+				</button>
+				<button
+					type="button"
+					class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {viewMode ===
+					'card'
+						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
+						: 'text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
+					aria-label={t('widgets.common.card_view')}
+					aria-pressed={viewMode === 'card'}
+					title={t('widgets.common.card_view')}
+					onclick={() => void setViewMode('card')}
+				>
+					<LayoutGrid class="h-3 w-3" />
+				</button>
+			</div>
 		</div>
 		<!-- audit batch deferred (2026-05-13) #8: list / card 表示 mode 切替。 card は @container で grid。
 		     list は 1 列、 card は auto-fit minmax(120px, 1fr) で widget 幅に応じて折返し。 -->

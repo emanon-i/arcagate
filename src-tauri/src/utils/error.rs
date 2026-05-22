@@ -1,7 +1,6 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-#[allow(dead_code)]
 pub enum AppError {
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
@@ -35,12 +34,6 @@ pub enum AppError {
     #[error("Database lock error")]
     DbLock,
 
-    #[error("Zip error: {0}")]
-    Zip(String),
-
-    #[error("Permission error: {0}")]
-    Permission(String),
-
     #[error("Invalid input: {0}")]
     InvalidInput(String),
 
@@ -70,8 +63,6 @@ impl AppError {
             AppError::Validation(_) => "validation",
             AppError::Io(_) => "io.error",
             AppError::DbLock => "db.lock",
-            AppError::Zip(_) => "zip",
-            AppError::Permission(_) => "permission",
             AppError::InvalidInput(_) => "invalid_input",
             AppError::Cancelled => "cancelled",
             AppError::WatchFailed(_) => "watch.failed",
