@@ -1,0 +1,386 @@
+---
+id: PH-PQ-800
+status: planning
+batch: paid-quality
+type: 新機能
+era: Post-v1 (v2)
+parent: README.md
+---
+
+# PH-PQ-800: パーソナル observability — 活動追跡 + システム履歴 × アイテムモデル相互強化
+
+> **これは v1 GitHub リリース後の v2 機能。 今すぐ着手しない。**
+> 着手条件は **PH-PQ-700 完了 + GitHub への v1 リリース完了** の両方。 本 doc は v2 構想を
+> L3 として記録するための plan であり、 v1 paid-quality sweep (PQ-100〜700) の scope には
+> 含めない。 着手時点で本 doc を起点に L3 を再 review し、 当時の競合状況・技術状況に
+> 合わせて更新してから実装に入ること。
+
+## 問題
+
+Arcagate は「PC 上に散在する起動元を 1 箇所に集約するランチャー」 として v1 を出す。 だが
+launcher は「**起動の瞬間**」 しか観測していない。 user が 1 日のうち実際に何のアプリを
+どれだけ使い、 何を聴き、 どの作業にどれだけマシンリソースを使ったか — その「**起動後の
+時間**」 は完全に blind spot になっている。
+
+一方、 既存の活動追跡ツール (ActivityWatch が代表) は「正しいことをやっているのに使い
+づらい」 という共通の弱点を抱える:
+
+- ダッシュボードが開発者向けで読みにくい (生ログの羅列、 美しくない)
+- **手動カテゴリ分けが苦痛**: 「このアプリは仕事」 「これは娯楽」 を user が延々と分類する
+- 個人スケールに対して設計が重い (sync server / web UI 前提)
+
+Arcagate には、 この弱点を構造的に潰せる固有の武器がある — **同一アイテムモデル
+(exe / url / folder / script / command) と、 item に付いた tag**。 追跡したアプリを登録 item と
+照合できれば、 「手動カテゴリ分け」 という ActivityWatch 最大の苦痛が **item の tag で自動的に
+解決**する。 これは ActivityWatch にも Rainmeter にもできない、 Arcagate だからできる統合。
+
+### コンセプト
+
+**「ActivityWatch の見やすい版 + 個人スケールの軽量 observability」**。 さらに踏み込んで、
+**Arcagate の item model と相互強化する**点が core 差別化。 「追跡する」 だけのツールは既に
+ある。 Arcagate の追跡は「**追跡結果が Library を育て、 育った Library が追跡精度を上げる**」
+という compounding loop を回す。
+
+## スコープ
+
+本 phase は大きく 4 つの観測領域 + 1 つの連携機構で構成する。
+
+### スコープ 1. 活動追跡
+
+「いま何をしているか」 を低コストで定期サンプリングする:
+
+- **アクティブウィンドウ**: 前面プロセス名 + ウィンドウタイトル + 滞在時間 + idle / AFK 検出
+  (一定時間 入力なし = AFK としてカウントから除外)
+- **再生中メディア**: 曲 / 動画。 Windows SMTC (System Media Transport Controls) API 経由で、
+  Spotify / YouTube Music / ブラウザ / ローカルプレイヤーを **横断**して「いま鳴っている曲」 を取得
+- **ブラウザのアクティブタブ**: ページ名 + **ドメイン粒度** (URL 全体ではなくドメインまで)。
+  技術的 caveat は後述 (§技術的論点)
+
+### スコープ 2. システムメトリクス履歴
+
+既存の SystemMonitor widget (`src/lib/widgets/system-monitor/`) は **現在値のスナップショット**
+しか持たない。 これを **時系列記録**へ拡張する:
+
+- CPU / RAM / disk 使用率 / network throughput を timestamp 付きで蓄積
+- 「過去 1 週間の CPU 推移」 のような履歴グラフを可能にする
+- 既存 widget の sparkline buffer (`src/lib/utils/history-buffer.ts`) は in-memory・揮発。
+  これを永続時系列に置き換える
+
+### スコープ 3. プロセス別リソース消費 × アクティブアプリ相関
+
+「マシンが重い時、 何が食っているか」 を可視化する:
+
+- **第 1 段**: アプリ別 CPU / RAM 消費。 Windows のプロセス性能カウンタ
+  (Performance Counters / `GetProcessTimes` 等) から取得
+- **stretch goal (難易度高、 別途明記)**: GPU のプロセス別使用率 / 発熱 (温度センサ) / 電力。
+  これらは取得 API が安定せず、 ハードウェア依存・ベンダ依存が大きい。 本 phase の必達には
+  含めず、 「取れたら入れる」 の stretch 扱い
+- 活動カテゴリ別のリソースコスト分析 (例: 「ゲームに使った CPU 時間」 「開発に使った RAM」)
+
+### スコープ 4. item model 連携 (本機能の核心)
+
+追跡データと Library を結ぶ 3 つの相互強化。 §「item model 連携」 で詳述。
+
+## item model 連携 (この機能の核心)
+
+単なる活動追跡ではなく、 **Arcagate の item model と双方向に強化し合う**のが本 phase の存在
+理由。 3 つの相互強化:
+
+### 連携 1. 真の利用頻度
+
+現状の Arcagate は「**Arcagate から起動した回数**」 (`launch` table) しか知らない。 だが user は
+登録済アプリを Start メニューや既存ショートカットからも起動する。 活動追跡がアプリ前面化を
+検出すれば、 **Arcagate 外から起動された登録 item も使用としてカウント**できる:
+
+- 「Arcagate 経由の起動回数」 ではなく「**実利用頻度**」 が分かる
+- これは **Library 整理に直結**する: 「登録したが実際には全く使っていない item」 を検出でき、
+  未使用 item の整理・アーカイブ提案ができる
+
+### 連携 2. 未登録アプリのレコメンド
+
+活動追跡は登録 item 以外のアプリも観測している。 「**毎日 1 時間使っているのに Library に
+無いアプリ**」 を検出したら、 item として登録することを提案する:
+
+- user が手で登録しなくても、 **Library が実利用に追従して自動的に育つ**
+- 「よく使うものが Library に揃っている」 状態が、 user の作業なしで維持される
+
+### 連携 3. tag で自動カテゴリ分類
+
+**ActivityWatch 最大の苦痛 = 手動カテゴリ分け**。 Arcagate ではこれが構造的に消える:
+
+- 追跡したアプリ/ウィンドウが登録 item と match すれば、 **その item に付いた tag が
+  そのままカテゴリになる**
+- user は item に一度 tag を付けるだけ (それも Library 運用で元々やっていること)。
+  活動追跡のための追加分類作業は **ゼロ**
+- 例: `vscode.exe` に `仕事` `開発` tag → 追跡上の VS Code 使用時間が自動的に
+  「仕事 / 開発」 カテゴリに集計される
+
+### compounding loop
+
+この 3 連携は独立した機能ではなく、 **ループ構造**を成す:
+
+```
+活動追跡 → 未登録アプリ検出 → 登録レコメンド → item 登録 + tag 付与
+   ↑                                                    │
+   │                                                    ▼
+インサイト精度向上 ← カテゴリ分類精度向上 ← match 対象が増える
+```
+
+追跡するほどレコメンドが出て、 登録するほど match 率が上がり、 match するほど
+カテゴリ分類が正確になり、 インサイトが鋭くなる。 **使うほど価値が増す compounding** が、
+「ただの追跡ツール」 との決定的な差。
+
+## match key 戦略
+
+連携の前提は「追跡したプロセス / ウィンドウ」 と「登録 item」 の照合。 item 種別ごとに
+照合キーを定める (`ItemType` enum: `Exe` / `Url` / `Folder` / `Script` / `Command`,
+`src-tauri/src/models/item.rs:5-11`):
+
+| item 種別 | 照合キー         | 照合相手                                        |
+| --------- | ---------------- | ----------------------------------------------- |
+| `Exe`     | 実行ファイルパス | 追跡プロセスの実行イメージパス (正規化して比較) |
+| `Url`     | **ドメイン**     | ブラウザアクティブタブのドメイン                |
+| `Folder`  | パス             | 前面ウィンドウの対象パス (Explorer 等)          |
+| `Script`  | パス             | 実行スクリプトのパス                            |
+| `Command` | (照合困難)       | コマンド実行は前面プロセスとして観測しにくい    |
+
+- パス比較は大文字小文字 / 環境変数展開 / シンボリックリンクの正規化を経てから行う
+- 1 プロセスが複数 item に match する場合の優先順位 (より具体的なパス優先) を定義する
+- `Command` 種別は前面プロセスとして安定観測しにくいため、 第 1 段では match 対象外で良い
+
+## 技術的論点 (正直に書く)
+
+楽観で書かず、 既知の難所を先に明示する。
+
+### ブラウザタブの caveat (最大の難所)
+
+OS の前面ウィンドウ API から確実に取れるのは **ウィンドウタイトルだけ**。 URL / ドメインは
+取れない。 拡張機能なしでドメインを取る現実的手段は **UI Automation でブラウザのアドレス
+バーのテキストを読む**ことだが、 これは:
+
+- **アクティブタブ限定** — バックグラウンドタブは読めない
+- **ブラウザ更新で壊れやすい** — アドレスバーの UI Automation tree はブラウザのバージョン
+  アップで変わる。 Chrome / Edge / Firefox で別実装が要る
+- アドレスバーが編集中 / 一部省略表示の時に不正確
+
+完全 (全タブ・全ブラウザ確実) にやるなら **ブラウザ拡張が要る**。 これは
+**「ActivityWatch がプラグイン (aw-watcher-web 拡張) を必須にした理由そのもの」**。
+
+→ **方針**: 第 1 段は UI Automation でアクティブタブのドメインのみ取得 (best-effort、
+取れない時は「ブラウザ (ドメイン不明)」 にフォールバック)。 全タブ・確実取得が必要なら
+拡張を別 phase で検討する。 v2 第 1 段では拡張を作らない。
+
+### 時系列の retention / downsampling 必須
+
+活動追跡 + システムメトリクスは高頻度サンプリング。 naive に「INSERT し続けるだけ」 では
+**SQLite DB が際限なく膨張して破綻**する。 設計時から retention を組み込む:
+
+- timestamp インデックス専用の時系列テーブル (既存 item / workspace テーブルとは分離)
+- **定期集約 (downsampling)**: 生データ 1 日保持 → 1 分平均 1 週間保持 → 1 時間平均 1 年保持
+- 集約済みより古い生データの **pruning** (削除)
+- 集約 / pruning は recorder とは別の定期ジョブで実行
+
+### recorder は軽量に
+
+- **interval poll 型**。 イベント駆動ではなく低頻度ポーリング (例: 数秒〜十数秒間隔)
+- 既存のフォルダ watcher (`src-tauri/src/watcher/`) の **兄弟**だが、 watcher が
+  notify ベースのイベント駆動なのに対し、 recorder は **定期ポーリング型**
+- CPU 負荷を最小に。 「観測しているせいで重くなる」 は本末転倒
+
+### アーキ追加は不要
+
+新パラダイムは要らない。 既存の構造にそのまま乗る:
+
+- **保存**: 既存のローカル SQLite (`Mutex<Connection>` + WAL) に時系列テーブルを追加
+- **収集**: 既存 watcher 機構の隣に recorder を 1 つ足す
+- **表示**: 既存 widget システムに observability widget を追加
+- レイヤーも既存どおり `commands → services → repositories → DB`
+
+## プライバシー (必須設計、 後付け禁止)
+
+活動追跡は本質的に sensitive。 プライバシーは **最初から設計に組み込む** — 後付けは禁止:
+
+- **完全ローカル保存**: 追跡データは SQLite に閉じ、 一切外部に送信しない。 telemetry / crash
+  報告にも追跡データを混ぜない
+- **opt-in**: デフォルト OFF。 もしくは初回に明示的な同意 UI を出してからでないと記録を
+  開始しない。 「知らないうちに記録されていた」 を起こさない
+- **除外リスト**: 特定アプリ / ドメイン / ウィンドウタイトルパターンを記録対象外にできる
+  (例: パスワードマネージャ、 銀行サイト)
+- **ウィンドウタイトルのマスク**: タイトルには機微情報 (ファイル名・相手名・URL) が乗りやすい。
+  「プロセス名のみ記録、 タイトルは記録しない」 モードを用意する
+- **データ削除**: user がいつでも追跡履歴を全削除 / 期間指定削除できる
+
+## やらないこと (Datadog 沼の回避)
+
+「個人スケールの軽量 observability」 を守る。 エンタープライズ observability の道具立ては
+**意図的にやらない** — それをやると「完成ライン」 が永遠に来ない沼にハマる:
+
+- **アラート / 閾値通知** — 「CPU が 90% 超えたら通知」 等はやらない
+- **異常検知** — 統計的 anomaly detection はやらない
+- **分散トレーシング** — 単一 PC の個人ツールに trace の概念は不要
+- **共有ダッシュボード / multi-user** — ローカル単独 user 完結を崩さない
+- 第 3 者へのデータエクスポート連携 (Grafana 等への push)
+
+「Datadog レベルの observability」 は個人アプリでは沼。 完成ラインが無く、 maintenance
+コストだけが増える。 Arcagate は **「自分の PC の使い方が、 見て分かって面白い」** の一点に
+絞る。
+
+## 段階化
+
+### 第 1 段 (本 phase の必達範囲)
+
+- 活動追跡: アクティブウィンドウ + idle/AFK + 再生中メディア (SMTC) + ブラウザアクティブ
+  タブ (UI Automation best-effort)
+- アプリ別 CPU / RAM (プロセス性能カウンタ)
+- 時系列テーブル + retention / downsampling
+- item model 連携 3 種 (真の利用頻度 / 未登録レコメンド / tag 自動カテゴリ)
+- インサイト表示 widget + プライバシー設計一式
+
+### 第 2 段 (本 phase の後半 or 別 phase)
+
+- SystemMonitor widget の履歴化 (時系列テーブルへの統合)
+- **stretch**: GPU プロセス別 / 発熱 / 電力
+
+## 具体タスク
+
+### T1. activity recorder (バックエンド収集機構)
+
+- `src-tauri/src/recorder/` を新設 (watcher の兄弟ディレクトリ)。 interval poll で
+  前面ウィンドウ・プロセス・メディア・タブをサンプリング
+- アクティブウィンドウ取得: Win32 `GetForegroundWindow` + プロセス名 + 実行イメージパス
+- idle / AFK 検出: `GetLastInputInfo` で最終入力時刻を取得、 一定時間入力なしを AFK 判定
+- メディア取得: Windows SMTC (`GlobalSystemMediaTransportControlsSessionManager`) で
+  全プレイヤー横断の再生中トラックを取得 (PQ-600 A3 Now Playing widget と SMTC 取得層を共有)
+- recorder は opt-in が ON の時のみ起動 (§プライバシー)
+
+### T2. ブラウザアクティブタブ取得 (best-effort)
+
+- UI Automation でアクティブブラウザのアドレスバー要素のテキストを読む
+- Chrome / Edge / Firefox それぞれの UI Automation tree 差を吸収する adapter 層
+- 取得失敗時は「ブラウザ (ドメイン不明)」 にフォールバック (例外で recorder を止めない)
+- URL からドメインのみを抽出して保存 (フルパス・クエリは保存しない = プライバシー兼)
+- 拡張なしの限界 (§技術的論点) を doc 化、 拡張版は本 phase scope 外と明記
+
+### T3. プロセス別リソース消費
+
+- アプリ別 CPU / RAM をプロセス性能カウンタから取得 (recorder の poll に相乗り)
+- アクティブアプリ相関: 「前面だったアプリ」 と「その時間のリソース消費」 を結ぶ集計
+- GPU / 発熱 / 電力は **stretch** として別タスク T3-stretch に切り出し、 必達から外す
+
+### T4. 時系列ストレージ + retention
+
+- 時系列専用テーブルを migration で追加 (`include_str!` 埋め込み、 forward-only):
+  activity event 用 / system metric 用 / process metric 用
+- timestamp index を張る
+- downsampling ジョブ: 生 1 日 → 1 分平均 1 週 → 1 時間平均 1 年。 古い生データを prune
+- ジョブは recorder とは別の定期タスクで実行
+- 既存 `Mutex<Connection>` + WAL に乗せる (Pool 不要、 設計の固定枠どおり)
+
+### T5. item model 連携 (照合 + レコメンド + カテゴリ)
+
+- match engine: 追跡 event を §match key 戦略のキーで登録 item と照合する service
+- 真の利用頻度: match した event を item の実利用としてカウント、 既存 `launch` 由来の
+  起動回数と区別して保持
+- 未登録レコメンド: 高頻度なのに未 match のアプリを抽出し、 登録提案 UI に渡す
+- tag 自動カテゴリ: match した item の tag を活動カテゴリとして集計する経路
+- レイヤー遵守 (`commands → services → repositories → DB`)、 repository 直呼び禁止
+
+### T6. observability widget / インサイト表示
+
+- WidgetType enum に observability 系を追加 (`src-tauri/src/models/workspace.rs:9-31`、
+  `audit-widget-coverage.sh` の Rust enum ↔ TS bindings ↔ i18n 3 点同期を維持)
+- 表示内容: 日次アクティブ時間、 カテゴリ別 (tag 由来) 内訳、 アプリ別ランキング、
+  再生メディア履歴、 CPU/RAM 履歴グラフ
+- 「ActivityWatch の見やすい版」 — 美しく読めるダッシュボードを最優先
+- 未登録アプリのレコメンドをこの widget / 専用 surface から item 登録へ導線
+
+### T7. SystemMonitor widget の履歴化 (第 2 段)
+
+- 既存 SystemMonitor widget の in-memory sparkline buffer
+  (`src/lib/utils/history-buffer.ts`) を T4 の永続時系列に置き換え
+- 「過去 1 週間」 等の時間レンジ切替を widget config に追加
+- 既存 widget の現在値スナップショット表示は維持しつつ、 履歴グラフへ拡張
+
+### T8. プライバシー設計の実装
+
+- opt-in 同意 UI (初回 ON 時に明示同意)、 デフォルト OFF
+- 設定画面: 除外リスト (アプリ / ドメイン / タイトルパターン)、 タイトルマスクモード
+- 追跡履歴の全削除 / 期間削除 UI
+- 追跡データが telemetry / crash 報告経路に混入しないことを audit
+- 横展開: `PERSONAL_DATA_LEAK_AUDIT` 系の観点で新規時系列テーブルを点検
+
+## 受け入れ条件
+
+- [ ] T1 recorder が opt-in ON 時のみ起動、 idle/AFK 検出が動作、 CPU 負荷が低いことを実測
+- [ ] T1 SMTC で複数プレイヤー横断のメディア取得が動作
+- [ ] T2 ブラウザ 3 種でアクティブタブのドメインが best-effort 取得、 失敗時フォールバック動作、
+      拡張なしの限界が doc 化
+- [ ] T3 アプリ別 CPU/RAM が取得・表示。 GPU/熱/電力は stretch 扱いで未達でも phase 完了可
+- [ ] T4 時系列テーブルが migration 追加、 downsampling + pruning ジョブが動作、 長期運用で
+      DB サイズが上限内に収まることを検証
+- [ ] T5 match engine が §match key 戦略どおり item 照合、 真の利用頻度 / 未登録レコメンド /
+      tag カテゴリの 3 連携が動作
+- [ ] T6 observability widget が WidgetType enum 拡張 (`audit-widget-coverage.sh` 0 violations)、
+      e2e + axe pass (PQ-300 基準)
+- [ ] T7 SystemMonitor widget が永続時系列ベースの履歴表示に移行
+- [ ] T8 opt-in / 除外リスト / タイトルマスク / 履歴削除が動作、 デフォルト OFF、
+      追跡データの外部送信ゼロを audit で確認
+- [ ] i18n ja / en 同時実装 (PQ-700 parity 維持)
+
+## 工数感
+
+v2 機能のため概算。 着手時に再見積もりする。
+
+| Task                              | 工数              | 依存                         |
+| --------------------------------- | ----------------- | ---------------------------- |
+| T1 activity recorder              | 1.5 週間          | —                            |
+| T2 ブラウザタブ取得 (best-effort) | 1 週間            | T1 (caveat 多、 リスク高)    |
+| T3 プロセス別リソース             | 1 週間            | T1 (GPU stretch は別)        |
+| T4 時系列ストレージ + retention   | 1 週間            | —                            |
+| T5 item model 連携 (核心)         | 1.5 週間          | T1 / T4                      |
+| T6 observability widget           | 2 週間            | T4 / T5、 PQ-600 widget 規格 |
+| T7 SystemMonitor 履歴化 (第 2 段) | 1 週間            | T4                           |
+| T8 プライバシー設計実装           | 1 週間            | T1 (横断、 設計初期から)     |
+| **第 1 段合計** (T1-T6 + T8)      | **8-9 週間**      | —                            |
+| **第 2 段** (T7 + GPU stretch)    | **2-3 週間**      | 第 1 段完了後                |
+| **総合計**                        | **約 2.5-3 ヶ月** | (PQ-600 widget 規格を流用)   |
+
+第 1 段で「活動追跡 + アプリ別リソース + item 連携 + 見やすいダッシュボード」 が成立し、
+v2 の目玉として出せる。 第 2 段とくに GPU/熱 stretch は v2.x で後追い可能。
+
+## 依存・着手順
+
+1. **着手前提 (必須)**: PH-PQ-700 完了 + **GitHub への v1 リリース完了**。 v1 paid-quality
+   sweep が終わり、 製品が世に出てから本 phase に入る
+2. **設計流用**: PQ-600 の widget 実装規格 (`WidgetModule` interface / enum migration /
+   a11y 基準) をそのまま使う。 PQ-600 A3 Now Playing の SMTC 取得層を T1 と共有
+3. **段階内**: T1 / T4 が基盤。 T2 / T3 は T1 に乗る。 T5 は T1+T4、 T6 は T4+T5。
+   T8 プライバシーは T1 と同時並行 (設計初期から組み込む)
+4. **後続**: なし。 本 phase が v2 の中核機能
+
+## 横展開チェック
+
+- WidgetType enum 拡張で `audit-widget-coverage.sh` (Rust enum ↔ TS bindings ↔ i18n の
+  3 点同期) が新 widget でも 0 violations
+- 新規時系列テーブルを `PERSONAL_DATA_LEAK_AUDIT` 系の観点で点検、 追跡データが
+  telemetry / crash 報告 / 外部送信経路に混入しないこと
+- recorder は watcher と同じく opt-out 可能・低負荷であること (「観測で重くなる」 を防ぐ)
+- i18n: 追跡カテゴリ・widget 文言を ja / en 同時 release (`do-it-now-philosophy`、
+  「ja で merge、 en 後追い」 禁止)
+- レイヤー固定枠遵守: recorder → services → repositories → DB。 repository 直呼び・
+  repository 間相互参照禁止
+- match engine の照合は item の rename / 削除に追従 (古い match key の stale 化を防ぐ)
+
+## 参照
+
+- 既存 SystemMonitor widget: `src/lib/widgets/system-monitor/` /
+  履歴 buffer `src/lib/utils/history-buffer.ts` (in-memory・揮発、 T7 で永続化)
+- 既存 watcher 機構: `src-tauri/src/watcher/` (recorder の兄弟、 イベント駆動 vs ポーリング)
+- item 種別 enum: `src-tauri/src/models/item.rs:5-11` (`Exe`/`Url`/`Folder`/`Script`/`Command`)
+- widget enum: `src-tauri/src/models/workspace.rs:9-31`
+- widget 実装規格: [`PH-PQ-600 §新 widget 共通の実装規格`](./PH-PQ-600_widget-expansion.md)
+- 過去の SystemMonitor 履歴化検討: `docs/l3_phases/_archive/PH-20260426-322_system-monitor-history-disk.md`
+- Windows SMTC API: [SystemMediaTransportControls](https://learn.microsoft.com/en-us/uwp/api/windows.media.systemmediatransportcontrols)
+- 競合 (見やすさで超える対象): ActivityWatch — open-source 活動追跡、 拡張必須・手動カテゴリ分けが弱点
+- 設計の固定枠 / 禁止事項: [`CLAUDE.md`](../../../CLAUDE.md)
+- 過去 audit (プライバシー観点): `docs/l3_phases/audit/PERSONAL_DATA_LEAK_AUDIT_2026-05-20.md`
