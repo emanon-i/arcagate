@@ -518,7 +518,6 @@
 			"title": "Set hotkey"
 		},
 		"onboarding": {
-			"no_more": "Don't show again",
 			"skip_aria": "Skip tour",
 			"step1_desc": "Open the command palette from anywhere with the global hotkey. Search → Enter to launch.",
 			"step1_title": "Open the palette with Ctrl+Shift+Space",

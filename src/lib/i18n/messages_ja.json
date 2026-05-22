@@ -518,7 +518,6 @@
 			"title": "ホットキーを設定"
 		},
 		"onboarding": {
-			"no_more": "もう表示しない",
 			"skip_aria": "ツアーをスキップ",
 			"step1_desc": "どこからでもグローバルホットキーでコマンドパレットが開きます。検索 → Enter で起動。",
 			"step1_title": "Ctrl+Shift+Space でパレットを開く",

@@ -8,6 +8,8 @@ interface Props {
 	label: string;
 	tone?: Tone;
 	onclick?: () => void;
+	/** OnboardingTour のアンカー識別子。指定時 root button に data-tour として付与。 */
+	dataTour?: string;
 }
 
 const toneClasses: Record<Tone, string> = {
@@ -17,7 +19,7 @@ const toneClasses: Record<Tone, string> = {
 	warm: 'border-[var(--ag-warm-border)] bg-[var(--ag-warm-bg)] text-[var(--ag-warm-text)]',
 };
 
-let { icon: Icon, label, tone = 'default', onclick }: Props = $props();
+let { icon: Icon, label, tone = 'default', onclick, dataTour }: Props = $props();
 </script>
 
 <button
@@ -25,6 +27,7 @@ let { icon: Icon, label, tone = 'default', onclick }: Props = $props();
 	class="inline-flex items-center justify-center rounded-lg border p-1.5 transition-[color,background-color,border-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {toneClasses[tone]}"
 	aria-label={label}
 	title={label}
+	data-tour={dataTour}
 	{onclick}
 >
 	<Icon class="h-4 w-4" />
