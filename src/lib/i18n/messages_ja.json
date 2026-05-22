@@ -162,8 +162,8 @@
 		"dropzone": {
 			"drag_here": "ここにドロップ",
 			"drop_or_click": "ここにファイルをドロップ、またはクリックして選択",
-			"filter_all": "All",
-			"filter_executable": "Executable",
+			"filter_all": "すべて",
+			"filter_executable": "実行ファイル",
 			"select_file": "ファイルを選択",
 			"select_folder": "フォルダを選択"
 		},
@@ -174,7 +174,7 @@
 			"duplicate_title": "重複の確認",
 			"label_field": "ラベル",
 			"label_placeholder": "表示名",
-			"processing": "処理中...",
+			"processing": "処理中…",
 			"tags_label": "タグ",
 			"update": "更新"
 		},
@@ -186,8 +186,8 @@
 			"browse_folder_aria": "フォルダを参照",
 			"browse_folder_title": "フォルダを選択",
 			"file_button": "ファイル",
-			"filter_all_files": "All files",
-			"filter_executable": "Executable / Script",
+			"filter_all_files": "すべてのファイル",
+			"filter_executable": "実行ファイル / スクリプト",
 			"folder_button": "フォルダ",
 			"path_hint": ".exe / .bat / フォルダのパス。直接入力 / drag&drop / 参照ボタンのいずれも可",
 			"path_label": "ファイル / フォルダのパス",
@@ -232,7 +232,7 @@
 		},
 		"empty_description": "アプリ・フォルダ・URL などのショートカットを追加できます",
 		"empty_title": "Library is empty",
-		"loading": "ライブラリを読み込み中...",
+		"loading": "ライブラリを読み込み中…",
 		"no_items_yet": "アイテムがまだありません",
 		"no_match_query": "「{query}」に一致するアイテムはありません",
 		"no_match_tag": "このタグにアイテムがありません",
@@ -247,7 +247,8 @@
 		"selection": {
 			"add_favorites": "お気に入りに追加",
 			"count": "{count} 件選択中",
-			"delete_confirm": "{count} 件を削除しますか? (元に戻せません)",
+			"delete_confirm_one": "{count} 件を削除しますか? (元に戻せません)",
+			"delete_confirm_other": "{count} 件を削除しますか? (元に戻せません)",
 			"export_json": "JSON で書き出す"
 		},
 		"sidebar": {
@@ -289,7 +290,7 @@
 			"search_aria": "タグを検索",
 			"search_create_aria": "タグを検索または新規作成",
 			"search_create_placeholder": "検索 / 新規作成 (Enter)",
-			"search_placeholder": "タグを検索..."
+			"search_placeholder": "タグを検索…"
 		}
 	},
 	"nav": {
@@ -322,7 +323,7 @@
 		"no_recent": "No recent items",
 		"results_aria": "検索結果",
 		"search_aria_label": "コマンドを検索",
-		"search_placeholder": "検索..."
+		"search_placeholder": "検索…"
 	},
 	"settings": {
 		"about": {
@@ -348,7 +349,7 @@
 			"copy_done": "✓ コピー済",
 			"custom_badge": "カスタム",
 			"delete_confirm_button": "本当に削除",
-			"download_button": "DL",
+			"download_button": "ダウンロード",
 			"edit_theme_button": "{name} を編集",
 			"editor_loading": "テーマエディタを読み込み中…",
 			"heading": "外観",
@@ -377,12 +378,14 @@
 			"filter_all": "すべて",
 			"filter_html": "ブックマーク (HTML)",
 			"heading": "ブックマークから取り込み",
-			"import_button": "{count} 件をインポート",
+			"import_button_one": "{count} 件をインポート",
+			"import_button_other": "{count} 件をインポート",
 			"import_partial": "{success} 件成功 / {failed} 件失敗",
-			"import_success": "{count} 件のブックマークをインポートしました",
-			"importing": "インポート中...",
+			"import_success_one": "{count} 件のブックマークをインポートしました",
+			"import_success_other": "{count} 件のブックマークをインポートしました",
+			"importing": "インポート中…",
 			"item_select_aria": "{title} を選択",
-			"parsing": "解析中...",
+			"parsing": "解析中…",
 			"pick_button": "ブックマーク HTML を選ぶ",
 			"select_all": "すべて",
 			"select_none": "解除",
@@ -416,19 +419,19 @@
 			"reset_done": "設定をリセットしました",
 			"reset_failed": "リセットに失敗しました: {error}",
 			"reset_label": "設定をリセット",
-			"resetting": "リセット中..."
+			"resetting": "リセット中…"
 		},
 		"export_import": {
 			"desc": "アイテム・設定を JSON ファイルに保存します。起動ログは含まれません。",
 			"export_button": "エクスポート",
 			"export_done": "エクスポート完了",
 			"export_error": "エクスポートエラー: {error}",
-			"exporting": "エクスポート中...",
+			"exporting": "エクスポート中…",
 			"heading": "データのバックアップ",
 			"import_button": "インポート",
 			"import_done": "インポート完了",
 			"import_error": "インポートエラー: {error}",
-			"importing": "インポート中..."
+			"importing": "インポート中…"
 		},
 		"general": {
 			"autostart_aria_off": "自動起動を無効にする",
@@ -448,7 +451,7 @@
 		"hotkey": {
 			"change": "ホットキーを変更",
 			"label": "ホットキー表示",
-			"press_key": "キーを押してください..."
+			"press_key": "キーを押してください…"
 		},
 		"library_card": {
 			"bg_desc": "全カードは共通のサーフェスに中央アイコンで表示されます。画像の全面表示やアイコンの差し替えは各アイテムの編集画面（カード見た目設定）で指定できます。",
@@ -462,7 +465,7 @@
 			"stroke_width": "縁取り太さ",
 			"text_color": "文字色"
 		},
-		"loading": "設定を読み込み中...",
+		"loading": "設定を読み込み中…",
 		"opener": {
 			"builtin_badge": "組み込み",
 			"builtin_heading": "組み込み ({count})",
@@ -483,12 +486,12 @@
 		},
 		"updater": {
 			"check_button": "アップデート確認",
-			"checking": "確認中...",
+			"checking": "確認中…",
 			"desc": "GitHub Releases から最新バージョンを確認・インストールできます。",
 			"heading": "アップデート",
 			"install_button": "v{version} を適用",
 			"install_confirm": "バージョン {version} をインストールしてアプリを再起動しますか?",
-			"installing": "インストール中...",
+			"installing": "インストール中…",
 			"last_checked": "最終確認: {time}",
 			"new_version": "新バージョン v{version}",
 			"up_to_date": "最新バージョンを使用中です"
@@ -552,7 +555,8 @@
 		"error": "エラーが発生しました",
 		"exe_not_found_folder": "{folder}: 起動可能な exe が見つかりません",
 		"explorer_failed": "Explorer で開く失敗: {error}",
-		"favorites_added_n": "{count} 件をお気に入りに追加しました",
+		"favorites_added_n_one": "{count} 件をお気に入りに追加しました",
+		"favorites_added_n_other": "{count} 件をお気に入りに追加しました",
 		"file_open_failed": "ファイルを開けませんでした: {error}",
 		"file_preview_widget_placed": "ファイルプレビュー widget を配置しました",
 		"grid_out_of_bounds_move": "グリッド範囲外のため移動できません",
@@ -567,9 +571,12 @@
 		"item_added_label": "{label} を追加しました",
 		"item_created": "アイテムを作成しました",
 		"item_updated": "アイテムを更新しました",
-		"items_added_n": "{count} 件のアイテムを追加しました",
-		"items_deleted_n": "{count} 件を削除しました",
-		"json_copied_n": "{count} 件を JSON で clipboard にコピーしました",
+		"items_added_n_one": "{count} 件のアイテムを追加しました",
+		"items_added_n_other": "{count} 件のアイテムを追加しました",
+		"items_deleted_n_one": "{count} 件を削除しました",
+		"items_deleted_n_other": "{count} 件を削除しました",
+		"json_copied_n_one": "{count} 件を JSON で clipboard にコピーしました",
+		"json_copied_n_other": "{count} 件を JSON で clipboard にコピーしました",
 		"launch_failed": "起動に失敗: {error}",
 		"launched_label": "「{label}」を起動しました",
 		"name_required": "名前を入力してください",
@@ -606,7 +613,8 @@
 		"widget_deleted": "ウィジェットを削除しました",
 		"widget_existed_selected": "既存 widget を選択しました (Ctrl+Shift+1 で表示中央へ)",
 		"widget_no_space": "空きスペースがありません。既存ウィジェットを縮小・削除してください",
-		"widget_no_space_stopped": "空きスペースがないため {count} 個の追加を停止しました",
+		"widget_no_space_stopped_one": "空きスペースがないため {count} 個の追加を停止しました",
+		"widget_no_space_stopped_other": "空きスペースがないため {count} 個の追加を停止しました",
 		"widgets_overlap_move": "他のウィジェットと重なるため移動できません",
 		"widgets_overlap_place": "他のウィジェットと重なるため配置できません"
 	},
@@ -629,14 +637,14 @@
 			"no_match": "「{query}」に一致するアイテムがありません",
 			"poll_interval_label": "ポーリング間隔 (ms)",
 			"recopy_aria": "「{preview}」を再コピー",
-			"search_placeholder": "検索..."
+			"search_placeholder": "検索…"
 		},
 		"common": {
 			"builtin_suffix": " (組み込み)",
 			"card_view": "カード表示",
 			"default_opener_desc": "この widget からの起動でこの Opener を使う。Library カード見た目設定が指定されてればそちらが優先。",
 			"default_opener_label": "デフォルト起動アプリ",
-			"default_opener_system": "既定 (system) / item.default_app に従う",
+			"default_opener_system": "既定 (system)",
 			"description_label": "説明",
 			"description_optional_label": "説明 (任意)",
 			"description_placeholder": "このウィジェットの目的",
@@ -656,19 +664,19 @@
 			"max_items_label": "表示件数 (1〜100)",
 			"open_settings": "設定を開く",
 			"operation_save_settings": "設定の保存",
-			"scanning": "Scanning…",
+			"scanning": "スキャン中…",
 			"sort_by_mtime": "更新日時で並び替え",
 			"sort_by_name": "名前で並び替え",
 			"sort_current_asc": " (現在 昇順)",
 			"sort_current_desc": " (現在 降順)",
 			"sort_current_newest": " (現在 新しい順)",
 			"sort_current_oldest": " (現在 古い順)",
-			"sort_default": "デフォルト(IPC 順)",
+			"sort_default": "デフォルト順",
 			"sort_field_label": "並び順",
-			"sort_mtime": "Updated",
-			"sort_name": "Name",
+			"sort_mtime": "更新日",
+			"sort_name": "名前",
 			"sort_name_az": "名前順 (A-Z)",
-			"title_label": "Title"
+			"title_label": "タイトル"
 		},
 		"context_menu": {
 			"copy_path": "パスをコピー",
@@ -681,7 +689,7 @@
 		},
 		"daily_task": {
 			"add_aria": "タスクを追加",
-			"add_placeholder": "タスクを追加...",
+			"add_placeholder": "タスクを追加…",
 			"add_title": "タスクを追加",
 			"completed_count": "完了済み {count} 件",
 			"default_title": "デイリータスク",
@@ -716,7 +724,7 @@
 			"filter_all": "すべて",
 			"filter_text": "テキスト",
 			"format_hint": "md / txt / markdown / json / yaml / toml / csv / log に対応。 Markdown の YAML フロントマターは別領域に表示。",
-			"loading": "読み込み中...",
+			"loading": "読み込み中…",
 			"meta_chars": "文字数",
 			"meta_created": "作成",
 			"meta_modified": "更新",
@@ -732,7 +740,7 @@
 			"empty_action": "設定を開く",
 			"empty_desc": "設定でルートフォルダを選んでください",
 			"empty_title": "フォルダが未設定です",
-			"filter_placeholder": "ファイルを検索...",
+			"filter_placeholder": "ファイルを検索…",
 			"limit_label": "最大表示件数 (10〜500)",
 			"no_files": "ファイルが見つかりませんでした",
 			"no_match": "「{query}」に一致するファイルがありません",
@@ -740,7 +748,7 @@
 			"pick_root_button": "フォルダを選択",
 			"picker_title": "ルートフォルダを選択",
 			"root_label": "ルートフォルダ",
-			"searching": "検索中...",
+			"searching": "検索中…",
 			"title_placeholder": "ファイル検索"
 		},
 		"image_scrap": {
@@ -753,7 +761,7 @@
 			"img_alt": "{name}",
 			"load_error": "画像を読み込めませんでした",
 			"path_placeholder": "画像のパス",
-			"saving": "保存中..."
+			"saving": "保存中…"
 		},
 		"item": {
 			"add_aria": "このウィジェットにアイテムを追加",
@@ -774,7 +782,8 @@
 		"projects": {
 			"auto_add_aria": "配下フォルダを自動的に追加する",
 			"auto_add_label": "配下フォルダの自動追加",
-			"changed_count": "{count} 件の変更",
+			"changed_count_one": "{count} 件の変更",
+			"changed_count_other": "{count} 件の変更",
 			"empty_description": "設定モーダルで監視ルートを選ぶと、配下のフォルダがここに表示されます。",
 			"empty_title": "No folder configured",
 			"git_poll_label": "Git ポーリング間隔（秒、10〜600）",
@@ -788,10 +797,10 @@
 			"font_size_md": "中",
 			"font_size_sm": "小",
 			"operation_save": "メモの保存",
-			"placeholder": "メモを入力...",
-			"save_pending": "保存待機...",
+			"placeholder": "メモを入力…",
+			"save_pending": "保存待機…",
 			"save_saved": "✓ 保存済み",
-			"save_saving": "保存中..."
+			"save_saving": "保存中…"
 		},
 		"recent": {
 			"empty_message": "最近の起動履歴がここに表示されます"
@@ -805,14 +814,16 @@
 			"empty_action": "設定を開く",
 			"empty_desc": "設定でアイテムを追加すると、1 クリックでまとめて起動できます。",
 			"empty_title": "ルーティンが空です",
-			"item_count": "{count} 件のアイテム",
+			"item_count_one": "{count} 件のアイテム",
+			"item_count_other": "{count} 件のアイテム",
 			"label_label": "ルーティン名",
 			"label_placeholder": "例: 開発開始",
 			"launch_aria": "{label} のアイテムを一斉起動",
 			"launch_button": "すべて起動",
-			"launch_partial": "{label}: {failed} 件の起動に失敗しました",
+			"launch_partial_one": "{label}: {failed} 件の起動に失敗しました",
+			"launch_partial_other": "{label}: {failed} 件の起動に失敗しました",
 			"launched_summary": "{label} を起動しました ({success}/{total} 件)",
-			"launching": "起動中...",
+			"launching": "起動中…",
 			"picker_hint": "ライブラリから束ねるアイテムを 1 件以上選択",
 			"stale_badge": "削除済み",
 			"stale_item": "削除されたアイテム"
@@ -837,11 +848,12 @@
 			"add_aria": "スニペットを追加",
 			"body_placeholder": "本文",
 			"copy_aria": "「{label}」をコピー",
-			"count": "{count} 件",
+			"count_one": "{count} 件",
+			"count_other": "{count} 件",
 			"default_title": "スニペット",
 			"delete_aria": "「{label}」を削除",
 			"edit_aria": "「{label}」を編集",
-			"empty_desc": "右上の ＋ でスニペットを追加できます",
+			"empty_desc": "右上の追加ボタンからスニペットを追加できます",
 			"empty_title": "スニペットがありません",
 			"label_placeholder": "ラベル"
 		},
@@ -849,10 +861,10 @@
 			"no_history": "起動履歴がありません"
 		},
 		"system_monitor": {
-			"chart_bar": "Bar",
-			"chart_bar_net": "Bar (送受信)",
-			"chart_gauge": "Gauge",
-			"chart_sparkline": "Sparkline",
+			"chart_bar": "棒グラフ",
+			"chart_bar_net": "棒グラフ (送受信)",
+			"chart_gauge": "ゲージ",
+			"chart_sparkline": "スパークライン",
 			"cpu_chart_label": "CPU グラフ",
 			"default_title": "システムモニタ",
 			"degraded": "データ取得エラー — 部分的なデータを表示中",
@@ -934,7 +946,7 @@
 		},
 		"item_list": {
 			"close_search": "検索を閉じる",
-			"filter_placeholder": "絞り込み...",
+			"filter_placeholder": "絞り込み…",
 			"launch_label": "{label} を起動 (右クリックで詳細)",
 			"no_items": "アイテムがありません",
 			"no_match": "一致するアイテムがありません",
@@ -944,7 +956,8 @@
 			"add_n": "追加 ({count})",
 			"aria_label": "アイテム選択",
 			"clear_filters": "絞り込み解除",
-			"count": "{n} 件",
+			"count_one": "{n} 件",
+			"count_other": "{n} 件",
 			"filter_type_aria": "種別で絞り込み",
 			"next_page": "次のページ",
 			"no_items": "アイテムがまだありません",

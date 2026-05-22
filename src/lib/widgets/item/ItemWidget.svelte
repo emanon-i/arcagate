@@ -29,6 +29,7 @@ import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.sve
 import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { widgetMenuItems } from '../_shared/menu-items';
@@ -123,7 +124,7 @@ async function pickerSelectMany(items: Item[]) {
 	const nextConfig: ItemWidgetConfig = { ...config, item_ids: next };
 	try {
 		await workspaceStore.updateWidgetConfig(widget.id, JSON.stringify(nextConfig));
-		toastStore.add(t('toast.items_added_n', { count: added }), 'success');
+		toastStore.add(tPlural('toast.items_added_n', added), 'success');
 	} catch (e: unknown) {
 		toastStore.add(t('toast.config_save_failed', { error: getErrorMessage(e) }), 'error');
 	}

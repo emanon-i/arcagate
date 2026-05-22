@@ -9,6 +9,7 @@ import { metadataStore } from '$lib/state/metadata.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { fuzzyFilter } from '$lib/utils/fuzzy-search';
 import { detectGridCols, type GridKeyAction, gridKeyboardNav } from '$lib/utils/grid-keyboard';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
@@ -87,7 +88,7 @@ async function handleBulkStar() {
 	try {
 		const ids = Array.from(selectedIds);
 		const count = await bulkAddTag(ids, 'sys-starred');
-		toastStore.add(t('toast.favorites_added_n', { count }), 'success');
+		toastStore.add(tPlural('toast.favorites_added_n', count), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: t('library.op.bulk_star') }, e), 'error');
 		return;
@@ -109,7 +110,7 @@ async function handleBulkExport() {
 	const items = itemStore.items.filter((i) => ids.includes(i.id));
 	try {
 		await navigator.clipboard.writeText(JSON.stringify(items, null, 2));
-		toastStore.add(t('toast.json_copied_n', { count: items.length }), 'success');
+		toastStore.add(tPlural('toast.json_copied_n', items.length), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: t('library.op.json_export') }, e), 'error');
 	}
@@ -117,11 +118,11 @@ async function handleBulkExport() {
 
 async function handleBulkDelete() {
 	if (selectedIds.size === 0) return;
-	if (!window.confirm(t('library.selection.delete_confirm', { count: selectedIds.size }))) return;
+	if (!window.confirm(tPlural('library.selection.delete_confirm', selectedIds.size))) return;
 	try {
 		const ids = Array.from(selectedIds);
 		const count = await bulkDeleteItems(ids);
-		toastStore.add(t('toast.items_deleted_n', { count }), 'success');
+		toastStore.add(tPlural('toast.items_deleted_n', count), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatIpcError({ operation: t('library.op.bulk_delete') }, e), 'error');
 		return;

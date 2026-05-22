@@ -4,6 +4,7 @@ import { check, type Update } from '@tauri-apps/plugin-updater';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
+import { formatDate } from '$lib/utils/intl-formatter.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 
 // PH-446 batch-100 — Updater UI (Settings 統合 + 手動チェック)
@@ -93,7 +94,7 @@ async function handleInstall() {
 
 	{#if lastChecked}
 		<p class="text-xs text-[var(--ag-text-muted)]">
-			{t('settings.updater.last_checked', { time: lastChecked.toLocaleString() })}
+			{t('settings.updater.last_checked', { time: formatDate(lastChecked) })}
 		</p>
 	{/if}
 

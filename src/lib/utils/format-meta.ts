@@ -1,5 +1,6 @@
 import type { Item } from '$lib/types/item';
 import type { ItemMetadata } from '$lib/types/item-metadata';
+import { formatDate } from '$lib/utils/intl-formatter.svelte';
 
 /**
  * バイト数を人間可読な単位に変換（10^3 系）。
@@ -23,17 +24,14 @@ export function formatBytes(n: number): string {
 }
 
 /**
- * UNIX 秒から短い日付表記 "YYYY-MM-DD"（ローカルタイムゾーン）。
+ * UNIX 秒から短い日付表記（locale 設定に追従、 ja: "2026/05/22" / en: "5/22/26"）。
  * undefined / 無効値なら空文字。
  */
 export function formatShortDate(unix: number | undefined): string {
 	if (typeof unix !== 'number' || !Number.isFinite(unix)) return '';
 	const d = new Date(unix * 1000);
 	if (Number.isNaN(d.getTime())) return '';
-	const yyyy = d.getFullYear();
-	const mm = String(d.getMonth() + 1).padStart(2, '0');
-	const dd = String(d.getDate()).padStart(2, '0');
-	return `${yyyy}-${mm}-${dd}`;
+	return formatDate(d, { dateStyle: 'short' });
 }
 
 /**

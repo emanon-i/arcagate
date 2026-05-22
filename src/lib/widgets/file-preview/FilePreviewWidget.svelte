@@ -12,6 +12,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { parseFrontmatterPairs } from '$lib/utils/frontmatter';
+import { formatDate as formatLocaleDate, formatNumber } from '$lib/utils/intl-formatter.svelte';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
 
@@ -85,7 +86,7 @@ function formatBytes(n: number): string {
 
 function formatDate(secs: number | null): string {
 	if (!secs) return '-';
-	return new Date(secs * 1000).toLocaleString('ja');
+	return formatLocaleDate(new Date(secs * 1000));
 }
 
 // audit batch (2026-05-13) #2.6: ダブルクリックで OS default text editor で開く。
@@ -161,7 +162,7 @@ let displayTitle = $derived(
 			<div class="flex flex-wrap gap-x-3 gap-y-1 text-[var(--ag-text-muted)]">
 				<span><strong class="text-[var(--ag-text-secondary)]">{t('widgets.file_preview.meta_size')}</strong> {formatBytes(preview.sizeBytes)}</span>
 				{#if preview.charCount !== null}
-					<span><strong class="text-[var(--ag-text-secondary)]">{t('widgets.file_preview.meta_chars')}</strong> {preview.charCount.toLocaleString()}</span>
+					<span><strong class="text-[var(--ag-text-secondary)]">{t('widgets.file_preview.meta_chars')}</strong> {formatNumber(preview.charCount)}</span>
 				{/if}
 			</div>
 			<div class="flex flex-wrap gap-x-3 gap-y-1 text-[var(--ag-text-muted)]">

@@ -28,6 +28,7 @@ import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Item } from '$lib/types/item';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 import { widgetMenuItems } from '../_shared/menu-items';
 
 interface Props {
@@ -115,7 +116,10 @@ async function launchAll(): Promise<void> {
 		failed > 0 ? 'info' : 'success',
 	);
 	if (failed > 0) {
-		toastStore.add(t('widgets.routine.launch_partial', { label: routineLabel, failed }), 'error');
+		toastStore.add(
+			tPlural('widgets.routine.launch_partial', failed, { label: routineLabel, failed }),
+			'error',
+		);
 	}
 }
 </script>
@@ -151,7 +155,7 @@ async function launchAll(): Promise<void> {
 			</Button>
 
 			<p class="shrink-0 px-0.5 text-xs text-[var(--ag-text-muted)]">
-				{t('widgets.routine.item_count', { count: launchable.length })}
+				{tPlural('widgets.routine.item_count', launchable.length)}
 			</p>
 
 			{#if launchable.length === 0}

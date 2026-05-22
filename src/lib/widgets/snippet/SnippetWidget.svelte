@@ -32,6 +32,7 @@ import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { widgetMenuItems } from '../_shared/menu-items';
 
@@ -181,7 +182,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	{:else}
 		<!-- toolbar: 「+」 button (常時) + snippet count -->
 		<div class="mb-2 flex shrink-0 items-center justify-between pb-1.5">
-			<span class="text-xs text-[var(--ag-text-muted)]">{t('widgets.snippet.count', { count: snippets.length })}</span>
+			<span class="text-xs text-[var(--ag-text-muted)]">{tPlural('widgets.snippet.count', snippets.length)}</span>
 			<button
 				type="button"
 				class="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"

@@ -9,6 +9,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import type { CreateItemInput } from '$lib/types/item';
 import type { Tag } from '$lib/types/tag';
 import { getErrorMessage } from '$lib/utils/format-error';
+import { tPlural } from '$lib/utils/intl-formatter.svelte';
 
 /**
  * U-2 (2026-05-12): screens-and-flows.md Library § 仕様
@@ -107,7 +108,7 @@ async function performImport() {
 		}
 		toastStore.add(
 			failed === 0
-				? t('settings.bookmark.import_success', { count: success })
+				? tPlural('settings.bookmark.import_success', success)
 				: t('settings.bookmark.import_partial', { success, failed }),
 			failed === 0 ? 'success' : 'info',
 		);
@@ -208,7 +209,7 @@ async function performImport() {
 						<Loader2 class="h-4 w-4 animate-spin" />
 						{t('settings.bookmark.importing')}
 					{:else}
-						{t('settings.bookmark.import_button', { count: selected.size })}
+						{tPlural('settings.bookmark.import_button', selected.size)}
 					{/if}
 				</Button>
 			</div>

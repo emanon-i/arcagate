@@ -17,7 +17,7 @@
  * - WorkspaceUndoSnackbar の "{n}秒" → formatRelative() or formatDuration()
  * - 各 widget の launch_count / hit count → formatNumber()
  */
-import { currentLocale } from '$lib/i18n.svelte';
+import { currentLocale, t } from '$lib/i18n.svelte';
 
 /**
  * Intl object cache。 locale × options を key に memoize。
@@ -182,6 +182,36 @@ export function formatDurationSeconds(seconds: number): string {
 			}),
 	);
 	return `${minFmt.format(min)} ${secFmt.format(sec)}`;
+}
+
+/**
+ * 単複対応の翻訳 lookup。 `key` に `_one` / `_other` suffix を付けた variant を
+ * `Intl.PluralRules` の category で選び、 `t()` で補間する。
+ *
+ * - ja: PluralRules は常に 'other' を返すため `_other` のみ評価される
+ * - en: count=1 → 'one' ("1 item")、 それ以外 → 'other' ("{count} items")
+ *
+ * 使用例:
+ *   tPlural('toast.items_added_n', count)            // → t('toast.items_added_n_one' | '_other', { count })
+ *   tPlural('workspace.picker.count', n, { n })      // {n} 補間を vars で渡す
+ *
+ * `count` は plural category 判定に使い、 `{ count, ...vars }` として補間にも渡す。
+ * variant が見つからない場合は `_other` に fallback する。
+ *
+ * 引用元 guideline: docs/l3_phases/paid-quality/PH-PQ-700_i18n-and-global.md T2
+ *   (helper 配置は循環 import 回避のため i18n.svelte.ts ではなく本 formatter 層に置く)
+ */
+export function tPlural(
+	key: string,
+	count: number,
+	vars?: Record<string, string | number>,
+): string {
+	const category = pluralCategory(count);
+	const merged = { count, ...vars };
+	const variantKey = `${key}_${category}`;
+	const direct = t(variantKey, merged);
+	if (direct !== variantKey) return direct;
+	return t(`${key}_other`, merged);
 }
 
 /**

@@ -11,6 +11,9 @@ import { defineConfig } from '@playwright/test';
  */
 export default defineConfig({
 	testDir: './tests/e2e',
+	// PH-PQ-700 T7: locale-en/ は EN 専用 config (playwright.en.config.ts) で実行する。
+	// 既定 (ja) run では除外しないと ja UI 強制下で EN selector spec が実行され fail する。
+	testIgnore: ['**/locale-en/**'],
 	timeout: process.env.CI ? 120_000 : 60_000,
 	globalTimeout: process.env.CI ? 1_200_000 : 300_000,
 	retries: 1,
