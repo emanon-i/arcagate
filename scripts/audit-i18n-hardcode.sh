@@ -103,19 +103,75 @@ else
 		echo "  messages_ja.json keys:  $ja_count"
 		echo "  messages_en.json keys:  $en_count"
 
+		parity_fail=0
 		if [ -n "$only_ja" ]; then
 			echo ""
-			echo "  WARN: ja のみに存在する key (= en 翻訳漏れ):"
+			echo "  ERROR: ja のみに存在する key (= en 翻訳漏れ):"
 			echo "$only_ja" | sed 's/^/    /'
+			parity_fail=1
 		fi
 		if [ -n "$only_en" ]; then
 			echo ""
-			echo "  WARN: en のみに存在する key (= stale / ja 同期漏れ):"
+			echo "  ERROR: en のみに存在する key (= stale / ja 同期漏れ):"
 			echo "$only_en" | sed 's/^/    /'
+			parity_fail=1
 		fi
 
 		if [ -z "$only_ja" ] && [ -z "$only_en" ]; then
 			echo "  ✓ key parity OK (ja / en 完全一致)"
+		fi
+
+		# Phase 5 (PH-PQ-700): ja === en な未翻訳 key の機械検出。
+		# (B) ja===en (nav / status 短文) と (A) literal keep (brand / 略語 / pure format)
+		# は i18n-policy.md §0 で意図的に同値。 これらを allowlist し、 それ以外の ja===en は
+		# 「翻訳漏れ」 として検出して fail させる。 新規 string で ja を en から copy したまま
+		# 放置する regression を防ぐ。 allowlist 追加時は i18n-policy.md の category 根拠を伴うこと。
+		ALLOWED_JA_EQ_EN="app.name
+common.confirm
+common.loading
+common.no_match
+item.appearance_settings.rotation_deg
+library.empty_title
+nav.help
+nav.library
+nav.settings
+nav.workspace
+palette.no_recent
+settings.appearance.theme_hud
+widgets.exe_folder.empty_title
+widgets.image_scrap.img_alt
+widgets.projects.empty_title
+widgets.script_folder.empty_title
+widgets.system_monitor.loading
+workspace.empty_title"
+
+		# jq 出力と allowlist を同一 (shell) sort に揃えてから comm する
+		# (jq の sort と shell sort の照合順序差で comm がずれるのを防ぐ)。
+		ja_eq_en=$(jq -rn --slurpfile ja "$ja_file" --slurpfile en "$en_file" '
+			($ja[0]) as $j | ($en[0]) as $e
+			| [ $j | paths(strings) | select(.[0] | startswith("$") | not) ]
+			| map(. as $p | select(($j | getpath($p)) == ($e | getpath($p))) | $p | join("."))
+			| .[]
+		' 2>/dev/null | sort -u)
+
+		allowed_sorted=$(echo "$ALLOWED_JA_EQ_EN" | sort -u)
+		untranslated=$(comm -23 <(echo "$ja_eq_en") <(echo "$allowed_sorted"))
+
+		echo ""
+		echo "i18n untranslated check (Phase 5 — ja === en non-allowlisted):"
+		if [ -n "$untranslated" ]; then
+			echo "  ERROR: ja と en が同値の未翻訳 key (allowlist 外):"
+			echo "$untranslated" | sed 's/^/    /'
+			echo ""
+			echo "  → en を翻訳するか、 意図的 (A)/(B) なら i18n-policy.md 根拠付きで"
+			echo "    scripts/audit-i18n-hardcode.sh の ALLOWED_JA_EQ_EN に追記してください。"
+			parity_fail=1
+		else
+			echo "  ✓ 未翻訳 key なし (ja === en は allowlist 済みの意図的同値のみ)"
+		fi
+
+		if [ "$parity_fail" -ne 0 ]; then
+			exit 1
 		fi
 	else
 		echo "(jq not installed — key parity check skipped)"
