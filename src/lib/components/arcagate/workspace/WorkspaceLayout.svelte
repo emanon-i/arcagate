@@ -213,7 +213,7 @@ function confirmRename(name: string) {
 			left: {pointerDrag.clientX - 36}px;
 			top: {pointerDrag.clientY - 18}px;
 			transform: scale({pointerDrag.dropCell ? 1.08 : 1});
-			transition: transform 80ms ease;
+			transition: transform var(--ag-duration-instant) var(--ag-ease-out);
 		"
 	></div>
 {/if}

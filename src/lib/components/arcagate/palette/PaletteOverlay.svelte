@@ -162,7 +162,7 @@ function handleKeydown(e: KeyboardEvent) {
 					     必要 hint は footer bar に統合。 -->
 					{#if showPreview}
 						<div class="mt-4 grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-							<div id="palette-results" class="space-y-2" data-testid="palette-results" role="listbox" aria-label={t('palette.results_aria')}>
+							<div id="palette-results" class="space-y-2" data-testid="palette-results" role={paletteStore.results.length > 0 ? 'listbox' : undefined} aria-label={t('palette.results_aria')}>
 								{#each paletteStore.results as entry, index (index)}
 									<PaletteResultRow
 										{entry}
@@ -185,7 +185,7 @@ function handleKeydown(e: KeyboardEvent) {
 						</div>
 					{:else}
 						<!-- 初回 (query 空 + results 空): list area のみ縦並び、 preview panel 非表示。 -->
-						<div id="palette-results" class="mt-4 space-y-2" data-testid="palette-results" role="listbox" aria-label={t('palette.results_aria')}>
+						<div id="palette-results" class="mt-4 space-y-2" data-testid="palette-results" role={paletteStore.results.length > 0 ? 'listbox' : undefined} aria-label={t('palette.results_aria')}>
 							{#each paletteStore.results as entry, index (index)}
 								<PaletteResultRow
 									{entry}

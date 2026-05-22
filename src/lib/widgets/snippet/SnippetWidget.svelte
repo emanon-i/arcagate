@@ -27,6 +27,7 @@
 import { Check, Clipboard, Pencil, Plus, X } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -169,19 +170,14 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			</div>
 		</div>
 	{:else if snippets.length === 0}
-		<!-- 空状態: 用途説明 + 「+」 button (Settings ではなく compose mode 起動) -->
-		<button
-			type="button"
-			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-center text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
-			aria-label={t('widgets.snippet.add_aria')}
-			onclick={startAdd}
-		>
-			<Plus class="h-6 w-6" />
-			<span class="text-xs font-medium">{t('widgets.snippet.add_aria')}</span>
-			<span class="px-3 text-xs leading-relaxed text-[var(--ag-text-faint)]">
-				{t('widgets.snippet.empty_desc')}
-			</span>
-		</button>
+		<!-- 空状態: 用途説明 + compose mode 起動 action (共通 EmptyState で統一) -->
+		<EmptyState
+			icon={Clipboard}
+			title={t('widgets.snippet.add_aria')}
+			description={t('widgets.snippet.empty_desc')}
+			action={{ label: t('common.add'), icon: Plus, onClick: startAdd }}
+			testId="snippet-empty-state"
+		/>
 	{:else}
 		<!-- toolbar: 「+」 button (常時) + snippet count -->
 		<div class="mb-2 flex shrink-0 items-center justify-between pb-1.5">

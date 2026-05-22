@@ -112,7 +112,7 @@ async function handleInstall() {
 		</div>
 	{:else if lastChecked}
 		<div class="flex items-center gap-1 text-xs text-[var(--ag-text-muted)]">
-			<CheckCircle2 class="h-3.5 w-3.5 text-green-500" />
+			<CheckCircle2 class="h-3.5 w-3.5 text-[var(--ag-success-text)]" />
 			{t('settings.updater.up_to_date')}
 		</div>
 	{/if}

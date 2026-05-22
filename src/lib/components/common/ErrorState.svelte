@@ -18,7 +18,7 @@ let { title, description, retry, testId }: Props = $props();
 	aria-live="assertive"
 	data-testid={testId}
 >
-	<div class="rounded-full bg-[var(--ag-surface-2)] p-4 text-red-500">
+	<div class="rounded-full bg-[var(--ag-error-bg)] p-4 text-[var(--ag-error-text)]">
 		<AlertTriangle class="h-8 w-8" />
 	</div>
 	<div class="space-y-1">

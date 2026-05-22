@@ -3,6 +3,7 @@ import { ClipboardList, Search, X } from '@lucide/svelte';
 import { readText, writeText } from '@tauri-apps/plugin-clipboard-manager';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
@@ -99,10 +100,12 @@ function previewText(text: string): string {
 
 <WidgetShell title={config.title || t('widgets.clipboard_history.default_title')} icon={ClipboardList} {menuItems}>
 	{#if history.length === 0}
-		<div class="rounded-md border border-dashed border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2 py-2 text-xs text-[var(--ag-text-muted)]">
-			<p class="mb-0.5 font-medium text-[var(--ag-text-secondary)]">{t('widgets.clipboard_history.empty_title')}</p>
-			<p>{t('widgets.clipboard_history.empty_desc')}</p>
-		</div>
+		<EmptyState
+			icon={ClipboardList}
+			title={t('widgets.clipboard_history.empty_title')}
+			description={t('widgets.clipboard_history.empty_desc')}
+			testId="clipboard-history-empty-state"
+		/>
 	{:else}
 		<div class="mb-2 flex items-center gap-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2">
 			<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
@@ -131,7 +134,11 @@ function previewText(text: string): string {
 			</p>
 		{/if}
 		{#if filteredHistory.length === 0}
-			<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.clipboard_history.no_match', { query })}</p>
+			<EmptyState
+				icon={Search}
+				title={t('widgets.clipboard_history.no_match', { query })}
+				testId="clipboard-history-no-match-state"
+			/>
 		{:else}
 		<!-- PH-widget-polish: list-row に min-w-0、active:scale-[0.97] で再コピー触覚フィードバック、
 		     title 属性で全文 tooltip (長文クリップボードは preview しか出ないため重要) -->

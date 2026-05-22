@@ -38,7 +38,7 @@ function handleWidgetContextMenu(ev: MouseEvent): void {
 
 // audit batch (2026-05-13) #11: header 縦幅縮小。 button padding を p-1.5 (6px) → p-1 (4px) に。
 let btnClass =
-	'rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]';
+	'focus-ring rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-4)] p-1 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:bg-[var(--ag-surface-3)]';
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

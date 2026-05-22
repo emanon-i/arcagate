@@ -12,6 +12,8 @@ import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import ErrorState from '$lib/components/common/ErrorState.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { registerExeItemsBulk } from '$lib/ipc/items';
 import { itemStore } from '$lib/state/items.svelte';
@@ -331,13 +333,19 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			testId="exe-folder-empty-state"
 		/>
 	{:else if scanning}
-		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.common.scanning')}</p>
+		<LoadingState description={t('widgets.common.scanning')} testId="exe-folder-loading-state" />
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-error-text)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
+		<ErrorState
+			title={t('widgets.common.load_failed')}
+			description={scanError}
+			testId="exe-folder-error-state"
+		/>
 	{:else if entries.length === 0}
-		<p class="text-sm text-[var(--ag-text-muted)]">
-			{t('widgets.exe_folder.no_exe_subfolders')}
-		</p>
+		<EmptyState
+			icon={AppWindow}
+			title={t('widgets.exe_folder.no_exe_subfolders')}
+			testId="exe-folder-no-entries-state"
+		/>
 	{:else}
 		<!-- 並び替え toolbar (5/03 user 検収: 旧「全部 Library 追加」 button は撤廃。auto-register on scan に統一)。
 		     I-3 (2026-05-10 user 検収): scroll で消えないよう sticky top-0 で widget header 領域に pin。

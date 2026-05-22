@@ -15,6 +15,8 @@ import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import ErrorState from '$lib/components/common/ErrorState.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { runScript, type ScriptEntry, scanScriptFolder } from '$lib/ipc/scripts';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -190,11 +192,19 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			testId="script-folder-empty-state"
 		/>
 	{:else if scanning}
-		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.common.scanning')}</p>
+		<LoadingState description={t('widgets.common.scanning')} testId="script-folder-loading-state" />
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-error-text)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
+		<ErrorState
+			title={t('widgets.common.load_failed')}
+			description={scanError}
+			testId="script-folder-error-state"
+		/>
 	{:else if entries.length === 0}
-		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.script_folder.no_scripts')}</p>
+		<EmptyState
+			icon={FileCode}
+			title={t('widgets.script_folder.no_scripts')}
+			testId="script-folder-no-scripts-state"
+		/>
 	{:else}
 		<!-- 並び替え toolbar。 ag-sticky-bar で widget 本体 glass 面の継続にする
 		     (独立した塗りつぶし矩形を持たない — border / shadow / 疑似要素なし)。

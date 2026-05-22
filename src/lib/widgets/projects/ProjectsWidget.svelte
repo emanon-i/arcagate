@@ -27,6 +27,8 @@ import { listen } from '@tauri-apps/api/event';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import ErrorState from '$lib/components/common/ErrorState.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
 import { launchItem } from '$lib/ipc/launch';
@@ -287,13 +289,19 @@ async function handleLaunch(item: Item) {
 			testId="projects-empty-state"
 		/>
 	{:else if scanning}
-		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.common.scanning')}</p>
+		<LoadingState description={t('widgets.common.scanning')} testId="projects-loading-state" />
 	{:else if scanError}
-		<p class="text-sm text-[var(--ag-error-text)]">{t('widgets.common.error_prefix', { error: scanError })}</p>
+		<ErrorState
+			title={t('widgets.common.load_failed')}
+			description={scanError}
+			testId="projects-error-state"
+		/>
 	{:else if folderItems.length === 0}
-		<p class="text-sm text-[var(--ag-text-muted)]">
-			{t('widgets.projects.no_subfolders')}
-		</p>
+		<EmptyState
+			icon={FolderKanban}
+			title={t('widgets.projects.no_subfolders')}
+			testId="projects-no-subfolders-state"
+		/>
 	{:else}
 		<!-- B-7 #9: Settings description は info icon + hover tooltip に変更 (widget 領域圧迫防止) -->
 		{#if config.description}

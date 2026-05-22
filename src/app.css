@@ -151,6 +151,15 @@ select[data-themed] option {
     user-select: text;
     -webkit-user-select: text;
   }
+  /* WCAG 2.2 — 2.4.7 Focus Visible + 2.4.11 Focus Appearance:
+     ring を明示しない focusable 要素 (tabindex div / drag handle / palette row 等)
+     共通の fallback。2px solid + 2px offset で「最小面積 + 周囲 3:1 contrast」を
+     全 5 テーマで満たす。.focus-ring / shadcn ui は focus-visible:outline-none で
+     ring 表現に上書きするため二重指標にはならない。 */
+  :focus-visible {
+    outline: 2px solid var(--ag-accent);
+    outline-offset: 2px;
+  }
   /* テキスト入力の予測候補を無効化 */
   input:not([type="password"]), textarea {
     autocomplete: off;
