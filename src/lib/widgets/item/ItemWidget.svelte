@@ -20,6 +20,7 @@ import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import LibraryItemPicker from '$lib/components/arcagate/workspace/LibraryItemPicker.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -152,16 +153,15 @@ let title = $derived(pinnedItems.length === 1 ? pinnedItems[0].label : WIDGET_LA
 
 <WidgetShell {title} icon={Package} {menuItems}>
 	{#if pinnedItems.length === 0}
-		<!-- I2 fix: 空状態 click で picker を直接開く (旧: settings dialog → 同 button → picker の 2 step UX を排除)。 -->
-		<button
-			type="button"
-			class="flex w-full flex-col items-center justify-center gap-2 rounded-[var(--ag-radius-card)] border border-dashed border-[var(--ag-border)] py-6 text-[var(--ag-text-muted)] transition-[color,background-color,border-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:border-[var(--ag-accent)] hover:bg-[var(--ag-accent-bg)]/50 hover:text-[var(--ag-accent-text)]"
-			aria-label={t('widgets.item.add_aria')}
-			onclick={() => (pickerOpen = true)}
-		>
-			<Plus class="h-6 w-6" />
-			<span class="text-xs">{t('library.add_item')}</span>
-		</button>
+		<!-- A3 (PH-PQ-600): 独自 dashed button を共通 EmptyState に統一。
+		     I2 fix の「空状態 click で picker を直接開く」 1 step UX は action button で維持。 -->
+		<EmptyState
+			icon={Package}
+			title={t('library.add_item')}
+			description={t('widgets.item.picker_hint')}
+			action={{ label: t('library.add_item'), icon: Plus, onClick: () => (pickerOpen = true) }}
+			testId="item-widget-empty"
+		/>
 	{:else}
 		<!-- 5/03 user 検収 (C): toolbar に view-mode toggle (grid / list)。複数 item 時のみ。 -->
 		{#if pinnedItems.length > 1}

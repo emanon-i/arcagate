@@ -797,6 +797,27 @@
 		"recent": {
 			"empty_message": "Your recent launch history will appear here"
 		},
+		"routine": {
+			"add_items": "Add items",
+			"all_stale": "Every item in this routine has been deleted. Add them again in settings.",
+			"default_label": "Routine",
+			"delay_hint": "Time to wait between launching each item. 0 for no delay.",
+			"delay_label": "Launch interval (ms, 0–10000)",
+			"empty_action": "Open settings",
+			"empty_desc": "Add items in settings to launch them all with a single click.",
+			"empty_title": "Routine is empty",
+			"item_count": "{count} items",
+			"label_label": "Routine name",
+			"label_placeholder": "e.g. Start work",
+			"launch_aria": "Launch all items in {label}",
+			"launch_button": "Launch all",
+			"launch_partial": "{label}: {failed} item(s) failed to launch",
+			"launched_summary": "Launched {label} ({success}/{total})",
+			"launching": "Launching...",
+			"picker_hint": "Pick one or more items from the library to bundle",
+			"stale_badge": "Deleted",
+			"stale_item": "Deleted item"
+		},
 		"script_folder": {
 			"confirm_desc": "Show a confirmation dialog before running a script.",
 			"confirm_label": "Confirm before running",
@@ -866,6 +887,7 @@
 			"projects": "Folder watch",
 			"quick_note": "Note",
 			"recent": "Recent",
+			"routine": "Routine",
 			"script_folder": "Script folder watch",
 			"snippet": "Snippet",
 			"stats": "Frequently used",

@@ -28,6 +28,10 @@ pub enum WidgetType {
     /// #11: スクリプトフォルダ監視 widget。config: { watch_path, scan_depth, ... }。
     /// 監視フォルダ配下の allowlist スクリプトをクリックで実行する。
     ScriptFolder,
+    /// PH-PQ-600 B: Routine widget。config: { items: item_id[], label, launch_delay_ms? }。
+    /// 複数の Library item を束ねて 1 クリックで一斉起動する。
+    /// 起動経路は既存 launch_service を流用 (新 launch 機構なし)。
+    Routine,
 }
 
 impl WidgetType {
@@ -48,6 +52,7 @@ impl WidgetType {
             WidgetType::ImageScrap => "image_scrap",
             WidgetType::FilePreview => "file_preview",
             WidgetType::ScriptFolder => "script_folder",
+            WidgetType::Routine => "routine",
         }
     }
 
@@ -69,6 +74,7 @@ impl WidgetType {
             "image_scrap" => Some(WidgetType::ImageScrap),
             "file_preview" => Some(WidgetType::FilePreview),
             "script_folder" => Some(WidgetType::ScriptFolder),
+            "routine" => Some(WidgetType::Routine),
             _ => None,
         }
     }
@@ -195,6 +201,10 @@ mod tests {
         assert_eq!(WidgetType::ClipboardHistory.as_str(), "clipboard_history");
         assert_eq!(WidgetType::FileSearch.as_str(), "file_search");
         assert_eq!(WidgetType::SystemMonitor.as_str(), "system_monitor");
+        assert_eq!(WidgetType::ImageScrap.as_str(), "image_scrap");
+        assert_eq!(WidgetType::FilePreview.as_str(), "file_preview");
+        assert_eq!(WidgetType::ScriptFolder.as_str(), "script_folder");
+        assert_eq!(WidgetType::Routine.as_str(), "routine");
     }
 
     #[test]
@@ -232,6 +242,19 @@ mod tests {
             WidgetType::from_str("system_monitor"),
             Some(WidgetType::SystemMonitor)
         );
+        assert_eq!(
+            WidgetType::from_str("image_scrap"),
+            Some(WidgetType::ImageScrap)
+        );
+        assert_eq!(
+            WidgetType::from_str("file_preview"),
+            Some(WidgetType::FilePreview)
+        );
+        assert_eq!(
+            WidgetType::from_str("script_folder"),
+            Some(WidgetType::ScriptFolder)
+        );
+        assert_eq!(WidgetType::from_str("routine"), Some(WidgetType::Routine));
     }
 
     #[test]
@@ -259,6 +282,10 @@ mod tests {
             WidgetType::ClipboardHistory,
             WidgetType::FileSearch,
             WidgetType::SystemMonitor,
+            WidgetType::ImageScrap,
+            WidgetType::FilePreview,
+            WidgetType::ScriptFolder,
+            WidgetType::Routine,
         ];
         for t in &types {
             let s = t.as_str();

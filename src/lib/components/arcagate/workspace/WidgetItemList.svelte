@@ -1,6 +1,8 @@
 <script lang="ts">
-import { ChevronRight, Search, X as XIcon } from '@lucide/svelte';
+import { ChevronRight, Inbox, Search, X as XIcon } from '@lucide/svelte';
+import type { Component } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { t } from '$lib/i18n.svelte';
 import type { Item } from '$lib/types/item';
 import type { WidgetSortField } from '$lib/types/widget-configs';
@@ -14,6 +16,8 @@ interface Props {
 	/** PH-issue-024: ev を受け取って context menu の position を取れるよう拡張。 */
 	onContext?: (id: string, ev?: MouseEvent) => void;
 	emptyMessage?: string;
+	/** A3 (PH-PQ-600): empty state の共通 EmptyState に渡す widget 固有 icon。 */
+	emptyIcon?: Component;
 }
 
 let {
@@ -24,6 +28,7 @@ let {
 	onLaunch,
 	onContext,
 	emptyMessage = '',
+	emptyIcon = Inbox,
 }: Props = $props();
 
 let searchQuery = $state('');
@@ -89,6 +94,16 @@ function toggleSearch() {
 	     audit batch (2026-05-13) #9: items.length === 1 だと multi-col grid で
 	     単体 item が 1/N 幅に shrink される bug。 1 件のときは grid-cols-1 を強制。 -->
 	<div class="@container">
+		{#if displayItems.length === 0}
+			<!-- A3 (PH-PQ-600): 独自 empty div を共通 EmptyState に統一。 -->
+			<EmptyState
+				icon={searchQuery ? Search : emptyIcon}
+				title={searchQuery
+					? t('workspace.item_list.no_match')
+					: emptyMessage || t('workspace.item_list.no_items')}
+				testId="widget-item-list-empty"
+			/>
+		{:else}
 		<div
 			class={displayItems.length <= 1
 				? 'grid gap-1.5 grid-cols-1'
@@ -121,11 +136,7 @@ function toggleSearch() {
 					{/if}
 				</button>
 			{/each}
-			{#if displayItems.length === 0}
-				<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">
-					{searchQuery ? t('workspace.item_list.no_match') : (emptyMessage || t('workspace.item_list.no_items'))}
-				</div>
-			{/if}
 		</div>
+		{/if}
 	</div>
 </div>

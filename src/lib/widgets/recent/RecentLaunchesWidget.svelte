@@ -90,6 +90,7 @@ function handleItemContext(id: string, ev?: MouseEvent): void {
 		onLaunch={handleLaunch}
 		onContext={handleItemContext}
 		emptyMessage={t('widgets.recent.empty_message')}
+		emptyIcon={Clock3}
 	/>
 </WidgetShell>
 

@@ -58,6 +58,22 @@ export async function listWorkspaces(page: Page): Promise<Workspace[]> {
 	return invoke<Workspace[]>(page, 'cmd_list_workspaces');
 }
 
+/**
+ * Home workspace の auto-create を待つ。
+ *
+ * workspace-config store の `loadWorkspaces()` は workspaces 0 件のとき非同期で
+ * 'Home' を作る。spec 開始直後に `cmd_list_workspaces` を呼ぶとこの作成と race して
+ * 空配列が返ることがあるため、非空になるまで polling する (first spec で顕在化)。
+ */
+export async function waitForHomeWorkspace(page: Page): Promise<Workspace> {
+	for (let i = 0; i < 80; i++) {
+		const list = await listWorkspaces(page);
+		if (list.length > 0) return list[0];
+		await page.waitForTimeout(250);
+	}
+	throw new Error('Home workspace did not auto-create within 20s');
+}
+
 // T2-1 で追加した helper
 
 export interface Item {
@@ -125,6 +141,14 @@ export async function addWidget(
 
 export async function deleteWidget(page: Page, id: string): Promise<void> {
 	return invoke<void>(page, 'cmd_remove_widget', { id });
+}
+
+export async function updateWidgetConfig(
+	page: Page,
+	id: string,
+	config: string | null,
+): Promise<Widget> {
+	return invoke<Widget>(page, 'cmd_update_widget_config', { id, config });
 }
 
 // T2-2 で追加した helper
