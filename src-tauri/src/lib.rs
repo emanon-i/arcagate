@@ -74,6 +74,11 @@ pub fn run() {
     // 以降のあらゆる panic は log + WAL checkpoint + dialog で graceful に扱われる。
     panic_hook::install();
 
+    // PH-PQ-400 T7: 起動経路の段階計測。 target "perf:startup" の log line を
+    // perf spec (tests/perf/startup.spec.ts) が parse し、 cold/warm 予算 (vision.md
+    // D1 <= 1500ms / D2 <= 1000ms) の段階内訳を CI gate へ供給する。
+    let startup_timer = std::time::Instant::now();
+
     if let Err(e) = tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -103,7 +108,14 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .setup(|app| {
+        .setup(move |app| {
+            // PH-PQ-400 T7: setup closure 突入時点 = Builder + plugin 登録完了。
+            let setup_timer = std::time::Instant::now();
+            log::info!(
+                target: "perf:startup",
+                "step=builder_plugins cumulative={}ms",
+                startup_timer.elapsed().as_millis()
+            );
             let mut log_targets = vec![tauri_plugin_log::Target::new(
                 tauri_plugin_log::TargetKind::LogDir {
                     file_name: Some("arcagate".into()),
@@ -194,6 +206,11 @@ pub fn run() {
             // panic_hook が WAL checkpoint に使えるよう DB を登録 (T2)。
             panic_hook::register_db(db_arc.clone());
             app.manage(services::AppServices::new(db_arc.clone()));
+            log::info!(
+                target: "perf:startup",
+                "step=db_init cumulative={}ms",
+                setup_timer.elapsed().as_millis()
+            );
 
             // panic_hook が crash dialog を出せるよう AppHandle を登録 (T2)。
             panic_hook::register_app_handle(app.handle().clone());
@@ -227,6 +244,11 @@ pub fn run() {
             // ファイルシステム監視 (DB manage 後に起動)
             let watcher_state = watcher::start_watcher(app.handle());
             app.manage(watcher_state);
+            log::info!(
+                target: "perf:startup",
+                "step=watcher cumulative={}ms",
+                setup_timer.elapsed().as_millis()
+            );
 
             // FileSearch / ExeScan cancel state (PH-420 / Nielsen H3、W-3)
             app.manage(services::file_search_state::FileSearchState::default());
@@ -319,6 +341,14 @@ pub fn run() {
             // 意図 panic を発生させ panic_hook の dialog を確認できる。
             #[cfg(debug_assertions)]
             panic_hook::arm_test_trigger();
+
+            // PH-PQ-400 T7: setup 完了。 setup 内訳合計 + builder 込み総時間。
+            log::info!(
+                target: "perf:startup",
+                "step=setup_complete setup={}ms total={}ms",
+                setup_timer.elapsed().as_millis(),
+                startup_timer.elapsed().as_millis()
+            );
 
             Ok(())
         })

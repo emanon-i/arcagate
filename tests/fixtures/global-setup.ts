@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
 import { markOnboardingComplete, markSetupComplete } from '../helpers/ipc.js';
@@ -14,7 +14,13 @@ import { markOnboardingComplete, markSetupComplete } from '../helpers/ipc.js';
  * Tauri 起動 + waitForCdp + IPC で setup/onboarding mark のみ。
  */
 const CDP_PORT = 9515;
-const TAURI_EXE = join(process.cwd(), 'src-tauri', 'target', 'debug', 'arcagate.exe');
+// PH-PQ-400 T1: perf.yml は release binary (frontendDist 埋込) で計測するため
+// ARCAGATE_TEST_EXE で binary path を上書きできる。 未指定なら debug binary (e2e 既定)。
+const TAURI_EXE = process.env.ARCAGATE_TEST_EXE
+	? isAbsolute(process.env.ARCAGATE_TEST_EXE)
+		? process.env.ARCAGATE_TEST_EXE
+		: resolve(process.cwd(), process.env.ARCAGATE_TEST_EXE)
+	: join(process.cwd(), 'src-tauri', 'target', 'debug', 'arcagate.exe');
 const DB_DIR = join(process.cwd(), 'tmp');
 const DB_PATH = join(DB_DIR, `test-${Date.now()}.db`);
 
@@ -83,7 +89,9 @@ export default async function globalSetup(): Promise<void> {
 		// 2026-05-19: Tauri は main window (/) と palette window (/palette) の 2 webview を
 		// 持つ。 ctx.pages()[0] は palette を掴むことがあり main 用 waitForURL が timeout する
 		// flake になっていた。 全 page を polling して main (/) を明示選択する。
-		const mainUrlRe = /^http:\/\/localhost:\d+\/?(\?.*)?$/;
+		// PH-PQ-400 T1: debug は devUrl (localhost:PORT)、 release binary は
+		// frontendDist 埋込で http://tauri.localhost/。 両方の main window を拾う。
+		const mainUrlRe = /^https?:\/\/(localhost:\d+|tauri\.localhost)\/?(\?.*)?$/;
 		let page = ctx.pages().find((p) => mainUrlRe.test(p.url()));
 		for (let i = 0; !page && i < 120; i++) {
 			await new Promise((r) => setTimeout(r, 500));

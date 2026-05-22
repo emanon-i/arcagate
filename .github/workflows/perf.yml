@@ -1,0 +1,124 @@
+name: Perf Budgets
+
+# PH-PQ-400 T1: 性能予算 (vision.md D1-D9) を CI gate 化する。
+#
+# - main push: release binary でフル perf suite を実行 → 予算超過で fail (regression gate)。
+# - nightly (cron UTC 21:00 = JST 06:00): フル suite + Library 5000 / 10000 stress run。
+# - PR では走らせない (perf 計測は重く flaky、 main gate + nightly で担保)。
+#
+# 既存 3 workflow (ci / e2e / nightly-soak) と独立。 失敗時は issue を自動 open。
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  perf:
+    runs-on: windows-latest
+    # release build (~15min) + perf suite (cold/warm startup, scale, ipc, idle) を吸収。
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Tauri release build
+        run: pnpm tauri build
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Run perf budget suite (D1-D9)
+        run: pnpm test:perf
+        env:
+          # release binary (frontendDist 埋込) で計測。 global-setup が pick する。
+          ARCAGATE_TEST_EXE: src-tauri/target/release/arcagate.exe
+
+      - name: Library stress 5000 (nightly only)
+        if: ${{ github.event_name == 'schedule' }}
+        run: pnpm test:perf library-scale
+        env:
+          ARCAGATE_TEST_EXE: src-tauri/target/release/arcagate.exe
+          ARCAGATE_PERF_LIBRARY_N: '5000'
+
+      - name: Library stress 10000 (nightly only)
+        if: ${{ github.event_name == 'schedule' }}
+        run: pnpm test:perf library-scale
+        env:
+          ARCAGATE_TEST_EXE: src-tauri/target/release/arcagate.exe
+          ARCAGATE_PERF_LIBRARY_N: '10000'
+
+      - name: Upload perf results (results.json)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: perf-results
+          path: tmp/perf/
+          retention-days: 30
+
+      - name: Upload perf report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: perf-report
+          path: tmp/perf-report/
+          retention-days: 14
+
+  # perf job が fail したら GitHub issue を自動 open (PH-PQ-100 soak と同一機構)。
+  report-failure:
+    needs: perf
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Open issue on perf failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          gh issue create \
+            --title "Perf budget regression ($DATE)" \
+            --label "perf-failure" \
+            --body "性能予算 (vision.md D1-D9) のいずれかが閾値を超過しました (PH-PQ-400 T1)。
+
+          - D1 起動 cold P95 <= 1500ms / D2 warm P95 <= 1000ms
+          - D3 palette 表示 P95 <= 120ms / D4 item 起動 P95 <= 200ms
+          - D6 idle CPU <= 1%
+          - D7 Library scroll >= 50fps / sort / filter <= 200ms
+          - D8 Workspace 100 widget >= 50fps
+          - D9 主要 IPC P95 <= 100ms (1000 batch <= 500ms)
+
+          詳細は perf-results artifact (results.json) と perf-report を参照: $RUN_URL" \
+          || echo "issue creation skipped (label missing or permission denied)"
