@@ -13,13 +13,15 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
 		"test:e2e": "playwright test",
+		"test:perf": "playwright test --config playwright.perf.config.ts",
 		"tauri": "tauri",
 		"verify:smoke": "bash scripts/smoke-test.sh",
 		"audit:hotkey": "bash scripts/audit-hotkey-consistency.sh",
 		"audit:design-tokens": "bash scripts/audit-design-tokens.sh",
 		"audit:async-commands": "bash scripts/audit-async-commands.sh",
+		"audit:blocking-on-runtime": "bash scripts/audit-blocking-on-runtime.sh",
 		"audit:personal-data": "bash scripts/audit-personal-data.sh",
-		"audit:all": "bash scripts/audit-widget-coverage.sh && bash scripts/audit-hotkey-consistency.sh && bash scripts/audit-design-tokens.sh && bash scripts/audit-async-commands.sh && bash scripts/audit-personal-data.sh",
+		"audit:all": "bash scripts/audit-widget-coverage.sh && bash scripts/audit-hotkey-consistency.sh && bash scripts/audit-design-tokens.sh && bash scripts/audit-async-commands.sh && bash scripts/audit-blocking-on-runtime.sh && bash scripts/audit-personal-data.sh",
 		"verify": "pnpm biome check && pnpm dprint check && pnpm audit:all && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo fmt --manifest-path src-tauri/Cargo.toml --check && pnpm check && cargo test --manifest-path src-tauri/Cargo.toml && pnpm verify:smoke && pnpm test && pnpm tauri build"
 	},
 	"pnpm": {

@@ -72,6 +72,12 @@ pre-commit:
       # SYNC_ALLOWED 外の sync command を検出し async + spawn_blocking 化を強制する。
       glob: "src-tauri/src/commands/*.rs"
       run: bash scripts/audit-async-commands.sh
+    blocking-on-runtime:
+      # PH-PQ-400 T6: command の fn body 内で std::fs / std::process を spawn_blocking
+      # の外で直接呼んでいないか検出。 async でも blocking I/O を runtime thread に
+      # 残すと freeze するため、 async-commands.sh と相補的に gate する。
+      glob: "src-tauri/src/commands/*.rs"
+      run: bash scripts/audit-blocking-on-runtime.sh
     personal-data:
       # 個人パス / 実 item 名 / 個人 email が新規 commit に紛れていないか fail-closed で検出。
       # 既存 leak (CLAUDE.md / archive 等) は対象外、 新規追加 line だけを diff-based scan。

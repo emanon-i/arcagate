@@ -32,7 +32,8 @@ export const test = base.extend<{ page: Page }, { sharedBrowser: Browser }>({
 		// 30s polling で main URL を確実に拾う (旧実装の `?? pages[0]` fallback は
 		// palette page を main と誤認して `<main>` 30s timeout で全 spec を壊していた、
 		// 2026-05-20 CI run 26131222207 の page snapshot で確認)。
-		const mainUrlRe = /^http:\/\/localhost:\d+\/?(\?.*)?$/;
+		// PH-PQ-400 T1: debug は devUrl (localhost:PORT)、 release は http://tauri.localhost/。
+		const mainUrlRe = /^https?:\/\/(localhost:\d+|tauri\.localhost)\/?(\?.*)?$/;
 		let mainPage = ctx.pages().find((p) => mainUrlRe.test(p.url()));
 		for (let i = 0; !mainPage && i < 60; i++) {
 			await new Promise((r) => setTimeout(r, 500));
