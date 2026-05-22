@@ -90,8 +90,10 @@ elif [ ! -f "$en_file" ]; then
 else
 	# jq でフラット化した dot-notation key 一覧を比較。 $schema / $comment は除外。
 	if command -v jq >/dev/null 2>&1; then
-		ja_keys=$(jq -r 'paths(strings) | select(.[0] | startswith("$") | not) | join(".")' "$ja_file" 2>/dev/null | sort -u)
-		en_keys=$(jq -r 'paths(strings) | select(.[0] | startswith("$") | not) | join(".")' "$en_file" 2>/dev/null | sort -u)
+		# 注: Windows 版 jq は stdout を text mode で開き出力行末に \r を付ける。
+		# tr -d '\r' で除去しないと shell literal (ALLOWED_JA_EQ_EN) との comm が全件不一致になる。
+		ja_keys=$(jq -r 'paths(strings) | select(.[0] | startswith("$") | not) | join(".")' "$ja_file" 2>/dev/null | tr -d '\r' | sort -u)
+		en_keys=$(jq -r 'paths(strings) | select(.[0] | startswith("$") | not) | join(".")' "$en_file" 2>/dev/null | tr -d '\r' | sort -u)
 
 		only_ja=$(comm -23 <(echo "$ja_keys") <(echo "$en_keys"))
 		only_en=$(comm -13 <(echo "$ja_keys") <(echo "$en_keys"))
@@ -145,14 +147,13 @@ widgets.script_folder.empty_title
 widgets.system_monitor.loading
 workspace.empty_title"
 
-		# jq 出力と allowlist を同一 (shell) sort に揃えてから comm する
-		# (jq の sort と shell sort の照合順序差で comm がずれるのを防ぐ)。
+		# jq 出力 (\r 除去済) と allowlist を同一 (shell) sort に揃えてから comm する。
 		ja_eq_en=$(jq -rn --slurpfile ja "$ja_file" --slurpfile en "$en_file" '
 			($ja[0]) as $j | ($en[0]) as $e
 			| [ $j | paths(strings) | select(.[0] | startswith("$") | not) ]
 			| map(. as $p | select(($j | getpath($p)) == ($e | getpath($p))) | $p | join("."))
 			| .[]
-		' 2>/dev/null | sort -u)
+		' 2>/dev/null | tr -d '\r' | sort -u)
 
 		allowed_sorted=$(echo "$ALLOWED_JA_EQ_EN" | sort -u)
 		untranslated=$(comm -23 <(echo "$ja_eq_en") <(echo "$allowed_sorted"))
