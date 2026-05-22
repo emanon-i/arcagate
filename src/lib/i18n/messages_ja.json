@@ -797,6 +797,27 @@
 		"recent": {
 			"empty_message": "最近の起動履歴がここに表示されます"
 		},
+		"routine": {
+			"add_items": "アイテムを追加",
+			"all_stale": "登録アイテムがすべて削除されています。設定で追加し直してください。",
+			"default_label": "ルーティン",
+			"delay_hint": "各アイテムの起動の間に空ける時間。0 で間隔なし。",
+			"delay_label": "起動間隔 (ms、0〜10000)",
+			"empty_action": "設定を開く",
+			"empty_desc": "設定でアイテムを追加すると、1 クリックでまとめて起動できます。",
+			"empty_title": "ルーティンが空です",
+			"item_count": "{count} 件のアイテム",
+			"label_label": "ルーティン名",
+			"label_placeholder": "例: 開発開始",
+			"launch_aria": "{label} のアイテムを一斉起動",
+			"launch_button": "すべて起動",
+			"launch_partial": "{label}: {failed} 件の起動に失敗しました",
+			"launched_summary": "{label} を起動しました ({success}/{total} 件)",
+			"launching": "起動中...",
+			"picker_hint": "ライブラリから束ねるアイテムを 1 件以上選択",
+			"stale_badge": "削除済み",
+			"stale_item": "削除されたアイテム"
+		},
 		"script_folder": {
 			"confirm_desc": "スクリプトを実行する前に確認ダイアログを表示します。",
 			"confirm_label": "実行前に確認する",
@@ -866,6 +887,7 @@
 			"projects": "フォルダ監視",
 			"quick_note": "メモ",
 			"recent": "最近起動",
+			"routine": "ルーティン",
 			"script_folder": "スクリプト監視",
 			"snippet": "スニペット",
 			"stats": "よく使うもの",
