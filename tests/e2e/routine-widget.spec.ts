@@ -32,6 +32,18 @@ async function openWorkspace(page: Page): Promise<void> {
 	await page.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
 }
 
+// 各 test は openWorkspace で activeView を 'workspace' に切り替える。これは localStorage に
+// 永続するため、後続 spec (smoke.spec の「library view default で表示」 等) が Library
+// default view を前提に壊れる。a11y.spec と同様、afterEach で Library view へ戻す。
+test.afterEach(async ({ page }) => {
+	await page.keyboard.press('Escape').catch(() => {});
+	await page.keyboard.press('Escape').catch(() => {});
+	const libraryTab = page.getByRole('button', { name: 'Library', exact: true });
+	if (await libraryTab.isVisible().catch(() => false)) {
+		await libraryTab.click().catch(() => {});
+	}
+});
+
 test('Routine widget: proof-of-life — 空状態で empty state が描画される', async ({ page }) => {
 	await openWorkspace(page);
 	const ws = await waitForHomeWorkspace(page);
@@ -120,8 +132,11 @@ test('Routine widget: axe — WCAG 2.2 AA 違反 0 (PQ-300 基準)', async ({ pa
 		await page.getByTestId(`workspace-tab-${ws.id}`).click();
 		await expect(page.locator('[data-widget-id]').first()).toBeVisible({ timeout: 15_000 });
 
+		// 検査対象は routine widget の subtree に限定 (PH-PQ-600 受け入れ条件は
+		// 「Routine widget が axe pass」。 PageTabBar 等の既存 a11y は a11y.spec が全画面で gate)。
 		// a11y.spec と同方針: 構造的 a11y を gate、color-contrast は token 起因のため除外。
 		const results = await new AxeBuilder({ page })
+			.include(`[data-widget-id="${widget.id}"]`)
 			.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 			.disableRules(['color-contrast'])
 			.analyze();
