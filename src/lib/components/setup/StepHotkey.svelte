@@ -4,7 +4,7 @@ import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 
-let { onNext }: { onNext: () => void } = $props();
+let { onNext, onBack }: { onNext: () => void; onBack: () => void } = $props();
 </script>
 
 <div>
@@ -13,8 +13,11 @@ let { onNext }: { onNext: () => void } = $props();
     {t('setup.hotkey.description')}
   </p>
   <HotkeyInput value={configStore.hotkey} onChange={(v) => configStore.saveHotkey(v)} />
-  <!-- audit 2026-05-14 rank 11: 「次へ」 = primary (form proceed action)。 -->
-  <div class="mt-8 flex justify-end">
-    <Button type="button" variant="default" onclick={onNext}>{t('common.next')}</Button>
+  <!-- 「戻る」 = secondary (variant=outline)、 「次へ」 = primary (form proceed action)。 -->
+  <div class="mt-8 flex justify-between">
+    <Button type="button" variant="outline" onclick={onBack}>{t('common.back')}</Button>
+    <Button type="button" variant="default" data-testid="setup-hotkey-next" onclick={onNext}>
+      {t('common.next')}
+    </Button>
   </div>
 </div>

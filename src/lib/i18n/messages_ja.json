@@ -440,7 +440,11 @@
 			"hotkey_desc": "コマンドパレットを開くショートカット",
 			"hotkey_label": "グローバルホットキー",
 			"language_desc": "UI の表示言語",
-			"language_label": "表示言語 / Language"
+			"language_label": "表示言語 / Language",
+			"setup_desc": "初回セットアップとガイドツアーをもう一度実行します。",
+			"setup_label": "セットアップ",
+			"setup_rerun_aria": "セットアップを再実行",
+			"setup_rerun_button": "再実行"
 		},
 		"hotkey": {
 			"change": "ホットキーを変更",
@@ -508,9 +512,7 @@
 			"title": "自動起動の設定"
 		},
 		"complete": {
-			"description": "Arcagate の設定が完了しました。ホットキーでいつでも呼び出せます。",
-			"start_button": "始める",
-			"title": "セットアップ完了"
+			"start_button": "始める"
 		},
 		"hotkey": {
 			"description": "どこからでもアプリを呼び出すホットキーを設定してください。",
@@ -521,10 +523,18 @@
 			"skip_aria": "ツアーをスキップ",
 			"step1_desc": "どこからでもグローバルホットキーでコマンドパレットが開きます。検索 → Enter で起動。",
 			"step1_title": "Ctrl+Shift+Space でパレットを開く",
-			"step2_desc": "画面別の操作リファレンスとホットキー一覧が表示されます。困ったらいつでも `?` キー。",
-			"step2_title": "? キーでヘルプを開く",
-			"step3_desc": "右上の歯車アイコンから設定パネル。テーマ・取り込みフォルダ・ライブラリ表示等を変更できます。",
-			"step3_title": "Settings で見た目をカスタマイズ"
+			"step2_desc": "ライブラリは全アイテムの拠点。アプリやフォルダをドラッグ＆ドロップして登録できます。",
+			"step2_title": "ライブラリにアプリを集める",
+			"step3_desc": "ライブラリのカードをワークスペースに置けば、シナリオ別の起動パッドになります。",
+			"step3_title": "ワークスペースで毎日の起動パッドを作る"
+		},
+		"step_progress": "ステップ {current} / {total}",
+		"welcome": {
+			"description": "PC 中に散らばったアプリ・フォルダ・URL・スクリプトを 1 か所に集めて、どこからでも一発で起動できます。",
+			"point_collect": "散らばった起動元をライブラリに集約",
+			"point_launch": "ホットキー + パレットでどこからでも起動",
+			"point_workspace": "ワークスペースを毎日の起動パッドに",
+			"title": "Arcagate へようこそ"
 		}
 	},
 	"toast": {

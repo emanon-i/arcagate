@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowRight, HelpCircle, Settings as SettingsIcon, X as XIcon, Zap } from '@lucide/svelte';
+import { Archive, ArrowRight, LayoutDashboard, Search, X as XIcon } from '@lucide/svelte';
 import { fade, fly } from 'svelte/transition';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
@@ -16,24 +16,26 @@ const dFast = rm ? 0 : 120;
 const dNormal = rm ? 0 : 200;
 
 interface Step {
-	icon: typeof Zap;
+	icon: typeof Search;
 	titleKey: string;
 	descriptionKey: string;
 }
 
+// PH-PQ-200 T4: 主要 3 画面 (Palette / Library / Workspace) を短く指し示す軽量ツアー。
+// アイコンは NAV_TOP と同じものを使い、 実 UI との対応を視覚的に学習させる。
 const STEP_DEFS: Step[] = [
 	{
-		icon: Zap,
+		icon: Search,
 		titleKey: 'setup.onboarding.step1_title',
 		descriptionKey: 'setup.onboarding.step1_desc',
 	},
 	{
-		icon: HelpCircle,
+		icon: Archive,
 		titleKey: 'setup.onboarding.step2_title',
 		descriptionKey: 'setup.onboarding.step2_desc',
 	},
 	{
-		icon: SettingsIcon,
+		icon: LayoutDashboard,
 		titleKey: 'setup.onboarding.step3_title',
 		descriptionKey: 'setup.onboarding.step3_desc',
 	},
@@ -49,7 +51,11 @@ $effect(() => {
 	// SetupWizard が完走 (configStore.setupComplete) してから判定
 	if (!configStore.setupComplete) return;
 	void isOnboardingComplete().then((done) => {
-		if (!done) isOpen = true;
+		if (!done) {
+			// Settings からの再実行で再度開くケースに備え step を先頭へ戻す。
+			currentStep = 0;
+			isOpen = true;
+		}
 	});
 });
 

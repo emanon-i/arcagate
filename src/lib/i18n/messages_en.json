@@ -440,7 +440,11 @@
 			"hotkey_desc": "Shortcut to open the command palette",
 			"hotkey_label": "Global hotkey",
 			"language_desc": "UI display language",
-			"language_label": "Display language / 表示言語"
+			"language_label": "Display language / 表示言語",
+			"setup_desc": "Run the initial setup and guided tour again.",
+			"setup_label": "Setup",
+			"setup_rerun_aria": "Run setup again",
+			"setup_rerun_button": "Run again"
 		},
 		"hotkey": {
 			"change": "Change hotkey",
@@ -508,9 +512,7 @@
 			"title": "Autostart settings"
 		},
 		"complete": {
-			"description": "Arcagate is ready. You can invoke it anytime with the hotkey.",
-			"start_button": "Get started",
-			"title": "Setup complete"
+			"start_button": "Get started"
 		},
 		"hotkey": {
 			"description": "Set the hotkey to invoke the app from anywhere.",
@@ -521,10 +523,18 @@
 			"skip_aria": "Skip tour",
 			"step1_desc": "Open the command palette from anywhere with the global hotkey. Search → Enter to launch.",
 			"step1_title": "Open the palette with Ctrl+Shift+Space",
-			"step2_desc": "Shows per-screen operation references and hotkey lists. Press `?` anytime you need help.",
-			"step2_title": "Open help with the ? key",
-			"step3_desc": "Open the settings panel from the gear icon. Change themes, import folders, library display, and more.",
-			"step3_title": "Customize appearance in Settings"
+			"step2_desc": "The Library is home to every item. Drag & drop apps or folders to register them.",
+			"step2_title": "Collect your apps in the Library",
+			"step3_desc": "Place Library cards onto a Workspace to build scenario-based launch pads.",
+			"step3_title": "Build a daily launch pad in Workspace"
+		},
+		"step_progress": "Step {current} of {total}",
+		"welcome": {
+			"description": "Bring scattered apps, folders, URLs, and scripts into one place — and launch any of them from anywhere.",
+			"point_collect": "Collect every launch source into one Library",
+			"point_launch": "Launch from anywhere with a hotkey and the palette",
+			"point_workspace": "Turn Workspaces into your daily launch pad",
+			"title": "Welcome to Arcagate"
 		}
 	},
 	"toast": {

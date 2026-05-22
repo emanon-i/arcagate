@@ -269,6 +269,24 @@ async function completeSetup(): Promise<void> {
 }
 
 /**
+ * PH-PQ-200 T6: 初回体験 (SetupWizard + OnboardingTour) を再実行する。
+ * setupComplete を false に戻すと +page.svelte の SetupWizard overlay が再表示され、
+ * 完走後に OnboardingTour も自動再生される (DB 側 onboarding_complete も reset 済)。
+ */
+async function restartSetup(): Promise<void> {
+	loading = true;
+	error = null;
+	try {
+		await configIpc.resetFirstRun();
+		setupComplete = false;
+	} catch (e) {
+		error = getErrorMessage(e);
+	} finally {
+		loading = false;
+	}
+}
+
+/**
  * K-4 (2026-05-15): 全設定を default 値に reset。
  *
  * **対象 (= ユーザー preference)**:
@@ -370,6 +388,7 @@ export const configStore = {
 	saveHotkey,
 	saveAutostart,
 	completeSetup,
+	restartSetup,
 	setWidgetZoom,
 	setWidgetMaxZoom,
 	setWidgetMinZoom,

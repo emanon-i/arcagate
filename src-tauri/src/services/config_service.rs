@@ -84,6 +84,15 @@ pub fn mark_onboarding_complete(db: &DbState) -> Result<(), AppError> {
     config_repository::set(&conn, config::KEY_ONBOARDING_COMPLETE, "true")
 }
 
+/// PH-PQ-200 T6: 初回体験 (SetupWizard + OnboardingTour) を再実行可能な状態に戻す。
+/// setup_complete / onboarding_complete を両方 false にすることで、 Settings からの
+/// 「セットアップを再実行」 で完全な first-run flow をやり直せる。
+pub fn reset_first_run(db: &DbState) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    config_repository::set(&conn, config::KEY_SETUP_COMPLETE, "false")?;
+    config_repository::set(&conn, config::KEY_ONBOARDING_COMPLETE, "false")
+}
+
 pub fn get_config(db: &DbState, key: &str) -> Result<Option<String>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     config_repository::get(&conn, key)
@@ -141,6 +150,19 @@ mod tests {
         let db = initialize_in_memory();
         mark_setup_complete(&db).unwrap();
         assert!(is_setup_complete(&db).unwrap());
+    }
+
+    #[test]
+    fn test_reset_first_run_clears_setup_and_onboarding() {
+        let db = initialize_in_memory();
+        mark_setup_complete(&db).unwrap();
+        mark_onboarding_complete(&db).unwrap();
+        assert!(is_setup_complete(&db).unwrap());
+        assert!(is_onboarding_complete(&db).unwrap());
+
+        reset_first_run(&db).unwrap();
+        assert!(!is_setup_complete(&db).unwrap());
+        assert!(!is_onboarding_complete(&db).unwrap());
     }
 
     #[test]
@@ -243,6 +265,11 @@ impl ConfigService {
 
     pub fn mark_onboarding_complete(&self) -> Result<(), AppError> {
         mark_onboarding_complete(&self.db)
+    }
+
+    /// PH-PQ-200 T6: 初回体験を再実行可能な状態に戻す (setup / onboarding を両方 reset)。
+    pub fn reset_first_run(&self) -> Result<(), AppError> {
+        reset_first_run(&self.db)
     }
 
     pub fn get_config(&self, key: &str) -> Result<Option<String>, AppError> {
