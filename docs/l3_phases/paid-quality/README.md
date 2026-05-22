@@ -39,10 +39,10 @@ era: Polish → Distribution Hardening
 
 加えて user 指示の 2 phase:
 
-| 加点 phase                                                 | 目的                                                                                                                 |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| [PQ-600 Widget Expansion](./PH-PQ-600_widget-expansion.md) | 既存 14 widget の polish + **新規 widget 企画** (Pomodoro / Calendar / Spotify-like) を Web 競合調査ベースで具体提案 |
-| [PQ-700 i18n & Global](./PH-PQ-700_i18n-and-global.md)     | EN を ja と同格に。 文言 / デザイン文化中立化、 RTL 準備、 海外市場 a11y 要件遵守                                    |
+| 加点 phase                                                 | 目的                                                                                                                               |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [PQ-600 Widget Expansion](./PH-PQ-600_widget-expansion.md) | 既存 15 widget を売り物レベルに磨き切る polish sweep + **Routine (マルチ起動) widget** 1 個。 generic 新 widget は不採用に組み替え |
+| [PQ-700 i18n & Global](./PH-PQ-700_i18n-and-global.md)     | EN を ja と同格に。 文言 / デザイン文化中立化、 RTL 準備、 海外市場 a11y 要件遵守                                                  |
 
 差別化軸は phase 6 だけでなく **全 phase に通底**。 例: PQ-200 の workspace template 提案は差別化 wedge を初回体験で見せる試み。 PQ-300 a11y は欧米有料商品の必須要件。
 
@@ -80,7 +80,7 @@ era: Polish → Distribution Hardening
 | 3    | PQ-300 Craft Sweep          | 3-4 週間 | PQ-700 と並行可        |
 | 4    | PQ-400 Speed Budgets        | 2-3 週間 | —                      |
 | 5    | PQ-500 Completeness Sweep   | 1-2 週間 | —                      |
-| 6    | PQ-600 Widget Expansion     | 4-6 週間 | (PQ-300 完了後)        |
+| 6    | PQ-600 Widget Expansion     | 2-3 週間 | (PQ-300 完了後)        |
 | 並行 | PQ-700 i18n & Global        | 2-3 週間 | PQ-200 / PQ-300 と並行 |
 
 **総工数感**: 直列で 15-23 週間 (3.5-5.5 ヶ月)、 PQ-700 並行で 14-21 週間 (3-5 ヶ月)。 PQ-100 / PQ-200 / PQ-300 までで「**売れる品質の土台**」 が成立、 残りは sales 後の v1.x 継続改善でも回せる。
@@ -109,9 +109,9 @@ era: Polish → Distribution Hardening
 
 `#[allow(dead_code)]` 5 件 / `plugin_api/` 足場 / 表示されてもデータがない UI option / 機能が中途半端な widget を全件 audit。 「**完成させる** / **隠す** / **削除**」 の 3 択で半端機能をゼロに。 paid product の最大の信頼破壊要因は「動いてない機能」。
 
-### [PH-PQ-600 差別化: 新 widget 企画 + 既存 widget polish sweep](./PH-PQ-600_widget-expansion.md)
+### [PH-PQ-600 差別化: 既存 15 widget を売り物レベルに磨き切る + Routine widget](./PH-PQ-600_widget-expansion.md)
 
-「Workspace + widget canvas」 wedge を太らせる。 競合 (Rainmeter / Raycast extension / Stardock Fences) を Web 調査して 「**Arcagate でしか作れない widget**」 を 4-6 個提案 (Pomodoro Focus, Calendar Glance, Spotify-like Now Playing, AI Quick-Ask, Web Embed)。 既存 17 widget の chrome 統一 + 設定 modal 一貫性 sweep も同 phase で。
+「Workspace + widget canvas」 wedge は、 既に持っている widget が「売り物の質」 に達してこそ user に届く。 既存 15 widget を fresh-eye で通しレビューし、 chrome 一貫性 / 設定 modal 共通化 / empty・loading・error 状態の質 / 性能予算 ≤50ms を磨き切る polish sweep がメイン。 新規 widget は half-feature にならない **Routine (複数 item を 1 クリックで一斉起動するマルチ起動) widget** 1 個のみ。 当初案の generic 新 widget (Pomodoro / Calendar / Now Playing / AI Quick-Ask / Web Embed) は「専用アプリに勝てない / half-feature リスク / 機能数より完成度」 の理由で不採用に組み替え。 パーソナル observability は PQ-800 (v2) の範疇。
 
 ### [PH-PQ-700 i18n & Global: EN を ja と同格に + 文化中立化](./PH-PQ-700_i18n-and-global.md)
 
