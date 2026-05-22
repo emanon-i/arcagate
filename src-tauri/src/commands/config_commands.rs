@@ -72,3 +72,8 @@ pub fn cmd_is_onboarding_complete(services: State<AppServices>) -> Result<bool, 
 pub fn cmd_mark_onboarding_complete(services: State<AppServices>) -> Result<(), AppError> {
     services.config.mark_onboarding_complete()
 }
+
+#[tauri::command]
+pub fn cmd_reset_first_run(services: State<AppServices>) -> Result<(), AppError> {
+    services.config.reset_first_run()
+}

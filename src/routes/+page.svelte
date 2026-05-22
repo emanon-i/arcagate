@@ -60,6 +60,12 @@ $effect(() => {
 	void themeStore.loadTheme();
 });
 
+// PH-PQ-200 T6: Settings →「セットアップを再実行」 で setupComplete が false に戻ったら
+// Settings dialog を閉じ、 SetupWizard overlay を確実に前面へ出す。
+$effect(() => {
+	if (!configStore.setupComplete && showSettings) showSettings = false;
+});
+
 // Updater 自動チェック (起動時 + 24h)
 $effect(() => {
 	startUpdaterAutoCheck();

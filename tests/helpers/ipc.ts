@@ -38,6 +38,14 @@ export async function markOnboardingComplete(page: Page): Promise<void> {
 	return invoke<void>(page, 'cmd_mark_onboarding_complete');
 }
 
+/**
+ * PH-PQ-200: 初回体験 (SetupWizard + OnboardingTour) を未完了状態に戻す。
+ * setup-wizard.spec が skip ではなく実 setup path を駆動するために使う。
+ */
+export async function resetFirstRun(page: Page): Promise<void> {
+	return invoke<void>(page, 'cmd_reset_first_run');
+}
+
 export interface Workspace {
 	id: string;
 	name: string;

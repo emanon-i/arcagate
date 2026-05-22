@@ -33,6 +33,14 @@ export async function markSetupComplete(): Promise<void> {
 }
 
 /**
+ * PH-PQ-200 T6: 初回体験 (SetupWizard + OnboardingTour) を再実行可能な状態に戻す。
+ * setup / onboarding 完了フラグを両方 reset する。
+ */
+export async function resetFirstRun(): Promise<void> {
+	return invoke<void>('cmd_reset_first_run');
+}
+
+/**
  * #5: クリーン状態リセット (factory reset)。
  * library / workspace の DB データを段階選択で初期化する (設定リセットは別経路)。
  */

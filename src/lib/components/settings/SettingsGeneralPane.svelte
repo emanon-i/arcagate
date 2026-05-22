@@ -1,5 +1,6 @@
 <script lang="ts">
 import Switch from '$lib/components/common/Switch.svelte';
+import { Button } from '$lib/components/ui/button';
 import { currentLocale, type Locale, setLocale, t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import HotkeyInput from './HotkeyInput.svelte';
@@ -79,6 +80,24 @@ let locale = $derived(currentLocale());
 				<option value="ja">日本語</option>
 				<option value="en">English</option>
 			</select>
+		</div>
+	</div>
+	<!-- PH-PQ-200 T6: 初回体験 (SetupWizard + ガイドツアー) の再実行エントリ。 -->
+	<div class="flex items-center justify-between gap-4">
+		<div class="min-w-0">
+			<p class="text-sm font-medium text-[var(--ag-text-primary)]">{t('settings.general.setup_label')}</p>
+			<p class="mt-0.5 text-xs text-[var(--ag-text-muted)]">{t('settings.general.setup_desc')}</p>
+		</div>
+		<div class="shrink-0">
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				aria-label={t('settings.general.setup_rerun_aria')}
+				onclick={() => void configStore.restartSetup()}
+			>
+				{t('settings.general.setup_rerun_button')}
+			</Button>
 		</div>
 	</div>
 	<!-- 2026-05-17 user 検収: Workspace 設定 (ヒントバー表示 / 拡大率上下限)。 -->
