@@ -58,13 +58,13 @@ parent: README.md
 
 ### D3: chrome の prop レベル差分
 
-| 差分                    | exe_folder                | script_folder | projects                                         |
-| ----------------------- | ------------------------- | ------------- | ------------------------------------------------ |
-| WidgetShell `path` prop | `:314` 渡す               | `:169` 渡す   | `:294` **未指定** → 右クリックメニューが設定のみ |
-| WidgetShell `icon`      | `AppWindow`               | `Terminal`    | `FolderKanban` (meta は `FolderOpen` で不一致)   |
-| description 配置        | empty state の前 (`:317`) | 前 (`:172`)   | `{:else}` の中 (`:325`) → empty/error 時に出ない |
-| config パース           | `JSON.parse` 直書き       | 同左          | `parseWidgetConfig` helper                       |
-| default view_mode       | `'list'`                  | —             | `'card'`                                         |
+| 差分                    | exe_folder                                         | script_folder                       | projects                                         |
+| ----------------------- | -------------------------------------------------- | ----------------------------------- | ------------------------------------------------ |
+| WidgetShell `path` prop | `:314` 渡す                                        | `:169` 渡す                         | `:294` **未指定** → 右クリックメニューが設定のみ |
+| WidgetShell `icon`      | meta `FolderOpen` ≠ shell `AppWindow` で**不一致** | meta / shell とも `Terminal` で一致 | meta / shell とも `FolderKanban` で一致          |
+| description 配置        | empty state の前 (`:317`)                          | 前 (`:172`)                         | `{:else}` の中 (`:325`) → empty/error 時に出ない |
+| config パース           | `JSON.parse` 直書き                                | 同左                                | `parseWidgetConfig` helper                       |
+| default view_mode       | `'list'`                                           | —                                   | `'card'`                                         |
 
 ### D4: opener 選択
 
@@ -91,7 +91,7 @@ parent: README.md
 ## 具体タスク
 
 1. **D1 sticky bar 透け修正**: card を持つ widget (`exe-folder` card mode / `projects` / `file-search`) の `ag-sticky-bar` に不透明 fill か backdrop blur を与え、 スクロール内容が透けないようにする。 `<ul>` 内 `<div grid>` ネストの不正 DOM も修正。 `ag-sticky-bar` を使う全ファイルを audit
-2. **D3 chrome 統一**: projects の WidgetShell に `path` prop を渡す / `icon` を meta と一致させる / description disclosure を empty state の外へ移す。 config パースを 3 widget で揃える
+2. **D3 chrome 統一**: projects の WidgetShell に `path` prop を渡す / description disclosure を empty state の外へ移す。 `exe_folder` の `icon` を meta (`index.ts` `FolderOpen`) と shell (`AppWindow`) で一致させる (Codex クロスチェックで判明: 不一致は projects でなく exe_folder。 projects / script_folder は meta/shell 一致済)。 config パースを 3 widget で揃える
 3. **D2 不要設定削除**: `auto_add` / `max_items` / `git_poll_interval_sec` を UI・config 型・defaultConfig・関連 $effect・`git-poll.ts` + `git-poll.test.ts` ごと削除
 4. **D4 opener 展開**: `ProjectsSettings.svelte` に exe と同じ opener select を追加、 `ProjectsWidget.svelte` の `handleLaunch` を `launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })` へ。 `index.ts` defaultConfig + config 型に `default_opener_id` 追加
 5. **D7 default 統一**: `index.ts` の `defaultConfig` を唯一の出所にし、 `SystemMonitorWidget.svelte` と `SystemMonitorSettings.svelte` の `?? 'xxx'` を撤廃して両者が defaultConfig を参照。 cpu / memory / disk の 3 metric すべて
@@ -148,4 +148,3 @@ parent: README.md
 - `src/lib/widgets/projects/ProjectsWidget.svelte:84, 244-255, 258-278, 285, 294, 325, 347, 425-431` / `ProjectsSettings.svelte:23-27, 51-101` / `projects/git-poll.ts`
 - `src/lib/widgets/system-monitor/SystemMonitorWidget.svelte:85-87` / `SystemMonitorSettings.svelte:35-37`
 - `src/lib/styles/arcagate-theme.css:107`
-  </content>

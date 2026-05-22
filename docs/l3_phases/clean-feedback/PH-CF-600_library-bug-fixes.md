@@ -74,15 +74,16 @@ onclick={(e) => {
 
 1. **C2**: agent dev + CDP で `content-visibility` 仮説を実機確認。 確認できたら、 画像変更後に対象カードの再描画を明示トリガー (`content-visibility` を一時無効化、 または `convertFileSrc` 結果を `$state` で強制再評価)。 併せて `itemStore.applyOptimisticUpdate` を `cmd_save_icon_file` の await 前に呼び、 同一フレームで store 更新
 2. **C3**: `item_repository.rs:188` のクエリを `strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days')` に揃える (保存フォーマットと一致)。 または両辺を `datetime(launched_at)` で正規化。 7 日内 / 7 日超の launch を含むテストケースを追加
-3. **C4**: `searchItemsInTag` の Rust クエリ (`item_repository.rs:71-75`) の `AND i.is_enabled = 1` を撤去 (hidden フィルタはフロント `filteredItems` に一元化)、 または `include_hidden` 引数を追加し `libraryShowHidden` 連動で渡す
+3. **C4**: `searchItemsInTag` の Rust クエリ (`item_repository.rs:71-75`) に **`include_disabled: bool` 引数を追加** する。 `AND i.is_enabled = 1` の単純撤去は **禁止** — Codex クロスチェックで `searchItemsInTag` が favorites widget (`FavoritesWidget.svelte:34` `searchItemsInTag('sys-starred', '')`) からも呼ばれていることが判明したため、 撤去すると favorites に hidden item が漏れる。 flag は default `false` (= 従来挙動)、 Library 画面のみ `libraryShowHidden` 連動で `true` を渡す。 着手時に `searchItemsInTag` の全 call-site (Library / favorites / その他) を列挙し、 各 call-site が `include_disabled` をどう渡すべきか matrix で確定してから実装
 4. **C7**: panel の閉じ条件を「余白クリックのみ」 へ。 閉じトリガー要素を `e.target === e.currentTarget` 判定か専用マーク (`data-library-blank`) に限定し、 検索バー / sort / グリッドコンテナ等のインタラクティブ領域を除外。 ホワイトリスト方式を撤廃
 
 ## 受け入れ条件 (機械検出)
 
 - [ ] C2: e2e — カード見た目設定で画像変更 → モーダルを閉じた直後 (画面遷移なし) にグリッドのカード画像が更新されている
 - [ ] C3: Rust unit test — 7 日以内 N 件 + 7 日超 M 件の launch_log fixture で `recent_launch_count == N`
-- [ ] C4: Rust unit test — hidden (`is_enabled=0`) item を tag 付与 → `searchItemsInTag` (include_hidden 相当) の結果に hidden item が含まれる
-- [ ] C4: e2e — 「非表示を表示」 ON + Type タブ選択 → hidden item がグレーアウトで表示される
+- [ ] C4: Rust unit test — hidden (`is_enabled=0`) item を tag 付与 → `searchItemsInTag(include_disabled=true)` の結果に hidden item が含まれ、 `include_disabled=false` では含まれない
+- [ ] C4: call-site matrix が doc 化され、 favorites widget 等の既存 call-site が `include_disabled=false` (従来挙動) を保つことを確認
+- [ ] C4: e2e — 「非表示を表示」 ON + Type タブ選択 → hidden item がグレーアウトで表示される / favorites widget には hidden item が漏れない
 - [ ] C7: e2e — detail panel を開いた状態で検索バー / sort ボタンをクリック → panel が閉じない / 余白クリック → 閉じる
 
 ## 機能契約の追記
@@ -93,7 +94,7 @@ onclick={(e) => {
 
 `features/screens/library.md`:
 
-> **hidden 表示契約**: 「非表示を表示」 ON 時、 hidden item は All タブだけでなく Type タブ・tag タブでも表示する (グレーアウト可)。 hidden の除外は frontend のフィルタに一元化し、 backend クエリで `is_enabled` 固定除外しない。
+> **hidden 表示契約**: 「非表示を表示」 ON 時、 hidden item は All タブだけでなく Type タブ・tag タブでも表示する (グレーアウト可)。 hidden を返すかは backend クエリの `include_disabled` 引数で明示制御し、 呼び出し側が画面の意図に応じて渡す。 `is_enabled` をクエリにハードコード固定除外しない。 共有クエリ (`searchItemsInTag` 等) の挙動を変えるときは全 call-site を matrix で確認する。
 >
 > **detail panel 閉じ条件契約**: detail panel が閉じるのは余白クリックのみ。 検索バー・sort・グリッド内のインタラクティブ要素のクリックでは閉じない。 「カードでなければ閉じる」 のホワイトリスト方式を使わない。
 
@@ -103,7 +104,7 @@ onclick={(e) => {
 
 - **C3 launch_log フォーマット**: 期間境界比較を使う他の箇所 (`palette.svelte.ts` の frecency、 `reset_service.rs`、 `workspace_repository.rs`) で `launched_at` の `datetime()` 比較がないか grep
 - **C7 panel 閉じ条件**: 同型の click-outside 実装を audit。 `ContextMenu.svelte:36-40` の `contains()` 方式が正規パターン。 Library detail panel のホワイトリスト方式が唯一の不正パターンであることを確認し、 doc 化
-- **C4 backend 固定フィルタ**: `is_enabled = 1` をハードコードする他クエリ (`search` `:57` / `get_library_stats` `:186` 等) が UI のフィルタ意図と矛盾しないか確認
+- **C4 共有クエリの call-site matrix**: `searchItemsInTag` は Library 画面と favorites widget (`FavoritesWidget.svelte:34`) が共有。 `include_disabled` 追加時は両 call-site を必ず確認 (favorites = `false` 維持)。 加えて `is_enabled = 1` をハードコードする他クエリ (`search` `:57` / `get_library_stats` `:186` 等) も UI のフィルタ意図と矛盾しないか確認
 
 ## 工数感
 
@@ -130,4 +131,3 @@ onclick={(e) => {
 - `src-tauri/src/repositories/item_repository.rs:57, 71-75, 186, 188`
 - `src-tauri/src/repositories/launch_repository.rs:16-19`
 - `src/lib/components/common/ContextMenu.svelte:36-40` (正規 click-outside パターン)
-  </content>

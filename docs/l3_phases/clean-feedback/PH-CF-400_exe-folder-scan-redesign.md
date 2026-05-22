@@ -79,7 +79,9 @@ parent: README.md
 2. **拡張子の引数化**: 監視拡張子を `Vec<String>` 引数に。 `cmd_scan_exe_folders` のシグネチャ (`exe_scanner_commands.rs:14-27`) に `extensions` 追加。 `:106` の固定マッチを引数集合との照合に置換。 大文字小文字を正規化
 3. **階層上限の撤廃**: `:50` の `clamp(1, 3)` を撤廃 (または妥当な上限へ緩和)。 `ExeFolderSettings.svelte:62-76` の `max=3` も連動
 4. **設定 UI**: `ExeFolderSettings.svelte` に拡張子入力 UI を追加、 config 型 (`index.ts` defaultConfig + 型定義) に `extensions` を追加。 default は `["exe", "bat", "cmd", "ps1", "sh"]`
-5. **テスト全面書き直し**: `scan_depth_limits_recursion` の 2-entry 期待、 `exe_candidates` の複数候補前提など、 旧バグを固定化しているテストを正しい仕様に書き直す
+5. **entry の安定 identity 契約 (Codex review)**: フロントは entry を `folderPath` で key 化し、 hide / override 設定もこれに紐づく。 再設計で entry 粒度が変わると **既存の hide / override が外れる**。 entry id を「**第1階層フォルダの正規化済 絶対パス**」 に固定し、 列挙順を deterministic (パス昇順等) にする。 旧 `folderPath` key からの移行 (widget_item_hides / widget config の参照更新) を back-compat test で保証
+6. **異常系の堅牢化 (Codex review)**: depth 制限だけでは弱い。 symlink ループ (訪問済 inode/path の検出で無限再帰回避)、 permission denied (該当ディレクトリを skip して走査継続、 panic しない)、 cancel 応答遅延 (cancel token を walk ループ内で頻繁にチェック) に対応
+7. **テスト全面書き直し**: `scan_depth_limits_recursion` の 2-entry 期待、 `exe_candidates` の複数候補前提など、 旧バグを固定化しているテストを正しい仕様に書き直す
 
 ## 受け入れ条件 (機械検出)
 
@@ -88,13 +90,16 @@ parent: README.md
 - [ ] Rust unit test: 同一階層に複数対象ファイル → **サイズ最大が選ばれる**
 - [ ] Rust unit test: 対象ファイル 0 件の第1階層フォルダは entry に出ない
 - [ ] Rust unit test: `extensions = ["blend"]` を渡すと `.blend` のみ検出、 `.exe` は無視
+- [ ] Rust unit test: symlink ループを含む fixture で無限再帰せず終了する
+- [ ] Rust unit test: permission denied のディレクトリを含む fixture で panic せず、 該当を skip して走査継続
+- [ ] Rust unit test: entry id (正規化済 絶対パス) が安定し、 既存の hide / override 設定が再設計後も正しい entry に紐づく (back-compat)
 - [ ] e2e / 手動: `ExeFolderSettings` で拡張子と階層を変更でき、 反映される
 
 ## 機能契約の追記
 
 `features/backend/exe-scanner.md`:
 
-> **EXE フォルダ検出契約**: scan の entry 単位は **Root 直下の第1階層フォルダ**。 1 第1階層フォルダ = 最大 1 entry。 entry のラベルは第1階層フォルダ名。 配下を `scan_depth` まで探索し対象ファイルを収集、 「浅い階層優先 → 同一階層はサイズ大優先」 で 1 ファイルを選ぶ。 対象ファイル 0 件の第1階層フォルダは entry を生成しない。 監視拡張子は呼び出し側が `extensions` で指定し、 scanner にハードコードしない。
+> **EXE フォルダ検出契約**: scan の entry 単位は **Root 直下の第1階層フォルダ**。 1 第1階層フォルダ = 最大 1 entry。 entry のラベルは第1階層フォルダ名、 entry の **identity は第1階層フォルダの正規化済 絶対パス** (hide / override 設定がこれに紐づくため安定でなければならない)。 列挙順は deterministic。 配下を `scan_depth` まで探索し対象ファイルを収集、 「浅い階層優先 → 同一階層はサイズ大優先」 で 1 ファイルを選ぶ。 対象ファイル 0 件の第1階層フォルダは entry を生成しない。 監視拡張子は呼び出し側が `extensions` で指定し、 scanner にハードコードしない。 symlink ループ・permission denied で panic / 無限再帰してはならない。
 
 `features/widgets/exe-folder.md`:
 
@@ -131,4 +136,3 @@ parent: README.md
 - `src/lib/widgets/exe-folder/ExeFolderSettings.svelte:62-76`
 - `src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte:443, 475`
 - 旧バグを固定化したテスト: `exe_scanner_service.rs` の `scan_depth_limits_recursion` (`:276` 付近)
-  </content>

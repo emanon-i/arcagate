@@ -64,30 +64,44 @@ conn.execute(
 
 → E4 は E5 と同根 (孤立参照) + unhandled rejection が toast 化される経路。 **本 PH の最初のタスクは agent dev + CDP console で `[error-monitor]` ログを 1 回取得し、 reject している正確な呼び出しを特定すること**。
 
+### E4 / E5 — frontend itemStore の stale cache (Codex クロスチェックで追加判明)
+
+Codex の独立調査で、 E5 の `ItemNotFound` 部分には **もう 1 つの根** があることが判明した。 `workspace_service.rs:93-107` の cascade DELETE は `sys-ws-*` tag 付き item を **DB から実際に削除する**。 しかしフロント `workspace-config.svelte.ts:87-109` の `deleteWorkspace` は **`itemStore` を refresh しない**。 結果、 cascade で DB から消えた item がフロントの `itemStore` キャッシュに残り、 user がその ghost item の設定を開く → `launch_service.rs:51` / `find_by_id` が `AppError::NotFound` を返す。
+
+つまり E5 の symptom は 2 つの欠陥の合成:
+
+- **「孤立して残り」** = `LibraryItemPicker` 追加 item は tag 非付与 → cascade に引っかからず DB に**真の孤立**として残留
+- **「ItemNotFound エラー」** = cascade が**削除した** item についてフロント `itemStore` が stale → ghost item の設定操作で NotFound
+
+当初 plan は前者のみを扱っていた。 後者 (stale cache) も本 PH で直す。
+
 ## スコープ
 
 - workspace 削除 / タブ削除の cascade を **参照経路 2 系統の両方** を見るよう再設計
 - 孤立 item を生まない / 残さない
+- cascade DELETE 後にフロント `itemStore` を refresh し、 stale cache の ghost item を残さない
 - タブ削除後の unhandled rejection を握り、 `toast.unexpected_error` が出ないようにする
 
 ## やらないこと
 
-- E6 (タブ削除確認モーダルに「アイテムも消す」 チェックボックス) — UI は PH-CF-300。 本 PH は backend の cascade 基盤と「アイテムを消すか残すか」 を選択可能にする `delete_items: bool` 引数の追加までを担う
+- E6 (タブ削除確認モーダルに「アイテムも消す」 チェックボックス) — UI は PH-CF-300。 本 PH は backend の cascade 基盤と「アイテムを消すか残すか」 を選択可能にする `delete_items: bool` 必須引数の追加までを担う
 - workspace D&D 配置 (E1) — PH-CF-200
 
 ## 具体タスク
 
 1. **reject 特定**: agent dev で workspace にタブを作り widget を載せて削除、 CDP console の `[error-monitor]` ログから reject 元の呼び出しを file:line で特定。 doc に追記
 2. **参照集合の一本化**: 「workspace 配下の item 参照集合」 を 1 クエリで返す関数を `workspace_repository.rs` に新設 — `sys-ws-<id>` tag の item ∪ 当該 workspace の全 widget config JSON の `item_ids`。 widget config は JSON なので、 Rust 側で workspace の widget 一覧 → config パース → `item_ids` 収集
-3. **cascade の再設計**: `workspace_service.rs:87-110` `delete_workspace` を、 上記参照集合のうち「他 workspace から参照されない item」 のみ削除するよう書き換え。 `delete_items: bool` 引数を追加 (PH-CF-300 / E6 が使う、 default = false = item を残す)
-4. **`cmd_delete_workspace` シグネチャ拡張**: `workspace_commands.rs` に `delete_items: bool` を追加。 既存呼び出しは `false` 固定
-5. **reject 元の握り**: タスク 1 で特定した呼び出しに `try/catch` (または cancel エラーの判別と無視) を入れ、 unhandled rejection を解消。 cancel reject なら「cancel は正常系」 として toast を出さない
-6. **孤立検出 audit query**: 「どの workspace tag も持たず、 どの widget config からも参照されない宙ぶらりん item」 / 「widget config が指す存在しない item id」 を検出する SQL を作り、 reset_service か専用 audit に組み込む
+3. **cascade の再設計 (トランザクション化)**: `workspace_service.rs:87-110` `delete_workspace` を、 上記参照集合のうち「他 workspace から参照されない item」 のみ削除するよう書き換え。 workspace / item / tag / widget config 参照の削除を **1 トランザクション** で行い、 途中失敗で中途半端な状態を残さない。 `delete_items: bool` 引数を追加 (PH-CF-300 / E6 が使う)
+4. **`cmd_delete_workspace` シグネチャ拡張**: `workspace_commands.rs` と `src/lib/ipc/workspace.ts` に `delete_items: bool` を **必須フィールド** として追加 (Codex review: implicit default は recurrence-unsafe — 省略時はコンパイル/型エラーで気づける必須引数にする)。 既存呼び出しは明示的に `false` を渡す
+5. **frontend itemStore の refresh**: `workspace-config.svelte.ts:87-109` の `deleteWorkspace` で、 cascade 完了後に `itemStore` を再ロードし stale cache を解消 (E4/E5 の ghost item 経路)
+6. **reject 元の握り**: タスク 1 で特定した呼び出しに `try/catch` (または cancel エラーの判別と無視) を入れ、 unhandled rejection を解消。 cancel reject なら「cancel は正常系」 として toast を出さない
+7. **孤立検出 audit query**: 「どの workspace tag も持たず、 どの widget config からも参照されない宙ぶらりん item」 / 「widget config が指す存在しない item id」 を検出する SQL を作り、 reset_service か専用 audit に組み込む
 
 ## 受け入れ条件 (機械検出)
 
-- [ ] Rust unit test: workspace に (a) `workspace_id` 付き create した item, (b) `LibraryItemPicker` 相当で widget config に id 追加した既存 item の両方を載せ、 workspace 削除後に **孤立 item が 0 / dangling な widget config 参照が 0** であること
-- [ ] Rust unit test: `delete_items = false` で workspace 削除 → item は Library に残る / `delete_items = true` → 他 workspace 非参照の item は消える
+- [ ] Rust 統合 test: workspace に (a) `workspace_id` 付き create した item, (b) `LibraryItemPicker` 相当で widget config に id 追加した既存 item, (c) `image_scrap` 等の mixed widget payload を載せ、 workspace 削除後に **孤立 item が 0 / dangling な widget config 参照が 0** であること
+- [ ] Rust unit test: `delete_items` を **両分岐** で検証 — `false` で workspace 削除 → item は Library に残る / `true` → 他 workspace 非参照の item は消える。 `cmd_delete_workspace` で `delete_items` 省略がコンパイル/型エラーになること
+- [ ] e2e: タブ削除後にフロント `itemStore` が refresh され、 削除済 item の設定を開いても `ItemNotFound` が出ない (stale cache 解消)
 - [ ] e2e: タブを作成 → widget 配置 → タブ削除、 `toast.unexpected_error` トーストが **出ない** こと
 - [ ] 孤立検出 audit query が既存 DB に対して 0 violations
 
@@ -95,7 +109,7 @@ conn.execute(
 
 `features/backend/workspace-service.md`:
 
-> **workspace 削除の cascade 契約**: workspace 配下の item 参照は `sys-ws-<id>` tag と widget config JSON `item_ids` の 2 経路がある。 cascade はこの **和集合** を対象集合とし、 「他 workspace から参照されない item」 のみ削除する。 削除有無は `delete_items` で制御し default は item 保持。 cascade 後に孤立 item / dangling 参照を残してはならない。
+> **workspace 削除の cascade 契約**: workspace 配下の item 参照は `sys-ws-<id>` tag と widget config JSON `item_ids` の 2 経路がある。 cascade はこの **和集合** を対象集合とし、 「他 workspace から参照されない item」 のみ削除する。 workspace / item / tag / widget config 参照の削除は **1 トランザクション** で行う。 削除有無は `delete_items` (必須引数、 implicit default を持たない) で制御する。 cascade 後に孤立 item / dangling 参照を残してはならず、 フロント `itemStore` も同時に refresh して stale cache を残さない。
 
 `features/backend/item-service.md`:
 
@@ -133,4 +147,3 @@ conn.execute(
 - `src/lib/state/workspace-config.svelte.ts:87-109`
 - `src/lib/state/error-monitor.svelte.ts:53-67`
 - `src/lib/components/arcagate/workspace/ItemWidget.svelte:84-86, 116-148`
-  </content>

@@ -137,4 +137,3 @@ parent: README.md
 - `src/lib/state/theme.svelte.ts:53, 109, 114-116`
 - `src/lib/components/settings/SettingsAppearancePane.svelte:53-80, 161-219`
 - `src/lib/styles/arcagate-theme.css:32, 107, 119-120, 218, 417, 457, 515`
-  </content>

@@ -115,4 +115,3 @@ parent: README.md
 - `src/lib/components/arcagate/workspace/WorkspaceGrid.svelte:278-285`
 - `src/lib/components/arcagate/workspace/WorkspaceWallpaperDialog.svelte`
 - `docs/l3_phases/_archive/PH-issue-009_workspace-wallpaper.md`
-  </content>

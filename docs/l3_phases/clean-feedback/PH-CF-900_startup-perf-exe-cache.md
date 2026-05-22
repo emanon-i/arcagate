@@ -112,4 +112,3 @@ fs walk は I/O bound のため **release ビルドでも scan 自体は劇的�
 - `src/lib/widgets/exe-folder/ExeFolderWatchWidget.svelte:153-204` (`$effect`)
 - `src/routes/+page.svelte:38` (`activeView` default)
 - `docs/l3_phases/audit/WASTEFUL_PROCESSING_AUDIT_2026-05-19.md` (W-2 / W-9)
-  </content>

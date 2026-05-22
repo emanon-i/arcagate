@@ -115,4 +115,3 @@ parent: README.md
 - `src/lib/components/arcagate/workspace/WidgetItemContextMenu.svelte:190-200` (正規 destructive パターン)
 - `WorkspaceDeleteConfirmDialog.svelte` (現状デッドコード)
 - `src/lib/components/arcagate/library/LibraryDetailPanel.svelte:130-162`
-  </content>
