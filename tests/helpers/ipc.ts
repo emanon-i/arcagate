@@ -123,6 +123,10 @@ export async function addWidget(
 	return invoke<Widget>(page, 'cmd_add_widget', { workspaceId, widgetType });
 }
 
+export async function deleteWidget(page: Page, id: string): Promise<void> {
+	return invoke<void>(page, 'cmd_remove_widget', { id });
+}
+
 // T2-2 で追加した helper
 
 export interface UpdateItemInput {

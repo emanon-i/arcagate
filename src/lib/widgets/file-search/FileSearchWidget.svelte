@@ -5,6 +5,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import ErrorState from '$lib/components/common/ErrorState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
@@ -239,11 +240,17 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 				</button>
 			</div>
 		{:else if lastError}
-			<p class="text-xs text-[var(--ag-error-text)]">{lastError}</p>
+			<ErrorState
+				title={t('widgets.common.load_failed')}
+				description={lastError}
+				testId="file-search-error-state"
+			/>
 		{:else if filtered.length === 0}
-			<p class="text-xs text-[var(--ag-text-muted)]">
-				{query ? t('widgets.file_search.no_match') : t('widgets.file_search.no_files')}
-			</p>
+			<EmptyState
+				icon={Search}
+				title={query ? t('widgets.file_search.no_match') : t('widgets.file_search.no_files')}
+				testId="file-search-no-results-state"
+			/>
 		{:else}
 			<ul class="space-y-1">
 				{#each filtered as entry, idx (entry.path)}
@@ -258,7 +265,7 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 								? 'bg-[var(--ag-surface-3)] ring-1 ring-inset ring-[var(--ag-accent)]'
 								: ''}"
 							aria-label={t('widgets.file_search.open_aria', { name: entry.name })}
-							aria-selected={isSelected}
+							aria-current={isSelected ? 'true' : undefined}
 							onclick={() => {
 								selectedIndex = idx;
 								void openEntry(entry);

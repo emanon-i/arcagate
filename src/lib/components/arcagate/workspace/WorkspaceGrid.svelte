@@ -314,10 +314,15 @@ function deselectAllWidgets(): void {
 	<!-- Canvas: widget grid のみが scroll/pan 可能。
 	     PH-issue-034 / 検収項目 #9: Obsidian Canvas のように上下左右無限パン。
 	     dotted grid 背景は infinite-canvas に置くので scroll に追従 (Obsidian と一致)。 -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- WCAG 2.1.1: scroll 可能領域はキーボードで focus + 矢印 scroll できるよう
+	     tabindex=0。 role=group + aria-label で SR が領域名を announce する。 -->
+	<!-- svelte-ignore a11y_no_static_element_interactions a11y_no_noninteractive_tabindex -->
 	<div
 		class="canvas-edit-mode relative z-10 min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]"
 		style="--widget-w: {zoom.widgetW}px; --widget-h: {zoom.widgetH}px; background: transparent;"
+		tabindex="0"
+		role="group"
+		aria-label={t('workspace.canvas_aria')}
 		data-zoom={configStore.widgetZoom}
 		bind:this={container}
 		onpointerdown={onCanvasPointerDown}

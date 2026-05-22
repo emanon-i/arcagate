@@ -2,6 +2,7 @@
 import { TrendingUp } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { getFrequentItems } from '$lib/ipc/workspace';
@@ -81,7 +82,13 @@ async function handleLaunch(id: string) {
 			</button>
 		{/each}
 		{#if visibleTopItems.length === 0}
-			<div class="col-span-full py-4 text-center text-xs text-[var(--ag-text-muted)]">{t('widgets.stats.no_history')}</div>
+			<div class="col-span-full">
+				<EmptyState
+					icon={TrendingUp}
+					title={t('widgets.stats.no_history')}
+					testId="stats-empty-state"
+				/>
+			</div>
 		{/if}
 	</div>
 </WidgetShell>

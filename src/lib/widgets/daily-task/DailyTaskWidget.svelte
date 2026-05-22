@@ -2,6 +2,7 @@
 import { CheckSquare, ChevronDown, ChevronRight, Plus, X } from '@lucide/svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import EmptyState from '$lib/components/common/EmptyState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -102,7 +103,11 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 	</form>
 	<!-- PH-issue-013: 未完了 (上、text-base font-medium) -->
 	{#if pendingTasks.length === 0 && completedTasks.length === 0}
-		<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.daily_task.no_tasks')}</p>
+		<EmptyState
+			icon={CheckSquare}
+			title={t('widgets.daily_task.no_tasks')}
+			testId="daily-task-empty-state"
+		/>
 	{:else if pendingTasks.length === 0}
 		<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.daily_task.no_pending')}</p>
 	{:else}

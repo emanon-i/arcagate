@@ -11,6 +11,7 @@
  */
 import { Pencil, Plus, Trash2 } from '@lucide/svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { deleteOpener, type Opener, type SaveOpenerInput, saveOpener } from '$lib/ipc/opener';
@@ -134,7 +135,7 @@ async function handleDelete(o: Opener) {
 	</div>
 
 	{#if loading}
-		<p class="text-xs text-[var(--ag-text-muted)]">{t('common.loading')}</p>
+		<LoadingState testId="opener-loading-state" />
 	{:else}
 		<!-- builtin (read-only) -->
 		<section class="space-y-2">

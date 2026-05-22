@@ -642,6 +642,7 @@
 			"description_optional_label": "Description (optional)",
 			"description_placeholder": "Purpose of this widget",
 			"error_prefix": "Error: {error}",
+			"load_failed": "Failed to load",
 			"folder": {
 				"clear_label": "Clear {label}",
 				"label": "Watched folder",
@@ -873,6 +874,7 @@
 	},
 	"workspace": {
 		"add_widget": "Add widget",
+		"canvas_aria": "Workspace canvas",
 		"context": {
 			"builtin": "Built-in",
 			"default_label": "Default",

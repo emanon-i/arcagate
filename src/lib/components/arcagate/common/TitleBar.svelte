@@ -87,7 +87,7 @@ function handleClose() {
 		</button>
 		<button
 			type="button"
-			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-red-500/80 hover:text-white"
+			class="inline-flex h-10 w-10 items-center justify-center text-[var(--ag-text-secondary)] transition-[color,background-color] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--c-error)] hover:text-white"
 			aria-label={t('common.close')}
 			onclick={handleClose}
 		>

@@ -1,9 +1,10 @@
 <script lang="ts">
-import { Image as ImageIcon, ImageOff, Settings } from '@lucide/svelte';
+import { Image as ImageIcon, Settings } from '@lucide/svelte';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import ErrorState from '$lib/components/common/ErrorState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -78,11 +79,11 @@ async function handleDblClick(): Promise<void> {
 			testId="image-scrap-empty-state"
 		/>
 	{:else if imageError}
-		<div class="flex h-full flex-col items-center justify-center gap-2 text-xs text-[var(--ag-text-muted)]">
-			<ImageOff class="h-8 w-8" />
-			<div>{t('widgets.image_scrap.load_error')}</div>
-			<div class="truncate max-w-full px-4 text-[var(--ag-text-faint)]" title={config.path}>{config.path}</div>
-		</div>
+		<ErrorState
+			title={t('widgets.image_scrap.load_error')}
+			description={config.path}
+			testId="image-scrap-error-state"
+		/>
 	{:else}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->

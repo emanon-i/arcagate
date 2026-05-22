@@ -5,6 +5,8 @@ import Chip from '$lib/components/arcagate/common/Chip.svelte';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
+import ErrorState from '$lib/components/common/ErrorState.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
@@ -138,9 +140,13 @@ let displayTitle = $derived(
 			testId="file-preview-empty-state"
 		/>
 	{:else if loading}
-		<p class="text-sm text-[var(--ag-text-muted)]">{t('widgets.file_preview.loading')}</p>
+		<LoadingState description={t('widgets.file_preview.loading')} testId="file-preview-loading-state" />
 	{:else if error}
-		<p class="text-sm text-[var(--ag-error-text)]">{t('widgets.file_preview.error_prefix', { error })}</p>
+		<ErrorState
+			title={t('widgets.common.load_failed')}
+			description={error}
+			testId="file-preview-error-state"
+		/>
 	{:else if preview}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->

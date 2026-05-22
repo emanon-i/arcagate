@@ -71,6 +71,7 @@ function handleNavKeydown(e: KeyboardEvent) {
 			<button
 				type="button"
 				role="tab"
+				id="tab-{cat.id}"
 				aria-selected={isActive}
 				aria-controls="settings-panel-{cat.id}"
 				tabindex={isActive ? 0 : -1}

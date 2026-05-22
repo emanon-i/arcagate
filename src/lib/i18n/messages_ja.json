@@ -642,6 +642,7 @@
 			"description_optional_label": "説明 (任意)",
 			"description_placeholder": "このウィジェットの目的",
 			"error_prefix": "エラー: {error}",
+			"load_failed": "読み込みに失敗しました",
 			"folder": {
 				"clear_label": "{label}を解除",
 				"label": "監視フォルダ",
@@ -873,6 +874,7 @@
 	},
 	"workspace": {
 		"add_widget": "ウィジェットを追加",
+		"canvas_aria": "ワークスペースキャンバス",
 		"context": {
 			"builtin": "組み込み",
 			"default_label": "既定",
