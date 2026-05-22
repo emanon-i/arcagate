@@ -106,11 +106,15 @@ export default async function globalSetup(): Promise<void> {
 		// Windows runner の navigator.language='en-US' で OS auto-detect が 'en' を選択し、
 		// messages_en.json 翻訳完備後に t() が en value を返す → e2e の ja-hardcode selector
 		// (getByPlaceholder('ライブラリを検索') 等) と不一致 → element not found → page closed
-		// 連鎖 fail を起こす regression。 test 環境では localStorage 経由で ja 強制 = +layout の
+		// 連鎖 fail を起こす regression。 test 環境では localStorage 経由で locale 強制 = +layout の
 		// resolveInitialLocale が最優先で参照する key (= arcagate.test.force_locale)。
-		await page.evaluate(() => {
-			localStorage.setItem('arcagate.test.force_locale', 'ja');
-		});
+		//
+		// PH-PQ-700 T7: ARCAGATE_E2E_LOCALE で ja / en を切替可能に。 未指定なら 'ja' (既定)。
+		// en mode は tests/e2e/locale-en/ の spec が EN release を検証する。
+		const e2eLocale = process.env.ARCAGATE_E2E_LOCALE === 'en' ? 'en' : 'ja';
+		await page.evaluate((locale) => {
+			localStorage.setItem('arcagate.test.force_locale', locale);
+		}, e2eLocale);
 
 		try {
 			await markSetupComplete(page);

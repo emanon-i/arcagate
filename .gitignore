@@ -51,6 +51,7 @@ tmp/
 
 # Playwright test artifacts (locally generated)
 test-results/
+test-results-en/
 .claude/scheduled_tasks.lock
 dist/
 

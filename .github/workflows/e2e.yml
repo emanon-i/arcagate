@@ -52,17 +52,30 @@ jobs:
         # Codex P1: --with-deps は Linux 用 (apt-get install)。Windows runner では不要。
         run: pnpm exec playwright install chromium
 
-      - name: Run E2E (T1 smoke 5 件)
+      - name: Run E2E (ja locale)
         run: pnpm test:e2e
         env:
           WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
+
+      # PH-PQ-700 T7: EN release 検証。 CDP port 9515 / Tauri instance を ja run と
+      # 共有するため sequential 実行 (parallel 不可)。 ARCAGATE_E2E_LOCALE=en で
+      # globalSetup が英語 UI を強制し、 tests/e2e/locale-en/ の spec (critical-path /
+      # a11y / setup-wizard、 axe 含む) を走らせる。
+      - name: Run E2E (en locale)
+        if: ${{ !cancelled() }}
+        run: pnpm test:e2e:en
+        env:
+          WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9515
+          ARCAGATE_E2E_LOCALE: en
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-report
-          path: tmp/playwright-report/
+          path: |
+            tmp/playwright-report/
+            tmp/playwright-report-en/
           retention-days: 30
 
       - name: Upload test results (traces, videos, failure screenshots)
@@ -70,5 +83,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-results
-          path: test-results/
+          path: |
+            test-results/
+            test-results-en/
           retention-days: 7
