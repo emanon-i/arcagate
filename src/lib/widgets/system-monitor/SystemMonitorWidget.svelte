@@ -18,6 +18,7 @@ import { Activity } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { bufferToSparklinePath, pushBuffer } from '$lib/utils/history-buffer';
@@ -283,7 +284,8 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 		</p>
 	{/if}
 	{#if !stats}
-		<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.system_monitor.loading')}</p>
+		<!-- A3 (PH-PQ-600): 独自 loading text を共通 LoadingState に統一。 -->
+		<LoadingState description={t('widgets.system_monitor.loading')} testId="system-monitor-loading-state" />
 	{:else}
 		<!-- @container で widget サイズに応じて密度調整 (#30) -->
 		<div class="@container space-y-2 text-xs">

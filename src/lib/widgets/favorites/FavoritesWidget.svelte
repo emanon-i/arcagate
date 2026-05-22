@@ -92,6 +92,7 @@ function handleItemContext(id: string, ev?: MouseEvent): void {
 		onLaunch={handleLaunch}
 		onContext={handleItemContext}
 		emptyMessage={t('widgets.favorites.empty_message')}
+		emptyIcon={Star}
 	/>
 </WidgetShell>
 

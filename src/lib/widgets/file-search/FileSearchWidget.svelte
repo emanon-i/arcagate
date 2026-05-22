@@ -1,11 +1,12 @@
 <script lang="ts">
-import { File, FileSearch, Folder, FolderOpen, Search, X as XIcon } from '@lucide/svelte';
+import { File, FileSearch, Folder, FolderOpen, Search } from '@lucide/svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
 import ErrorState from '$lib/components/common/ErrorState.svelte';
+import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { launchItem } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
@@ -226,19 +227,16 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			</div>
 		</div>
 		{#if loading}
-			<div class="flex items-center justify-between gap-2">
-				<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.file_search.searching')}</p>
-				<button
-					type="button"
-					class="flex items-center gap-1 rounded border border-[var(--ag-border)] px-2 py-0.5 text-xs text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]"
-					aria-label={t('widgets.file_search.cancel_aria')}
-					data-testid="file-search-cancel"
-					onclick={() => void cancelCurrent()}
-				>
-					<XIcon class="h-3 w-3" />
-					{t('widgets.file_search.cancel_button')}
-				</button>
-			</div>
+			<!-- A3 (PH-PQ-600): 独自 loading UI を共通 LoadingState に統一。
+			     長い fs walk の「中止」は LoadingState の action slot で担保。 -->
+			<LoadingState
+				description={t('widgets.file_search.searching')}
+				action={{
+					label: t('widgets.file_search.cancel_button'),
+					onClick: () => void cancelCurrent(),
+				}}
+				testId="file-search-loading-state"
+			/>
 		{:else if lastError}
 			<ErrorState
 				title={t('widgets.common.load_failed')}
