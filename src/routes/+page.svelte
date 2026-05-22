@@ -477,6 +477,7 @@ function handleFormClose() {
 				icon={NAV_TOP.palette.icon}
 				label={NAV_TOP.palette.label}
 				tone="accent"
+				dataTour="palette"
 				onclick={openFloatingPalette}
 			/>
 		{/snippet}
@@ -486,12 +487,14 @@ function handleFormClose() {
 					icon={NAV_TOP.library.icon}
 					label={NAV_TOP.library.label}
 					active={activeView === "library"}
+					dataTour="library"
 					onclick={() => (activeView = "library")}
 				/>
 				<TitleTab
 					icon={NAV_TOP.workspace.icon}
 					label={NAV_TOP.workspace.label}
 					active={activeView === "workspace"}
+					dataTour="workspace"
 					onclick={() => (activeView = "workspace")}
 				/>
 			</div>
