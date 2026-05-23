@@ -25,6 +25,7 @@ import { themeStore } from '$lib/state/theme.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { startUpdaterAutoCheck } from '$lib/state/updater.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceDropCoords } from '$lib/state/workspace-drop-coords.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 import { getErrorMessage } from '$lib/utils/format-error';
@@ -137,90 +138,168 @@ function findExistingMatch(
 	return null;
 }
 
-async function addImageScrapWidget(sourcePath: string): Promise<void> {
+/**
+ * PH-CF-200: OS ファイルドロップ → workspace widget 配置の共通 opts を構築する。
+ *
+ * `tauri://drag-drop` payload の `position: PhysicalPosition` を受け取り、
+ * - drop zone 内の座標なら → そこを `dropCell` に
+ * - drop zone 外 (sidebar 上等) なら → `dropCell` 不明、 `viewportCenterCell` に fallback
+ * - 非同期処理中のタブ切替を防ぐため、 caller が drop 開始時に snapshot した `workspaceId` を渡す
+ *   (drop handler が `tauri://drag-drop` 受信直後に pinned workspace を読み出して保持しておく)
+ */
+function buildDropOpts(
+	position: { x: number; y: number } | null,
+	workspaceId: string | undefined,
+): {
+	dropCell: { x: number; y: number } | null;
+	viewportCenterCell: { x: number; y: number } | null;
+	cols: number | undefined;
+	workspaceId: string | undefined;
+} {
+	const dropCell = position ? workspaceDropCoords.cellFromPhysicalPosition(position) : null;
+	const viewportCenterCell = workspaceDropCoords.getViewportCenterCell();
+	const cols = workspaceDropCoords.dynamicCols || undefined;
+	return { dropCell, viewportCenterCell, cols, workspaceId };
+}
+
+async function addImageScrapWidget(
+	sourcePath: string,
+	position: { x: number; y: number } | null,
+	workspaceId: string | undefined,
+): Promise<void> {
 	const { invoke } = await import('@tauri-apps/api/core');
+	const opts = buildDropOpts(position, workspaceId);
+	// 画像 file の copy が時間を食う可能性あり (大画像 / cold disk) — addWidget の前に await。
+	// workspaceId は caller (drop handler / dup dialog callback) が snapshot 済なので、
+	// await 中にタブ切替されても opts は変わらない。
 	const saved = await invoke<string>('cmd_save_image_scrap', { sourcePath });
-	await workspaceStore.addWidget('image_scrap');
-	const widgets = workspaceStore.widgets;
-	const last = widgets[widgets.length - 1];
-	if (last) {
-		// Fix B: source_path も config に保存して将来の重複検出を可能に。
-		await workspaceStore.updateWidgetConfig(
-			last.id,
-			JSON.stringify({ path: saved, source_path: sourcePath }),
-		);
+	await workspaceStore.addWidget('image_scrap', opts);
+	// 直近で追加した widget を見つけて config を更新する。 タブ切替で widgets 配列が別 workspace
+	// のものに差し替わっているケースを考慮し、 pin した workspace と active が一致する時のみ
+	// フロント state から最新 widget を探す (一致しない場合は IPC `cmd_list_widgets` で取得しない:
+	// 復元は次回そちらのタブに切り替えた時の `loadWidgets` に委ねる)。
+	if (opts.workspaceId && opts.workspaceId === workspaceStore.activeWorkspaceId) {
+		const widgets = workspaceStore.widgets;
+		const last = widgets[widgets.length - 1];
+		if (last && last.widget_type === 'image_scrap') {
+			await workspaceStore.updateWidgetConfig(
+				last.id,
+				JSON.stringify({ path: saved, source_path: sourcePath }),
+			);
+		}
 	}
 	toastStore.add(t('toast.image_widget_placed'), 'success');
 }
 
-async function addFilePreviewWidget(path: string): Promise<void> {
-	await workspaceStore.addWidget('file_preview');
-	const widgets = workspaceStore.widgets;
-	const last = widgets[widgets.length - 1];
-	if (last) {
-		await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path }));
+async function addFilePreviewWidget(
+	path: string,
+	position: { x: number; y: number } | null,
+	workspaceId: string | undefined,
+): Promise<void> {
+	const opts = buildDropOpts(position, workspaceId);
+	await workspaceStore.addWidget('file_preview', opts);
+	if (opts.workspaceId && opts.workspaceId === workspaceStore.activeWorkspaceId) {
+		const widgets = workspaceStore.widgets;
+		const last = widgets[widgets.length - 1];
+		if (last && last.widget_type === 'file_preview') {
+			await workspaceStore.updateWidgetConfig(last.id, JSON.stringify({ path }));
+		}
 	}
 	toastStore.add(t('toast.file_preview_widget_placed'), 'success');
 }
 
+// PH-CF-200: Tauri v2.11 の `DragDropEvent` payload は `position: PhysicalPosition` を持つ
+// (旧 +page.svelte:272 コメントの「座標を持たない」 は API 進化前の前提で誤り、 修正済)。
+// `position` は device pixel なので `workspaceDropCoords.cellFromPhysicalPosition` 内で DPR 除算。
+// 配置先 workspace の pin は `tauri://drag-enter` で snapshot、 drop / leave で clear する。
 let unlistenDragDrop: (() => void) | null = null;
-listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
-	isDraggingOver = false;
-	const paths = event.payload.paths ?? [];
-	if (paths.length === 0) return;
+listen<{ paths: string[]; position: { x: number; y: number } }>(
+	'tauri://drag-drop',
+	async (event) => {
+		isDraggingOver = false;
+		const paths = event.payload.paths ?? [];
+		const position = event.payload.position ?? null;
+		// drop 処理は pin した workspace に対して行う (非同期 cmd_save_image_scrap 等の await 中に
+		// user がタブ切替しても、 widget はドロップ開始時の workspace に配置される)。
+		const dropWorkspaceId =
+			workspaceDropCoords.pinnedWorkspaceId ?? workspaceStore.activeWorkspaceId;
+		// 終了処理は早期に: pin を解除しないと次のドロップで stale pin になる。
+		workspaceDropCoords.clearPin();
+		if (paths.length === 0) return;
 
-	// U-5 / U-6 (2026-05-12): Workspace タブで画像 / テキストファイルを D&D された場合、
-	// 対応する widget を生成。 残りは Library tab に従来通り。
-	// Fix B (2026-05-12): 同一 source の widget が既に存在するなら 3 択 dialog で
-	// focus 既存 / 別 widget として追加 / キャンセル を user に選ばせる。
-	if (activeView === 'workspace') {
-		const path = paths[0];
-		const ext = pickExtension(path);
-		if (ext && IMAGE_EXTS.includes(ext)) {
-			const existing = findExistingMatch('image_scrap', path);
-			if (existing) {
-				dupDialogTitle = t('dialog.dup_image_title');
-				dupDialogMessage = t('dialog.dup_image_message');
-				dupExistingWidgetId = existing.id;
-				dupPendingAction = () => addImageScrapWidget(path);
-				dupDialogOpen = true;
+		// U-5 / U-6 (2026-05-12): Workspace タブで画像 / テキストファイルを D&D された場合、
+		// 対応する widget を生成。 残りは Library tab に従来通り。
+		// Fix B (2026-05-12): 同一 source の widget が既に存在するなら 3 択 dialog で
+		// focus 既存 / 別 widget として追加 / キャンセル を user に選ばせる。
+		// PH-CF-200: 「workspace タブで dropped か」 は **ドロップ開始時の workspace に何か pin
+		// されているか** で判定。 activeView は user が drop 中にタブ切替したら変わってしまうが、
+		// pinned workspace は workspaces tab (= activeView=workspace) でしか pin されない。
+		if (activeView === 'workspace' || dropWorkspaceId) {
+			const path = paths[0];
+			const ext = pickExtension(path);
+			const pinnedWs = dropWorkspaceId ?? undefined;
+			if (ext && IMAGE_EXTS.includes(ext)) {
+				const existing = findExistingMatch('image_scrap', path);
+				if (existing) {
+					dupDialogTitle = t('dialog.dup_image_title');
+					dupDialogMessage = t('dialog.dup_image_message');
+					dupExistingWidgetId = existing.id;
+					dupPendingAction = () => addImageScrapWidget(path, position, pinnedWs);
+					dupDialogOpen = true;
+					return;
+				}
+				try {
+					await addImageScrapWidget(path, position, pinnedWs);
+				} catch (e) {
+					toastStore.add(t('toast.placement_failed', { error: getErrorMessage(e) }), 'error');
+				}
 				return;
 			}
-			try {
-				await addImageScrapWidget(path);
-			} catch (e) {
-				toastStore.add(t('toast.placement_failed', { error: getErrorMessage(e) }), 'error');
-			}
-			return;
-		}
-		if (ext && TEXT_EXTS.includes(ext)) {
-			const existing = findExistingMatch('file_preview', path);
-			if (existing) {
-				dupDialogTitle = t('dialog.dup_file_title');
-				dupDialogMessage = t('dialog.dup_file_message');
-				dupExistingWidgetId = existing.id;
-				dupPendingAction = () => addFilePreviewWidget(path);
-				dupDialogOpen = true;
+			if (ext && TEXT_EXTS.includes(ext)) {
+				const existing = findExistingMatch('file_preview', path);
+				if (existing) {
+					dupDialogTitle = t('dialog.dup_file_title');
+					dupDialogMessage = t('dialog.dup_file_message');
+					dupExistingWidgetId = existing.id;
+					dupPendingAction = () => addFilePreviewWidget(path, position, pinnedWs);
+					dupDialogOpen = true;
+					return;
+				}
+				try {
+					await addFilePreviewWidget(path, position, pinnedWs);
+				} catch (e) {
+					toastStore.add(
+						t('toast.preview_placement_failed', { error: getErrorMessage(e) }),
+						'error',
+					);
+				}
 				return;
 			}
-			try {
-				await addFilePreviewWidget(path);
-			} catch (e) {
-				toastStore.add(t('toast.preview_placement_failed', { error: getErrorMessage(e) }), 'error');
-			}
-			return;
+			// それ以外の file は Workspace では扱わない (Library タブに行ってもらう)
+			if (activeView === 'workspace') return;
+			// dropWorkspaceId だけ pin されていて activeView=library のケースは下の library 経路へ。
 		}
-		// それ以外の file は Workspace では扱わない (Library タブに行ってもらう)
-		return;
-	}
 
-	if (activeView === 'library' && !showItemForm && paths.length > 0) {
-		droppedPaths = paths;
-		editingItem = null;
-		showItemForm = true;
-	}
-}).then((fn) => {
+		if (activeView === 'library' && !showItemForm && paths.length > 0) {
+			droppedPaths = paths;
+			editingItem = null;
+			showItemForm = true;
+		}
+	},
+).then((fn) => {
 	unlistenDragDrop = fn;
+});
+
+// PH-CF-200: drag-enter で「現在 active な workspace id」 を pin。 これにより非同期 drop 処理中に
+// user がタブを切り替えても、 widget はドロップ開始時の workspace に配置される (Codex review)。
+// activeView=workspace 時にだけ pin する (library タブで drag-enter しても pin 不要)。
+let unlistenDragEnter: (() => void) | null = null;
+listen<{ paths: string[]; position: { x: number; y: number } }>('tauri://drag-enter', () => {
+	if (activeView !== 'workspace') return;
+	const wsId = workspaceStore.activeWorkspaceId;
+	if (wsId) workspaceDropCoords.pin(wsId);
+}).then((fn) => {
+	unlistenDragEnter = fn;
 });
 
 function handleDupPrimary(): void {
@@ -264,14 +343,18 @@ listen('tauri://drag-over', () => {
 let unlistenDragLeave: (() => void) | null = null;
 listen('tauri://drag-leave', () => {
 	isDraggingOver = false;
+	// PH-CF-200: drag-leave で pin を解除 (user が canvas 外で release した場合の clean up)。
+	// drag-drop が後続する場合はそちらが先に pin を読み取り消費するので、 leave 由来 clear が
+	// drop 由来 clear を override しても問題ない (どちらも null になるだけ)。
+	workspaceDropCoords.clearPin();
 }).then((fn) => {
 	unlistenDragLeave = fn;
 });
 
 // U-1 (2026-05-12): Web ブラウザ等から URL を D&D した時の handler。
-// Tauri の `tauri://drag-drop` は OS file path のみ payload、 URL D&D は WebView の
-// HTML5 drop event 経由でしか取れない。 window-level の `drop` で text/uri-list を捕捉して
-// ItemFormDialog を URL prefill で開く。
+// Tauri の `tauri://drag-drop` は OS file の paths + position (PhysicalPosition) を運ぶが、
+// URL D&D (text/uri-list / text/plain) は webview の HTML5 drop event 経由でしか取れない。
+// window-level の `drop` で text/uri-list を捕捉して ItemFormDialog を URL prefill で開く。
 function extractUrlFromDataTransfer(dt: DataTransfer | null): string | null {
 	if (!dt) return null;
 	// text/uri-list は 1 行 1 URL、 comment 行 (#〜) を除外して最初の URL を採用
@@ -334,6 +417,7 @@ onDestroy(() => {
 	unlistenDragDrop?.();
 	unlistenDragOver?.();
 	unlistenDragLeave?.();
+	unlistenDragEnter?.();
 	unlistenPathNotFound?.();
 });
 

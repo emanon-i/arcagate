@@ -9,6 +9,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { useWidgetZoom } from '$lib/state/widget-zoom.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { workspaceContextMenuStore } from '$lib/state/workspace-context-menu.svelte';
+import { workspaceDropCoords } from '$lib/state/workspace-drop-coords.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { useWorkspaceInput } from '$lib/state/workspace-input.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
@@ -165,6 +166,13 @@ function viewportCenterCell(): { x: number; y: number } | null {
 		maxRow,
 	);
 }
+
+// PH-CF-200: OS file drop の drop-zone 外 fallback として、 +page.svelte の handler が
+// viewport 中央 cell を取れるよう store に getter を登録する。 unmount で解除。
+$effect(() => {
+	workspaceDropCoords.registerViewportCenterCellGetter(viewportCenterCell);
+	return () => workspaceDropCoords.registerViewportCenterCellGetter(null);
+});
 
 const input = useWorkspaceInput({
 	getContainer: () => workspaceContainer,
