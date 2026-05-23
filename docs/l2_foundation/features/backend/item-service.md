@@ -81,6 +81,40 @@ Library に残る (user が明示的に削除しない限り)。 復元 UI (widg
 - `audit-source-back-link.sh` で片肺 back-link の DB 検出 + 監視自動登録経路に `find_by_target`
   残存が無いことを grep で検証
 
+### launch 集計契約 (PH-CF-600 C3)
+
+`launch_log.launched_at` は `launch_repository::record_launch_and_update_stats` で
+`strftime('%Y-%m-%dT%H:%M:%SZ', 'now')` (ISO 8601 `T` 区切り + `Z` suffix) 形式で保存される。
+期間集計クエリ (`get_library_stats` の `recent_launch_count` 等) は **同じ `strftime`
+フォーマットで比較対象を生成** し、 SQLite 既定 `datetime()` (= スペース区切り) と混在させない。
+位置 10 の `T` (0x54) vs space (0x20) で全 ISO 行が「>=」 と評価され境界が機能しなくなる。
+
+#### 機械検出
+
+- unit test `test_get_library_stats_recent_launch_count_respects_7d_boundary`: 7 日以内 3 件
+  - 7 日超 2 件の launch_log fixture を仕込み `recent_launch_count == 3` を assert。
+    境界外をカウントする回帰 (旧バグ = 5 件返す) は test fail。
+
+### hidden item 取得契約 (PH-CF-600 C4)
+
+tag 経由で item を取得する共有クエリ (`search_in_tag` / `cmd_search_items_in_tag`) は
+`include_disabled: bool` 引数で `is_enabled = 0` の item を結果に含めるかを **明示制御** する。
+クエリに `AND i.is_enabled = 1` をハードコード固定除外しない。
+
+- `false` (default): hidden を除外 (= 従来の launcher 用途)
+- `true`: hidden を含めて返す (Library 画面の「非表示を表示」 ON で grey-out 表示)
+
+frontend IPC (`searchItemsInTag`) は `includeDisabled = false` を default に持ち、 Library 画面の
+`loadItemsByTag` のみ `configStore.libraryShowHidden` 連動で `true` を渡す。 favorites widget /
+palette / workspace picker / starred badge fetch は default false (= 従来挙動)。 共有クエリ
+の挙動を変えるときは call-site matrix を読み直すこと (`src/lib/ipc/items.ts` の
+`searchItemsInTag` doc comment)。
+
+#### 機械検出
+
+- unit test `test_search_in_tag_include_disabled_flag`: hidden item が `include_disabled=true`
+  で含まれ、 `false` で除外されることを空 query と LIKE query 両経路で assert。
+
 ## 既知の判断
 
 - label 空文字列は拒否 (InvalidInput)

@@ -74,3 +74,41 @@ item / workspace / タブの削除など取り返しのつかない操作は、 
   (a) Library カード右クリック → 「削除」 表示 + クリックで item 消滅 + undo snackbar 表示
   (b) 複数選択 → 削除 → ConfirmDialog 経由
   を検証。
+
+## hidden 表示契約 (PH-CF-600 C4)
+
+「非表示を表示」 (`configStore.libraryShowHidden`) ON 時、 hidden (`is_enabled = false`)
+item は **All タブだけでなく Type タブ / tag タブでも表示** する。 表示はグレーアウト
+(`LibraryCard` の `opacity-40 grayscale`) で hidden 状態を視覚的に区別する。
+
+hidden を返すかは backend クエリの `include_disabled` 引数で明示制御し、 呼び出し側が画面の
+意図に応じて渡す。 `is_enabled = 1` をクエリにハードコード固定除外しない (PH-CF-600 以前は
+`searchItemsInTag` が固定除外で Type タブから hidden が消えていた)。
+
+共有クエリ (`searchItemsInTag` 等) の挙動を変えるときは **全 call-site を matrix で確認**
+する。 詳細な matrix は `src/lib/ipc/items.ts` の `searchItemsInTag` doc comment と
+[Item Service hidden item 取得契約](../backend/item-service.md#hidden-item-取得契約-ph-cf-600-c4)
+を参照。
+
+### 機械検出
+
+- backend unit test `test_search_in_tag_include_disabled_flag` (`src-tauri/src/repositories/item_repository.rs`)
+- e2e: `tests/e2e/ph-cf-600-library-bug-fixes.spec.ts` の hidden item Type タブ表示シナリオ
+  (「非表示を表示」 ON + Type=exe タブで hidden exe item がグレーアウト表示される /
+  FavoritesWidget には hidden item が漏れない)
+
+## detail panel 閉じ条件契約 (PH-CF-600 C7)
+
+Library detail panel が閉じるのは **余白クリックのみ**。 検索バー / sort select / view モード
+切替 button / add button / グリッド内のインタラクティブ要素のクリックでは閉じない。
+
+実装方針: 閉じトリガーは `e.target === e.currentTarget` (= padding 領域そのもののクリック) に
+限定する。 「カードでなければ閉じる」 のホワイトリスト方式
+(`closest('[data-testid^="library-card-"]')`) は対象集合が広すぎて検索バー / sort 等の
+インタラクティブ要素まで閉じトリガーになる構造欠陥のため使わない。 click-outside の正規
+パターンは `ContextMenu.svelte` の `contains()` 判定。
+
+### 機械検出
+
+- e2e: `tests/e2e/ph-cf-600-library-bug-fixes.spec.ts` で detail panel を開いた状態で
+  検索バー / sort select クリック → panel が閉じない、 余白クリック → 閉じる を verify。
