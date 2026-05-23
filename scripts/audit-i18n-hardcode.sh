@@ -141,6 +141,7 @@ nav.workspace
 palette.no_recent
 settings.appearance.theme_hud
 widgets.exe_folder.empty_title
+widgets.exe_folder.extensions_placeholder
 widgets.image_scrap.img_alt
 widgets.projects.empty_title
 widgets.script_folder.empty_title
