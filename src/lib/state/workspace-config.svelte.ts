@@ -17,6 +17,7 @@
  */
 
 import * as workspaceIpc from '$lib/ipc/workspace';
+import { itemStore } from '$lib/state/items.svelte';
 import { workspaceHistory } from '$lib/state/workspace-history.svelte';
 import { workspaceWidgets } from '$lib/state/workspace-widgets.svelte';
 import type { Workspace } from '$lib/types/workspace';
@@ -84,11 +85,24 @@ class WorkspaceConfig {
 		}
 	}
 
-	async deleteWorkspace(id: string): Promise<void> {
+	/**
+	 * PH-CF-100: `deleteItems` は **必須引数** (implicit default なし)。
+	 * - true: workspace と widget + 紐付く item (他 workspace 非参照のみ) を 1 transaction で削除。
+	 *   現状挙動 (E5 修正前) と同じ「workspace 消したらアイテムも消える」 を維持しつつ、
+	 *   参照集合を `sys-ws-* tag ∪ widget config item_ids` の和集合に広げて孤立残留を解消。
+	 * - false: workspace と widget だけ消し、 item は Library に残す。 PH-CF-300 で confirm
+	 *   modal の選択肢として user に渡る。
+	 *
+	 * E4/E5 ghost item 経路: cascade 後に `itemStore.loadItems()` + sidebar count 再取得を
+	 * 走らせ、 フロントのキャッシュ済 ghost item (DB から消えた item の参照) を解消する。
+	 * 旧実装は refresh していなかったため、 削除済 item の設定を開いて `ItemNotFound` が
+	 * 出ていた (Codex クロスチェック指摘の真因 #2)。
+	 */
+	async deleteWorkspace(id: string, deleteItems: boolean): Promise<void> {
 		this.loading = true;
 		this.error = null;
 		try {
-			await workspaceIpc.deleteWorkspace(id);
+			await workspaceIpc.deleteWorkspace(id, deleteItems);
 			this.workspaces = this.workspaces.filter((w) => w.id !== id);
 			if (this.activeWorkspaceId === id) {
 				this.activeWorkspaceId = this.workspaces.length > 0 ? this.workspaces[0].id : null;
@@ -101,6 +115,15 @@ class WorkspaceConfig {
 			// PR #268 Codex review #10: workspace 削除時に per-workspace pan key を localStorage から
 			// GC して quota 圧迫を防ぐ。既存 helper 経由で SecurityError も握り潰す。
 			removeKey(`arcagate.workspace.pan.${id}`);
+			// PH-CF-100 (Codex 指摘 #2): cascade DELETE で DB から消えた item を frontend
+			// itemStore が stale キャッシュし続けると、 user がその ghost item の設定を開いた
+			// 瞬間に backend `find_by_id` が `AppError::NotFound` を投げ「右下に赤いトースト」
+			// (= E4 / E5 共通症状の 1 系統) になる。 削除挙動に関わらず常に refresh。
+			await Promise.all([
+				itemStore.loadItems(),
+				itemStore.loadLibraryStats(),
+				itemStore.loadTagWithCounts(),
+			]);
 		} catch (e) {
 			this.error = getErrorMessage(e);
 		} finally {

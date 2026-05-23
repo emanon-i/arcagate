@@ -183,7 +183,9 @@ $effect(() => {
 			}
 			if (paths.length > 0) {
 				// U-7 (2026-05-12): widget の workspace_id を渡して sys-ws-<id> tag 自動付与。
-				await registerExeItemsBulk(paths, widget?.workspace_id).catch((e: unknown) => {
+				// PH-CF-100: source_widget_id を渡して 監視 widget back-link を埋める →
+				// user が Library で削除した entry は widget_item_hides 連動で復活しない (モグラ叩き解消)。
+				await registerExeItemsBulk(paths, widget?.workspace_id, widget?.id).catch((e: unknown) => {
 					console.warn('exe auto-register failed', e);
 				});
 				// Library の「すべて」 / 各タグ count まで完全同期。

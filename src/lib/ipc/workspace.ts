@@ -20,8 +20,12 @@ export async function updateWorkspace(id: string, name: string): Promise<Workspa
 	return invoke<Workspace>('cmd_update_workspace', { id, name });
 }
 
-export async function deleteWorkspace(id: string): Promise<void> {
-	return invoke<void>('cmd_delete_workspace', { id });
+// PH-CF-100: `deleteItems` は **必須引数** (implicit default を持たない契約)。
+// true: workspace に紐付く item を Library からも削除 (sys-ws-* tag ∪ widget config item_ids
+// の和集合、 他 workspace 非参照のみ)。 false: workspace と widget だけ消し item は残す。
+// E6 (PH-CF-300) で confirm modal が user 選択を渡せるよう、 ここを最初から bool 引数にしておく。
+export async function deleteWorkspace(id: string, deleteItems: boolean): Promise<void> {
+	return invoke<void>('cmd_delete_workspace', { id, deleteItems });
 }
 
 export async function addWidget(

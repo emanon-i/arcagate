@@ -54,8 +54,11 @@ function deleteWorkspace(id: string, name: string): void {
 	if (workspaceStore.workspaces.length <= 1) return;
 	// 2026-05-17 bug fix 連動: workspace 削除で widget 経由登録 item も Library から消えるため
 	// confirm 文言でも明示する。
+	// PH-CF-100: deleteItems=true で「タブ削除時に item も消す」 現状挙動を維持。
+	// E6 (PH-CF-300) の confirm modal が user 選択 (アイテムを残す/消す) を受け取れるよう、
+	// 引数経路だけここで bool 必須化しておく (PH-CF-300 でこの値が UI から渡る)。
 	if (!window.confirm(t('workspace.tab.delete_confirm', { name }))) return;
-	void workspaceStore.deleteWorkspace(id);
+	void workspaceStore.deleteWorkspace(id, true);
 }
 
 function handleDelete(id: string, name: string, ev: MouseEvent): void {
