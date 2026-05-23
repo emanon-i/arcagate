@@ -243,8 +243,13 @@ export async function getItemTags(page: Page, itemId: string): Promise<Tag[]> {
  *
  * Tauri v2.11 の `tauri://drag-drop` / `tauri://drag-enter` は OS から webview に届く
  * payload に `{ paths, position: PhysicalPosition }` を持つ (`@tauri-apps/api/webview.d.ts`)。
- * Playwright から本物の OS drop は起こせないため、 frontend の `emit()` で **同じ payload を持つ
- * 同じ event 名**を発火し、 +page.svelte の `listen('tauri://drag-drop', …)` を駆動する。
+ * Playwright から本物の OS drop は起こせないため、 Tauri internal IPC の `plugin:event|emit`
+ * を直接呼び出して **同じ event 名・同じ payload** を frontend listen() に届ける。
+ *
+ * 注意: `page.evaluate` 内で `await import('@tauri-apps/api/event')` を試みる方法は失敗する
+ * (bare module specifier は webview 上の生 JS 環境で resolve できず TypeError)。 build 済の
+ * window.__TAURI_INTERNALS__.invoke 経由で内部 IPC を直接呼ぶのが正解 (`event.js` 実装で
+ * `emit` は単に `invoke('plugin:event|emit', { event, payload })` を呼んでいるだけ)。
  *
  * emit による simulate は OS 由来の event と同一の listener 経路を通る (Tauri の event bus は
  * `emit` / OS 由来を区別しない)。 ただし HTML5 `drop` イベントは発火しないため、 HTML5 drop
@@ -252,31 +257,37 @@ export async function getItemTags(page: Page, itemId: string): Promise<Tag[]> {
  *
  * `position` は **device pixel** (PhysicalPosition)。 caller は client (CSS px) × DPR で渡す。
  */
+async function emitTauriEvent(
+	page: Page,
+	eventName: string,
+	payload: Record<string, unknown>,
+): Promise<void> {
+	await page.evaluate(
+		([name, p]) =>
+			(window as unknown as TauriWindow).__TAURI_INTERNALS__.invoke('plugin:event|emit', {
+				event: name,
+				payload: p,
+			}),
+		[eventName, payload] as const,
+	);
+}
+
 export async function emitTauriDragEnter(
 	page: Page,
 	payload: { paths: string[]; position: { x: number; y: number } },
 ): Promise<void> {
-	await page.evaluate(async (p) => {
-		const { emit } = await import('@tauri-apps/api/event');
-		await emit('tauri://drag-enter', p);
-	}, payload);
+	await emitTauriEvent(page, 'tauri://drag-enter', payload);
 }
 
 export async function emitTauriDragDrop(
 	page: Page,
 	payload: { paths: string[]; position: { x: number; y: number } },
 ): Promise<void> {
-	await page.evaluate(async (p) => {
-		const { emit } = await import('@tauri-apps/api/event');
-		await emit('tauri://drag-drop', p);
-	}, payload);
+	await emitTauriEvent(page, 'tauri://drag-drop', payload);
 }
 
 export async function emitTauriDragLeave(page: Page): Promise<void> {
-	await page.evaluate(async () => {
-		const { emit } = await import('@tauri-apps/api/event');
-		await emit('tauri://drag-leave', {});
-	});
+	await emitTauriEvent(page, 'tauri://drag-leave', {});
 }
 
 export interface WidgetWithPosition extends Widget {
