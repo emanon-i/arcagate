@@ -237,3 +237,60 @@ export async function bulkRemoveTag(page: Page, itemIds: string[], tagId: string
 export async function getItemTags(page: Page, itemId: string): Promise<Tag[]> {
 	return invoke<Tag[]>(page, 'cmd_get_item_tags', { itemId });
 }
+
+/**
+ * PH-CF-200: OS file drop の simulate 用 helper。
+ *
+ * Tauri v2.11 の `tauri://drag-drop` / `tauri://drag-enter` は OS から webview に届く
+ * payload に `{ paths, position: PhysicalPosition }` を持つ (`@tauri-apps/api/webview.d.ts`)。
+ * Playwright から本物の OS drop は起こせないため、 frontend の `emit()` で **同じ payload を持つ
+ * 同じ event 名**を発火し、 +page.svelte の `listen('tauri://drag-drop', …)` を駆動する。
+ *
+ * emit による simulate は OS 由来の event と同一の listener 経路を通る (Tauri の event bus は
+ * `emit` / OS 由来を区別しない)。 ただし HTML5 `drop` イベントは発火しないため、 HTML5 drop
+ * 経由の URL D&D (`+page.svelte:handleHtmlDrop`) は別途 `page.dispatchEvent('drop', …)` が必要。
+ *
+ * `position` は **device pixel** (PhysicalPosition)。 caller は client (CSS px) × DPR で渡す。
+ */
+export async function emitTauriDragEnter(
+	page: Page,
+	payload: { paths: string[]; position: { x: number; y: number } },
+): Promise<void> {
+	await page.evaluate(async (p) => {
+		const { emit } = await import('@tauri-apps/api/event');
+		await emit('tauri://drag-enter', p);
+	}, payload);
+}
+
+export async function emitTauriDragDrop(
+	page: Page,
+	payload: { paths: string[]; position: { x: number; y: number } },
+): Promise<void> {
+	await page.evaluate(async (p) => {
+		const { emit } = await import('@tauri-apps/api/event');
+		await emit('tauri://drag-drop', p);
+	}, payload);
+}
+
+export async function emitTauriDragLeave(page: Page): Promise<void> {
+	await page.evaluate(async () => {
+		const { emit } = await import('@tauri-apps/api/event');
+		await emit('tauri://drag-leave', {});
+	});
+}
+
+export interface WidgetWithPosition extends Widget {
+	position_x: number;
+	position_y: number;
+	width: number;
+	height: number;
+	config: string | null;
+}
+
+/** widget の position / config を含む 1 件取得 (e2e の配置検証で使う)。 */
+export async function listWidgetsWithPosition(
+	page: Page,
+	workspaceId: string,
+): Promise<WidgetWithPosition[]> {
+	return invoke<WidgetWithPosition[]>(page, 'cmd_list_widgets', { workspaceId });
+}
