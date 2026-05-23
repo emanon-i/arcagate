@@ -107,15 +107,19 @@ export async function registerExeItem(
 	});
 }
 
-// PH-CF-100: sourceWidgetId Some なら exe-folder 監視 widget 由来 → 各 path の parent folder
-// を entry_key として埋め、 widget_item_hides に登録された entry は skip (= 復活しない)。
+// PH-CF-100 / PH-CF-400: sourceWidgetId Some なら exe-folder 監視 widget 由来。
+// entryKeys は scan の `folder_path` (= 第1階層フォルダ正規化済 絶対パス) を paths と同順で
+// 渡す。 None / 長さ不一致なら backend が exe path の parent folder で fallback する。
+// widget_item_hides に登録された entry は skip (= 復活しない)。
 export async function registerExeItemsBulk(
 	paths: string[],
+	entryKeys?: string[],
 	workspaceId?: string,
 	sourceWidgetId?: string,
 ): Promise<Item[]> {
 	return invoke<Item[]>('cmd_register_exe_items_bulk', {
 		paths,
+		entryKeys,
 		workspaceId,
 		sourceWidgetId,
 	});

@@ -30,6 +30,7 @@ import { launchItemWithCascade, launchTargetWithCascade } from '$lib/utils/launc
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { widgetMenuItems } from '../_shared/menu-items';
 import type { WidgetSortField, WidgetSortOrder } from '../_shared/types';
+import { DEFAULT_EXE_FOLDER_EXTENSIONS } from './index';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -56,6 +57,8 @@ interface ExeFolderEntry {
 interface WidgetConfig {
 	watch_path?: string;
 	scan_depth?: number;
+	/** PH-CF-400: 監視拡張子 (可変、 default は DEFAULT_EXE_FOLDER_EXTENSIONS)。 */
+	extensions?: string[];
 	title?: string;
 	/** Settings dialog で入力する説明欄を widget 内に表示する。 */
 	description?: string;
@@ -131,9 +134,10 @@ $effect(() => {
 });
 
 // optimisticMoveAndResize が widget object を作り直して config 新参照 → `entries = []` が
-// 毎フレーム実行され scan 結果が消える bug 対策。前回 path/depth を覚えて実値変化時のみ reset。
+// 毎フレーム実行され scan 結果が消える bug 対策。前回 path/depth/extensions を覚えて実値変化時のみ reset。
 let prevPath: string | undefined;
 let prevDepth: number | undefined;
+let prevExtensionsKey: string | undefined;
 
 // B 案 (#16 cascade): watch_path 設定時に file system watcher (watched_paths) に自動連携。
 // duplicate (UNIQUE constraint) は silent skip。
@@ -149,14 +153,20 @@ async function ensureWatchedPath(path: string): Promise<void> {
 	}
 }
 
-// Lazy fetch: watch_path / scan_depth が設定されたとき + 変化時に scan
+// Lazy fetch: watch_path / scan_depth / extensions が設定されたとき + 変化時に scan
 $effect(() => {
 	const path = config.watch_path;
 	const depth = config.scan_depth ?? 2;
-	if (path === prevPath && depth === prevDepth) return;
+	const extensions =
+		config.extensions && config.extensions.length > 0
+			? config.extensions
+			: [...DEFAULT_EXE_FOLDER_EXTENSIONS];
+	const extensionsKey = extensions.join('|');
+	if (path === prevPath && depth === prevDepth && extensionsKey === prevExtensionsKey) return;
 	prevPath = path;
 	prevDepth = depth;
-	// 派生 state を即時 clear (path 変更 / unset 直後に旧 entries が残らない)。
+	prevExtensionsKey = extensionsKey;
+	// 派生 state を即時 clear (path / depth / extensions 変更 / unset 直後に旧 entries が残らない)。
 	entries = [];
 	scanError = null;
 	if (!path) {
@@ -167,27 +177,40 @@ $effect(() => {
 	void ensureWatchedPath(path);
 	const myId = ++scanRequestId;
 	scanning = true;
-	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', { searchId: scanSearchId, root: path, depth })
+	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', {
+		searchId: scanSearchId,
+		root: path,
+		depth,
+		extensions,
+	})
 		.then(async (result) => {
 			if (myId !== scanRequestId) return;
 			entries = result;
 			// scan 完了時に発見 exe を Library に自動登録 (idempotent: 既存 target は skip)。
+			// PH-CF-400: entry_key (= 第1階層フォルダ folder_path) を paths と同順で送る。
 			const paths: string[] = [];
+			const entryKeys: string[] = [];
 			for (const entry of result) {
 				const override = config.item_overrides?.[entry.folderPath];
 				const exePath =
 					override && entry.exeCandidates.some((c) => c.path === override)
 						? override
 						: entry.exeCandidates[0]?.path;
-				if (exePath) paths.push(exePath);
+				if (exePath) {
+					paths.push(exePath);
+					entryKeys.push(entry.folderPath);
+				}
 			}
 			if (paths.length > 0) {
 				// U-7 (2026-05-12): widget の workspace_id を渡して sys-ws-<id> tag 自動付与。
 				// PH-CF-100: source_widget_id を渡して 監視 widget back-link を埋める →
 				// user が Library で削除した entry は widget_item_hides 連動で復活しない (モグラ叩き解消)。
-				await registerExeItemsBulk(paths, widget?.workspace_id, widget?.id).catch((e: unknown) => {
-					console.warn('exe auto-register failed', e);
-				});
+				// PH-CF-400: entryKeys = 第1階層フォルダ folderPath を同順で送る (= scan entry id)。
+				await registerExeItemsBulk(paths, entryKeys, widget?.workspace_id, widget?.id).catch(
+					(e: unknown) => {
+						console.warn('exe auto-register failed', e);
+					},
+				);
 				// Library の「すべて」 / 各タグ count まで完全同期。
 				await itemStore.loadItems();
 				await itemStore.loadLibraryStats();

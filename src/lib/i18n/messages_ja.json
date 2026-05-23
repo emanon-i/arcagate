@@ -712,13 +712,17 @@
 		},
 		"dblclick_open_hint": "ダブルクリックで OS の既定アプリで開く",
 		"exe_folder": {
-			"auto_select_reset": "自動選択（最大サイズ）に戻す",
-			"empty_description": "設定モーダルで監視ルートを選ぶと、サブフォルダの exe が自動で表示されます。",
+			"auto_select_reset": "自動選択（浅い階層・サイズ大優先）に戻す",
+			"empty_description": "設定モーダルで監視ルートを選ぶと、サブフォルダの対象ファイルが自動で表示されます。",
 			"empty_title": "No folder configured",
-			"no_exe_subfolders": "指定フォルダ内に exe を含むサブフォルダがありません。",
-			"scan_depth_label": "スキャン階層 (1〜3)",
-			"select_exe_aria": "{label} の起動 exe を選ぶ",
-			"switch_exe_title": "起動 exe を切替"
+			"extensions_help": "検出する拡張子。 カンマ区切りで複数指定 (例: exe, blend, clip)。 先頭の . は省略可。",
+			"extensions_label": "監視拡張子",
+			"extensions_placeholder": "exe, bat, cmd, ps1, sh",
+			"no_exe_subfolders": "指定フォルダ内に対象ファイルを含むサブフォルダがありません。",
+			"scan_depth_help": "Root 直下から数える階層 (1〜{max})。 浅い階層優先・サイズ大優先で 1 ファイルを代表選択。",
+			"scan_depth_label": "スキャン階層 (1〜{max})",
+			"select_exe_aria": "{label} の起動ファイルを選ぶ",
+			"switch_exe_title": "起動ファイルを切替"
 		},
 		"favorites": {
 			"empty_message": "★ のついたアイテムがここに表示されます"

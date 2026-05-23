@@ -712,13 +712,17 @@
 		},
 		"dblclick_open_hint": "Double-click to open in default app",
 		"exe_folder": {
-			"auto_select_reset": "Auto-select (largest file)",
-			"empty_description": "Select a watch root in the settings modal and exe files in subfolders will appear automatically.",
+			"auto_select_reset": "Auto-select (shallowest / largest)",
+			"empty_description": "Select a watch root in the settings modal and matching files in subfolders will appear automatically.",
 			"empty_title": "No folder configured",
-			"no_exe_subfolders": "No subfolders containing exe files found in the specified folder.",
-			"scan_depth_label": "Scan depth (1–3)",
-			"select_exe_aria": "Select launch exe for {label}",
-			"switch_exe_title": "Switch launch exe"
+			"extensions_help": "Extensions to detect. Comma-separated (e.g. exe, blend, clip). Leading dot is optional.",
+			"extensions_label": "Watch extensions",
+			"extensions_placeholder": "exe, bat, cmd, ps1, sh",
+			"no_exe_subfolders": "No first-level subfolders contain matching files in the specified folder.",
+			"scan_depth_help": "Levels to recurse below each first-level folder (1–{max}). The shallowest / largest matching file is chosen as the representative.",
+			"scan_depth_label": "Scan depth (1–{max})",
+			"select_exe_aria": "Select launch file for {label}",
+			"switch_exe_title": "Switch launch file"
 		},
 		"favorites": {
 			"empty_message": "Items marked ★ will appear here"

@@ -217,17 +217,22 @@ pub fn cmd_register_exe_item(
 /// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録 (ExeFolderWatchWidget の "全部追加" button 用)。
 /// U-7: workspace_id 指定時、 各 item に sys-ws-<id> tag も自動付与。
 ///
-/// PH-CF-100: `source_widget_id` Some なら exe-folder 監視 widget 由来 → 各 path の
-/// parent folder を entry_key として埋め、 hide 記録があれば skip。 None は user 直接経路。
+/// PH-CF-100 / PH-CF-400: `source_widget_id` Some なら exe-folder 監視 widget 由来 →
+/// 各 path に対応する **第1階層フォルダ** (= scan entry の `folder_path`) を `entry_keys`
+/// で渡し、 source_entry_key に埋める。 `entry_keys` が None / 長さ不一致なら exe path の
+/// parent folder で fallback (= 旧挙動)。 hide 記録があれば skip。
+/// source_widget_id None は user 直接経路 (entry_keys は無視)。
 #[tauri::command]
 pub fn cmd_register_exe_items_bulk(
     services: State<AppServices>,
     paths: Vec<String>,
+    entry_keys: Option<Vec<String>>,
     workspace_id: Option<String>,
     source_widget_id: Option<String>,
 ) -> Result<Vec<Item>, AppError> {
     services.item.register_exe_items_bulk(
         paths,
+        entry_keys,
         workspace_id.as_deref(),
         source_widget_id.as_deref(),
     )
