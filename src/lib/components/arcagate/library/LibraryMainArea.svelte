@@ -1,4 +1,5 @@
 <script lang="ts">
+import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { bulkAddTag, bulkDeleteItems, getItemTags, searchItemsInTag } from '$lib/ipc/items';
@@ -116,9 +117,22 @@ async function handleBulkExport() {
 	}
 }
 
+// PH-CF-300 (2026-05-23): bulk delete の `window.confirm` を ConfirmDialog (destructive)
+// に置換。 破壊的操作 = 専用 confirm modal か undo-toast を必ず経由する契約。
+let bulkDeleteConfirmOpen = $state(false);
+
+function openBulkDeleteConfirm(): void {
+	if (selectedIds.size === 0) return;
+	bulkDeleteConfirmOpen = true;
+}
+
+function cancelBulkDelete(): void {
+	bulkDeleteConfirmOpen = false;
+}
+
 async function handleBulkDelete() {
 	if (selectedIds.size === 0) return;
-	if (!window.confirm(tPlural('library.selection.delete_confirm', selectedIds.size))) return;
+	bulkDeleteConfirmOpen = false;
 	try {
 		const ids = Array.from(selectedIds);
 		const count = await bulkDeleteItems(ids);
@@ -405,7 +419,7 @@ function handleGridKeydown(e: KeyboardEvent) {
 					type="button"
 					variant="destructive"
 					size="sm"
-					onclick={() => void handleBulkDelete()}
+					onclick={openBulkDeleteConfirm}
 				>
 					{t('common.delete')}
 				</Button>
@@ -430,8 +444,21 @@ function handleGridKeydown(e: KeyboardEvent) {
 			{onAddItem}
 			onGridKeydown={handleGridKeydown}
 			{onEditItem}
+			onDeleteItem={(item) => void deleteWithUndo(item)}
 		/>
 	</div>
 </section>
+
+<!-- PH-CF-300: 一括削除確認 modal (window.confirm 置換)。 影響範囲 (件数) を文言で明示。 -->
+<ConfirmDialog
+	open={bulkDeleteConfirmOpen}
+	title={t('library.selection.delete_dialog.title')}
+	description={tPlural('library.selection.delete_dialog.desc', selectedIds.size)}
+	extraNote={t('library.selection.delete_dialog.warning')}
+	confirmLabel={t('common.delete')}
+	confirmVariant="destructive"
+	onConfirm={() => void handleBulkDelete()}
+	onCancel={cancelBulkDelete}
+/>
 
 <LibraryUndoSnackbar />

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { CheckCircle2, Download, RefreshCw } from '@lucide/svelte';
 import { check, type Update } from '@tauri-apps/plugin-updater';
+import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -14,6 +15,8 @@ let checking = $state(false);
 let installing = $state(false);
 let available = $state<Update | null>(null);
 let lastChecked = $state<Date | null>(null);
+// PH-CF-300 (2026-05-23): window.confirm 撤去。 install 確認は ConfirmDialog 経由。
+let installConfirmOpen = $state(false);
 
 async function handleCheck() {
 	checking = true;
@@ -34,11 +37,18 @@ async function handleCheck() {
 	}
 }
 
+function openInstallConfirm(): void {
+	if (!available) return;
+	installConfirmOpen = true;
+}
+
+function cancelInstallConfirm(): void {
+	installConfirmOpen = false;
+}
+
 async function handleInstall() {
 	if (!available) return;
-	if (!window.confirm(t('settings.updater.install_confirm', { version: available.version }))) {
-		return;
-	}
+	installConfirmOpen = false;
 	installing = true;
 	try {
 		// downloadAndInstall: download + 適用 + 自動再起動
@@ -82,7 +92,7 @@ async function handleInstall() {
 				type="button"
 				variant="default"
 				size="sm"
-				onclick={() => void handleInstall()}
+				onclick={openInstallConfirm}
 				disabled={installing}
 				data-testid="updater-install"
 			>
@@ -118,3 +128,15 @@ async function handleInstall() {
 		</div>
 	{/if}
 </div>
+
+<!-- PH-CF-300: 自動再起動 = 影響範囲ありの操作。 ConfirmDialog 経由。 -->
+{#if available}
+	<ConfirmDialog
+		open={installConfirmOpen}
+		title={t('settings.updater.install_dialog_title')}
+		description={t('settings.updater.install_confirm', { version: available.version })}
+		confirmLabel={t('settings.updater.install_dialog_confirm')}
+		onConfirm={() => void handleInstall()}
+		onCancel={cancelInstallConfirm}
+	/>
+{/if}
