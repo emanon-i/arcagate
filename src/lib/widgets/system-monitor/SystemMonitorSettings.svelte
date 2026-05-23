@@ -3,10 +3,13 @@
  * PH-issue-026 (Issue 23): SystemMonitorSettings polish — 共通 Switch 採用 + clamp 統一。
  * PH-issue-042 (Issue 27/29): ネットワーク表示 toggle + chart_type select 追加。
  * 4/30 user 検収: chart_type を per-metric (CPU / メモリ / ディスク / ネットワーク) で個別 select。
- * W-8 (2026-05-19): 旧共通 `chart_type` は migration 037 で per-metric key へ展開済、fallback 撤去。
+ * PH-CF-500 D7: SYSTEM_MONITOR_DEFAULTS (index.ts) を唯一の出所として import し、
+ *   widget 本体と settings で default literal が食い違わないように統一 (= 設定を開く前後で
+ *   見た目が変わらない契約)。 各 derived の `?? <literal>` を撤廃。
  */
 import Switch from '$lib/components/common/Switch.svelte';
 import { t } from '$lib/i18n.svelte';
+import { SYSTEM_MONITOR_DEFAULTS } from './index';
 
 type ChartType = 'sparkline' | 'bar' | 'gauge';
 
@@ -27,15 +30,25 @@ interface Props {
 
 let { config = $bindable() }: Props = $props();
 
-let smRefreshMs = $derived(config.refresh_interval_ms ?? 2000);
-let smShowCpu = $derived(config.show_cpu ?? true);
-let smShowMemory = $derived(config.show_memory ?? true);
-let smShowDisk = $derived(config.show_disk ?? false);
-let smShowNetwork = $derived(config.show_network ?? false);
-let smCpuChart = $derived<ChartType>(config.cpu_chart_type ?? 'sparkline');
-let smMemChart = $derived<ChartType>(config.memory_chart_type ?? 'sparkline');
-let smDiskChart = $derived<ChartType>(config.disk_chart_type ?? 'gauge');
-let smNetChart = $derived<ChartType>(config.network_chart_type ?? 'sparkline');
+let smRefreshMs = $derived(
+	config.refresh_interval_ms ?? SYSTEM_MONITOR_DEFAULTS.refresh_interval_ms,
+);
+let smShowCpu = $derived(config.show_cpu ?? SYSTEM_MONITOR_DEFAULTS.show_cpu);
+let smShowMemory = $derived(config.show_memory ?? SYSTEM_MONITOR_DEFAULTS.show_memory);
+let smShowDisk = $derived(config.show_disk ?? SYSTEM_MONITOR_DEFAULTS.show_disk);
+let smShowNetwork = $derived(config.show_network ?? SYSTEM_MONITOR_DEFAULTS.show_network);
+let smCpuChart = $derived<ChartType>(
+	config.cpu_chart_type ?? SYSTEM_MONITOR_DEFAULTS.cpu_chart_type,
+);
+let smMemChart = $derived<ChartType>(
+	config.memory_chart_type ?? SYSTEM_MONITOR_DEFAULTS.memory_chart_type,
+);
+let smDiskChart = $derived<ChartType>(
+	config.disk_chart_type ?? SYSTEM_MONITOR_DEFAULTS.disk_chart_type,
+);
+let smNetChart = $derived<ChartType>(
+	config.network_chart_type ?? SYSTEM_MONITOR_DEFAULTS.network_chart_type,
+);
 let smTitle = $derived(config.title ?? '');
 </script>
 
