@@ -53,6 +53,22 @@ export interface UpdateWorkspaceWallpaperInput {
 	blur: number;
 }
 
+/**
+ * PH-CF-700 C8: Library 画面のグローバル壁紙設定。 workspace 壁紙と shape は同型だが
+ * workspace_id を持たない。 config table の library_wallpaper_* キーに格納される。
+ */
+export interface LibraryWallpaper {
+	path: string | null;
+	opacity: number; // 0.0..1.0, default 0.6
+	blur: number; // 0..40 (px), default 0
+}
+
+export interface UpdateLibraryWallpaperInput {
+	path: string | null;
+	opacity: number;
+	blur: number;
+}
+
 export interface WorkspaceWidget {
 	id: string;
 	workspace_id: string;

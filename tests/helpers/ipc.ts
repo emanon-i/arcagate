@@ -252,6 +252,30 @@ export async function getItemTags(page: Page, itemId: string): Promise<Tag[]> {
 	return invoke<Tag[]>(page, 'cmd_get_item_tags', { itemId });
 }
 
+// PH-CF-700 C8: ライブラリ画面の グローバル壁紙設定 (path / opacity / blur) を取得 / 更新。
+export interface LibraryWallpaper {
+	path: string | null;
+	opacity: number;
+	blur: number;
+}
+
+export interface UpdateLibraryWallpaperInput {
+	path: string | null;
+	opacity: number;
+	blur: number;
+}
+
+export async function getLibraryWallpaper(page: Page): Promise<LibraryWallpaper> {
+	return invoke<LibraryWallpaper>(page, 'cmd_get_library_wallpaper');
+}
+
+export async function setLibraryWallpaper(
+	page: Page,
+	input: UpdateLibraryWallpaperInput,
+): Promise<LibraryWallpaper> {
+	return invoke<LibraryWallpaper>(page, 'cmd_set_library_wallpaper', { input });
+}
+
 /**
  * PH-CF-200: OS file drop の simulate 用 helper。
  *

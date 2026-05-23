@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Eye, EyeOff, LayoutGrid, LayoutList, Plus } from '@lucide/svelte';
+import { CheckSquare, Eye, EyeOff, LayoutGrid, LayoutList, ListChecks, Plus } from '@lucide/svelte';
 import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
 import type { SortField, SortOrder } from '$lib/utils/library-sort';
@@ -106,6 +106,27 @@ let {
 	>
 		<LayoutList class="h-4 w-4" />
 	</button>
+	<!-- PH-CF-700 C5: 複数選択トグルをアイコンボタン化 (他のツールバーボタンと同形 p-2)。
+	     DOM 順は「複数選択トグル → アイテム追加」 で追加ボタンを最右へ。 アイコンは
+	     `ListChecks` (idle) / `CheckSquare` (selection ON) で「リストから複数選ぶ」 意図を表現。
+	     aria-label / title は従来の i18n キー (selection_start / selection_end) を維持。 -->
+	<button
+		type="button"
+		class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 transition-[background-color,color,transform] duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {selectionMode
+			? 'bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
+			: 'bg-[var(--ag-surface-3)] text-[var(--ag-text-muted)]'}"
+		aria-label={selectionMode ? t('library.sort.selection_end') : t('library.sort.selection_start')}
+		title={selectionMode ? t('library.sort.selection_end') : t('library.sort.selection_start')}
+		aria-pressed={selectionMode}
+		data-testid="library-selection-toggle"
+		onclick={() => onSelectionToggle?.()}
+	>
+		{#if selectionMode}
+			<CheckSquare class="h-4 w-4" />
+		{:else}
+			<ListChecks class="h-4 w-4" />
+		{/if}
+	</button>
 	<button
 		type="button"
 		class="flex items-center gap-2 rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-3 text-sm text-[var(--ag-text-secondary)] transition-[background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)]"
@@ -114,16 +135,5 @@ let {
 	>
 		<Plus class="h-4 w-4" />
 		{t('library.add_item')}
-	</button>
-	<button
-		type="button"
-		class="rounded-[var(--ag-radius-sm)] border border-[var(--ag-border)] p-2 text-[var(--ag-text-muted)] transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-4)] hover:text-[var(--ag-text-primary)] {selectionMode
-			? 'bg-[var(--ag-accent-bg)] text-[var(--ag-accent-text)]'
-			: 'bg-[var(--ag-surface-3)]'}"
-		aria-label={selectionMode ? t('library.sort.selection_end') : t('library.sort.selection_start')}
-		data-testid="library-selection-toggle"
-		onclick={() => onSelectionToggle?.()}
-	>
-		{selectionMode ? t('library.sort.selection_end') : t('library.sort.selection_start')}
 	</button>
 </div>

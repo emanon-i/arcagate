@@ -2,6 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import type { GitStatus } from '$lib/types/git';
 import type { Item } from '$lib/types/item';
 import type {
+	LibraryWallpaper,
+	UpdateLibraryWallpaperInput,
 	UpdateWorkspaceWallpaperInput,
 	WidgetType,
 	Workspace,
@@ -76,6 +78,19 @@ export async function setWorkspaceWallpaper(
 	input: UpdateWorkspaceWallpaperInput,
 ): Promise<Workspace> {
 	return invoke<Workspace>('cmd_set_workspace_wallpaper', { input });
+}
+
+// PH-CF-700 C8: Library 画面の壁紙設定 (グローバル) を取得 / 更新する。 path / opacity / blur
+// は backend の wallpaper_service で clamp 済み。 `save_wallpaper_file` (workspace 壁紙と共用)
+// で copy した path を `setLibraryWallpaper` でこのグローバル設定に紐付ける。
+export async function getLibraryWallpaper(): Promise<LibraryWallpaper> {
+	return invoke<LibraryWallpaper>('cmd_get_library_wallpaper');
+}
+
+export async function setLibraryWallpaper(
+	input: UpdateLibraryWallpaperInput,
+): Promise<LibraryWallpaper> {
+	return invoke<LibraryWallpaper>('cmd_set_library_wallpaper', { input });
 }
 
 export async function getFrequentItems(limit: number): Promise<Item[]> {
