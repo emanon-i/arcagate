@@ -24,6 +24,7 @@ import { workspaceStore } from '$lib/state/workspace.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
+import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
 import type { WidgetSortField, WidgetSortOrder } from '../_shared/types';
 
@@ -44,14 +45,8 @@ interface WidgetConfig {
 	confirm_before_run?: boolean;
 }
 
-let config = $derived.by<WidgetConfig>(() => {
-	if (!widget?.config) return {};
-	try {
-		return JSON.parse(widget.config) as WidgetConfig;
-	} catch {
-		return {};
-	}
-});
+// PH-CF-500 D3: parseWidgetConfig helper で 3 監視 widget 共通の config パース契約に統一。
+let config = $derived(parseWidgetConfig<WidgetConfig>(widget?.config, {}));
 
 let entries = $state<ScriptEntry[]>([]);
 let scanning = $state(false);

@@ -99,6 +99,18 @@ pre-commit:
       # ConfirmDialog (専用 confirm modal) or undo-toast 経路を強制。
       glob: "src/**/*.{ts,svelte}"
       run: bash scripts/audit-window-confirm.sh
+    sticky-bar-occlusion:
+      # PH-CF-500 D1: .ag-sticky-bar が card scroll 内容と透けて重ならないよう、
+      # --ag-sticky-bar-bg を transparent に戻していないか + 個別要素で bg-transparent
+      # を重ね打ちしていないかを fail-closed で gate する。
+      glob: "{src/lib/styles/arcagate-theme.css,src/lib/widgets/**/*.svelte}"
+      run: bash scripts/audit-sticky-bar-occlusion.sh
+    widget-default-config:
+      # PH-CF-500 D7: widget body と settings dialog が同 config key に対して異なる
+      # default リテラルを書いていないか検証。 不一致は「設定を開く前後で見た目が変わる」
+      # bug (system-monitor cpu/memory/disk chart_type で実発) に直結する。
+      glob: "src/lib/widgets/**/*.{svelte,ts}"
+      run: bash scripts/audit-widget-default-config.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

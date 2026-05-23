@@ -25,7 +25,6 @@ import {
 	LayoutList,
 	Settings,
 } from '@lucide/svelte';
-import { listen } from '@tauri-apps/api/event';
 import WidgetShell from '$lib/components/arcagate/common/WidgetShell.svelte';
 import WidgetSettingsDialog from '$lib/components/arcagate/workspace/WidgetSettingsDialog.svelte';
 import EmptyState from '$lib/components/common/EmptyState.svelte';
@@ -33,7 +32,6 @@ import ErrorState from '$lib/components/common/ErrorState.svelte';
 import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import { autoRegisterFolderItems } from '$lib/ipc/items';
-import { launchItem } from '$lib/ipc/launch';
 import { getFolderMtimesBatch, getGitStatusesBatch } from '$lib/ipc/workspace';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
@@ -45,11 +43,11 @@ import type { Item } from '$lib/types/item';
 import { WIDGET_LABELS, type WorkspaceWidget } from '$lib/types/workspace';
 import { tPlural } from '$lib/utils/intl-formatter.svelte';
 import { formatIpcError } from '$lib/utils/ipc-error';
+import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
 import type { WidgetSortField, WidgetSortOrder } from '../_shared/types';
-import { clampGitPollIntervalSec } from './git-poll';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -68,20 +66,23 @@ let scanning = $state(false);
 let scanError = $state<string | null>(null);
 let descExpanded = $state(false);
 
+// PH-CF-500 D2: max_items / git_poll_interval_sec / auto_add を撤廃。
+// 「監視 = 常時自動」 を default 契約とし、 ユーザは「監視するか / しないか」 を widget の
+// 配置 (= 削除) で表現する (他の監視 widget と同じ posture)。 表示件数は WidgetShell の
+// scroll で吸収、 git 状態は scan 完了時の初回 fetch のみとする (background polling なし)。
 const PROJECT_CONFIG_DEFAULTS = {
-	max_items: 10,
-	git_poll_interval_sec: 60,
 	// PH-issue-039 / 検収項目 #12: default title を 「フォルダ監視」 に統一。
 	title: '',
 	description: '',
 	watched_folder: '',
-	auto_add: false,
 	// I-4 (2026-05-10 user 検収): 並び替え (ExeFolder と同じ key 集合、type は _shared/types.ts に集約)。
 	sort_field: 'name' as WidgetSortField,
 	sort_order: 'asc' as WidgetSortOrder,
 	// audit batch deferred (2026-05-13) #8: list / card 表示 mode。
 	// Projects は既存の multi-col grid を 'card' default、 'list' 選択時に 1 col 縦 stack に。
 	view_mode: 'card' as 'list' | 'card',
+	// PH-CF-500 D4: widget レベルの起動アプリ default (exe_folder と同 cascade pattern)。
+	default_opener_id: null as string | null,
 };
 
 let config = $derived(parseWidgetConfig(widget?.config, PROJECT_CONFIG_DEFAULTS));
@@ -240,51 +241,19 @@ $effect(() => {
 		});
 });
 
-// ポーリング (git status 更新)
-$effect(() => {
-	if (folderItems.length === 0) return;
-	// W-10 (2026-05-19): config 値が契約下限 (10 秒) を破っていても、実行直前で
-	// clamp して setInterval が 10 秒未満で発火しないことを保証する。
-	const interval = clampGitPollIntervalSec(config.git_poll_interval_sec) * 1000;
-	const timer = setInterval(() => {
-		void fetchGitStatuses(folderItems);
-		// #10: poll 毎にフォルダ実 mtime も再取得 → 監視中の更新で自動再ソート。
-		void fetchFolderMtimes(folderItems);
-	}, interval);
-	return () => clearInterval(timer);
-});
-
-// リアルタイム: 監視フォルダに新規ディレクトリが作成されたとき auto_add ON なら即座に登録
-$effect(() => {
-	if (!config.auto_add || !config.watched_folder) return;
-	const folder = config.watched_folder;
-	let unlisten: (() => void) | undefined;
-	void listen<string>('folder://new-directory', async (event) => {
-		const newPath = event.payload;
-		const parentPath = newPath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
-		const normalizedFolder = folder.replace(/\\/g, '/').replace(/\/$/, '');
-		if (parentPath !== normalizedFolder) return;
-		const newItems = await autoRegisterFolderItems(folder, widget?.workspace_id, widget?.id);
-		// PH-CF-100: hide 連動済の back-link 経路で entry 一致を判定 (= newItems は復活分を含まない)。
-		if (newItems.length > 0) {
-			const existingIds = new Set(folderItems.map((i) => i.id));
-			const merged = [...folderItems, ...newItems.filter((i) => !existingIds.has(i.id))];
-			folderItems = merged;
-			void fetchGitStatuses(newItems, true);
-		}
-	}).then((fn) => {
-		unlisten = fn;
-	});
-	return () => unlisten?.();
-});
+// PH-CF-500 D2: git status / mtime polling と auto_add listener を撤廃。
+// 監視 widget の他 2 種 (exe_folder / script_folder) に揃え、 scan 完了時の初回 fetch のみ。
+// user が明示的に再 scan (config 変更 / widget 再 mount) する経路で最新化される。
 
 let title = $derived(config.title || WIDGET_LABELS.projects);
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
 async function handleLaunch(item: Item) {
+	// PH-CF-500 D4: cascade resolve (item-level override → widget default_opener_id → system)。
+	// exe_folder と同 pattern で「VSCode で開く」 等の widget default opener を尊重する。
 	try {
-		await launchItem(item.id);
+		await launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id });
 		toastStore.add(t('toast.launched_label', { label: item.label }), 'success');
 	} catch (e: unknown) {
 		toastStore.add(formatLaunchError(item.label, e), 'error');
@@ -292,7 +261,28 @@ async function handleLaunch(item: Item) {
 }
 </script>
 
-<WidgetShell {title} icon={FolderKanban} {menuItems}>
+<!-- PH-CF-500 D3: 監視 widget 共通契約に揃え、 WidgetShell に config.watched_folder を path
+     として渡し、 widget body 右クリックで「監視 folder のパスをコピー / Explorer で開く」
+     を有効化 (exe_folder / script_folder と同 pattern)。 -->
+<WidgetShell {title} icon={FolderKanban} {menuItems} path={config.watched_folder}>
+	<!-- PH-CF-500 D3: description disclosure は empty / error 状態でも表示するため
+	     {:else} の外に移動 (旧実装は scan 結果ありの時だけ見える死角があった)。 -->
+	{#if config.description}
+		<div class="mb-2 text-xs text-[var(--ag-text-muted)]">
+			<button
+				type="button"
+				class="flex items-center gap-1 rounded px-0.5 py-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				aria-expanded={descExpanded}
+				onclick={() => (descExpanded = !descExpanded)}
+			>
+				<Info class="h-3.5 w-3.5 shrink-0" />
+				<span class="truncate">{t('widgets.common.description_label')}</span>
+			</button>
+			{#if descExpanded}
+				<p class="mt-1 whitespace-pre-wrap break-words pl-0.5 text-[var(--ag-text-secondary)]">{config.description}</p>
+			{/if}
+		</div>
+	{/if}
 	{#if !config.watched_folder}
 		<!-- PH-issue-039 / 検収項目 #16: ExeFolder と同じ EmptyState で「設定を開く」誘導 -->
 		<EmptyState
@@ -321,24 +311,6 @@ async function handleLaunch(item: Item) {
 			testId="projects-no-subfolders-state"
 		/>
 	{:else}
-		<!-- B-7 #9 / PH-PQ-500: description は disclosure button。click で inline 展開
-		     (旧実装は onclick 無しの dead button + native title tooltip だった)。 -->
-		{#if config.description}
-			<div class="mb-3 text-xs text-[var(--ag-text-muted)]">
-				<button
-					type="button"
-					class="flex items-center gap-1 rounded px-0.5 py-0.5 hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-					aria-expanded={descExpanded}
-					onclick={() => (descExpanded = !descExpanded)}
-				>
-					<Info class="h-3.5 w-3.5 shrink-0" />
-					<span class="truncate">{t('widgets.common.description_label')}</span>
-				</button>
-				{#if descExpanded}
-					<p class="mt-1 whitespace-pre-wrap break-words pl-0.5 text-[var(--ag-text-secondary)]">{config.description}</p>
-				{/if}
-			</div>
-		{/if}
 		<!-- I-4 (2026-05-10 user 検収): 並び替え toolbar (ExeFolder I-3 と同じ sticky pattern)。
 		     widget header に pin して scroll 中も常時操作可能。
 		     ag-sticky-bar で widget 本体 glass 面の継続にする (独立した塗りつぶし矩形を持たない)。
