@@ -41,6 +41,24 @@
 - config schema: `watch_path` / `scan_depth` (1-3, default 2) / `item_overrides` (Record) / `sort_field` / `sort_order` / `default_opener_id` / `title` / `description` / `view_mode`
 - backend: [Exe Scanner](../backend/exe-scanner.md) / [Folder Watch Service](../backend/folder-watch.md) / [Launcher](../backend/launcher.md)
 
+## 機能契約
+
+### 監視ウィジェットの除外契約 (PH-CF-100)
+
+自動登録した Library item を user が削除したら、 当該 widget の除外リスト
+(`widget_item_hides`、 key = `source_entry_key` = 第1階層フォルダ = exe の **parent folder** の
+正規化済 絶対パス) に記録し、 **再 scan で復活させない**。 item.target は exe ファイルパス、
+entry_key は parent folder と key 空間が異なるため、 hide の橋渡しは `source_entry_key` 経由で
+1 系統に揃える (`item_target` 列のセマンティクスは scan entry id = parent folder)。 widget 自体
+を削除すると除外リストは FK CASCADE で消える (fresh state)。 復元 UI は PH-CF-500。
+
+機械検出:
+
+- 統合 test `test_exe_folder_auto_register_delete_no_resurrection`
+- [item-service.md](../backend/item-service.md) §監視アイテムの所有関係契約 + [exe-scanner.md](../backend/exe-scanner.md) §scan reconcile 契約 と同根
+
 ## 既知の判断
 
 - U-4 で scan 対象に script (.bat / .cmd / .ps1 / .sh) も含む拡張
+- PH-CF-100 (2026-05-23) で `cmd_register_exe_items_bulk` に `sourceWidgetId` 引数を追加、
+  widget が自分の id を渡すと entry_key (= parent folder) で back-link が埋まる。

@@ -41,6 +41,22 @@
 - config schema: `watched_folder` / `max_items` (1-100) / `git_poll_interval_sec` (10-600) / `auto_add` / `title` / `description` / `sort_field` / `sort_order` / `view_mode`
 - backend: [Folder Watch Service](../backend/folder-watch.md) / [Item Service](../backend/item-service.md)
 
+## 機能契約
+
+### 監視ウィジェットの除外契約 (PH-CF-100)
+
+自動登録した Library item を user が削除したら、 当該 widget の除外リスト
+(`widget_item_hides`、 key = `source_entry_key` = subfolder の正規化済 絶対パス) に記録し、
+**再 scan で復活させない**。 widget 自体を削除すると除外リストは FK CASCADE で消える
+(fresh state)。 除外を解除する復元 UI は widget 設定に置く (UI 仕様は PH-CF-500)。
+
+機械検出:
+
+- 統合 test `test_projects_auto_register_delete_no_resurrection` / `test_projects_auto_register_unhide_resurrects`
+- [item-service.md](../backend/item-service.md) §監視アイテムの所有関係契約 と同根
+
 ## 既知の判断
 
 - icon / label は「フォルダ監視」で WIDGET_LABELS に統一 (旧「プロジェクト」から変更、PH-issue-039)
+- PH-CF-100 (2026-05-23) で `cmd_auto_register_folder_items` に `sourceWidgetId` 引数を追加、
+  widget が自分の id を渡すと back-link が埋まり逆方向ライフサイクル契約に乗る。
