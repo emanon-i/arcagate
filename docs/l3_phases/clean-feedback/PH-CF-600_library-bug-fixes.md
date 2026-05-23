@@ -1,6 +1,6 @@
 ---
 id: PH-CF-600
-status: planning
+status: implemented
 batch: clean-feedback
 type: バグ修正
 era: Distribution Hardening
