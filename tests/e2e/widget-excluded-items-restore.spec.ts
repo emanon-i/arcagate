@@ -42,9 +42,9 @@ async function openSettingsDialog(page: Page, widgetId: string): Promise<void> {
 	await openWorkspace(page);
 	const widget = page.locator(`[data-widget-id="${widgetId}"]`);
 	await widget.waitFor({ state: 'visible', timeout: 15_000 });
-	// settings 歯車 button は menuItems の右端 (WidgetShell `K-12` 規約)。
-	// 設定 dialog の一意な title (`widgets.settings_dialog_title`) で開閉検証する。
-	const settingsBtn = widget.getByRole('button', { name: '設定' });
+	// settings 歯車 button は menuItems の右端 (WidgetShell `K-12` 規約)。 aria-label は exact match
+	// にする ('設定' は EmptyState の「設定を開く」 button にも substring match してしまうため)。
+	const settingsBtn = widget.getByRole('button', { name: '設定', exact: true });
 	await settingsBtn.click();
 	// dialog は heading 「<label> の設定」 (i18n) を持つ。
 	await expect(page.getByRole('heading', { name: /の設定$/ })).toBeVisible({ timeout: 5_000 });
