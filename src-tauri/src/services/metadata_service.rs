@@ -352,6 +352,8 @@ mod tests {
                 is_tracked: false,
                 default_app: None,
                 card_override_json: None,
+                source_widget_id: None,
+                source_entry_key: None,
                 created_at: "2026-05-04T00:00:00Z".to_string(),
                 updated_at: "2026-05-04T00:00:00Z".to_string(),
             }

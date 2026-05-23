@@ -99,7 +99,8 @@ test('T3-3: workspace 削除後の listWorkspaces 整合性', async ({ page }) =
 	expect(before.find((w) => w.id === ws2.id)).toBeTruthy();
 
 	// ws1 削除 (ws2 + 既存 Home が残るので setup-complete state 破壊なし)
-	await deleteWorkspace(page, ws1.id);
+	// PH-CF-100: deleteItems=true で現行挙動 (workspace + 紐付き item を消す)
+	await deleteWorkspace(page, ws1.id, true);
 
 	const after = await listWorkspaces(page);
 	expect(after.find((w) => w.id === ws1.id)).toBeFalsy(); // 消えた

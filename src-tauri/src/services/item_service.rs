@@ -4,10 +4,26 @@ use crate::db::DbState;
 use crate::models::item::{CreateItemInput, Item, LibraryStats, UpdateItemInput};
 use crate::models::tag::{self, CreateTagInput, Tag, TagWithCount};
 use crate::repositories::{
-    icon_cache_repository, item_repository, tag_repository, workspace_repository,
+    icon_cache_repository, item_repository, tag_repository, widget_item_hides_repository,
+    workspace_repository,
 };
 use crate::utils::error::AppError;
 use crate::utils::icon;
+
+/// PH-CF-100: 監視 entry id (= `widget_item_hides.item_target` の key 空間) を
+/// 単一実装で正規化する。 同じ folder を異なる表現 (区切り混在 / 末尾 separator 付き) で
+/// scan しても重複登録 / hide 不発を起こさないために、 forward slash / 末尾 separator 除去で
+/// 揃える。 ProjectsWidget は subfolder の絶対パス、 ExeFolderWatchWidget は第1階層フォルダ
+/// (= exe の parent) の絶対パスを entry_key として渡す。
+fn normalize_entry_key(path: &str) -> String {
+    let with_fwd = path.replace('\\', "/");
+    let trimmed = with_fwd.trim_end_matches('/');
+    if trimmed.is_empty() {
+        with_fwd
+    } else {
+        trimmed.to_string()
+    }
+}
 
 pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppError> {
     if input.label.trim().is_empty() {
@@ -33,6 +49,10 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
         is_tracked: input.is_tracked,
         default_app: None,
         card_override_json: None,
+        // PH-CF-100: user 作成経路は 監視非由来 → back-link は NULL。 監視自動登録経路
+        // (auto_register_folder_items / register_exe_item_on_conn) のみ両列を埋める。
+        source_widget_id: None,
+        source_entry_key: None,
         created_at: String::new(), // set by DB DEFAULT on insert
         updated_at: String::new(),
     };
@@ -78,7 +98,7 @@ pub fn search_items(db: &DbState, query: &str) -> Result<Vec<Item>, AppError> {
         let mut stmt = conn.prepare(
             "SELECT DISTINCT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                     i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                    i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+                    i.is_tracked, i.default_app, i.card_override_json, i.source_widget_id, i.source_entry_key, i.created_at, i.updated_at
              FROM items i
              JOIN item_tags it ON it.item_id = i.id
              JOIN tags t ON t.id = it.tag_id
@@ -112,8 +132,10 @@ pub fn search_items(db: &DbState, query: &str) -> Result<Vec<Item>, AppError> {
                 is_tracked: row.get(11)?,
                 default_app: row.get(12)?,
                 card_override_json: row.get(13)?,
-                created_at: row.get(14)?,
-                updated_at: row.get(15)?,
+                source_widget_id: row.get(14)?,
+                source_entry_key: row.get(15)?,
+                created_at: row.get(16)?,
+                updated_at: row.get(17)?,
             })
         })?;
         // audit 2026-05-13 F2: row parse 失敗を silent drop していたが、 schema mismatch / NULL violation
@@ -149,11 +171,28 @@ pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Ite
 }
 
 pub fn delete_item(db: &DbState, id: &str) -> Result<(), AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
+    // PH-CF-100: 削除前に back-link を読み、 監視自動登録 item なら
+    // `widget_item_hides` に「user が意図的に削除した」を記録 (INSERT OR IGNORE)。
+    // これで次の scan reconcile が同 entry を skip するため、 復活させない (モグラ叩き解消)。
+    let recorded_hide =
+        if let Some((widget_id, entry_key)) = item_repository::find_source_back_link(&tx, id)? {
+            widget_item_hides_repository::add(&tx, &widget_id, &entry_key)?;
+            true
+        } else {
+            false
+        };
     // PH-issue-006: item 削除前に widget config からも cascade 除去 (orphan 防止)。
-    let cascaded = workspace_repository::cascade_remove_item_from_widgets(&conn, id)?;
-    item_repository::delete(&conn, id)?;
-    log::info!("item deleted: id={} cascaded_widgets={}", id, cascaded,);
+    let cascaded = workspace_repository::cascade_remove_item_from_widgets(&tx, id)?;
+    item_repository::delete(&tx, id)?;
+    tx.commit()?;
+    log::info!(
+        "item deleted: id={} cascaded_widgets={} hide_recorded={}",
+        id,
+        cascaded,
+        recorded_hide,
+    );
     Ok(())
 }
 
@@ -317,6 +356,7 @@ pub fn auto_register_folder_items(
     db: &DbState,
     root_path: &str,
     workspace_id: Option<&str>,
+    source_widget_id: Option<&str>,
 ) -> Result<Vec<Item>, AppError> {
     let root = std::path::Path::new(root_path);
     if !root.is_dir() {
@@ -338,14 +378,39 @@ pub fn auto_register_folder_items(
     }
 
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // PH-CF-100: 監視 widget 由来の scan (source_widget_id Some) では、
+    // 当該 widget の hide リストを 1 回だけ取得し、 該当 entry は scan 結果から除外する。
+    // これで「user が Library から削除した folder は次の scan で復活しない」 が成立。
+    let hides: std::collections::HashSet<String> = if let Some(wid) = source_widget_id {
+        widget_item_hides_repository::list_by_widget(&conn, wid)?
+            .into_iter()
+            .collect()
+    } else {
+        std::collections::HashSet::new()
+    };
     // 4/30 user 検収 retrospective: 旧実装は **新規登録分のみ返却** していたため、
     // 2 回目以降の呼び出しで `[]` が返り ProjectsWidget が「サブフォルダがありません」と
     // 誤判定していた。挙動変更: 既存 item も含めて root 直下の全サブフォルダを返す。
     let mut all_items: Vec<Item> = Vec::new();
     for path in sub_dirs {
         let target = path.to_string_lossy().to_string();
-        if let Some(existing) = item_repository::find_by_target(&conn, &target)? {
+        // PH-CF-100: projects widget は item.target = folder path = entry_key で一致。
+        // hide 判定は normalize 後の entry_key で行う (path 表現ゆらぎ吸収)。
+        let entry_key = normalize_entry_key(&target);
+        // PH-CF-100: 監視 widget 由来なら所有関係 (source_widget_id, source_entry_key) で
+        // 重複判定。 異なる widget で同じ folder を監視している場合は別 item を作る (独立)。
+        // user 経由 (source_widget_id None) の旧呼出は従来通り target パス一致。
+        let existing = if let Some(wid) = source_widget_id {
+            item_repository::find_by_source(&conn, wid, &entry_key)?
+        } else {
+            item_repository::find_by_target(&conn, &target)?
+        };
+        if let Some(existing) = existing {
             all_items.push(existing);
+            continue;
+        }
+        // PH-CF-100: hide に記録されている entry は復活させない (モグラ叩き解消)。
+        if source_widget_id.is_some() && hides.contains(&entry_key) {
             continue;
         }
         let default_label = path
@@ -373,6 +438,9 @@ pub fn auto_register_folder_items(
             is_tracked: true,
             default_app,
             card_override_json: None,
+            // PH-CF-100: source_widget_id 渡されたら両列を埋める (片肺は契約違反)。
+            source_widget_id: source_widget_id.map(str::to_string),
+            source_entry_key: source_widget_id.map(|_| entry_key.clone()),
             created_at: String::new(),
             updated_at: String::new(),
         };
@@ -412,24 +480,44 @@ pub fn register_exe_item(
     workspace_id: Option<&str>,
 ) -> Result<Item, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    register_exe_item_on_conn(&conn, path, label, workspace_id)
+    // PH-CF-100: 単発 register_exe_item は user 直接操作 (palette の D&D / library 追加) で
+    // 監視非由来。 source は None で固定 → 監視自動登録 item にならない。
+    register_exe_item_on_conn(&conn, path, label, workspace_id, None)
 }
 
 /// Mutex lock 取得済の `Connection` (or `Transaction`) を共有して 1 件分の exe item 登録処理を行う。
 ///
 /// 直接呼出は `register_exe_items_bulk` のみ (1 回の lock + transaction で N 件処理する目的)。
 /// 単発 `register_exe_item` は thin wrapper として lock を取って本 fn に委譲する。
+///
+/// PH-CF-100: `source` が Some なら監視自動登録経路。 `(widget_id, entry_key)` で重複判定し、
+/// `widget_item_hides` に hide 記録があれば None を返す (= 復活させない)。
 fn register_exe_item_on_conn(
     conn: &rusqlite::Connection,
     path: &str,
     label: Option<String>,
     workspace_id: Option<&str>,
+    source: Option<(&str, &str)>,
 ) -> Result<Item, AppError> {
     let p = std::path::Path::new(path);
     if !p.is_file() {
         return Err(AppError::InvalidInput(format!("Not a file: {}", path)));
     }
-    if let Some(existing) = item_repository::find_by_target(conn, path)? {
+    // PH-CF-100: 監視 widget 由来なら所有関係で重複判定 (exe-folder は entry_key=parent folder
+    // ≠ item.target=exe path のため find_by_target は使えない)。 user 直接経路は従来の target 一致。
+    if let Some((widget_id, entry_key)) = source {
+        if let Some(existing) = item_repository::find_by_source(conn, widget_id, entry_key)? {
+            return Ok(existing);
+        }
+        // hide 済 entry は復活させない。 InvalidInput を返して bulk 側で skip させる
+        // (1 件で全体を巻き戻すと意図と外れる)。 user 直接経路 (source None) は影響なし。
+        let hides = widget_item_hides_repository::list_by_widget(conn, widget_id)?;
+        if hides.iter().any(|h| h == entry_key) {
+            return Err(AppError::InvalidInput(format!(
+                "entry hidden by widget: widget_id={widget_id} entry_key={entry_key}"
+            )));
+        }
+    } else if let Some(existing) = item_repository::find_by_target(conn, path)? {
         return Ok(existing);
     }
     let derived_label = p
@@ -467,6 +555,9 @@ fn register_exe_item_on_conn(
         is_tracked: true,
         default_app: None,
         card_override_json: None,
+        // PH-CF-100: source が Some なら back-link 両列を埋める (片肺は契約違反)。
+        source_widget_id: source.map(|(w, _)| w.to_string()),
+        source_entry_key: source.map(|(_, k)| k.to_string()),
         created_at: String::new(),
         updated_at: String::new(),
     };
@@ -501,6 +592,7 @@ pub fn register_exe_items_bulk(
     db: &DbState,
     paths: Vec<String>,
     workspace_id: Option<&str>,
+    source_widget_id: Option<&str>,
 ) -> Result<Vec<Item>, AppError> {
     // K-3 perf fix (2026-05-15): 旧実装は paths を 1 件ずつ register_exe_item で処理し、
     // ループ毎に Mutex<Connection> を取り直し + auto-commit fsync が走っていたため、
@@ -508,18 +600,34 @@ pub fn register_exe_items_bulk(
     // 50 秒級の freeze を発生させていた (user 報告 K-3、 EXE folder watch + Library 遷移)。
     // 修正: 1 回の lock + 1 transaction で N 件まとめて処理。Path 単位の InvalidInput は
     // best-effort で skip (scan が stale path を返した場合に bulk 全体を巻き戻さない)。
+    //
+    // PH-CF-100: source_widget_id Some なら exe-folder 監視 widget 由来 → 各 path の
+    // 第1階層フォルダ (= parent folder) を entry_key とし、 hide 記録があれば skip。
+    // 既存 (source_widget_id, entry_key) 一致 item は再利用 (find_by_source)。
     let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let tx = conn.transaction()?;
     let mut out = Vec::with_capacity(paths.len());
     for path in &paths {
-        let label = std::path::Path::new(path)
+        let parent_label = std::path::Path::new(path)
             .parent()
             .and_then(|p| p.file_name())
             .and_then(|n| n.to_str())
             .map(|s| s.to_string());
-        match register_exe_item_on_conn(&tx, path, label, workspace_id) {
+        let entry_key = source_widget_id.map(|_| {
+            let parent = std::path::Path::new(path)
+                .parent()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_else(|| path.clone());
+            normalize_entry_key(&parent)
+        });
+        let source = match (source_widget_id, entry_key.as_deref()) {
+            (Some(wid), Some(key)) => Some((wid, key)),
+            _ => None,
+        };
+        match register_exe_item_on_conn(&tx, path, parent_label, workspace_id, source) {
             Ok(item) => out.push(item),
             // 単一 path の「ファイル不在」 等は scan の race で起こりうるため skip。
+            // hide 済 entry も InvalidInput で skip される (上記 register_exe_item_on_conn 参照)。
             // それ以外の DB error (lock / SQL) は伝播させ、 transaction Drop で rollback。
             Err(AppError::InvalidInput(_)) => continue,
             Err(e) => return Err(e),
@@ -917,7 +1025,7 @@ mod tests {
         std::fs::write(tmp.join("readme.txt"), "hello").unwrap();
 
         let root_path = tmp.to_string_lossy().to_string();
-        let result = auto_register_folder_items(&db, &root_path, None).unwrap();
+        let result = auto_register_folder_items(&db, &root_path, None, None).unwrap();
         assert_eq!(result.len(), 2, "should register 2 subdirectories");
 
         // Verify items are in the database
@@ -939,7 +1047,7 @@ mod tests {
         // 4/30 user 検収: 2 回目以降の呼び出しは **既存 + 新規** をすべて返す
         // (旧仕様の 「新規分のみ」 → ProjectsWidget で空判定される bug 解消)。
         // DB 上の重複作成は依然防止 (find_by_target で skip insert)。
-        let result2 = auto_register_folder_items(&db, &root_path, None).unwrap();
+        let result2 = auto_register_folder_items(&db, &root_path, None, None).unwrap();
         assert_eq!(
             result2.len(),
             2,
@@ -959,7 +1067,7 @@ mod tests {
     #[test]
     fn test_auto_register_folder_items_invalid_path() {
         let db = initialize_in_memory();
-        let result = auto_register_folder_items(&db, "C:/nonexistent/path/xyz", None);
+        let result = auto_register_folder_items(&db, "C:/nonexistent/path/xyz", None, None);
         assert!(
             matches!(result, Err(AppError::InvalidInput(_))),
             "should return InvalidInput for non-directory"
@@ -987,7 +1095,7 @@ mod tests {
             ghost.to_string_lossy().to_string(),
             b_exe.to_string_lossy().to_string(),
         ];
-        let registered = register_exe_items_bulk(&db, paths, None).unwrap();
+        let registered = register_exe_items_bulk(&db, paths, None, None).unwrap();
 
         assert_eq!(registered.len(), 2, "valid 2 paths should be registered");
         let items = list_items(&db).unwrap();
@@ -1003,6 +1111,7 @@ mod tests {
                 a_exe.to_string_lossy().to_string(),
                 b_exe.to_string_lossy().to_string(),
             ],
+            None,
             None,
         )
         .unwrap();
@@ -1109,6 +1218,302 @@ mod tests {
         let count = bulk_delete_items(&db, vec![]).unwrap();
         assert_eq!(count, 0);
     }
+
+    // ==================================================
+    // PH-CF-100: 監視アイテムの逆方向ライフサイクル test
+    // ==================================================
+
+    /// FK 充足のため projects 監視 widget 相当の row を作って widget_id を返す。
+    fn seed_projects_widget(db: &DbState) -> String {
+        let conn = db.0.lock().unwrap();
+        conn.execute(
+            "INSERT INTO workspaces (id, name, sort_order, wallpaper_opacity, wallpaper_blur)
+             VALUES ('ws1', 'WS', 0, 0.6, 0)",
+            [],
+        )
+        .ok();
+        let wid = "w-projects-1".to_string();
+        conn.execute(
+            "INSERT INTO workspace_widgets (id, workspace_id, widget_type, position_x, position_y, width, height)
+             VALUES (?1, 'ws1', 'projects', 0, 0, 2, 2)",
+            rusqlite::params![wid],
+        )
+        .unwrap();
+        wid
+    }
+
+    fn seed_exe_folder_widget(db: &DbState) -> String {
+        let conn = db.0.lock().unwrap();
+        conn.execute(
+            "INSERT INTO workspaces (id, name, sort_order, wallpaper_opacity, wallpaper_blur)
+             VALUES ('ws1', 'WS', 0, 0.6, 0)",
+            [],
+        )
+        .ok();
+        let wid = "w-exe-1".to_string();
+        conn.execute(
+            "INSERT INTO workspace_widgets (id, workspace_id, widget_type, position_x, position_y, width, height)
+             VALUES (?1, 'ws1', 'exe_folder', 0, 0, 2, 2)",
+            rusqlite::params![wid],
+        )
+        .unwrap();
+        wid
+    }
+
+    /// projects 監視 widget 由来の auto register → Library 削除 → 再 scan で
+    /// 復活しないこと (= widget_item_hides 連動でモグラ叩き解消)。
+    #[test]
+    fn test_projects_auto_register_delete_no_resurrection() {
+        let db = initialize_in_memory();
+        let widget_id = seed_projects_widget(&db);
+
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_proj_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("Sub")).unwrap();
+        let root = tmp.to_string_lossy().to_string();
+
+        // 1st scan: subdir 1 件登録 + back-link が埋まる
+        let first = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        assert_eq!(first.len(), 1);
+        let item = &first[0];
+        assert_eq!(item.source_widget_id.as_deref(), Some(widget_id.as_str()));
+        assert!(item.source_entry_key.is_some(), "entry_key 必須");
+
+        // user が Library から削除 → widget_item_hides に entry_key が記録される
+        delete_item(&db, &item.id).unwrap();
+        {
+            let conn = db.0.lock().unwrap();
+            let hide_count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM widget_item_hides WHERE widget_id = ?1",
+                    rusqlite::params![widget_id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(hide_count, 1, "Library 削除で hide が記録される");
+        }
+
+        // 2nd scan: 同 entry は hide で skip され復活しない
+        let second = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        assert!(
+            second.is_empty(),
+            "hide 済 entry は復活しない: got {:?}",
+            second
+        );
+        let items = list_items(&db).unwrap();
+        assert_eq!(items.len(), 0, "DB 上にも復活していない");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// widget_item_hides から手動で entry を消すと、 次の scan で再登録される
+    /// (= 復元 UI = PH-CF-500 の data model 側が機能)。
+    #[test]
+    fn test_projects_auto_register_unhide_resurrects() {
+        let db = initialize_in_memory();
+        let widget_id = seed_projects_widget(&db);
+
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_unhide_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("Restored")).unwrap();
+        let root = tmp.to_string_lossy().to_string();
+
+        let first = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        let item = first[0].clone();
+        let entry_key = item.source_entry_key.clone().unwrap();
+        delete_item(&db, &item.id).unwrap();
+
+        // 復元: hide から entry を解除 (= PH-CF-500 の UI ボタン相当)
+        {
+            let conn = db.0.lock().unwrap();
+            widget_item_hides_repository::remove(&conn, &widget_id, &entry_key).unwrap();
+        }
+        // 次の scan で再登録される (新 UUID で復活)
+        let second = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        assert_eq!(second.len(), 1, "hide 解除で復活");
+        assert_ne!(second[0].id, item.id, "新 UUID で復活");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// 自動登録経路の insert で `(source_widget_id, source_entry_key)` 両方が埋まる
+    /// (片肺 back-link は契約違反 — audit query が検出する形にする)。
+    #[test]
+    fn test_back_link_both_columns_filled_on_auto_register() {
+        let db = initialize_in_memory();
+        let widget_id = seed_projects_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_both_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("Sub1")).unwrap();
+        std::fs::create_dir_all(tmp.join("Sub2")).unwrap();
+        let root = tmp.to_string_lossy().to_string();
+
+        let items = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        assert_eq!(items.len(), 2);
+        for it in &items {
+            assert!(
+                it.source_widget_id.is_some() && it.source_entry_key.is_some(),
+                "両列必須: id={} sw={:?} sk={:?}",
+                it.id,
+                it.source_widget_id,
+                it.source_entry_key,
+            );
+        }
+
+        // 片肺 (一方 NULL) 行を検出する audit query。 期待: 0 violations。
+        let conn = db.0.lock().unwrap();
+        let half_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM items
+                 WHERE (source_widget_id IS NULL) <> (source_entry_key IS NULL)",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(half_count, 0, "片肺 back-link なし");
+
+        drop(conn);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// 監視 widget を削除 → 該当 widget_item_hides 行が CASCADE で消える / 該当 item の
+    /// source_widget_id が SET NULL になり Library に残る (= user 持ち item に降格)。
+    #[test]
+    fn test_widget_delete_cascades_hides_and_sets_null_source() {
+        let db = initialize_in_memory();
+        let widget_id = seed_projects_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_widel_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("KeepMe")).unwrap();
+        let root = tmp.to_string_lossy().to_string();
+
+        let items = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        let item_id = items[0].id.clone();
+        // hide も 1 つ仕込んでおく
+        {
+            let conn = db.0.lock().unwrap();
+            widget_item_hides_repository::add(&conn, &widget_id, "C:/other").unwrap();
+        }
+
+        // widget 削除 (CASCADE で widget_item_hides 消える / items.source_widget_id SET NULL)
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "DELETE FROM workspace_widgets WHERE id = ?1",
+                rusqlite::params![widget_id],
+            )
+            .unwrap();
+        }
+
+        let conn = db.0.lock().unwrap();
+        let hides: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM widget_item_hides WHERE widget_id = ?1",
+                rusqlite::params![widget_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(hides, 0, "widget 削除で hides CASCADE");
+
+        let it_still: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM items WHERE id = ?1",
+                rusqlite::params![item_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(it_still, 1, "item は Library に残る (降格)");
+        let sw: Option<String> = conn
+            .query_row(
+                "SELECT source_widget_id FROM items WHERE id = ?1",
+                rusqlite::params![item_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(sw.is_none(), "source_widget_id は SET NULL");
+
+        drop(conn);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// exe-folder 監視 widget は entry_key (= 第1階層フォルダ) と item.target (exe path) が
+    /// 異なる key 空間。 削除→再 scan で復活しないことを確認 (key 空間橋渡し)。
+    #[test]
+    fn test_exe_folder_auto_register_delete_no_resurrection() {
+        let db = initialize_in_memory();
+        let widget_id = seed_exe_folder_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_exe_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("AppX")).unwrap();
+        let exe_path = tmp.join("AppX").join("app.exe");
+        std::fs::write(&exe_path, b"MZ").unwrap();
+
+        // bulk 登録: source_widget_id を渡すと parent (AppX) が entry_key になる
+        let first = register_exe_items_bulk(
+            &db,
+            vec![exe_path.to_string_lossy().to_string()],
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+        assert_eq!(first.len(), 1);
+        let item = first[0].clone();
+        let parent_norm =
+            normalize_entry_key(&exe_path.parent().unwrap().to_string_lossy().into_owned());
+        assert_eq!(
+            item.source_entry_key.as_deref(),
+            Some(parent_norm.as_str()),
+            "entry_key は親フォルダの正規化済 絶対パス"
+        );
+
+        // Library 削除 → hide 記録 → 再 scan で復活しない
+        delete_item(&db, &item.id).unwrap();
+        let second = register_exe_items_bulk(
+            &db,
+            vec![exe_path.to_string_lossy().to_string()],
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+        assert!(second.is_empty(), "hide 済 entry は復活しない");
+        assert_eq!(list_items(&db).unwrap().len(), 0);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// delete_item の back-link 記録は user 作成 (source NULL) item には影響しない。
+    /// 通常 item の削除挙動 (cascade_remove_item_from_widgets + DELETE items) は変えない。
+    #[test]
+    fn test_delete_item_user_owned_no_hide_recorded() {
+        let db = initialize_in_memory();
+        let item = create_item(
+            &db,
+            CreateItemInput {
+                item_type: crate::models::item::ItemType::Url,
+                label: "user-it".to_string(),
+                target: "https://example".to_string(),
+                args: None,
+                working_dir: None,
+                icon_path: None,
+                aliases: vec![],
+                tag_ids: vec![],
+                is_tracked: false,
+            },
+        )
+        .unwrap();
+        delete_item(&db, &item.id).unwrap();
+        let conn = db.0.lock().unwrap();
+        let hides: i64 = conn
+            .query_row("SELECT COUNT(*) FROM widget_item_hides", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(hides, 0, "監視非由来の削除では hide が記録されない");
+    }
+
+    /// `normalize_entry_key` は path 表現の揺れ (forward/back slash 混在 / 末尾 / 付き) を
+    /// 同一 entry_key に揃える。 同フォルダの異表現で 2 重登録 / hide 不発を起こさない。
+    #[test]
+    fn test_normalize_entry_key_consolidates_path_variants() {
+        assert_eq!(normalize_entry_key("C:\\foo\\bar"), "C:/foo/bar");
+        assert_eq!(normalize_entry_key("C:/foo/bar/"), "C:/foo/bar");
+        assert_eq!(normalize_entry_key("C:\\foo\\bar\\"), "C:/foo/bar");
+        // root-only は trim_end_matches で空にならない
+        assert_eq!(normalize_entry_key("/"), "/");
+    }
 }
 
 /// V1 解消 (A3 PR-A): AppServices 集約パターン用の service struct。
@@ -1206,8 +1611,9 @@ impl ItemService {
         &self,
         root_path: &str,
         workspace_id: Option<&str>,
+        source_widget_id: Option<&str>,
     ) -> Result<Vec<Item>, AppError> {
-        auto_register_folder_items(&self.db, root_path, workspace_id)
+        auto_register_folder_items(&self.db, root_path, workspace_id, source_widget_id)
     }
 
     pub fn register_exe_item(
@@ -1223,8 +1629,9 @@ impl ItemService {
         &self,
         paths: Vec<String>,
         workspace_id: Option<&str>,
+        source_widget_id: Option<&str>,
     ) -> Result<Vec<Item>, AppError> {
-        register_exe_items_bulk(&self.db, paths, workspace_id)
+        register_exe_items_bulk(&self.db, paths, workspace_id, source_widget_id)
     }
 
     pub fn toggle_star(&self, item_id: &str, starred: bool) -> Result<Item, AppError> {

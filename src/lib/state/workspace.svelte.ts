@@ -53,7 +53,9 @@ export const workspaceStore = {
 	updateWorkspace: (id: string, name: string) => workspaceConfig.updateWorkspace(id, name),
 	replaceWorkspace: (updated: Parameters<typeof workspaceConfig.replaceWorkspace>[0]) =>
 		workspaceConfig.replaceWorkspace(updated),
-	deleteWorkspace: (id: string) => workspaceConfig.deleteWorkspace(id),
+	// PH-CF-100: deleteItems は必須引数 (implicit default なし)。
+	deleteWorkspace: (id: string, deleteItems: boolean) =>
+		workspaceConfig.deleteWorkspace(id, deleteItems),
 	selectWorkspace: (id: string) => workspaceConfig.selectWorkspace(id),
 	// widget CRUD 系
 	loadWidgets: (workspaceId: string) => workspaceWidgets.loadWidgets(workspaceId),

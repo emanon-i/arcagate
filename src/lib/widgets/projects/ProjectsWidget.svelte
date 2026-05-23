@@ -220,7 +220,7 @@ $effect(() => {
 	// B 案 (#16): file system watcher (watched_paths) に path を自動登録
 	void ensureWatchedPath(folder);
 	scanning = true;
-	autoRegisterFolderItems(folder, widget?.workspace_id)
+	autoRegisterFolderItems(folder, widget?.workspace_id, widget?.id)
 		.then(async (items) => {
 			folderItems = items;
 			await fetchGitStatuses(items);
@@ -264,7 +264,8 @@ $effect(() => {
 		const parentPath = newPath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
 		const normalizedFolder = folder.replace(/\\/g, '/').replace(/\/$/, '');
 		if (parentPath !== normalizedFolder) return;
-		const newItems = await autoRegisterFolderItems(folder, widget?.workspace_id);
+		const newItems = await autoRegisterFolderItems(folder, widget?.workspace_id, widget?.id);
+		// PH-CF-100: hide 連動済の back-link 経路で entry 一致を判定 (= newItems は復活分を含まない)。
 		if (newItems.length > 0) {
 			const existingIds = new Set(folderItems.map((i) => i.id));
 			const merged = [...folderItems, ...newItems.filter((i) => !existingIds.has(i.id))];

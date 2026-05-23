@@ -178,16 +178,23 @@ pub fn cmd_toggle_star(
 
 /// W-2 (2026-05-19): 監視フォルダ配下の dir walk + DB 一括登録は main thread を
 /// block するため `spawn_blocking` で worker thread に逃がす。
+///
+/// PH-CF-100: `source_widget_id` は監視自動登録経路の back-link。 Some を渡すと
+/// `(source_widget_id, source_entry_key)` 重複判定 + `widget_item_hides` skip が効く
+/// (= user 削除した entry は復活しない)。 None なら従来の find_by_target (user 直接経路)。
 #[tauri::command]
 pub async fn cmd_auto_register_folder_items(
     app: AppHandle,
     root_path: String,
     workspace_id: Option<String>,
+    source_widget_id: Option<String>,
 ) -> Result<Vec<Item>, AppError> {
     tauri::async_runtime::spawn_blocking(move || {
-        app.state::<AppServices>()
-            .item
-            .auto_register_folder_items(&root_path, workspace_id.as_deref())
+        app.state::<AppServices>().item.auto_register_folder_items(
+            &root_path,
+            workspace_id.as_deref(),
+            source_widget_id.as_deref(),
+        )
     })
     .await
     .map_err(AppError::from_join_error)?
@@ -209,15 +216,21 @@ pub fn cmd_register_exe_item(
 
 /// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録 (ExeFolderWatchWidget の "全部追加" button 用)。
 /// U-7: workspace_id 指定時、 各 item に sys-ws-<id> tag も自動付与。
+///
+/// PH-CF-100: `source_widget_id` Some なら exe-folder 監視 widget 由来 → 各 path の
+/// parent folder を entry_key として埋め、 hide 記録があれば skip。 None は user 直接経路。
 #[tauri::command]
 pub fn cmd_register_exe_items_bulk(
     services: State<AppServices>,
     paths: Vec<String>,
     workspace_id: Option<String>,
+    source_widget_id: Option<String>,
 ) -> Result<Vec<Item>, AppError> {
-    services
-        .item
-        .register_exe_items_bulk(paths, workspace_id.as_deref())
+    services.item.register_exe_items_bulk(
+        paths,
+        workspace_id.as_deref(),
+        source_widget_id.as_deref(),
+    )
 }
 
 #[tauri::command]

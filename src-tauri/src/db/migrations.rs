@@ -40,6 +40,7 @@ const MIGRATION_036: &str = include_str!("../../migrations/036_drop_system_theme
 const MIGRATION_037: &str =
     include_str!("../../migrations/037_system_monitor_chart_type_per_metric.sql");
 const MIGRATION_038: &str = include_str!("../../migrations/038_card_override_drop_fit.sql");
+const MIGRATION_039: &str = include_str!("../../migrations/039_items_source_back_link.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -81,6 +82,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_036),
         M::up(MIGRATION_037),
         M::up(MIGRATION_038),
+        M::up(MIGRATION_039),
     ])
 }
 

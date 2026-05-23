@@ -50,9 +50,31 @@ function formatReason(reason: unknown): string {
 	return String(reason);
 }
 
+/**
+ * PH-CF-100: backend の `AppError::NotFound` (`{ code: "NotFound", message }` の Serialize 形)
+ * を「ユーザー操作の race で消えた item の background lookup」 と判定するヘルパー。
+ * 該当する unhandled rejection は console には残すが toast は出さない (= E4 真因の 1 系統:
+ * タブ削除 → 旧 workspace の widget が unmount される過程で stale id を find_by_id して reject、
+ * 共通 error-monitor 経路で「右下に赤いトースト」 を出していた症状を抑止)。
+ *
+ * 注: user が今まさに操作した resource の NotFound は各 callsite で try/catch + toast 化する
+ * 既存ポリシーが残る (e.g. launch / update では `formatLaunchError` / `config_save_failed` 等)。
+ * 本ヘルパーが silent にするのは「callsite が握っていない silent reject」 のみ。
+ */
+function isNotFoundAppError(reason: unknown): boolean {
+	if (!reason || typeof reason !== 'object') return false;
+	const r = reason as { code?: unknown };
+	// PH-422: AppError::code() の serialize 値は snake_case (e.g. 'not_found', 'launch.failed')。
+	return typeof r.code === 'string' && r.code === 'not_found';
+}
+
 function handleUnhandledRejection(ev: PromiseRejectionEvent): void {
 	const message = formatReason(ev.reason);
 	console.error('[error-monitor] unhandledrejection', ev.reason);
+	if (isNotFoundAppError(ev.reason)) {
+		// PH-CF-100: stale 参照の race による NotFound は toast を出さない (console に残すのみ)。
+		return;
+	}
 	if (!shouldSuppress(`reject:${message}`)) {
 		toastStore.add(t('toast.unexpected_error', { message }), 'error');
 	}

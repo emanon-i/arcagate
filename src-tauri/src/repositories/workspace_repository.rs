@@ -251,6 +251,91 @@ pub fn cascade_remove_item_from_widgets(
     Ok(count)
 }
 
+/// PH-CF-100: workspace 配下の item 参照集合を 1 query で返す (2 経路の和集合)。
+///   - 経路 1: `sys-ws-<id>` tag が付いた item (`item_service` の auto register / U-7 tag 経路)
+///   - 経路 2: 当該 workspace の widget config JSON の `item_id` / `item_ids` フィールド
+///     (`LibraryItemPicker` で widget に追加された既存 item は tag を持たない)
+///
+/// cascade DELETE はこの和集合を対象集合とし、 「他 workspace から参照されない item」 のみ消す。
+/// 旧実装は経路 1 のみを見ていたため、 経路 2 経由の item が孤立残留していた (E5)。
+pub fn collect_workspace_referenced_item_ids(
+    conn: &Connection,
+    workspace_id: &str,
+) -> Result<std::collections::HashSet<String>, AppError> {
+    let mut ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let tag_id = format!("sys-ws-{}", workspace_id);
+
+    // 経路 1: sys-ws-<id> tag 付き item
+    let mut stmt = conn.prepare("SELECT item_id FROM item_tags WHERE tag_id = ?1")?;
+    let rows = stmt.query_map(params![tag_id], |row| row.get::<_, String>(0))?;
+    for row in rows {
+        ids.insert(row?);
+    }
+
+    // 経路 2: 当該 workspace の widget config JSON の item_id / item_ids
+    let mut wstmt = conn.prepare(
+        "SELECT config FROM workspace_widgets
+         WHERE workspace_id = ?1 AND config IS NOT NULL AND config != ''",
+    )?;
+    let wrows = wstmt.query_map(params![workspace_id], |row| row.get::<_, String>(0))?;
+    for row in wrows {
+        let cfg = row?;
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(&cfg) else {
+            continue;
+        };
+        let Some(obj) = value.as_object() else {
+            continue;
+        };
+        if let Some(serde_json::Value::String(s)) = obj.get("item_id") {
+            ids.insert(s.clone());
+        }
+        if let Some(serde_json::Value::Array(arr)) = obj.get("item_ids") {
+            for v in arr {
+                if let Some(s) = v.as_str() {
+                    ids.insert(s.to_string());
+                }
+            }
+        }
+    }
+    Ok(ids)
+}
+
+/// PH-CF-100: ある item が「他 workspace から」 参照されているか判定する。
+///   - 他 workspace の `sys-ws-*` tag (除外: 当該 workspace tag)
+///   - 他 workspace の widget config の item_id / item_ids
+///
+/// `delete_workspace(delete_items=true)` で「他 workspace 非参照のみ削除」 を判定するために使う。
+pub fn is_item_referenced_outside_workspace(
+    conn: &Connection,
+    item_id: &str,
+    workspace_id: &str,
+) -> Result<bool, AppError> {
+    let tag_id = format!("sys-ws-{}", workspace_id);
+    // 経路 1: 他 workspace の sys-ws-* tag に紐付くか
+    let tag_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM item_tags
+         WHERE item_id = ?1 AND tag_id LIKE 'sys-ws-%' AND tag_id <> ?2",
+        params![item_id, tag_id],
+        |row| row.get(0),
+    )?;
+    if tag_count > 0 {
+        return Ok(true);
+    }
+    // 経路 2: 他 workspace の widget config が参照
+    let mut stmt = conn.prepare(
+        "SELECT config FROM workspace_widgets
+         WHERE workspace_id <> ?1 AND config IS NOT NULL AND config != ''",
+    )?;
+    let rows = stmt.query_map(params![workspace_id], |row| row.get::<_, String>(0))?;
+    for row in rows {
+        let cfg = row?;
+        if widget_config_references_item(&cfg, item_id) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 #[cfg(test)]
 mod cascade_tests {
     use super::*;
@@ -316,7 +401,7 @@ pub fn list_frequent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, A
     let mut stmt = conn.prepare(
         "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                 i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+                i.is_tracked, i.default_app, i.card_override_json, i.source_widget_id, i.source_entry_key, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_stats s ON s.item_id = i.id
          WHERE i.is_enabled = 1
@@ -333,7 +418,7 @@ pub fn list_recent_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, App
     let mut stmt = conn.prepare(
         "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                 i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+                i.is_tracked, i.default_app, i.card_override_json, i.source_widget_id, i.source_entry_key, i.created_at, i.updated_at
          FROM items i
          INNER JOIN (
              SELECT item_id, MAX(launched_at) AS last_launch
@@ -365,7 +450,7 @@ pub fn list_frecency_items(conn: &Connection, limit: i64) -> Result<Vec<Item>, A
     let mut stmt = conn.prepare(
         "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir,
                 i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled,
-                i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+                i.is_tracked, i.default_app, i.card_override_json, i.source_widget_id, i.source_entry_key, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_stats s ON s.item_id = i.id
          WHERE i.is_enabled = 1 AND s.last_launched_at IS NOT NULL
@@ -390,7 +475,7 @@ pub fn list_folder_items(conn: &Connection) -> Result<Vec<Item>, AppError> {
     let mut stmt = conn.prepare(
         "SELECT id, item_type, label, target, args, working_dir,
                 icon_path, icon_type, aliases, sort_order, is_enabled,
-                is_tracked, default_app, card_override_json, created_at, updated_at
+                is_tracked, default_app, card_override_json, source_widget_id, source_entry_key, created_at, updated_at
          FROM items
          WHERE item_type = 'folder' AND is_enabled = 1
          ORDER BY sort_order, label",
@@ -453,6 +538,8 @@ mod tests {
             is_tracked: true,
             default_app: None,
             card_override_json: None,
+            source_widget_id: None,
+            source_entry_key: None,
             created_at: String::new(),
             updated_at: String::new(),
         }

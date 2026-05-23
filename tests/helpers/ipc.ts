@@ -113,8 +113,9 @@ export async function createWorkspace(page: Page, name: string): Promise<Workspa
 	return invoke<Workspace>(page, 'cmd_create_workspace', { name });
 }
 
-export async function deleteWorkspace(page: Page, id: string): Promise<void> {
-	return invoke<void>(page, 'cmd_delete_workspace', { id });
+// PH-CF-100: deleteItems は必須引数 (implicit default なし)。
+export async function deleteWorkspace(page: Page, id: string, deleteItems: boolean): Promise<void> {
+	return invoke<void>(page, 'cmd_delete_workspace', { id, deleteItems });
 }
 
 export interface Widget {

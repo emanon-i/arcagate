@@ -152,6 +152,11 @@ enum WorkspaceCommands {
     Delete {
         /// Workspace UUID
         id: String,
+        /// PH-CF-100: Also delete items that were registered into this workspace
+        /// (sys-ws-* tag + widget config item_ids; only items NOT referenced by
+        /// another workspace are removed). Use `--no-delete-items` to keep them.
+        #[arg(long = "delete-items", default_value_t = false)]
+        delete_items: bool,
     },
     /// List widgets in a workspace
     ListWidgets {
@@ -255,7 +260,9 @@ fn main() {
                 workspace_id,
                 widget_type,
             } => cmd_workspace_add_widget(&db, workspace_id, widget_type, cli.json),
-            WorkspaceCommands::Delete { id } => cmd_workspace_delete(&db, id, cli.json),
+            WorkspaceCommands::Delete { id, delete_items } => {
+                cmd_workspace_delete(&db, id, *delete_items, cli.json)
+            }
             WorkspaceCommands::ListWidgets { workspace_id } => {
                 cmd_workspace_list_widgets(&db, workspace_id, cli.json)
             }
@@ -586,15 +593,23 @@ fn cmd_delete(db: &db::DbState, id: &str, json: bool) -> Result<(), AppError> {
     Ok(())
 }
 
-fn cmd_workspace_delete(db: &db::DbState, id: &str, json: bool) -> Result<(), AppError> {
-    workspace_service::delete_workspace(db, id)?;
+fn cmd_workspace_delete(
+    db: &db::DbState,
+    id: &str,
+    delete_items: bool,
+    json: bool,
+) -> Result<(), AppError> {
+    workspace_service::delete_workspace(db, id, delete_items)?;
     if json {
         println!(
             "{}",
-            serde_json::to_string_pretty(&serde_json::json!({"deleted": id})).unwrap()
+            serde_json::to_string_pretty(
+                &serde_json::json!({"deleted": id, "deleted_items": delete_items})
+            )
+            .unwrap()
         );
     } else {
-        eprintln!("Deleted workspace: {}", id);
+        eprintln!("Deleted workspace: {} (deleted_items={})", id, delete_items);
     }
     Ok(())
 }

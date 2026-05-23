@@ -88,6 +88,12 @@ pre-commit:
       # Default を返すだけの stub command を検出。 「動かないのに UI に出ている」
       # コントロールの再発を gate する。
       run: bash scripts/audit-stub-action.sh
+    source-back-link:
+      # PH-CF-100: 監視アイテムの逆方向ライフサイクル契約 (item-service spec) を機械検証。
+      # 監視自動登録経路で find_by_source / widget_item_hides skip / source 委譲が
+      # 入っているか + items table back-link 列の migration 存在を grep でガード。
+      glob: "{src-tauri/src/services/item_service.rs,src-tauri/src/repositories/item_repository.rs,src-tauri/migrations/*.sql}"
+      run: bash scripts/audit-source-back-link.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

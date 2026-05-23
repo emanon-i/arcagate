@@ -80,11 +80,18 @@ export async function getTagWithCounts(): Promise<TagWithCount[]> {
 }
 
 // U-7 (2026-05-12): widget 経由登録時 workspace_id を渡せば sys-ws-<id> tag が自動付与される。
+// PH-CF-100: sourceWidgetId Some なら監視自動登録経路 (back-link 列を埋める + widget_item_hides
+// と連動 = user 削除した entry を次の scan で復活させない)。 None は user 直接経路 (従来挙動)。
 export async function autoRegisterFolderItems(
 	rootPath: string,
 	workspaceId?: string,
+	sourceWidgetId?: string,
 ): Promise<Item[]> {
-	return invoke<Item[]>('cmd_auto_register_folder_items', { rootPath, workspaceId });
+	return invoke<Item[]>('cmd_auto_register_folder_items', {
+		rootPath,
+		workspaceId,
+		sourceWidgetId,
+	});
 }
 
 // 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録 (idempotent: 既存 target はそのまま返す)。
@@ -100,8 +107,18 @@ export async function registerExeItem(
 	});
 }
 
-export async function registerExeItemsBulk(paths: string[], workspaceId?: string): Promise<Item[]> {
-	return invoke<Item[]>('cmd_register_exe_items_bulk', { paths, workspaceId });
+// PH-CF-100: sourceWidgetId Some なら exe-folder 監視 widget 由来 → 各 path の parent folder
+// を entry_key として埋め、 widget_item_hides に登録された entry は skip (= 復活しない)。
+export async function registerExeItemsBulk(
+	paths: string[],
+	workspaceId?: string,
+	sourceWidgetId?: string,
+): Promise<Item[]> {
+	return invoke<Item[]>('cmd_register_exe_items_bulk', {
+		paths,
+		workspaceId,
+		sourceWidgetId,
+	});
 }
 
 export async function toggleStar(itemId: string, starred: boolean): Promise<Item> {
