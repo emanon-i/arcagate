@@ -249,6 +249,12 @@
 			"count": "{count} selected",
 			"delete_confirm_one": "Delete {count} item? (cannot be undone)",
 			"delete_confirm_other": "Delete {count} items? (cannot be undone)",
+			"delete_dialog": {
+				"desc_one": "Delete the selected {count} item.",
+				"desc_other": "Delete the selected {count} items.",
+				"title": "Delete the selected items?",
+				"warning": "This cannot be undone. Launch history, tag links, and favorites are also removed."
+			},
 			"export_json": "Export as JSON"
 		},
 		"sidebar": {
@@ -416,6 +422,9 @@
 			"reset_button": "Reset settings",
 			"reset_confirm": "All settings will be restored to defaults. Workspaces and library items are preserved, but hotkey, autostart and display preferences will all return to defaults. Continue?",
 			"reset_desc": "Restore hotkey, autostart, library card display, sort, language, zoom and other preferences to defaults. Workspaces, library items, themes and wallpapers are preserved.",
+			"reset_dialog": {
+				"title": "Reset settings?"
+			},
 			"reset_done": "Settings have been reset",
 			"reset_failed": "Reset failed: {error}",
 			"reset_label": "Reset settings",
@@ -491,6 +500,8 @@
 			"heading": "Updates",
 			"install_button": "Apply v{version}",
 			"install_confirm": "Install version {version} and restart the app?",
+			"install_dialog_confirm": "Apply and restart",
+			"install_dialog_title": "Apply the update?",
 			"installing": "Installing…",
 			"last_checked": "Last checked: {time}",
 			"new_version": "New version v{version}",
@@ -1002,6 +1013,13 @@
 		"tab": {
 			"add_page": "+ Add page",
 			"delete_confirm": "Delete workspace \"{name}\"? Its widgets and the items registered through this workspace will also be removed from the Library. This cannot be undone.",
+			"delete_dialog": {
+				"delete_items_checkbox": "Also remove items on this page from the Library (only those not used elsewhere)",
+				"desc": "Delete this page. This cannot be undone.",
+				"no_widgets": "This page has no widgets.",
+				"title": "Delete \"{name}\"?",
+				"widget_count": "This page contains {count} widget(s)."
+			},
 			"delete_label": "Delete {name}",
 			"name_placeholder": "Name",
 			"wallpaper": "Wallpaper"

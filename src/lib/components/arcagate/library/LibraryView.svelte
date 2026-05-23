@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, HelpCircle, Package, Play, Settings2, Star } from '@lucide/svelte';
+import { Check, HelpCircle, Package, Play, Settings2, Star, Trash2 } from '@lucide/svelte';
 import { onDestroy, onMount } from 'svelte';
 import StatCard from '$lib/components/arcagate/common/StatCard.svelte';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
@@ -58,6 +58,11 @@ interface Props {
 	onGridKeydown: (e: KeyboardEvent) => void;
 	/** 2026-05-17: 右クリックメニュー「設定を開く」用。 item 編集 dialog を開く。 */
 	onEditItem?: (id: string) => void;
+	/**
+	 * PH-CF-300 C1 (2026-05-23): 右クリックメニュー「削除」 用。 削除は undo snackbar 経路に
+	 * 乗せるため、 親 LibraryMainArea の `deleteWithUndo` を配線する。
+	 */
+	onDeleteItem?: (item: Item) => void;
 }
 
 let {
@@ -75,6 +80,7 @@ let {
 	onAddItem,
 	onGridKeydown,
 	onEditItem,
+	onDeleteItem,
 }: Props = $props();
 
 // 2026-05-17 user 検収: Library カードの専用コンテキストメニュー (起動 / お気に入り / 設定を開く)。
@@ -110,6 +116,15 @@ function menuOpenSettings(): void {
 	const item = cardMenu.item;
 	closeCardMenu();
 	if (item) onEditItem?.(item.id);
+}
+
+// PH-CF-300 C1 (2026-05-23): カード右クリックメニューに削除を追加。
+// 親 LibraryMainArea の `deleteWithUndo` を経由し、 undo snackbar が出る経路に乗せる
+// (LibraryDetailPanel の delete 経路と同じ semantics)。
+function menuDelete(): void {
+	const item = cardMenu.item;
+	closeCardMenu();
+	if (item) onDeleteItem?.(item);
 }
 
 // 2026-05-20 user 指示: 起動アプリ (Opener override) を見た目設定モーダルから
@@ -298,6 +313,18 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		>
 			<Settings2 class="h-3.5 w-3.5" />
 			{t('context_menu.open_settings')}
+		</button>
+		<!-- PH-CF-300 C1: 削除 (destructive)。 親の deleteWithUndo 経路に乗り、 5 秒以内なら
+		     LibraryUndoSnackbar から元に戻せる。 -->
+		<button
+			type="button"
+			role="menuitem"
+			class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-destructive focus-visible:bg-destructive/10 focus-visible:outline-none hover:bg-destructive/10"
+			data-testid="library-context-delete"
+			onclick={menuDelete}
+		>
+			<Trash2 class="h-3.5 w-3.5" />
+			{t('common.delete')}
 		</button>
 		<div class="my-1 border-t border-[var(--ag-border)]"></div>
 		<p class="px-3 pb-1 pt-1 text-xs text-[var(--ag-text-muted)]">{t('context_menu.opener_section')}</p>

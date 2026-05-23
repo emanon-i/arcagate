@@ -1,6 +1,6 @@
 ---
 id: PH-CF-300
-status: planning
+status: implemented
 batch: clean-feedback
 type: 改善
 era: Distribution Hardening

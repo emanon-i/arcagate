@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Eraser, RotateCcw } from '@lucide/svelte';
+import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
 import { configStore } from '$lib/state/config.svelte';
@@ -20,10 +21,21 @@ import ExportImport from './ExportImport.svelte';
 
 let resetting = $state(false);
 let cleanResetOpen = $state(false);
+// PH-CF-300 (2026-05-23): window.confirm 撤去。 設定 reset (destructive) は ConfirmDialog 経由。
+let resetConfirmOpen = $state(false);
+
+function openResetConfirm(): void {
+	if (resetting) return;
+	resetConfirmOpen = true;
+}
+
+function cancelResetConfirm(): void {
+	resetConfirmOpen = false;
+}
 
 async function handleReset(): Promise<void> {
 	if (resetting) return;
-	if (!window.confirm(t('settings.data.reset_confirm'))) return;
+	resetConfirmOpen = false;
 	resetting = true;
 	try {
 		await configStore.resetAllSettings();
@@ -59,7 +71,7 @@ async function handleReset(): Promise<void> {
 				variant="outline"
 				size="sm"
 				disabled={resetting}
-				onclick={() => void handleReset()}
+				onclick={openResetConfirm}
 				data-testid="settings-reset-all"
 			>
 				<RotateCcw class="h-3.5 w-3.5" />
@@ -93,3 +105,14 @@ async function handleReset(): Promise<void> {
 </div>
 
 <CleanResetDialog open={cleanResetOpen} onClose={() => (cleanResetOpen = false)} />
+
+<!-- PH-CF-300: 設定 reset (destructive) の確認 modal。 影響範囲を文言で明示。 -->
+<ConfirmDialog
+	open={resetConfirmOpen}
+	title={t('settings.data.reset_dialog.title')}
+	description={t('settings.data.reset_confirm')}
+	confirmLabel={t('settings.data.reset_button')}
+	confirmVariant="destructive"
+	onConfirm={() => void handleReset()}
+	onCancel={cancelResetConfirm}
+/>

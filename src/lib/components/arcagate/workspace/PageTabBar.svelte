@@ -2,7 +2,9 @@
 import { Image as ImageIcon, Pencil, Trash2, X } from '@lucide/svelte';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import { t } from '$lib/i18n.svelte';
+import { listWidgets } from '$lib/ipc/workspace';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import WorkspaceDeleteConfirmDialog from './WorkspaceDeleteConfirmDialog.svelte';
 
 interface Props {
 	onSelectWorkspace?: (id: string) => void;
@@ -45,25 +47,54 @@ function handleKeydown(e: KeyboardEvent) {
 	}
 }
 
-// K-5 fix (2026-05-15): user 報告「workspace スロット (名前つけるとこ) 消せなかった」。
-// 旧実装は workspace 削除 UI が一切無く、 user 作成 tab を消す方法がなかった。
-// 修正: hover で × icon を表示、 click で confirm → deleteWorkspace。 1 件しか
-// 残っていない場合 (= default だけ) は × を非表示にして「最後の workspace は消せない」
-// 安全弁を備える (user 仕様: 「Home 等のデフォルト workspace は削除不可で OK」)。
-function deleteWorkspace(id: string, name: string): void {
+// PH-CF-300 E3/E6 (2026-05-23): タブ削除を専用 modal に置換。
+// 旧実装は `window.confirm` で OK/Cancel のみ → E6 のチェックボックス (item も削除) を出せない、
+// × ボタンが widget チップに被さる極小ターゲットで誤クリックを誘発していた。
+//
+// 削除フロー:
+// 1. × クリック or 右クリックメニュー「削除」 → openDeleteDialog
+// 2. modal 表示中に widget 数を IPC で取得 (best-effort、 失敗時 0 表示)
+// 3. user が checkbox で「item も Library から消す」 を opt-in (default OFF)
+// 4. confirm で `deleteWorkspace(id, deleteItems)` を呼ぶ
+let deleteTarget = $state<{ id: string; name: string } | null>(null);
+let deleteTargetWidgetCount = $state(0);
+
+async function loadWidgetCount(workspaceId: string): Promise<number> {
+	// 削除対象 page の widget 数。 active workspace なら store から即取得。 非 active は IPC で取得。
+	if (workspaceId === workspaceStore.activeWorkspaceId) {
+		return workspaceStore.widgets.length;
+	}
+	try {
+		const widgets = await listWidgets(workspaceId);
+		return widgets.length;
+	} catch {
+		// best-effort: IPC 失敗時は 0 表示で続行 (modal 自体は出す)
+		return 0;
+	}
+}
+
+async function openDeleteDialog(id: string, name: string): Promise<void> {
 	if (workspaceStore.workspaces.length <= 1) return;
-	// 2026-05-17 bug fix 連動: workspace 削除で widget 経由登録 item も Library から消えるため
-	// confirm 文言でも明示する。
-	// PH-CF-100: deleteItems=true で「タブ削除時に item も消す」 現状挙動を維持。
-	// E6 (PH-CF-300) の confirm modal が user 選択 (アイテムを残す/消す) を受け取れるよう、
-	// 引数経路だけここで bool 必須化しておく (PH-CF-300 でこの値が UI から渡る)。
-	if (!window.confirm(t('workspace.tab.delete_confirm', { name }))) return;
-	void workspaceStore.deleteWorkspace(id, true);
+	deleteTarget = { id, name };
+	// modal 表示中に widget 数を非同期取得。 表示優先で「modal は即出し、 数値は後埋め」。
+	deleteTargetWidgetCount = await loadWidgetCount(id);
+}
+
+function closeDeleteDialog(): void {
+	deleteTarget = null;
+	deleteTargetWidgetCount = 0;
+}
+
+function confirmDelete(deleteItems: boolean): void {
+	const target = deleteTarget;
+	closeDeleteDialog();
+	if (!target) return;
+	void workspaceStore.deleteWorkspace(target.id, deleteItems);
 }
 
 function handleDelete(id: string, name: string, ev: MouseEvent): void {
 	ev.stopPropagation();
-	deleteWorkspace(id, name);
+	void openDeleteDialog(id, name);
 }
 
 // 2026-05-17 user 検収: タブ右クリックの専用コンテキストメニュー (名前を変更 / 削除)。
@@ -104,7 +135,7 @@ function renameFromMenu(): void {
 function deleteFromMenu(): void {
 	const { id, name } = tabMenu;
 	closeTabMenu();
-	deleteWorkspace(id, name);
+	void openDeleteDialog(id, name);
 }
 </script>
 
@@ -121,7 +152,7 @@ function deleteFromMenu(): void {
 			<button
 				type="button"
 				class="rounded-full text-xs transition-[color,background-color,transform] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {canDelete
-					? 'pl-3.5 pr-7 py-1.5'
+					? 'pl-3.5 pr-9 py-1.5'
 					: 'px-3.5 py-1.5'} {isActive
 					? 'bg-[var(--ag-accent-bg)] font-medium text-[var(--ag-accent-text)]'
 					: 'text-[var(--ag-text-secondary)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
@@ -133,10 +164,12 @@ function deleteFromMenu(): void {
 				{ws.name}
 			</button>
 			{#if canDelete}
-				<!-- K-5: hover で × 表示。 active / inactive 問わず削除可、 confirm 経由。 -->
+				<!-- PH-CF-300 E3 (2026-05-23): hit area を拡大 (旧 p-0.5 = 16px → p-1.5 = 28px square)、
+				     ボタンを 1.5px 右へ寄せて widget チップとの被りを避ける。 icon は視覚的に同サイズ
+				     (h-3 w-3) のまま、 透明 padding でクリック判定だけ広げる。 -->
 				<button
 					type="button"
-					class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--ag-text-muted)] opacity-0 transition-[opacity,color,background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-error-text)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+					class="absolute right-0.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full p-1.5 text-[var(--ag-text-muted)] opacity-0 transition-[opacity,color,background-color] duration-[var(--ag-duration-fast)] motion-reduce:transition-none group-hover:opacity-100 hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-error-text)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
 					aria-label={t('workspace.tab.delete_label', { name: ws.name })}
 					title={t('common.delete')}
 					onclick={(e) => handleDelete(ws.id, ws.name, e)}
@@ -208,3 +241,11 @@ function deleteFromMenu(): void {
 		</button>
 	{/if}
 </ContextMenu>
+
+<!-- PH-CF-300: タブ削除専用 modal (E3 + E6)。 deleteTarget が null なら閉、 非 null で開。 -->
+<WorkspaceDeleteConfirmDialog
+	workspace={deleteTarget}
+	widgetCount={deleteTargetWidgetCount}
+	onConfirm={confirmDelete}
+	onCancel={closeDeleteDialog}
+/>

@@ -49,3 +49,28 @@
 
 - icon は file system 保存 (base64 TEXT 比で容量 33% 削減、search query で icon data を load しない)
 - system tag は type 系 (`sys-type-*`) と workspace 系 (`sys-ws-*`) の 2 系統 + user tag
+
+## 破壊的操作の確認契約 (PH-CF-300)
+
+item / workspace / タブの削除など取り返しのつかない操作は、 **専用 confirm modal** または
+**undo-toast** のいずれかを必ず経由する。 `window.confirm` / `window.alert` / `window.prompt`
+は使わない (チェックボックス等の拡張不能・OS 依存の見た目・ag-glass theme と不整合)。
+削除確認モーダルは影響範囲 (削除される item 数 / 連鎖削除の有無) を文言で明示する。
+
+### Library での適用
+
+- **カード右クリックメニューの「削除」 (C1)**: `LibraryView.svelte` で開き、 `deleteWithUndo`
+  経由で `LibraryUndoSnackbar` の undo-toast 経路に乗せる (5 秒以内なら元に戻せる)。
+- **複数選択時の一括削除**: 専用 `ConfirmDialog` (`destructive` variant、 削除件数 + 影響
+  範囲文言を `extraNote` で表示)。 確認後に `bulkDeleteItems` を実行。
+- **detail panel の削除ボタン**: Tauri `ask()` (OS-native confirm) で確認、 確認後に
+  `deleteWithUndo` 経路で undo-toast を出す (既存)。
+
+### 機械検出
+
+- `scripts/audit-window-confirm.sh` が `src/**/*.{ts,svelte}` に対し
+  `window.confirm|window.alert|window.prompt` 0 件を検証 (lefthook + `pnpm audit:all` で gate)。
+- e2e: `tests/e2e/destructive-confirm.spec.ts` が
+  (a) Library カード右クリック → 「削除」 表示 + クリックで item 消滅 + undo snackbar 表示
+  (b) 複数選択 → 削除 → ConfirmDialog 経由
+  を検証。
