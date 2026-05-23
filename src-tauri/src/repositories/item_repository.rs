@@ -6,8 +6,8 @@ use crate::utils::error::{AppError, ToAppError};
 pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
     let aliases_json = serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
     conn.execute(
-        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        "INSERT INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, source_widget_id, source_entry_key)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         params![
             item.id,
             item.item_type.as_str(),
@@ -22,6 +22,8 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
             item.is_enabled as i64,
             item.is_tracked as i64,
             item.default_app,
+            item.source_widget_id,
+            item.source_entry_key,
         ],
     )?;
     Ok(())
@@ -30,7 +32,7 @@ pub fn insert(conn: &Connection, item: &Item) -> Result<(), AppError> {
 pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
     // audit 2026-05-14 F9: ToAppError trait で 4-5 行 match → 1 行に集約。
     conn.query_row(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, source_widget_id, source_entry_key, created_at, updated_at
          FROM items WHERE id = ?1",
         params![id],
         Item::from_row,
@@ -40,7 +42,7 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Item, AppError> {
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {
     let mut stmt = conn.prepare(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, source_widget_id, source_entry_key, created_at, updated_at
          FROM items ORDER BY sort_order, label",
     )?;
     let items = stmt
@@ -52,7 +54,7 @@ pub fn find_all(conn: &Connection) -> Result<Vec<Item>, AppError> {
 pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
     let pattern = format!("%{}%", query);
     let mut stmt = conn.prepare(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, source_widget_id, source_entry_key, created_at, updated_at
          FROM items
          WHERE is_enabled = 1 AND (label LIKE ?1 OR aliases LIKE ?1)
          ORDER BY sort_order, label",
@@ -68,7 +70,7 @@ pub fn search_in_tag(conn: &Connection, tag_id: &str, query: &str) -> Result<Vec
     // 旧実装は空 query 時も `LIKE '%%'` を全行に評価して full scan を起こし、avg 168ms /
     // max 201ms (@ 690 items)。空 query 時は LIKE clause 自体を省き、idx_item_tags_tag
     // (migration 025) で tag_id INDEX のみを使う query にする。
-    const SELECT: &str = "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.card_override_json, i.created_at, i.updated_at
+    const SELECT: &str = "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.card_override_json, i.source_widget_id, i.source_entry_key, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_tags it ON it.item_id = i.id
          WHERE it.tag_id = ?1
@@ -200,13 +202,58 @@ pub fn get_library_stats(conn: &Connection) -> Result<LibraryStats, AppError> {
 
 pub fn find_by_target(conn: &Connection, target: &str) -> Result<Option<Item>, AppError> {
     let result = conn.query_row(
-        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, created_at, updated_at
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, source_widget_id, source_entry_key, created_at, updated_at
          FROM items WHERE target = ?1",
         params![target],
         Item::from_row,
     );
     match result {
         Ok(item) => Ok(Some(item)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::Database(e)),
+    }
+}
+
+/// PH-CF-100: 監視ウィジェット由来の item を所有関係 `(source_widget_id, source_entry_key)` で
+/// 重複判定する。 `find_by_target` (target パス一致) は exe-folder の場合 entry_key (folder)
+/// と target (exe path) がズレるため使えない。 reconcile 重複判定の正規 query。
+pub fn find_by_source(
+    conn: &Connection,
+    widget_id: &str,
+    entry_key: &str,
+) -> Result<Option<Item>, AppError> {
+    let result = conn.query_row(
+        "SELECT id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, source_widget_id, source_entry_key, created_at, updated_at
+         FROM items WHERE source_widget_id = ?1 AND source_entry_key = ?2",
+        params![widget_id, entry_key],
+        Item::from_row,
+    );
+    match result {
+        Ok(item) => Ok(Some(item)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::Database(e)),
+    }
+}
+
+/// PH-CF-100: 監視 widget 由来の item の back-link (source_widget_id, source_entry_key) を
+/// 返す。 `delete_item` の冒頭で読み、 両方 NOT NULL なら `widget_item_hides` に
+/// 「user が意図的に削除した」 を記録するために使う。
+pub fn find_source_back_link(
+    conn: &Connection,
+    id: &str,
+) -> Result<Option<(String, String)>, AppError> {
+    let result = conn.query_row(
+        "SELECT source_widget_id, source_entry_key FROM items WHERE id = ?1",
+        params![id],
+        |row| {
+            let wid: Option<String> = row.get(0)?;
+            let key: Option<String> = row.get(1)?;
+            Ok((wid, key))
+        },
+    );
+    match result {
+        Ok((Some(wid), Some(key))) => Ok(Some((wid, key))),
+        Ok(_) => Ok(None),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(AppError::Database(e)),
     }
@@ -306,6 +353,8 @@ mod tests {
             is_tracked: true,
             default_app: None,
             card_override_json: None,
+            source_widget_id: None,
+            source_entry_key: None,
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-01T00:00:00Z".to_string(),
         }

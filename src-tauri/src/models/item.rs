@@ -51,6 +51,12 @@ pub struct Item {
     pub default_app: Option<String>,
     /// PH-290: per-card 背景・文字 override (JSON 文字列、NULL = global default)
     pub card_override_json: Option<String>,
+    /// PH-CF-100: 監視ウィジェット由来の item の back-link。 NULL = user 作成 / 監視非由来。
+    /// `source_entry_key` と 2 列セットで意味を持つ (片肺は契約違反)。
+    pub source_widget_id: Option<String>,
+    /// PH-CF-100: scan reconcile の entry id (正規化済 絶対パス)。
+    /// `widget_item_hides.item_target` と同じ key 空間で揃える。
+    pub source_entry_key: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -59,7 +65,8 @@ impl Item {
     /// rusqlite::Row → Item への変換 (V2 解消、A3 PR-B)。
     /// 列順序は repository 側 SELECT の順序 (id, item_type, label, target, args,
     /// working_dir, icon_path, icon_type, aliases, sort_order, is_enabled,
-    /// is_tracked, default_app, card_override_json, created_at, updated_at) と一致。
+    /// is_tracked, default_app, card_override_json, source_widget_id, source_entry_key,
+    /// created_at, updated_at) と一致。
     pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
         let item_type_str: String = row.get(1)?;
         let item_type = ItemType::from_str(&item_type_str).unwrap_or(ItemType::Command);
@@ -85,8 +92,10 @@ impl Item {
             is_tracked: is_tracked_int != 0,
             default_app: row.get(12)?,
             card_override_json: row.get(13)?,
-            created_at: row.get(14)?,
-            updated_at: row.get(15)?,
+            source_widget_id: row.get(14)?,
+            source_entry_key: row.get(15)?,
+            created_at: row.get(16)?,
+            updated_at: row.get(17)?,
         })
     }
 }
