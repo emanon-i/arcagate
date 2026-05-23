@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
 	clampWidget,
+	computeClusterAnchor,
 	computeMoveDragPreviews,
 	findFreePosition,
 	findFreePositionNear,
 	type Rect,
+	resolveSeedCell,
 	wouldOverlapAt,
 } from './widget-grid';
 
@@ -156,5 +158,137 @@ describe('computeMoveDragPreviews', () => {
 	it('移動グループ同士は衝突扱いしない (rigid に同 delta 移動)', () => {
 		const r = computeMoveDragPreviews(widgets, new Set(['a', 'b']), 2, 0, 12, 32);
 		expect(r.every((p) => !p.blocked)).toBe(true);
+	});
+});
+
+/**
+ * PH-CF-200: `computeClusterAnchor` の BB 中心算出。
+ */
+describe('computeClusterAnchor', () => {
+	it('空 rects なら null', () => {
+		expect(computeClusterAnchor([])).toBeNull();
+	});
+
+	it('単一 widget なら自身の中心', () => {
+		// rect (4, 6, 2, 2) → BB = x∈[4,6], y∈[6,8] → 中心 (5, 7)
+		expect(computeClusterAnchor([{ x: 4, y: 6, w: 2, h: 2 }])).toEqual({ x: 5, y: 7 });
+	});
+
+	it('複数 widget なら BB の中心', () => {
+		// rects = [(8,10,2,2), (12,14,2,2)] → BB x∈[8,14], y∈[10,16] → 中心 (11, 13)
+		expect(
+			computeClusterAnchor([
+				{ x: 8, y: 10, w: 2, h: 2 },
+				{ x: 12, y: 14, w: 2, h: 2 },
+			]),
+		).toEqual({ x: 11, y: 13 });
+	});
+});
+
+/**
+ * PH-CF-200: `resolveSeedCell` の優先順位と (0,0) 非フォールバックを fix する unit test。
+ *
+ * 引用元 guideline:
+ * - `docs/l3_phases/clean-feedback/PH-CF-200_workspace-dnd-placement.md` §受け入れ条件 (機械検出):
+ *   「unit test: resolveSeedCell が空 rects + dropCell 指定で dropCell を返す / dropCell も
+ *    nearCell も無いとき viewport 中心を返し (0,0) にフォールバックしない」
+ * - `docs/l2_foundation/features/screens/workspace.md` §D&D 配置契約
+ *
+ * 優先度:
+ *   1. dropCell — OS file drop / pointer drop 時の cursor 位置 cell
+ *   2. nearCell — caller が明示的に渡した seed cell
+ *   3. クラスタ中心 — 既存 widget 群の BB 中心 (`computeClusterAnchor`)
+ *   4. viewportCenterCell — viewport 中央 fallback
+ *
+ * (0,0) フォールバックは禁止 — 全 hint が無い時のみ null を返す。
+ */
+describe('resolveSeedCell', () => {
+	const emptyRects: Rect[] = [];
+	const clusterRects: Rect[] = [
+		{ x: 8, y: 10, w: 2, h: 2 },
+		{ x: 12, y: 14, w: 2, h: 2 },
+	];
+
+	it('dropCell が指定されていれば、 他の hint より優先される (空 rects)', () => {
+		expect(
+			resolveSeedCell({
+				dropCell: { x: 5, y: 7 },
+				nearCell: { x: 1, y: 1 },
+				rects: emptyRects,
+				viewportCenterCell: { x: 3, y: 3 },
+			}),
+		).toEqual({ x: 5, y: 7 });
+	});
+
+	it('dropCell が指定されていれば、 既存 cluster より優先される', () => {
+		expect(
+			resolveSeedCell({
+				dropCell: { x: 5, y: 7 },
+				rects: clusterRects,
+				viewportCenterCell: { x: 3, y: 3 },
+			}),
+		).toEqual({ x: 5, y: 7 });
+	});
+
+	it('dropCell 無し、 nearCell 有りなら nearCell', () => {
+		expect(
+			resolveSeedCell({
+				nearCell: { x: 4, y: 6 },
+				rects: clusterRects,
+				viewportCenterCell: { x: 3, y: 3 },
+			}),
+		).toEqual({ x: 4, y: 6 });
+	});
+
+	it('dropCell / nearCell 無し、 既存 widget あればクラスタ中心', () => {
+		expect(
+			resolveSeedCell({
+				rects: clusterRects,
+				viewportCenterCell: { x: 3, y: 3 },
+			}),
+		).toEqual({ x: 11, y: 13 });
+	});
+
+	it('dropCell / nearCell / cluster 無し、 viewportCenterCell 有りなら viewport 中心', () => {
+		expect(
+			resolveSeedCell({
+				rects: emptyRects,
+				viewportCenterCell: { x: 3, y: 3 },
+			}),
+		).toEqual({ x: 3, y: 3 });
+	});
+
+	it('空 rects + dropCell 指定で dropCell を返す (アイテム 0 個ケース、 plan §受け入れ条件)', () => {
+		expect(
+			resolveSeedCell({
+				dropCell: { x: 5, y: 7 },
+				rects: emptyRects,
+			}),
+		).toEqual({ x: 5, y: 7 });
+	});
+
+	it('全 hint 無しなら null (= (0,0) フォールバック禁止、 plan §受け入れ条件)', () => {
+		expect(resolveSeedCell({ rects: emptyRects })).toBeNull();
+	});
+
+	it('dropCell に null を渡しても、 falsy として無視され次の優先 hint に進む', () => {
+		expect(
+			resolveSeedCell({
+				dropCell: null,
+				nearCell: { x: 9, y: 9 },
+				rects: emptyRects,
+			}),
+		).toEqual({ x: 9, y: 9 });
+	});
+
+	it('viewportCenterCell に null を渡しても、 全 hint 無しなら null を返す', () => {
+		expect(
+			resolveSeedCell({
+				dropCell: null,
+				nearCell: null,
+				rects: emptyRects,
+				viewportCenterCell: null,
+			}),
+		).toBeNull();
 	});
 });

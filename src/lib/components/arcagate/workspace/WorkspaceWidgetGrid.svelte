@@ -2,6 +2,7 @@
 import type { Component } from 'svelte';
 import { pointerDrag } from '$lib/state/pointer-drag.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
+import { workspaceDropCoords } from '$lib/state/workspace-drop-coords.svelte';
 import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import { WIDGET_LABELS } from '$lib/types/workspace';
 import {
@@ -54,6 +55,28 @@ function handleWidgetClick(e: MouseEvent, id: string): void {
 }
 
 let dropZoneEl = $state<HTMLDivElement | null>(null);
+
+// PH-CF-200: OS file drop (Tauri `tauri://drag-drop`) の座標 → cell 変換に dropZoneEl と
+// grid 寸法が必要なため、 workspaceDropCoords store に register する。 dropZoneEl が変わる
+// または grid 寸法が変化したら再 register、 unmount 時は null で解除。 これにより
+// activeView=library 時 (workspace unmount) は cellFromClient が null を返し、 OS drop が
+// 来ても安全に viewport 中央 fallback できる。
+$effect(() => {
+	workspaceDropCoords.registerDropZone(dropZoneEl, {
+		widgetW,
+		widgetH,
+		dynamicCols,
+		maxRow,
+	});
+	return () => {
+		workspaceDropCoords.registerDropZone(null, {
+			widgetW: 0,
+			widgetH: 0,
+			dynamicCols: 0,
+			maxRow: 0,
+		});
+	};
+});
 
 function calcDropCell(clientX: number, clientY: number): { x: number; y: number } {
 	const ref = dropZoneEl;
@@ -131,8 +154,12 @@ $effect(() => {
 			if (cell) {
 				void workspaceStore.addWidgetAt(src.widgetType, cell.x, cell.y, dynamicCols);
 			} else {
-				const near = getViewportCenterCell() ?? undefined;
-				void workspaceStore.addWidget(src.widgetType, near, dynamicCols);
+				// PH-CF-200: opts オブジェクト化に伴い nearCell / viewportCenterCell を渡す。
+				void workspaceStore.addWidget(src.widgetType, {
+					nearCell: getViewportCenterCell(),
+					viewportCenterCell: getViewportCenterCell(),
+					cols: dynamicCols,
+				});
 			}
 		} else if (src.kind === 'move') {
 			if (cell) {

@@ -59,18 +59,22 @@ export const workspaceStore = {
 	selectWorkspace: (id: string) => workspaceConfig.selectWorkspace(id),
 	// widget CRUD 系
 	loadWidgets: (workspaceId: string) => workspaceWidgets.loadWidgets(workspaceId),
+	// PH-CF-200: addWidget は opts 1 引数に統一 (dropCell / nearCell / viewportCenterCell / cols /
+	// workspaceId)。 callsite は `{ nearCell, cols }` 等を 1 つの object で渡す。
 	addWidget: (
 		widgetType: Parameters<typeof workspaceWidgets.addWidget>[0],
-		nearCell?: Parameters<typeof workspaceWidgets.addWidget>[1],
-		cols?: Parameters<typeof workspaceWidgets.addWidget>[2],
-	) => workspaceWidgets.addWidget(widgetType, nearCell, cols),
+		opts?: Parameters<typeof workspaceWidgets.addWidget>[1],
+	) => workspaceWidgets.addWidget(widgetType, opts),
 	addWidgetAt: (
 		widgetType: Parameters<typeof workspaceWidgets.addWidgetAt>[0],
 		x: number,
 		y: number,
 		cols?: number,
 	) => workspaceWidgets.addWidgetAt(widgetType, x, y, cols),
-	bulkAddItemWidgets: (itemIds: string[]) => workspaceWidgets.bulkAddItemWidgets(itemIds),
+	bulkAddItemWidgets: (
+		itemIds: string[],
+		opts?: Parameters<typeof workspaceWidgets.bulkAddItemWidgets>[1],
+	) => workspaceWidgets.bulkAddItemWidgets(itemIds, opts),
 	removeWidget: (id: string) => workspaceWidgets.removeWidget(id),
 	// H-2 Tier B: 複数 widget をまとめて削除 (history 1 batch)
 	removeMany: (ids: string[]) => workspaceWidgets.removeMany(ids),

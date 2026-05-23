@@ -1,6 +1,6 @@
 ---
 id: PH-CF-200
-status: planning
+status: implemented
 batch: clean-feedback
 type: バグ修正
 era: Distribution Hardening

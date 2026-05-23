@@ -101,7 +101,14 @@ function keyboardAdd(e: KeyboardEvent, widgetType: WidgetType) {
 	if (e.key !== 'Enter' && e.key !== ' ') return;
 	if (e.repeat) return;
 	e.preventDefault();
-	void workspaceStore.addWidget(widgetType, getViewportCenterCell?.() ?? undefined, dynamicCols);
+	// PH-CF-200: addWidget は opts 1 引数化、 nearCell / viewportCenterCell を渡す
+	// (viewportCenterCell は (0,0) フォールバック防止用の最終 seed)。
+	const vp = getViewportCenterCell?.() ?? null;
+	void workspaceStore.addWidget(widgetType, {
+		nearCell: vp,
+		viewportCenterCell: vp,
+		cols: dynamicCols,
+	});
 }
 </script>
 

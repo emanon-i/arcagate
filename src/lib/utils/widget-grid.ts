@@ -116,6 +116,67 @@ export function findFreePositionNear(
 	return findFreePosition(w, h, others, maxCols, maxRow);
 }
 
+/**
+ * 既存 widget 群の bounding box 中心を seed cell として返す。 空配列なら null。
+ *
+ * 元は `workspace-widgets.svelte.ts` の `computeClusterAnchor` だったが、 PH-CF-200 で
+ * `resolveSeedCell` を pure utility 側に移すのと同時にこちらへ移動 (.svelte.ts は state を
+ * 含むため vitest からそのまま import すると `$state is not defined` で fail する)。
+ *
+ * audit batch deferred (2026-05-13) #1+#2: 「画面外配置 + fit-to-content でも救えない」 状態を
+ * 回避するため、 D&D / sidebar add で nearCell が無い時は (0,0) から逐次 scan せず
+ * BB 中心近傍を seed にする。
+ */
+export function computeClusterAnchor(rects: Rect[]): { x: number; y: number } | null {
+	if (rects.length === 0) return null;
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	for (const r of rects) {
+		if (r.x < minX) minX = r.x;
+		if (r.y < minY) minY = r.y;
+		if (r.x + r.w > maxX) maxX = r.x + r.w;
+		if (r.y + r.h > maxY) maxY = r.y + r.h;
+	}
+	return { x: Math.floor((minX + maxX) / 2), y: Math.floor((minY + maxY) / 2) };
+}
+
+/**
+ * PH-CF-200: widget 配置 seed cell 解決 (4 経路に分散していた seed 解決を 1 関数に集約)。
+ *
+ * 引用元 guideline:
+ * - `docs/l3_phases/clean-feedback/PH-CF-200_workspace-dnd-placement.md` §タスク 3
+ * - `docs/l2_foundation/features/screens/workspace.md` §D&D 配置契約
+ *
+ * 優先度:
+ *   1. `dropCell` — OS file drop / pointer drag end の cursor 位置から得た cell
+ *   2. `nearCell` — caller が明示的に渡した seed cell (sidebar keyboard add 等)
+ *   3. クラスタ中心 — 既存 widget 群の BB 中心 (`computeClusterAnchor`)
+ *   4. `viewportCenterCell` — 上記いずれも無い場合の viewport 中央フォールバック
+ *
+ * 戻り値が `null` のとき caller は **(0,0) ではなく** 「seed なし」 として扱う:
+ *   `findFreePosition(w, h, rects, ...)` の (0,0) 起点線形 scan に落ちる。 ただし
+ *   `viewportCenterCell` を渡せばこの fallback はほぼ通らない。 features/screens/workspace.md
+ *   の D&D 配置契約「座標が真に不明な場合のフォールバックは viewport 中心であり、 (0,0)
+ *   ではない」 を満たすために、 caller は viewport 中央 cell を渡すこと。
+ *
+ * 機械検出: `src/lib/utils/widget-grid.test.ts` の `resolveSeedCell` test。
+ */
+export function resolveSeedCell(input: {
+	dropCell?: { x: number; y: number } | null;
+	nearCell?: { x: number; y: number } | null;
+	rects: Rect[];
+	viewportCenterCell?: { x: number; y: number } | null;
+}): { x: number; y: number } | null {
+	if (input.dropCell) return input.dropCell;
+	if (input.nearCell) return input.nearCell;
+	const cluster = computeClusterAnchor(input.rects);
+	if (cluster) return cluster;
+	if (input.viewportCenterCell) return input.viewportCenterCell;
+	return null;
+}
+
 /** #12: drag preview の 1 box。x/y は描画用に 0 クランプ済、blocked は実座標で判定。 */
 export interface DragPreviewBox {
 	x: number;
