@@ -33,6 +33,7 @@ import {
 	findFreePosition,
 	findFreePositionNear,
 	type Rect,
+	resolveSeedCell,
 	wouldOverlapAt,
 } from '$lib/utils/widget-grid';
 import { widgetRegistry } from '$lib/widgets';
@@ -101,26 +102,9 @@ const DEFAULT_GRID_COLS = 4;
 // findFreePosition / addWidgetAt の row bound check は y + h <= DEFAULT_MAX_ROW + 1 (= 129)。
 const DEFAULT_MAX_ROW = 128;
 
-/**
- * audit batch deferred (2026-05-13) #1+#2: 既存 widget 群の bounding box 中心を seed cell として返す。
- * D&D / sidebar add で nearCell が無い時、 (0,0) から逐次 scan すると既存 cluster から
- * 離れた所に置かれる risk が高い。 既存 widget の BB 中心近傍を seed にすることで
- * 「画面外配置 + fit-to-content でも救えない」 状態を回避。
- */
-function computeClusterAnchor(rects: Rect[]): { x: number; y: number } | null {
-	if (rects.length === 0) return null;
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-	for (const r of rects) {
-		if (r.x < minX) minX = r.x;
-		if (r.y < minY) minY = r.y;
-		if (r.x + r.w > maxX) maxX = r.x + r.w;
-		if (r.y + r.h > maxY) maxY = r.y + r.h;
-	}
-	return { x: Math.floor((minX + maxX) / 2), y: Math.floor((minY + maxY) / 2) };
-}
+// PH-CF-200: `computeClusterAnchor` / `resolveSeedCell` は `$lib/utils/widget-grid` に移動
+// (state を含まない pure function なので utils に置く → vitest から `.svelte.ts` 経由せず
+// 直接 import 可能 + unit test しやすい)。
 
 function widgetsToRects(list: WorkspaceWidget[], excludeId?: string): Rect[] {
 	return list
@@ -163,12 +147,35 @@ class WorkspaceWidgets {
 		}
 	}
 
+	/**
+	 * widget を配置する (PH-CF-200: seed 解決を `resolveSeedCell` に集約)。
+	 *
+	 * @param widgetType  追加する widget の種別
+	 * @param opts  配置 seed の hint 群。 全て optional:
+	 *   - `dropCell`: OS file drop / pointer drop 時の cursor 位置 cell (最優先)
+	 *   - `nearCell`: caller が明示的に渡す seed (sidebar keyboard add 等)
+	 *   - `viewportCenterCell`: viewport 中央 fallback (caller が `viewportCenterCell()` で算出)
+	 *   - `cols`: dynamicCols (preview と placement の判定一致用)
+	 *   - `workspaceId`: 配置先 workspace を明示的に指定 (PH-CF-200: OS drop の page pin 用)。
+	 *     未指定なら `workspaceConfig.activeWorkspaceId`。
+	 *
+	 * 配置 algorithm:
+	 *   1. `resolveSeedCell` で dropCell → nearCell → cluster → viewport の優先順で seed を決定
+	 *   2. seed があれば `findFreePositionNear` で spiral 探索、 無ければ (0,0) 起点線形 scan
+	 *   3. **(0,0) フォールバックは禁止** — caller が viewport 中央 cell を渡せば常に viewport
+	 *      中央 seed が返るため、 ほぼ確実に viewport 内に配置される
+	 */
 	async addWidget(
 		widgetType: WidgetType,
-		nearCell?: { x: number; y: number },
-		cols?: number,
+		opts: {
+			dropCell?: { x: number; y: number } | null;
+			nearCell?: { x: number; y: number } | null;
+			viewportCenterCell?: { x: number; y: number } | null;
+			cols?: number;
+			workspaceId?: string;
+		} = {},
 	): Promise<void> {
-		const activeWorkspaceId = workspaceConfig.activeWorkspaceId;
+		const activeWorkspaceId = opts.workspaceId ?? workspaceConfig.activeWorkspaceId;
 		if (!activeWorkspaceId) return;
 		this.loading = true;
 		this.error = null;
@@ -176,26 +183,27 @@ class WorkspaceWidgets {
 			// 検収 #7: widget タイプ別 defaultSize (Clock 1x1 等の極小化を防止)。
 			// Rust 側はサイズ 2x2 で row 末尾に作成するため、追加直後に widget タイプ別サイズに更新する。
 			const { w, h } = defaultSizeFor(widgetType);
-			// 検収 #5 + Codex Critical #1: nearCell 起点の **spiral 探索**。
-			// 指定 cell が埋まっていたら top-left に飛ばず、最寄りの空きセルを spiral で探す
-			// (top-left fallback は near が見つからない時のみ)。
 			// Codex r3 #1 / r4 HIGH #1: viewport 幅から導出された responsive `cols` を **そのまま** 尊重。
-			// 旧 `Math.max(DEFAULT_GRID_COLS, cols ?? DEFAULT_GRID_COLS)` は cols<4 の narrow viewport で
-			// 強制的に 4 にしていたため、preview (dynamicCols=2 等) と判定が乖離する新たな mismatch を発生させていた。
-			// 引数未指定時のみ DEFAULT_GRID_COLS にフォールバック。負/0 は最低 1 で sanity guard。
-			const rects = widgetsToRects(this.widgets);
-			// image-widget-critical fix (2026-05-13): cols 未指定 + 既存 widget が wider viewport で
-			// 配置されていた場合、 既存 widget の最大右端を下回らないよう effectiveCols を補正。
-			// 旧実装: cols=undefined → effectiveCols=DEFAULT_GRID_COLS(4) で spiral 探索範囲が x∈[0..1] に
-			// clamp され、 cluster 中心 seed (例 x=4) が無効化 → 結果 widget が既存 cluster の真下に
-			// 配置され「画面外配置」 となる症状の root cause fix。
+			// 引数未指定時のみ DEFAULT_GRID_COLS にフォールバック。 負/0 は最低 1 で sanity guard。
+			// image-widget-critical fix (2026-05-13): 既存 widget の最大右端を下回らないよう
+			// effectiveCols を補正 (cluster 中心 seed が effectiveCols 外に出て無効化される回避)。
+			//
+			// PH-CF-200: pin した workspace に対して widgets を IPC で取り直すと race / 非同期コストが
+			// 重いので、 通常 active と pin が同じケースが大半 (タブ切替なし) ではフロント widgets
+			// 配列を流用する。 pin が active と異なる稀ケースでは衝突回避が後段の DB 制約に委ねられる
+			// が、 別 workspace の widget rect は無関係なので overlap 検出は実害なしで安全 fallback。
+			const useFrontRects = activeWorkspaceId === workspaceConfig.activeWorkspaceId;
+			const rects = useFrontRects ? widgetsToRects(this.widgets) : [];
 			const widgetMaxRight = rects.reduce((m, r) => Math.max(m, r.x + r.w), 0);
-			const effectiveCols = Math.max(1, cols ?? DEFAULT_GRID_COLS, widgetMaxRight);
-			// audit batch deferred (2026-05-13) #1+#2 + #13: nearCell 無し時、 (0,0) ではなく
-			// 既存 widget BB 中心近傍に置く。 D&D / sidebar add で「とんでもなく離れて配置」
-			// → 「fit-to-content でも viewport range 外」 という症状の root cause fix。
-			// 既存 widget 無しなら (0,0)、 既存有りなら中心の最寄り cell から spiral 探索。
-			const seedCell = nearCell ?? computeClusterAnchor(rects);
+			const effectiveCols = Math.max(1, opts.cols ?? DEFAULT_GRID_COLS, widgetMaxRight);
+			// PH-CF-200: seed 解決を `resolveSeedCell` に集約 (4 経路の重複を排除)。
+			// dropCell → nearCell → クラスタ中心 → viewport 中心の優先順。 (0,0) フォールバック禁止。
+			const seedCell = resolveSeedCell({
+				dropCell: opts.dropCell,
+				nearCell: opts.nearCell,
+				rects,
+				viewportCenterCell: opts.viewportCenterCell,
+			});
 			const pos = seedCell
 				? findFreePositionNear(seedCell.x, seedCell.y, w, h, rects, effectiveCols, DEFAULT_MAX_ROW)
 				: findFreePosition(w, h, rects, effectiveCols, DEFAULT_MAX_ROW);
@@ -209,7 +217,12 @@ class WorkspaceWidgets {
 			widget.position_y = pos.y;
 			widget.width = w;
 			widget.height = h;
-			this.widgets = [...this.widgets, widget];
+			// PH-CF-200: pin した workspace と active が異なるとき (非同期 drop 中のタブ切替) は、
+			// 別 workspace の widgets 配列に push してはいけない。 IPC で永続化済の widget は
+			// 次回そちらの workspace に切り替えた際に `loadWidgets` で必ず復元される。
+			if (useFrontRects) {
+				this.widgets = [...this.widgets, widget];
+			}
 			// PH-issue-002: history record (add)
 			workspaceHistory.record({
 				kind: 'add',
@@ -226,6 +239,15 @@ class WorkspaceWidgets {
 		}
 	}
 
+	/**
+	 * 指定セルに widget を **厳密配置** する (overlap / 越境なら reject + toast)。
+	 * pointer drag 経路 (`WorkspaceWidgetGrid`) の sidebar drop で使う。
+	 *
+	 * PH-CF-200: OS file drop 経路は本関数ではなく `addWidget({ dropCell })` を使う。
+	 * 理由: drop cell が既存 widget で埋まっていた場合、 reject ではなく spiral で近隣空きへ
+	 * 自動退避させたいため (user 体感「置いた所付近に出る」 を優先)。 厳密配置 が必要なのは
+	 * sidebar drag preview と DB 配置を一致させたい pointer 経路のみ。
+	 */
 	async addWidgetAt(widgetType: WidgetType, x: number, y: number, cols?: number): Promise<void> {
 		const activeWorkspaceId = workspaceConfig.activeWorkspaceId;
 		if (!activeWorkspaceId) return;
@@ -274,23 +296,37 @@ class WorkspaceWidgets {
 	 * PH-issue-025 / Issue 8: 複数 itemId を一括で ItemWidget として配置。
 	 * 1 つずつ findFreePosition で配置、overlap が解消できなくなったら toast でその時点までで停止。
 	 * 戻り値: 実際に配置成功した個数。
+	 *
+	 * PH-CF-200: seed 解決を `resolveSeedCell` に集約。 caller が `dropCell` / `viewportCenterCell`
+	 * を渡せば、 (0,0) 起点線形 scan ではなく cursor 位置 / viewport 中央近傍へ spiral 配置。
+	 * (0,0) フォールバックは禁止 (features/screens/workspace.md §D&D 配置契約)。
 	 */
-	async bulkAddItemWidgets(itemIds: string[]): Promise<number> {
+	async bulkAddItemWidgets(
+		itemIds: string[],
+		opts: {
+			dropCell?: { x: number; y: number } | null;
+			viewportCenterCell?: { x: number; y: number } | null;
+			cols?: number;
+		} = {},
+	): Promise<number> {
 		const activeWorkspaceId = workspaceConfig.activeWorkspaceId;
 		if (!activeWorkspaceId || itemIds.length === 0) return 0;
 		this.loading = true;
 		this.error = null;
 		let placed = 0;
 		try {
+			const effectiveCols = Math.max(1, opts.cols ?? DEFAULT_GRID_COLS);
 			for (const itemId of itemIds) {
 				const { w, h } = defaultSizeFor('item');
-				const pos = findFreePosition(
-					w,
-					h,
-					widgetsToRects(this.widgets),
-					DEFAULT_GRID_COLS,
-					DEFAULT_MAX_ROW,
-				);
+				const rects = widgetsToRects(this.widgets);
+				const seed = resolveSeedCell({
+					dropCell: opts.dropCell,
+					rects,
+					viewportCenterCell: opts.viewportCenterCell,
+				});
+				const pos = seed
+					? findFreePositionNear(seed.x, seed.y, w, h, rects, effectiveCols, DEFAULT_MAX_ROW)
+					: findFreePosition(w, h, rects, effectiveCols, DEFAULT_MAX_ROW);
 				if (pos === null) {
 					toastStore.add(
 						tPlural('toast.widget_no_space_stopped', itemIds.length - placed),
