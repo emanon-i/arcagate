@@ -166,8 +166,13 @@ let currentRequestId = 0;
 $effect(() => {
 	if (!activeTag) return;
 	const myId = ++currentRequestId;
+	// PH-CF-600 C4: 「非表示を表示」 ON 時は backend に includeDisabled=true を渡して
+	// hidden item も返してもらう (Type タブ / tag タブで hidden を出すため)。
+	// 旧実装は backend が is_enabled=1 をハードコード絞り込みしており Type タブで
+	// hidden が出ない (All タブのみ全 items を frontend filter で出していた) 不整合があった。
+	const includeDisabled = configStore.libraryShowHidden;
 	itemStore
-		.loadItemsByTag(activeTag, debouncedQuery)
+		.loadItemsByTag(activeTag, debouncedQuery, includeDisabled)
 		.then(() => {
 			if (myId !== currentRequestId) return; // stale レスポンスは無視
 			localTagItems = itemStore.tagItems;
@@ -194,7 +199,11 @@ $effect(() => {
 	}
 	markStart(PERF_LABELS.libraryStarredFetch);
 	tl('starred fetch: cmd_search_items_in_tag(sys-starred) invoke', { thread: 'bg' });
-	searchItemsInTag('sys-starred', '')
+	// PH-CF-600 C4: starredIds は LibraryCard の ★ badge 表示用。 Library 画面で
+	// 「非表示を表示」 ON 時に grid に出る hidden starred item に対しても badge を一致
+	// させるため、 同じ `libraryShowHidden` を渡す。 favorites widget / picker / palette
+	// は default (false) を使う (call-site matrix は `lib/ipc/items.ts` 参照)。
+	searchItemsInTag('sys-starred', '', configStore.libraryShowHidden)
 		.then((items) => {
 			starredIds = new Set(items.map((i) => i.id));
 		})
@@ -376,12 +385,20 @@ function handleGridKeydown(e: KeyboardEvent) {
 <!-- R10-B G3 axe Phase 2: 外側 +page.svelte 側に <main> がある (nested main は axe critical)。
      ここは <section aria-label="ライブラリ"> に変更して landmark を保持する。 -->
 <section aria-label={t('library.section_aria')} class="min-h-full">
+	<!-- PH-CF-600 C7: detail panel の閉じ条件は「余白クリックのみ」。 旧実装は
+	     「カードでなければ閉じる」 のホワイトリスト方式 (`closest('[data-testid^="library-card-"]')`)
+	     で、 検索バー / sort / view モード / add button のクリックでも panel が閉じる構造欠陥
+	     だった。 ContextMenu.svelte の `contains()` 方式を正規パターンとし、 ここでは
+	     `e.target === e.currentTarget` (= padding 領域そのもののクリック) のみを閉じトリガー
+	     にする。 インタラクティブ要素 (input / select / button / card) のクリックは
+	     event.target がその要素になるため自動的に除外される。 -->
 	<div
 		class="min-h-full p-5"
 		role="presentation"
 		tabindex="-1"
+		data-testid="library-blank-area"
 		onclick={(e: MouseEvent) => {
-			if (!(e.target as HTMLElement).closest('[data-testid^="library-card-"]')) {
+			if (e.target === e.currentTarget) {
 				onSelectItem?.(null);
 			}
 		}}

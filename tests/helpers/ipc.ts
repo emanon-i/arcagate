@@ -160,6 +160,7 @@ export interface UpdateItemInput {
 	args?: string | null;
 	working_dir?: string | null;
 	icon_path?: string | null;
+	is_enabled?: boolean | null;
 	is_tracked?: boolean | null;
 	aliases?: string[] | null;
 	tag_ids?: string[] | null;
@@ -203,8 +204,21 @@ export async function bulkAddTag(page: Page, itemIds: string[], tagId: string): 
 	return invoke<number>(page, 'cmd_bulk_add_tag', { itemIds, tagId });
 }
 
-export async function searchItemsInTag(page: Page, tagId: string, query: string): Promise<Item[]> {
-	return invoke<Item[]>(page, 'cmd_search_items_in_tag', { tagId, query });
+/**
+ * PH-CF-600 C4: `includeDisabled` で hidden item を結果に含めるかを明示する。
+ * 省略時は backend 側で `false` フォールバック (= 従来挙動 = hidden 除外)。
+ */
+export async function searchItemsInTag(
+	page: Page,
+	tagId: string,
+	query: string,
+	includeDisabled?: boolean,
+): Promise<Item[]> {
+	return invoke<Item[]>(page, 'cmd_search_items_in_tag', {
+		tagId,
+		query,
+		includeDisabled,
+	});
 }
 
 // T3-2 で追加した helper
