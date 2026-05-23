@@ -591,6 +591,7 @@ fn register_exe_item_on_conn(
 pub fn register_exe_items_bulk(
     db: &DbState,
     paths: Vec<String>,
+    entry_keys: Option<Vec<String>>,
     workspace_id: Option<&str>,
     source_widget_id: Option<&str>,
 ) -> Result<Vec<Item>, AppError> {
@@ -601,19 +602,30 @@ pub fn register_exe_items_bulk(
     // 修正: 1 回の lock + 1 transaction で N 件まとめて処理。Path 単位の InvalidInput は
     // best-effort で skip (scan が stale path を返した場合に bulk 全体を巻き戻さない)。
     //
-    // PH-CF-100: source_widget_id Some なら exe-folder 監視 widget 由来 → 各 path の
-    // 第1階層フォルダ (= parent folder) を entry_key とし、 hide 記録があれば skip。
+    // PH-CF-100 / PH-CF-400: source_widget_id Some なら exe-folder 監視 widget 由来。
+    // entry_key は呼び出し側 (= scan の `folder_path` = 第1階層フォルダ) を `entry_keys`
+    // で受け取り、 source_entry_key に埋める。 `entry_keys` が長さ不一致 / None の場合は
+    // 後方互換として exe path の parent folder を fallback で使う (= 旧挙動)。
     // 既存 (source_widget_id, entry_key) 一致 item は再利用 (find_by_source)。
+    let entry_keys_aligned: Option<Vec<String>> = entry_keys
+        .as_ref()
+        .filter(|v| v.len() == paths.len())
+        .cloned();
     let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let tx = conn.transaction()?;
     let mut out = Vec::with_capacity(paths.len());
-    for path in &paths {
+    for (i, path) in paths.iter().enumerate() {
         let parent_label = std::path::Path::new(path)
             .parent()
             .and_then(|p| p.file_name())
             .and_then(|n| n.to_str())
             .map(|s| s.to_string());
         let entry_key = source_widget_id.map(|_| {
+            // PH-CF-400: 呼び出し側で指定された第1階層フォルダがあればそれを使う。
+            // それ以外は exe の parent folder を fallback (back-compat、 単発呼出用)。
+            if let Some(keys) = entry_keys_aligned.as_ref() {
+                return normalize_entry_key(&keys[i]);
+            }
             let parent = std::path::Path::new(path)
                 .parent()
                 .map(|p| p.to_string_lossy().into_owned())
@@ -1095,7 +1107,7 @@ mod tests {
             ghost.to_string_lossy().to_string(),
             b_exe.to_string_lossy().to_string(),
         ];
-        let registered = register_exe_items_bulk(&db, paths, None, None).unwrap();
+        let registered = register_exe_items_bulk(&db, paths, None, None, None).unwrap();
 
         assert_eq!(registered.len(), 2, "valid 2 paths should be registered");
         let items = list_items(&db).unwrap();
@@ -1111,6 +1123,7 @@ mod tests {
                 a_exe.to_string_lossy().to_string(),
                 b_exe.to_string_lossy().to_string(),
             ],
+            None,
             None,
             None,
         )
@@ -1434,31 +1447,34 @@ mod tests {
 
     /// exe-folder 監視 widget は entry_key (= 第1階層フォルダ) と item.target (exe path) が
     /// 異なる key 空間。 削除→再 scan で復活しないことを確認 (key 空間橋渡し)。
+    /// PH-CF-400: entry_keys を呼び出し側が指定する (scan の folder_path = 第1階層フォルダ)。
     #[test]
     fn test_exe_folder_auto_register_delete_no_resurrection() {
         let db = initialize_in_memory();
         let widget_id = seed_exe_folder_widget(&db);
         let tmp = std::env::temp_dir().join(format!("arcagate_lc_exe_{}", Uuid::now_v7()));
-        std::fs::create_dir_all(tmp.join("AppX")).unwrap();
-        let exe_path = tmp.join("AppX").join("app.exe");
+        let app_x_dir = tmp.join("AppX");
+        std::fs::create_dir_all(&app_x_dir).unwrap();
+        let exe_path = app_x_dir.join("app.exe");
         std::fs::write(&exe_path, b"MZ").unwrap();
+        let first_level_key = app_x_dir.to_string_lossy().to_string();
+        let expected_entry_key = normalize_entry_key(&first_level_key);
 
-        // bulk 登録: source_widget_id を渡すと parent (AppX) が entry_key になる
+        // bulk 登録: PH-CF-400 で entry_keys (= 第1階層フォルダ path) を呼び出し側が指定
         let first = register_exe_items_bulk(
             &db,
             vec![exe_path.to_string_lossy().to_string()],
+            Some(vec![first_level_key.clone()]),
             None,
             Some(&widget_id),
         )
         .unwrap();
         assert_eq!(first.len(), 1);
         let item = first[0].clone();
-        let parent_norm =
-            normalize_entry_key(&exe_path.parent().unwrap().to_string_lossy().into_owned());
         assert_eq!(
             item.source_entry_key.as_deref(),
-            Some(parent_norm.as_str()),
-            "entry_key は親フォルダの正規化済 絶対パス"
+            Some(expected_entry_key.as_str()),
+            "entry_key は第1階層フォルダの正規化済 絶対パス"
         );
 
         // Library 削除 → hide 記録 → 再 scan で復活しない
@@ -1466,12 +1482,76 @@ mod tests {
         let second = register_exe_items_bulk(
             &db,
             vec![exe_path.to_string_lossy().to_string()],
+            Some(vec![first_level_key.clone()]),
             None,
             Some(&widget_id),
         )
         .unwrap();
         assert!(second.is_empty(), "hide 済 entry は復活しない");
         assert_eq!(list_items(&db).unwrap().len(), 0);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// PH-CF-400 back-compat: `entry_keys` 未指定 (None) の場合は旧挙動 (= exe path の
+    /// parent folder を fallback で entry_key にする)。 これにより PH-CF-100 時点で
+    /// 記録された widget_item_hides 行は 「exe 直接親 = 第1階層フォルダ」 のケースで
+    /// 引き続き機能する。
+    #[test]
+    fn test_register_exe_items_bulk_entry_keys_fallback_to_parent() {
+        let db = initialize_in_memory();
+        let widget_id = seed_exe_folder_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_back_compat_{}", Uuid::now_v7()));
+        let app_dir = tmp.join("AppY");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        let exe_path = app_dir.join("y.exe");
+        std::fs::write(&exe_path, b"MZ").unwrap();
+        let parent_norm = normalize_entry_key(&app_dir.to_string_lossy().into_owned());
+
+        let first = register_exe_items_bulk(
+            &db,
+            vec![exe_path.to_string_lossy().to_string()],
+            None, // entry_keys 未指定 → parent fallback
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+        assert_eq!(first.len(), 1);
+        assert_eq!(
+            first[0].source_entry_key.as_deref(),
+            Some(parent_norm.as_str()),
+            "entry_keys None なら parent folder が entry_key に入る (back-compat)"
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// PH-CF-400: `entry_keys` 長さ不一致は無視され、 parent fallback になる
+    /// (= 防御的、 不整合呼出で全体を壊さない)。
+    #[test]
+    fn test_register_exe_items_bulk_entry_keys_length_mismatch_falls_back() {
+        let db = initialize_in_memory();
+        let widget_id = seed_exe_folder_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_mismatch_{}", Uuid::now_v7()));
+        let app_dir = tmp.join("AppZ");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        let exe_path = app_dir.join("z.exe");
+        std::fs::write(&exe_path, b"MZ").unwrap();
+        let parent_norm = normalize_entry_key(&app_dir.to_string_lossy().into_owned());
+
+        let first = register_exe_items_bulk(
+            &db,
+            vec![exe_path.to_string_lossy().to_string()],
+            Some(vec![]), // length mismatch → ignored
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+        assert_eq!(first.len(), 1);
+        assert_eq!(
+            first[0].source_entry_key.as_deref(),
+            Some(parent_norm.as_str())
+        );
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
@@ -1628,10 +1708,11 @@ impl ItemService {
     pub fn register_exe_items_bulk(
         &self,
         paths: Vec<String>,
+        entry_keys: Option<Vec<String>>,
         workspace_id: Option<&str>,
         source_widget_id: Option<&str>,
     ) -> Result<Vec<Item>, AppError> {
-        register_exe_items_bulk(&self.db, paths, workspace_id, source_widget_id)
+        register_exe_items_bulk(&self.db, paths, entry_keys, workspace_id, source_widget_id)
     }
 
     pub fn toggle_star(&self, item_id: &str, starred: bool) -> Result<Item, AppError> {
