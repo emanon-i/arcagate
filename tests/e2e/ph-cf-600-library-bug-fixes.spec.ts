@@ -16,6 +16,7 @@ import {
  * - `docs/l2_foundation/features/backend/item-service.md` §hidden item 取得契約
  *
  * scope:
+ * - LB-2 (C2): icon_path 更新 → グリッドのカード <img src> が画面遷移なしで新 path に切替
  * - LB-4a (C4): `searchItemsInTag(tag, '', includeDisabled=true)` で hidden item を含む
  * - LB-4b (C4): `searchItemsInTag(tag, '', includeDisabled=false)` で hidden item は除外
  * - LB-4c (C4): favorites widget の `searchItemsInTag('sys-starred', '')` (default = false)
@@ -24,11 +25,11 @@ import {
  * - LB-7b (C7): detail panel 表示中、 sort select click で panel が閉じない
  * - LB-7c (C7): detail panel 表示中、 余白クリックで panel が閉じる
  *
- * 注: C2 (画像即時反映) は Tauri `dialog.open` で OS file picker を開く path のため、
- * 実機 e2e で reproduce するには file picker mock が必要。 本 spec は IPC レイヤと UI
- * close 条件に集中し、 C2 は Rust 側で store の即時更新 path (applyOptimisticUpdate) を
- * 通したことを ItemFormCardOverride の実装で確認する (`docs/l3_phases/clean-feedback/`
- * PH-CF-600 §C2 で plan の選択肢どおり)。
+ * 注: C2 で OS file picker 経路 (`cmd_save_icon_file` → `cmd_update_item`) の前段は
+ * Tauri `dialog.open` のため e2e で mock が必要だが、 真因は updateItem 後の paint stale
+ * (LibraryCard の content-visibility 仮想化 + lazy img 相互作用) なので、 file picker を
+ * skip して `cmd_update_item({ icon_path })` 直叩きで真因経路を駆動できる。 LB-2 は
+ * 「画面遷移なしで <img src> が更新される」 までを検証する。
  */
 
 async function openLibrary(page: import('@playwright/test').Page): Promise<void> {
@@ -37,6 +38,58 @@ async function openLibrary(page: import('@playwright/test').Page): Promise<void>
 	await page.waitForLoadState('domcontentloaded');
 	await page.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
 }
+
+test('LB-2: icon_path 更新 → 画面遷移なしでグリッドのカード <img src> が新 path に切替', async ({
+	page,
+}, testInfo) => {
+	// PH-CF-600 C2: 「見た目設定で画像変更後、 画面切替まで反映されない」 の回帰テスト。
+	// 真因は updateItem 後の paint stale (LibraryCard `content-visibility: auto` + 仮想化
+	// + `{#key item.icon_path}` 再マウントの相互作用)。 修正後は updateItem → 同 Library
+	// 画面のままで card の <img> src が新 path に切り替わることを verify する。
+	//
+	// file picker (Tauri `dialog.open`) は e2e で mock せず、 真因の paint 経路 (= store
+	// 更新 → {#key} 再マウント → 即時 paint) を `cmd_update_item({ icon_path })` 直叩きで
+	// 駆動する。 icon_path 文字列は実 file である必要は無い (asset:// URL の最終形のみ verify)。
+	const item = await createItem(page, {
+		item_type: 'exe',
+		label: `PH-CF-600 LB-2 ${Date.now()}`,
+		target: 'C:/Windows/System32/notepad.exe',
+		aliases: [],
+		tag_ids: [],
+	});
+
+	try {
+		await openLibrary(page);
+
+		const card = page.getByTestId(`library-card-${item.id}`);
+		await card.waitFor({ state: 'attached', timeout: 15_000 });
+		await card.scrollIntoViewIfNeeded();
+
+		// 新 icon_path を direct IPC で適用 (file picker の前段を skip して真因経路だけ駆動)。
+		// path は実 file である必要は無く、 paint 経路に渡る asset:// URL の末尾 filename
+		// だけ verify する。 generic placeholder ($USERPROFILE) で固有名詞を避ける。
+		const fakeIconPath = `\${USERPROFILE}/arcagate/icons/ph-cf-600-lb-2-${Date.now()}.png`;
+		await updateItem(page, item.id, { icon_path: fakeIconPath });
+
+		// グリッドのカード内 <img> の src は asset:// で encoded だが path 末尾の filename は
+		// そのまま含まれる。 「画面遷移なし」 (= reload も nav も無し) で <img> が新 src を
+		// 持つことを poll で verify。 timeout 内に切り替われば paint stale バグの修正成立。
+		const cardImg = card.locator('img').first();
+		const expectedTail = fakeIconPath.split('/').pop() ?? fakeIconPath;
+		await expect(async () => {
+			const src = await cardImg.getAttribute('src');
+			expect(src).not.toBeNull();
+			expect(src ?? '').toContain(expectedTail);
+		}).toPass({ timeout: 5_000, intervals: [100, 200, 500] });
+
+		await testInfo.attach('lb-2-after-icon-update.png', {
+			body: await page.screenshot({ fullPage: false }),
+			contentType: 'image/png',
+		});
+	} finally {
+		await deleteItem(page, item.id).catch(() => {});
+	}
+});
 
 test('LB-4a: searchItemsInTag(includeDisabled=true) は hidden item を含む', async ({ page }) => {
 	const visible = await createItem(page, {
