@@ -63,12 +63,15 @@ widget 配置に 4 経路: `addWidget` (spiral seed)、 `addWidgetAt` (直接座
 2. **座標 → セル変換**: `WorkspaceWidgetGrid.svelte:58` `calcDropCell()` 相当 (zoom / pan / scroll 補正込み) を再利用し、 ドロップ点をグリッドセル `{x, y}` に変換
 3. **配置 API の集約**: `addWidget` / `addWidgetAt` / `bulkAddItemWidgets` の seed 解決を **1 関数** `resolveSeedCell({ dropCell?, nearCell?, rects })` に集約。 優先度 = ドロップ座標 → nearCell → クラスタ中心 → viewport 中心 (`WorkspaceLayout.svelte:153` 相当)。 **空配列でも (0,0) にフォールバックしない**
 4. **`addImageScrapWidget` / `addFilePreviewWidget` を座標付きに**: タスク 2 で得たセルを `addWidgetAt(type, x, y, cols)` に渡す
-5. 永続化 (`workspace_repository`) と描画 (`WorkspaceGrid`) は座標が正しく入れば既存経路で OK — 変更後に経路を 1 度通しで確認
+5. **ドロップ先 page の固定 (Codex review)**: OS ファイルドロップは payload 受信が非同期。 ドロップ開始時点の `activeWorkspaceId` / page を `+page.svelte` で捕捉し、 ドロップ処理完了までその page に固定する。 ドロップ中にタブを切り替えても、 widget は **ドロップ開始時の page** に配置する (切替後の page に誤配置しない)
+6. 永続化 (`workspace_repository`) と描画 (`WorkspaceGrid`) は座標が正しく入れば既存経路で OK — 変更後に経路を 1 度通しで確認
 
 ## 受け入れ条件 (機械検出)
 
-- [ ] e2e: **アイテム 0 個** の workspace で canvas の中央付近に画像を D&D → 配置 widget の grid 座標が (0,0) でなく、 ドロップ点近傍のセルであること
+- [ ] e2e: **実 OS ファイルドロップ経路** (HTML5 `drop` 経路、 HTML5 drop のみのモックでない) で **アイテム 0 個** の workspace の canvas 中央付近に画像を D&D → 配置 widget の grid 座標が (0,0) でなく、 ドロップ点近傍のセルであること
 - [ ] e2e: アイテム複数個の workspace で右下にファイルを D&D → 既存クラスタ中心でなくドロップ点近傍に配置
+- [ ] e2e: zoom / scroll を変えた状態でドロップ → 座標変換が zoom/pan/scroll 補正込みで正しいこと
+- [ ] e2e: ドロップ中にタブを切り替え → widget はドロップ開始時の page に配置される (切替後 page に誤配置しない)
 - [ ] unit test: `resolveSeedCell` が空 rects + dropCell 指定で dropCell を返す / dropCell も nearCell も無いとき viewport 中心を返し (0,0) にフォールバックしない
 - [ ] 配置経路の関数数が 4 → 集約後の本数に減っていること (doc に before/after を記載)
 
@@ -109,4 +112,3 @@ widget 配置に 4 経路: `addWidget` (spiral seed)、 `addWidgetAt` (直接座
 - `src/lib/components/arcagate/workspace/WorkspaceWidgetGrid.svelte:58`
 - `src/lib/components/arcagate/workspace/WorkspaceLayout.svelte:153`
 - PR #543 = commit `6e91b89` (D&D 配置とは無関係であることの根拠)
-  </content>

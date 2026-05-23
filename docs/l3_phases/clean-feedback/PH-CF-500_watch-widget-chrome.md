@@ -58,13 +58,13 @@ parent: README.md
 
 ### D3: chrome の prop レベル差分
 
-| 差分                    | exe_folder                | script_folder | projects                                         |
-| ----------------------- | ------------------------- | ------------- | ------------------------------------------------ |
-| WidgetShell `path` prop | `:314` 渡す               | `:169` 渡す   | `:294` **未指定** → 右クリックメニューが設定のみ |
-| WidgetShell `icon`      | `AppWindow`               | `Terminal`    | `FolderKanban` (meta は `FolderOpen` で不一致)   |
-| description 配置        | empty state の前 (`:317`) | 前 (`:172`)   | `{:else}` の中 (`:325`) → empty/error 時に出ない |
-| config パース           | `JSON.parse` 直書き       | 同左          | `parseWidgetConfig` helper                       |
-| default view_mode       | `'list'`                  | —             | `'card'`                                         |
+| 差分                    | exe_folder                                         | script_folder                       | projects                                         |
+| ----------------------- | -------------------------------------------------- | ----------------------------------- | ------------------------------------------------ |
+| WidgetShell `path` prop | `:314` 渡す                                        | `:169` 渡す                         | `:294` **未指定** → 右クリックメニューが設定のみ |
+| WidgetShell `icon`      | meta `FolderOpen` ≠ shell `AppWindow` で**不一致** | meta / shell とも `Terminal` で一致 | meta / shell とも `FolderKanban` で一致          |
+| description 配置        | empty state の前 (`:317`)                          | 前 (`:172`)                         | `{:else}` の中 (`:325`) → empty/error 時に出ない |
+| config パース           | `JSON.parse` 直書き                                | 同左                                | `parseWidgetConfig` helper                       |
+| default view_mode       | `'list'`                                           | —                                   | `'card'`                                         |
 
 ### D4: opener 選択
 
@@ -81,6 +81,7 @@ parent: README.md
 - projects の不要設定を削除 (D2)
 - projects に opener 選択を展開 (D4)
 - widget 設定デフォルト値を `index.ts` defaultConfig 一本に統一 (D7 + cpu/memory)
+- **監視アイテムの「除外したアイテム一覧」 復元 UI** をフォルダ監視 / EXE フォルダ監視の設定に新設 (data model 側は PH-CF-100 で整備)
 
 ## やらないこと
 
@@ -91,10 +92,17 @@ parent: README.md
 ## 具体タスク
 
 1. **D1 sticky bar 透け修正**: card を持つ widget (`exe-folder` card mode / `projects` / `file-search`) の `ag-sticky-bar` に不透明 fill か backdrop blur を与え、 スクロール内容が透けないようにする。 `<ul>` 内 `<div grid>` ネストの不正 DOM も修正。 `ag-sticky-bar` を使う全ファイルを audit
-2. **D3 chrome 統一**: projects の WidgetShell に `path` prop を渡す / `icon` を meta と一致させる / description disclosure を empty state の外へ移す。 config パースを 3 widget で揃える
+2. **D3 chrome 統一**: projects の WidgetShell に `path` prop を渡す / description disclosure を empty state の外へ移す。 `exe_folder` の `icon` を meta (`index.ts` `FolderOpen`) と shell (`AppWindow`) で一致させる (Codex クロスチェックで判明: 不一致は projects でなく exe_folder。 projects / script_folder は meta/shell 一致済)。 config パースを 3 widget で揃える
 3. **D2 不要設定削除**: `auto_add` / `max_items` / `git_poll_interval_sec` を UI・config 型・defaultConfig・関連 $effect・`git-poll.ts` + `git-poll.test.ts` ごと削除
 4. **D4 opener 展開**: `ProjectsSettings.svelte` に exe と同じ opener select を追加、 `ProjectsWidget.svelte` の `handleLaunch` を `launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })` へ。 `index.ts` defaultConfig + config 型に `default_opener_id` 追加
 5. **D7 default 統一**: `index.ts` の `defaultConfig` を唯一の出所にし、 `SystemMonitorWidget.svelte` と `SystemMonitorSettings.svelte` の `?? 'xxx'` を撤廃して両者が defaultConfig を参照。 cpu / memory / disk の 3 metric すべて
+6. **逆方向ライフサイクル — 除外アイテムの復元 UI** (PH-CF-100 完了が前提):
+   - **対象**: フォルダ監視 (`projects`) / EXE フォルダ監視 (`exe_folder`)。 スクリプト監視は Library 永続化しないため対象外
+   - **UI 位置**: 各 widget の Settings dialog (`ProjectsSettings.svelte` / `ExeFolderSettings.svelte`) に「除外したアイテム」 セクションを追加。 既存の Settings 共通 modal pattern (PH-PQ-600 A2 で確立) に沿わせる
+   - **表示内容**: PH-CF-100 で整備した `widget_item_hides` の当該 widget_id 分を一覧 (列 = `item_target` = scan entry key)。 各行に「復元」 ボタン
+   - **復元操作**: 「復元」 click → IPC で `widget_item_hides_repository::remove(widget_id, entry_key)` → 次の scan で当該 entry が再登録される (PH-CF-100 §reconcile が `widget_item_hides` を check するため自然に復活)。 ストア (`widgetItemHidesStore`) を refresh して UI 即時反映 (`instant-feedback` rule)
+   - **空状態**: 除外 0 件なら「除外したアイテムはありません」 + 説明文 (「Library から監視アイテムを削除するとここに記録され、 次の scan で復活しなくなります」)
+   - **IPC**: 既存 `widget_item_hides_repository` の `list` / `remove` を活用し、 必要なら新規 IPC コマンド (`cmd_list_widget_hides` / `cmd_remove_widget_hide`) を追加。 `widgetItemHidesStore` (`src/lib/state/widget-item-hides.svelte.ts`) と統合
 
 ## 受け入れ条件 (機械検出)
 
@@ -104,6 +112,8 @@ parent: README.md
 - [ ] projects から `auto_add` / `max_items` / `git_poll_interval_sec` の文字列が UI・型・config から消えている (grep 0)
 - [ ] e2e: projects widget で opener を選択し、 選択 opener で起動される
 - [ ] e2e / 手動: system-monitor を **クリーン config** で配置 → disk が初回からゲージ (settings を開く前後で表示が変わらない)
+- [ ] e2e (フォルダ監視 / EXE フォルダ監視): 自動登録された Library item を Library から削除 → widget 設定の「除外したアイテム」 に当該 entry が表示される → 再 scan しても復活しない → 「復元」 click → 次 scan で復活
+- [ ] unit: 除外リスト UI が `widget_item_hides` の当該 widget_id 分を正しく一覧 / 空 0 件で空状態文言を表示
 
 ## 機能契約の追記
 
@@ -114,8 +124,10 @@ parent: README.md
 > **sticky bar 契約**: card (不透明背景の item) を持つ widget の sort/filter sticky bar は不透明 fill または backdrop blur を持ち、 スクロール内容が透けてはならない。
 >
 > **設定デフォルト単一情報源契約**: widget の config default は `index.ts` の `defaultConfig` ただ 1 箇所で定義する。 widget 本体・settings の双方が defaultConfig を参照し、 `?? リテラル` のフォールバックを各所に書かない。
+>
+> **監視ウィジェットの復元 UI 契約**: Library アイテムを自動登録する監視ウィジェット (projects / exe_folder) は、 設定 dialog に「除外したアイテム」 セクションを持つ。 セクションは PH-CF-100 で記録された `widget_item_hides` の当該 widget 分を一覧し、 1 click で除外を解除 (= 次 scan で復活) できる。 復元操作は即時反映 (`instant-feedback` rule)。
 
-機械検出: (a) sticky bar 不透明チェック audit script、 (b) widget/settings の `?? default` 二重定義検出 audit script を新設し CI へ。
+機械検出: (a) sticky bar 不透明チェック audit script、 (b) widget/settings の `?? default` 二重定義検出 audit script、 (c) projects / exe_folder の Settings に「除外したアイテム」 セクションが存在することの DOM チェック e2e を新設し CI へ。
 
 ## 横展開
 
@@ -125,20 +137,23 @@ parent: README.md
 
 ## 工数感
 
-| Task                                | 工数     |
-| ----------------------------------- | -------- |
-| D1 sticky bar 修正 (全 card widget) | 1-2 日   |
-| D3 chrome 統一                      | 1 日     |
-| D2 不要設定削除                     | 0.5 日   |
-| D4 opener 展開                      | 1 日     |
-| D7 default 統一                     | 0.5 日   |
-| audit script + test                 | 1-1.5 日 |
+| Task                                                     | 工数     |
+| -------------------------------------------------------- | -------- |
+| D1 sticky bar 修正 (全 card widget)                      | 1-2 日   |
+| D3 chrome 統一                                           | 1 日     |
+| D2 不要設定削除                                          | 0.5 日   |
+| D4 opener 展開                                           | 1 日     |
+| D7 default 統一                                          | 0.5 日   |
+| 除外アイテム復元 UI (projects / exe_folder 共通化 + e2e) | 2-3 日   |
+| audit script + test                                      | 1-1.5 日 |
 
-合計: 約 1 週間。
+合計: 約 1.5-2 週間 (復元 UI 分が追加で +2-3 日)。
 
 ## 依存・着手順
 
-- **先行**: PH-CF-400 (exe-folder settings を共有。 400 が拡張子 UI を足した後に 500 で chrome 整理)
+- **先行**:
+  - PH-CF-400 (exe-folder settings を共有。 400 が拡張子 UI を足した後に 500 で chrome 整理)
+  - **PH-CF-100** (逆方向ライフサイクル data model = `widget_item_hides` セマンティクス整備 + back-link 列 + reconcile を所有関係ベースに) が完了していること。 復元 UI はその上に載るだけ
 - **後続**: なし
 
 ## 参照
@@ -148,4 +163,5 @@ parent: README.md
 - `src/lib/widgets/projects/ProjectsWidget.svelte:84, 244-255, 258-278, 285, 294, 325, 347, 425-431` / `ProjectsSettings.svelte:23-27, 51-101` / `projects/git-poll.ts`
 - `src/lib/widgets/system-monitor/SystemMonitorWidget.svelte:85-87` / `SystemMonitorSettings.svelte:35-37`
 - `src/lib/styles/arcagate-theme.css:107`
-  </content>
+- 復元 UI 関連: `src-tauri/src/repositories/widget_item_hides_repository.rs:11-29` (`add` / `remove` / `list`) / `src/lib/state/widget-item-hides.svelte.ts` (`widgetItemHidesStore`)
+- PH-CF-100 §監視アイテムの逆方向ライフサイクル data model

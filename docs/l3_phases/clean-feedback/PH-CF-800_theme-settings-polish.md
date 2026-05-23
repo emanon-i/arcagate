@@ -30,17 +30,28 @@ parent: README.md
 
 ## Fact 確認 (root cause / 現状)
 
-### F1: テーマ並び順
+### F1: テーマ並び順 + 6 本構成への整理 (option A 確定)
 
-`theme_repository.rs:32` `find_all` の `ORDER BY is_builtin DESC, name` で builtin が先・英名アルファベット順。 builtin 英名は `Brutalist / Dark / HUD / Light / Neumorph` → 現状の並び = **Brutalist → Dark → HUD → Light → Neumorph**。 フロント (`theme.svelte.ts:114-116`、 `SettingsAppearancePane.svelte:163`) は並べ替えしない。
+**現状**: builtin は **5 本** — migration `035_design_tokens_v2.sql` が seed する `dark` / `light` / `neumorph` (base_theme `light`) / `brutalist` (base_theme `light`) / `hud` (base_theme `dark`)。 `theme_repository.rs:32` `find_all` の `ORDER BY is_builtin DESC, name` で builtin が先・英名アルファベット順 → 現状の並び = **Brutalist → Dark → HUD → Light → Neumorph**。 フロント (`theme.svelte.ts:114-116`、 `SettingsAppearancePane.svelte:163`) は並べ替えしない。
 
-**未解決の確認事項**: user 希望順は 6 項目 (dark/light × 3 系統) だが、 現状 builtin は **5 本 (Dark / Light / Neumorph / Brutalist / HUD)** で dark/light の 2 バリアント構成ではなく HUD が希望リストに無い。 「テーマ体系を 6 本へ拡張するか / 既存 5 本を希望順に近づけて並べるだけか」 を実装着手前に user 確認する (README §未解決の確認事項)。 並び替え機構の導入自体は確定。
+aesthetic theme の look は `css_vars` でなく `arcagate-theme.css` の `[data-theme]` block で定義される (migration 035 のコメント参照、 builtin の `css_vars` は `'{}'`)。
+
+**user 確認結果 (option A 確定)**: builtin を **6 本** に整理する — 3 系統 (glass デフォルト / ブルータリスト / ニューモーフ) × Dark/Light。 並び順は「ダーク → ライト → ブルータリスト ダーク → ブルータリスト ライト → ニューモーフ ダーク → ニューモーフ ライト」。 **HUD は組み込みから削除** (user 判断: 「印象が薄いので不要」)。
+
+現状からの差分:
+
+- `dark` / `light` = glass デフォルト系統 (既に Dark/Light の 2 本)。 維持
+- `brutalist` (現 base_theme `light`) = ブルータリスト Light。 維持し、 **ブルータリスト Dark を新規追加**
+- `neumorph` (現 base_theme `light`) = ニューモーフ Light。 維持し、 **ニューモーフ Dark を新規追加**
+- `hud` = **削除**
+
+→ 既存 id (`dark` / `light` / `brutalist` / `neumorph`) を維持して dark variant 2 本を追加する方式とし、 既存ユーザーの theme 選択 migration を `hud` 選択者のみに最小化する。 新 id は `brutalist-dark` / `neumorph-dark`。
 
 ### F2: ダーク primary が明るすぎ
 
 `arcagate-theme.css:218` の `.dark`: `--c-primary: oklch(0.78 0.13 200)` — lightness 0.78 は非常に明るい。 `--ag-accent-text` (`:120`) は `color-mix(in oklab, var(--c-primary), var(--c-fg) 52%)` で dark の `--c-fg` ≈ 白 (`oklch(0.96 …)`) → accent-text ≈ L0.87。 primary ベタ塗りに白文字が乗る箇所 (widget badge / primary button 等) でコントラスト比 ≈ 1.3:1、 WCAG 4.5:1 を大きく下回る。
 
-**他テーマも同種問題**: `hud` (`:515` `--c-primary: oklch(0.82 0.17 85)`) が最も明るく dark と同じく深刻 (≈1.2:1)。 `neumorph` (`:417` L0.66) / `brutalist` (`:457` L0.58) / `light` (`:32` L0.62) も white-on-primary は 4.5:1 にやや届かない。 全テーマで「primary ベタ + 白文字」 が危うい。
+**他テーマも同種問題**: `neumorph` (`:417` L0.66) / `brutalist` (`:457` L0.58) / `light` (`:32` L0.62) も white-on-primary は 4.5:1 にやや届かない。 全テーマで「primary ベタ + 白文字」 が危うい。 (旧 `hud` も最も明るく深刻だったが、 F1 で HUD は削除されるため F2 の対象外。)
 
 ### F3: 「現在のテーマを複製」 が選択中を複製しない
 
@@ -61,17 +72,28 @@ parent: README.md
 
 ## スコープ
 
-テーマ / 設定画面の polish 6 件。 F6 は「上限が無い」 ことの確認結果を踏まえ、 上限を新設するか否かを含む。
+テーマ / 設定画面の polish 6 件。 F1 は builtin の 6 本構成への整理 + HUD 削除 + 並び順を含む。 F6 は「上限が無い」 ことの確認結果を踏まえ、 上限を新設するか否かを含む。
 
 ## やらないこと
 
 - テーマエディタ本体の機能変更
-- design-tokens.md のトークン体系全面見直し — F2 で必要な dark / hud の primary 明度調整に限定
+- design-tokens.md のトークン体系全面見直し — F2 で必要な dark / neumorph / brutalist の primary 明度調整に限定
+- glass (dark/light) 系統の look 変更 — F1 は brutalist / neumorph に dark variant を**追加**するのみ
 
 ## 具体タスク
 
-1. **F1**: 明示的な並び順を導入。 `themes` テーブルに `sort_order` 列を追加 (migration) し `find_all` の `ORDER BY` を `sort_order` に変更。 builtin の `sort_order` を希望順に設定。 **着手前に README §未解決の確認事項 (テーマ体系 5 本 vs 6 本) を user 確認**
-2. **F2**: `arcagate-theme.css:218` の dark `--c-primary` の lightness を下げる (例 0.78 → 0.58-0.62) で white-on-primary が 4.5:1 を満たすように。 `hud` (`:515`) も同様に調整。 `--ag-accent-text` 派生式 (`:120`) が「明背景には暗文字 / 暗背景には明文字」 を保証するか見直し。 design-tokens.md と突き合わせ
+1. **F1 — 6 本構成への整理 + HUD 削除 + 並び順** (option A 確定):
+   1a. **新規 migration** を 1 本追加 (現行最終は `036_drop_system_theme_mode.sql`、 次番号):
+   - `themes` テーブルに `sort_order INTEGER` 列を追加
+   - builtin 6 本の `sort_order` を設定: `dark`=0 / `light`=1 / `brutalist-dark`=2 / `brutalist`=3 / `neumorph-dark`=4 / `neumorph`=5
+   - `INSERT OR IGNORE` で `brutalist-dark` (`base_theme='dark'`) / `neumorph-dark` (`base_theme='dark'`) を追加 (`css_vars='{}'`、 `is_builtin=1` — migration 035 と同形式)
+   - `DELETE FROM themes WHERE id='hud'`
+   - **HUD 選択者の fallback**: `UPDATE config SET value='dark' WHERE key='theme_mode' AND value='hud'` (migration 036 の `system`→`dark` フォールバックと同パターン)
+     1b. **`find_all` の並び順** (`theme_repository.rs:32`): `ORDER BY is_builtin DESC, name` を `ORDER BY is_builtin DESC, sort_order` に変更。 custom theme (sort_order NULL) の扱いを定義 (builtin の後、 name 順 等)
+     1c. **arcagate-theme.css**: `[data-theme='brutalist-dark']` / `[data-theme='neumorph-dark']` の `[data-theme]` block を新設 (`:408` 以降の aesthetic theme 群)。 既存 `brutalist` (`:457` 付近) / `neumorph` (`:417` 付近) の light look を基に dark variant の色を定義。 `[data-theme='hud']` block (`:513` / `:559` / `:562`) と HUD 関連コメント (`:7` / `:50` / `:69` / `:78` / `:338` / `:408` / `:511` / `:538` / `:558`) を削除
+     1d. **HUD 参照の全削除**: `src/lib/utils/color.ts:9` `Aesthetic` 型から `'hud'` を除去 + `:124` の `hud` palette entry 削除 / `SettingsAppearancePane.svelte:45` の `hud: 'settings.appearance.theme_hud'` 削除 + `:16` コメント更新 / `src/lib/types/theme.ts:1-2` コメント更新 / `messages_ja.json:368` + `messages_en.json:368` の `theme_hud` key 削除 / `theme_repository.rs:99,108` と `theme_service.rs:100-101,159,171-178,284,318-326` の test / コメントを 6 本構成へ更新
+     1e. **stale localStorage の `activeMode='hud'` 対応**: フロント `theme.svelte.ts` の `readCachedMode()` が `hud` を返しても、 `themes` に `hud` が無いため F3 の「ソース不在 → dark フォールバック」 経路で graceful に解決されることを確認 (F3 タスクと統合)
+2. **F2**: `arcagate-theme.css:218` の dark `--c-primary` の lightness を下げる (例 0.78 → 0.58-0.62) で white-on-primary が 4.5:1 を満たすように。 新 dark variant (`brutalist-dark` / `neumorph-dark`) の primary も同基準で設計。 `--ag-accent-text` 派生式 (`:120`) が「明背景には暗文字 / 暗背景には明文字」 を保証するか見直し。 design-tokens.md と突き合わせ
 3. **F3**: `cloneTheme` の `find` 失敗時にデフォルトへ黙ってフォールバックせず、 `themes` 未ロード時はボタン disabled / `cloneCurrentTheme` 前に `activeMode ∈ themes` を保証 / フォールバック時はエラー表示
 4. **F4**: `SettingsAppearancePane.svelte:179-219` の 3 ボタンをアイコンのみ + `title` / `aria-label` ツールチップへ。 `Copy` は import 済、 `Pencil` / `Download` 等を追加 import
 5. **F5**: 「コピー」 押下を複製動作 (`cloneTheme`) へ統一。 `handleExport` / clipboard 書き込み / `copy_done` 表示を廃止。 JSON のエクスポートは「ダウンロード」 (`handleExportDownload`) に集約 (`exportTheme` store API は残す)
@@ -79,8 +101,12 @@ parent: README.md
 
 ## 受け入れ条件 (機械検出)
 
-- [ ] F1: テーマ一覧の表示順が定義した `sort_order` 通り (snapshot)
-- [ ] F2: dark / hud の white-on-primary コントラスト比が WCAG 4.5:1 以上 (コントラスト計算の unit test か axe チェック)
+- [ ] F1: builtin が **6 本** (`dark` / `light` / `brutalist` / `brutalist-dark` / `neumorph` / `neumorph-dark`)、 `hud` が `themes` テーブルに存在しない (Rust unit test)
+- [ ] F1: テーマ一覧の表示順が `dark → light → brutalist-dark → brutalist → neumorph-dark → neumorph` (snapshot / `find_all` 結果の unit test)
+- [ ] F1: `hud` の文字列が `arcagate-theme.css` / `color.ts` / `theme.ts` / `SettingsAppearancePane.svelte` / `messages_*.json` / theme 関連 Rust から消えている (grep 0 — audit script)
+- [ ] F1: migration 適用前に `theme_mode='hud'` だった config が `'dark'` にフォールバックする (migration の Rust inline test)
+- [ ] F1: `brutalist-dark` / `neumorph-dark` を選択 → `[data-theme]` が適用され look が変わる (e2e / 手動)
+- [ ] F2: dark / brutalist-dark / neumorph-dark の white-on-primary コントラスト比が WCAG 4.5:1 以上 (コントラスト計算の unit test か axe チェック)
 - [ ] F3: unit / e2e — テーマ B を選択中に「現在のテーマを複製」 → 複製されたテーマの `css_vars` が B と一致 (デフォルトでない)
 - [ ] F4: テーマカード下ボタンがアイコンのみ + `aria-label`、 改行が発生しない (snapshot)
 - [ ] F5: 「コピー」 ボタンが複製を行う / clipboard 書き込みが起きない (e2e)
@@ -96,7 +122,9 @@ parent: README.md
 
 `features/screens/settings.md`:
 
-> **テーマ並び順契約**: テーマ一覧の順序は `sort_order` で明示する。 英名アルファベット順に依存しない。
+> **builtin テーマ構成契約**: builtin テーマは **3 系統 (glass / brutalist / neumorph) × Dark/Light の 6 本**。 各系統は Dark/Light の対を必ず持つ。 builtin の削除・追加は migration で行い、 削除する builtin を選択中だった config は `theme_mode` を `dark` へフォールバックさせる。
+>
+> **テーマ並び順契約**: テーマ一覧の順序は `sort_order` で明示する。 英名アルファベット順に依存しない。 builtin の並びは系統ごとに Dark → Light。
 >
 > **テーマカードのアクション契約**: テーマカードのアクションはアイコンボタン + tooltip。 「複製」 系のアクションは 1 つに統一し、 クリップボードへの JSON コピーを「複製」 と混在させない。
 
@@ -104,37 +132,44 @@ parent: README.md
 
 > **accent コントラスト契約**: 全テーマで primary ベタ塗りの上に乗るテキストは WCAG 4.5:1 以上。 accent 面のテキストは `--ag-accent-text` トークン経由 (自動コントラスト) を徹底する。
 
-機械検出: F2 のコントラスト計算 unit test (全 builtin テーマ × white-on-primary)、 F3 の複製 unit test を常設。
+機械検出: F1 の builtin 6 本 / HUD 不在 / 並び順 unit test + HUD 参照 grep 0 audit、 F2 のコントラスト計算 unit test (builtin 6 本 × white-on-primary)、 F3 の複製 unit test を常設。
 
 ## 横展開
 
-- **F2**: white-on-primary は全 5 テーマで危ういため、 dark / hud だけでなく neumorph / brutalist / light も同 unit test の対象にして、 違反テーマを洗い出す
+- **F1**: `hud` 参照は §タスク 1d の 7 箇所以外にも無いか `grep -rin hud` で全 repo sweep してから削除に入る (取り残し防止)
+- **F1**: テーマ選択 UI が `SettingsAppearancePane` 以外 (onboarding 等) に別実装で存在しないか確認。 あれば並び順 / HUD 削除を横展開
+- **F2**: white-on-primary は builtin 6 本すべてで危ういため、 dark だけでなく light / brutalist / brutalist-dark / neumorph / neumorph-dark も同 unit test の対象にして、 違反テーマを洗い出す
 - **F5**: クリップボードへ「謎情報」 を書く UI が他にないか grep (`navigator.clipboard.writeText`)
-- **F1**: テーマ選択 UI が `SettingsAppearancePane` 以外 (onboarding 等) に別実装で存在しないか確認
 
 ## 工数感
 
-| Task                                    | 工数     |
-| --------------------------------------- | -------- |
-| F1 sort_order migration + 反映          | 1 日     |
-| F2 primary 明度調整 + コントラスト test | 1-1.5 日 |
-| F3 複製ソース修正                       | 0.5 日   |
-| F4 アイコンボタン化                     | 0.5 日   |
-| F5 ボタン統合                           | 0.5 日   |
-| F6 上限判断 + (設ける場合) 実装         | 0.5-1 日 |
+| Task                                                     | 工数     |
+| -------------------------------------------------------- | -------- |
+| F1 migration (sort_order + dark variant 追加 + HUD 削除) | 1 日     |
+| F1 dark variant の `[data-theme]` CSS 設計 (2 本)        | 1.5-2 日 |
+| F1 HUD 参照の全削除 + test / コメント更新                | 1 日     |
+| F2 primary 明度調整 + コントラスト test                  | 1-1.5 日 |
+| F3 複製ソース修正                                        | 0.5 日   |
+| F4 アイコンボタン化                                      | 0.5 日   |
+| F5 ボタン統合                                            | 0.5 日   |
+| F6 上限判断 + (設ける場合) 実装                          | 0.5-1 日 |
 
-合計: 約 4-5 日。
+合計: 約 7-8 日 (F1 の 6 本構成整理が当初想定より重い)。
 
 ## 依存・着手順
 
-- **先行**: なし。 ただし F1 は実装前に user 確認 (テーマ体系) が要る
+- **先行**: なし (F1 の user 確認は取得済 = option A)
+- **段階内**: F1 の HUD 削除と F2 のコントラスト調整は同じ `arcagate-theme.css` を触るため、 F1 → F2 の順で進める
 - **後続**: なし
 
 ## 参照
 
-- `src-tauri/src/repositories/theme_repository.rs:6-18, 32`
-- `src-tauri/src/services/theme_service.rs:42-62, 107, 114`
+- migration: `src-tauri/migrations/035_design_tokens_v2.sql` (builtin seed) / `036_drop_system_theme_mode.sql` (fallback パターンの先例)
+- `src-tauri/src/repositories/theme_repository.rs:6-18, 32, 99, 108`
+- `src-tauri/src/services/theme_service.rs:42-62, 100-101, 107, 114, 159, 171-178, 284, 318-326`
 - `src/lib/state/theme.svelte.ts:53, 109, 114-116`
-- `src/lib/components/settings/SettingsAppearancePane.svelte:53-80, 161-219`
-- `src/lib/styles/arcagate-theme.css:32, 107, 119-120, 218, 417, 457, 515`
-  </content>
+- `src/lib/components/settings/SettingsAppearancePane.svelte:16, 45, 53-80, 161-219`
+- `src/lib/types/theme.ts:1-2`
+- `src/lib/utils/color.ts:9, 124`
+- `src/lib/i18n/messages_ja.json:368` / `messages_en.json:368` (`theme_hud`)
+- `src/lib/styles/arcagate-theme.css:32, 107, 119-120, 218, 408, 417, 457, 511-562` (HUD block / aesthetic themes)
