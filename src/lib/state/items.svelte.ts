@@ -12,6 +12,19 @@ let tagItems = $state<Item[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 
+/**
+ * PH-CF-600 C2: icon_path / card_override_json 更新時の「即時 paint 再評価」 マーカー。
+ *
+ * LibraryCard は `content-visibility: auto` で off-screen 仮想化しており、 モーダル
+ * オーバーレイ下で update が走ると新 icon の paint が stale 化 (画面切替まで反映されない) する。
+ * `updateItem` が icon_path / card_override_json に触れたら `{ id, ts }` を bump し、
+ * LibraryCard は対象 id / 直近 ts を見て短時間だけ content-visibility を visible へ
+ * 強制 override → browser 再 paint。
+ *
+ * id == null = 初期状態 (どの card にも影響しない)。 ts ms は LibraryCard の閾値判定用。
+ */
+let freshIconMark = $state<{ id: string | null; ts: number }>({ id: null, ts: 0 });
+
 async function loadItems(): Promise<void> {
 	loading = true;
 	error = null;
@@ -62,6 +75,13 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
 		items = items.map((item) => (item.id === id ? updated : item));
 		// target / item_type 変更で metadata が古くなる可能性 → cache 無効化
 		metadataStore.invalidate(id);
+		// PH-CF-600 C2: 視覚要素 (icon_path / card_override_json) の更新時に LibraryCard の
+		// content-visibility 仮想化が paint stale を起こすため、 freshIconMark を bump して
+		// LibraryCard に即時再 paint を要求する。 純粋 data 更新 (label / target 等) は
+		// 視覚仮想化に影響しないので bump しない。
+		if (input.icon_path !== undefined || input.card_override_json !== undefined) {
+			freshIconMark = { id, ts: Date.now() };
+		}
 		// tag_ids 変更で tagWithCounts が変動する
 		await refreshSidebarStats();
 	} catch (e) {
@@ -85,6 +105,13 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
  */
 function applyOptimisticUpdate(id: string, patch: Partial<Item>): void {
 	items = items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+	// PH-CF-600 C2: 画像 picker → cmd_save_icon_file → applyOptimisticUpdate の経路では
+	// updateItem を待たずにこのまま LibraryCard を再 paint させる必要がある。 視覚要素を
+	// 含む patch でだけ bump する (slider drag の offsetX/offsetY 等は patch.background 配下で
+	// card_override_json 経由)。
+	if ('icon_path' in patch || 'card_override_json' in patch) {
+		freshIconMark = { id, ts: Date.now() };
+	}
 }
 
 async function toggleStar(id: string, starred: boolean): Promise<void> {
@@ -113,11 +140,21 @@ async function deleteItem(id: string): Promise<void> {
 	}
 }
 
-async function loadItemsByTag(tagId: string, query: string): Promise<void> {
+/**
+ * PH-CF-600 C4: `includeDisabled` で Library 画面の「非表示を表示」 ON 時に hidden
+ * (is_enabled=false) item も結果に含めて返すよう backend に明示する。 default false
+ * (launcher 用途互換)。 詳細は `features/screens/library.md` の hidden 表示契約と
+ * `lib/ipc/items.ts` の call-site matrix を参照。
+ */
+async function loadItemsByTag(
+	tagId: string,
+	query: string,
+	includeDisabled = false,
+): Promise<void> {
 	loading = true;
 	error = null;
 	try {
-		tagItems = await itemsIpc.searchItemsInTag(tagId, query);
+		tagItems = await itemsIpc.searchItemsInTag(tagId, query, includeDisabled);
 	} catch (e) {
 		error = getErrorMessage(e);
 	} finally {
@@ -196,6 +233,14 @@ export const itemStore = {
 	},
 	get error() {
 		return error;
+	},
+	/**
+	 * PH-CF-600 C2: 直近の icon_path / card_override_json 更新マーカー。 LibraryCard が
+	 * 自 item の id と一致 + 直近 (ts) の bump を検出したら content-visibility を visible に
+	 * 一時 override して再 paint を強制する。
+	 */
+	get freshIconMark() {
+		return freshIconMark;
 	},
 	loadItems,
 	loadItemsByTag,

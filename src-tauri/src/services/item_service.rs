@@ -342,9 +342,19 @@ pub fn get_item_tags(db: &DbState, item_id: &str) -> Result<Vec<Tag>, AppError> 
     tag_repository::find_by_item_id(&conn, item_id)
 }
 
-pub fn search_items_in_tag(db: &DbState, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
+/// PH-CF-600 C4: `include_disabled` flag を repository に透過的に流す。
+///
+/// Library 画面で「非表示を表示」 ON のときのみ true を渡す。 favorites widget / palette /
+/// workspace picker / starred badge 等の launcher 用途は false (= 従来挙動)。 詳細は
+/// `features/screens/library.md` の hidden 表示契約と call-site matrix を参照。
+pub fn search_items_in_tag(
+    db: &DbState,
+    tag_id: &str,
+    query: &str,
+    include_disabled: bool,
+) -> Result<Vec<Item>, AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    item_repository::search_in_tag(&conn, tag_id, query)
+    item_repository::search_in_tag(&conn, tag_id, query, include_disabled)
 }
 
 pub fn count_hidden_items(db: &DbState) -> Result<i64, AppError> {
@@ -929,7 +939,7 @@ mod tests {
         create_item(&db, make_input(ItemType::Exe, "App1")).unwrap();
         create_item(&db, make_input(ItemType::Url, "Site1")).unwrap();
 
-        let exe_items = search_items_in_tag(&db, "sys-type-exe", "").unwrap();
+        let exe_items = search_items_in_tag(&db, "sys-type-exe", "", false).unwrap();
         assert_eq!(exe_items.len(), 1);
         assert_eq!(exe_items[0].label, "App1");
     }
@@ -1679,8 +1689,13 @@ impl ItemService {
         get_item_tags(&self.db, item_id)
     }
 
-    pub fn search_items_in_tag(&self, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
-        search_items_in_tag(&self.db, tag_id, query)
+    pub fn search_items_in_tag(
+        &self,
+        tag_id: &str,
+        query: &str,
+        include_disabled: bool,
+    ) -> Result<Vec<Item>, AppError> {
+        search_items_in_tag(&self.db, tag_id, query, include_disabled)
     }
 
     pub fn count_hidden_items(&self) -> Result<i64, AppError> {

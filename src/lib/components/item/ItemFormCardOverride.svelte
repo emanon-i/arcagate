@@ -103,6 +103,12 @@ async function selectImage(): Promise<void> {
 		const saved = await invoke<string>('cmd_save_icon_file', {
 			sourcePath: selected as string,
 		});
+		// PH-CF-600 C2: 即時反映。 cmd_update_item IPC 完了を待つと items 配列の再代入が
+		// 1 ラウンドトリップ遅れ、 grid LibraryCard ({#key icon_path} で再マウント) の更新も
+		// 同じ frame に間に合わない。 saved 取得直後に optimistic update で in-memory store を
+		// 更新し、 同一 microtask 内で {#key} 再マウントを発火させる (slider drag と同 pattern)。
+		// 後続 updateItem の IPC 戻りで同値を上書きしても挙動は no-op (= safe)。
+		itemStore.applyOptimisticUpdate(item.id, { icon_path: saved });
 		await itemStore.updateItem(item.id, { icon_path: saved });
 		toastStore.add(t('toast.icon_changed'), 'success');
 	} catch (e) {
@@ -111,6 +117,8 @@ async function selectImage(): Promise<void> {
 }
 
 async function clearImage(): Promise<void> {
+	// PH-CF-600 C2: 削除も同様に即時反映。
+	itemStore.applyOptimisticUpdate(item.id, { icon_path: null });
 	await itemStore.updateItem(item.id, { icon_path: null });
 	toastStore.add(t('toast.icon_removed'), 'info');
 }

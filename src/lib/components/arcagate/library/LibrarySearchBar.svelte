@@ -57,6 +57,7 @@ function focusInput() {
 		class="flex-1 bg-transparent text-sm text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
 		placeholder={t('library.search_placeholder')}
 		autocomplete="off"
+		data-testid="library-search-input"
 		bind:value
 		bind:this={inputEl}
 		onkeydown={(e) => {

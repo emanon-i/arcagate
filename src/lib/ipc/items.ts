@@ -37,9 +37,23 @@ export async function updateTagPrefix(id: string, prefix: string | null): Promis
 	return invoke<void>('cmd_update_tag_prefix', { id, prefix });
 }
 
-export async function searchItemsInTag(tagId: string, query: string): Promise<Item[]> {
+/**
+ * PH-CF-600 C4: `includeDisabled` で hidden item を結果に含めるかを明示する。
+ *
+ * call-site matrix:
+ * - Library 画面 (`itemStore.loadItemsByTag` 経由) → `libraryShowHidden` ON 時のみ `true`
+ * - palette / favorites widget / workspace picker / starred badge → 省略 (= 従来挙動、 hidden 除外)
+ *
+ * 共有クエリの挙動を変えるときは `docs/l2_foundation/features/screens/library.md` の
+ * hidden 表示契約 + call-site matrix を必ず照合する。
+ */
+export async function searchItemsInTag(
+	tagId: string,
+	query: string,
+	includeDisabled = false,
+): Promise<Item[]> {
 	return wrapIpc('search_items_in_tag', () =>
-		invoke<Item[]>('cmd_search_items_in_tag', { tagId, query }),
+		invoke<Item[]>('cmd_search_items_in_tag', { tagId, query, includeDisabled }),
 	);
 }
 
