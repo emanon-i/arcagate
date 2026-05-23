@@ -9,6 +9,7 @@ import { t } from '$lib/i18n.svelte';
 import type { Opener } from '$lib/ipc/opener';
 import { openersStore } from '$lib/state/openers.svelte';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
+import { DEFAULT_EXE_FOLDER_EXTENSIONS, MAX_EXE_FOLDER_SCAN_DEPTH } from './index';
 
 const DESCRIPTION_MAX = 120;
 
@@ -16,6 +17,8 @@ interface Props {
 	config: {
 		watch_path?: string;
 		scan_depth?: number;
+		/** PH-CF-400: 監視拡張子 (default = ["exe","bat","cmd","ps1","sh"])。 */
+		extensions?: string[];
 		title?: string;
 		description?: string;
 		item_overrides?: Record<string, string>;
@@ -29,6 +32,38 @@ let watchPath = $derived(config.watch_path ?? '');
 let scanDepth = $derived(config.scan_depth ?? 2);
 let exeFolderTitle = $derived(config.title ?? '');
 let exeDescription = $derived(config.description ?? '');
+
+// PH-CF-400: extensions の編集は text input (カンマ区切り) で行う。 normalize は
+// blur / change のタイミングで実施し、 入力中の text を保持する。
+let extensionsInput = $state((config.extensions ?? [...DEFAULT_EXE_FOLDER_EXTENSIONS]).join(', '));
+$effect(() => {
+	// config.extensions が外から変わったら input も同期 (settings 再 open 時等)。
+	const current = config.extensions ?? [...DEFAULT_EXE_FOLDER_EXTENSIONS];
+	const joined = current.join(', ');
+	if (
+		joined !==
+		extensionsInput
+			.replace(/\s+/g, ' ')
+			.trim()
+			.replace(/\s*,\s*/g, ', ')
+	) {
+		extensionsInput = joined;
+	}
+});
+
+function normalizeExtensions(raw: string): string[] {
+	return raw
+		.split(',')
+		.map((s) => s.trim().replace(/^\./, '').toLowerCase())
+		.filter((s) => s.length > 0 && /^[a-z0-9_-]+$/.test(s));
+}
+
+function commitExtensions() {
+	const next = normalizeExtensions(extensionsInput);
+	const fallback = next.length > 0 ? next : [...DEFAULT_EXE_FOLDER_EXTENSIONS];
+	config = { ...config, extensions: fallback };
+	extensionsInput = fallback.join(', ');
+}
 
 // C-15 #19: Opener 一覧 (widget default opener select 用)。
 // audit 2026-05-13 G4: shared openersStore 経由 fetch。
@@ -58,22 +93,41 @@ onMount(() => {
 
 <!-- 2. スキャン挙動 -->
 <div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-scan-depth">{t('widgets.exe_folder.scan_depth_label')}</label>
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-scan-depth">{t('widgets.exe_folder.scan_depth_label', { max: String(MAX_EXE_FOLDER_SCAN_DEPTH) })}</label>
 	<input
 		id="ws-scan-depth"
 		type="number"
 		min="1"
-		max="3"
+		max={MAX_EXE_FOLDER_SCAN_DEPTH}
 		autocomplete="off"
 		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
 		value={scanDepth}
 		onchange={(e) => {
+			const raw = Number((e.currentTarget as HTMLInputElement).value) || 2;
 			config = {
 				...config,
-				scan_depth: Math.max(1, Math.min(3, Number((e.currentTarget as HTMLInputElement).value) || 2)),
+				scan_depth: Math.max(1, Math.min(MAX_EXE_FOLDER_SCAN_DEPTH, raw)),
 			};
 		}}
 	/>
+	<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.exe_folder.scan_depth_help', { max: String(MAX_EXE_FOLDER_SCAN_DEPTH) })}</p>
+</div>
+
+<!-- 2b. 監視拡張子 (PH-CF-400) -->
+<div class="space-y-1">
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-extensions">{t('widgets.exe_folder.extensions_label')}</label>
+	<input
+		id="ws-extensions"
+		type="text"
+		autocomplete="off"
+		spellcheck="false"
+		placeholder={t('widgets.exe_folder.extensions_placeholder')}
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		bind:value={extensionsInput}
+		onblur={commitExtensions}
+		onchange={commitExtensions}
+	/>
+	<p class="text-xs text-[var(--ag-text-muted)]">{t('widgets.exe_folder.extensions_help')}</p>
 </div>
 
 <!-- 3. タイトル + 説明 (Projects と同順) -->
