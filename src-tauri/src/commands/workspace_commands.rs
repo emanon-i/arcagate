@@ -35,9 +35,16 @@ pub fn cmd_update_workspace(
         .update_workspace(&id, UpdateWorkspaceInput { name })
 }
 
+/// PH-CF-100: `delete_items` は **必須引数** (implicit default を持たない)。 frontend / CLI 双方で
+/// 「workspace を消すときに紐付く item を Library からも消すかどうか」 を明示する契約。
+/// 省略は型 / シリアライザ レベルで弾かれる (Codex review: implicit default は recurrence-unsafe)。
 #[tauri::command]
-pub fn cmd_delete_workspace(services: State<AppServices>, id: String) -> Result<(), AppError> {
-    services.workspace.delete_workspace(&id)
+pub fn cmd_delete_workspace(
+    services: State<AppServices>,
+    id: String,
+    delete_items: bool,
+) -> Result<(), AppError> {
+    services.workspace.delete_workspace(&id, delete_items)
 }
 
 #[tauri::command]
