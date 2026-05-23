@@ -48,3 +48,12 @@
 
 - Settings は modal overlay (`showSettings = true`)、独立 route ではない
 - Onboarding / Setup Wizard は別 component だが同じ「設定」系統 ([onboarding.md](./onboarding.md))
+
+## 破壊的操作の確認契約 (PH-CF-300 横展開)
+
+Settings 配下で取り返しのつかない操作 (全設定 reset / アップデート適用 = 再起動を伴う / テーマ
+削除等) も `window.confirm` を使わない。 `ConfirmDialog` (destructive variant) または専用
+modal (`CleanResetDialog` のような type-to-confirm dialog) を必ず経由する。
+詳細契約は [library.md](./library.md) / [workspace.md](./workspace.md) §破壊的操作の確認契約 を参照。
+
+機械検出: `scripts/audit-window-confirm.sh` (lefthook + `pnpm audit:all`)。

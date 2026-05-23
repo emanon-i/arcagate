@@ -100,3 +100,44 @@ PH-CF-200 で widget 配置経路を以下に集約:
 `findFreePosition` (0,0 起点) 直呼び、 `addWidgetAt` が直接配置と **4 経路に重複ロジック**が
 分散していた。 PH-CF-200 で seed 解決を `resolveSeedCell` 1 関数に集約し、 (0,0) フォールバック
 禁止と viewport 中央 fallback を経路横断で保証する。
+
+## 破壊的操作の確認契約 (PH-CF-300)
+
+workspace / タブ / widget の削除など取り返しのつかない操作は、 **専用 confirm modal** または
+**undo-toast** のいずれかを必ず経由する。 `window.confirm` / `window.alert` / `window.prompt`
+は使わない (チェックボックス等の拡張不能・OS 依存の見た目・ag-glass theme と不整合)。
+削除確認モーダルは影響範囲 (削除される widget 数 / item 連鎖削除の有無) を文言で明示する。
+
+### タブ (page) 削除 (E3 / E6)
+
+`PageTabBar.svelte` の × button (ヒットエリア 28px square で widget チップとの被りを回避) と
+右クリック「削除」 から `WorkspaceDeleteConfirmDialog` を開く。 modal は
+`ConfirmDialog` (`destructive` variant) を内包し、 以下を必ず提示する:
+
+- 削除対象 page 名 (title)
+- 削除対象 widget 数 (extraNote、 IPC `cmd_list_widgets` で取得)
+- 「このページの item も Library から削除」 チェックボックス (default = OFF、 破壊的なので
+  opt-in)。 default OFF は「item は残す = 安全側」 の規律。
+
+確定時、 `cmd_delete_workspace(id, delete_items)` を呼ぶ。 `delete_items` は PH-CF-100 で
+必須引数化済 (implicit default なし)。
+
+### widget 削除 (undo-toast)
+
+複数選択時の Delete は確認なしで即削除し undo-toast を出す (`WorkspaceWidgetGrid.svelte`)。
+影響範囲が局所的 (1 widget 復元は cheap) かつ undo 経路が確立しているため、 confirm modal
+よりも undo-toast の方が編集 flow を妨げない。 **タブ削除と非対称な扱い** は意図:
+
+- **タブ削除**: 影響大 (page 全体 + 紐付く item) → confirm modal + チェックボックス
+- **widget 削除**: 影響小 (1 widget 単位) → undo-toast (即削除 + 5 秒以内 undo)
+
+### 機械検出
+
+- `scripts/audit-window-confirm.sh` が `src/**/*.{ts,svelte}` に対し
+  `window.confirm|window.alert|window.prompt` 0 件を検証 (lefthook + `pnpm audit:all` で gate)。
+- e2e: `tests/e2e/destructive-confirm.spec.ts` が
+  (a) タブ × クリック → 専用 modal + チェックボックス表示
+  (b) チェック OFF → item は Library に残る
+  (c) チェック ON → 他 workspace 非参照 item は消える
+  (d) `WorkspaceDeleteConfirmDialog.svelte` が実 import (dead-surface でない) されている DOM 検証
+  を確認。

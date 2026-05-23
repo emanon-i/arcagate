@@ -94,6 +94,11 @@ pre-commit:
       # 入っているか + items table back-link 列の migration 存在を grep でガード。
       glob: "{src-tauri/src/services/item_service.rs,src-tauri/src/repositories/item_repository.rs,src-tauri/migrations/*.sql}"
       run: bash scripts/audit-source-back-link.sh
+    window-confirm:
+      # PH-CF-300: 破壊的操作の確認パターン統一。 window.confirm / alert / prompt は禁止、
+      # ConfirmDialog (専用 confirm modal) or undo-toast 経路を強制。
+      glob: "src/**/*.{ts,svelte}"
+      run: bash scripts/audit-window-confirm.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行
