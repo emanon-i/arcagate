@@ -145,17 +145,26 @@ pub fn cmd_get_item_tags(
     services.item.get_item_tags(&item_id)
 }
 
+/// PH-CF-600 C4: `include_disabled` で hidden item を結果に含めるかを明示する。
+///
+/// frontend で省略 (None) → 従来挙動 (= `false`、 hidden 除外) を維持。 既存 call-site の
+/// 後方互換と「launcher 用途は hidden 除外」 の default を兼ねる。 Library 画面の
+/// `loadItemsByTag` が `libraryShowHidden` ON 時にだけ true を渡す。
 #[tauri::command]
 pub fn cmd_search_items_in_tag(
     services: State<AppServices>,
     tag_id: String,
     query: String,
+    include_disabled: Option<bool>,
 ) -> Result<Vec<Item>, AppError> {
     let started = std::time::Instant::now();
-    let r = services.item.search_items_in_tag(&tag_id, &query);
+    let r = services
+        .item
+        .search_items_in_tag(&tag_id, &query, include_disabled.unwrap_or(false));
     log::debug!(
-        "[cmd-timing] cmd_search_items_in_tag(tag={}) {:.1}ms (n={})",
+        "[cmd-timing] cmd_search_items_in_tag(tag={}, include_disabled={}) {:.1}ms (n={})",
         tag_id,
+        include_disabled.unwrap_or(false),
         started.elapsed().as_secs_f64() * 1000.0,
         r.as_ref().map(Vec::len).unwrap_or(0)
     );

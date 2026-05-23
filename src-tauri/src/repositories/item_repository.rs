@@ -65,20 +65,36 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<Item>, AppError> {
     Ok(items)
 }
 
-pub fn search_in_tag(conn: &Connection, tag_id: &str, query: &str) -> Result<Vec<Item>, AppError> {
+/// PH-CF-600 C4: `include_disabled` で hidden (is_enabled=0) item を結果に含めるかを明示制御する。
+///
+/// - `false` (default behavior): `is_enabled=1` で絞り込む。 favorites widget / palette /
+///   workspace picker / starred badge 等の「launcher 用途」が hidden を含めない契約。
+/// - `true`: Library 画面で「非表示を表示」 ON のときに hidden を含めて返す (グレーアウト表示)。
+///   call-site は `LibraryMainArea` の Type タブ経路 (`itemStore.loadItemsByTag`) のみ。
+///
+/// 共有クエリの挙動を変えるときは call-site matrix を `features/screens/library.md` の
+/// 「hidden 表示契約」 と照合する。 ハードコードで `is_enabled=1` を固定除外しないこと。
+pub fn search_in_tag(
+    conn: &Connection,
+    tag_id: &str,
+    query: &str,
+    include_disabled: bool,
+) -> Result<Vec<Item>, AppError> {
     // Phase L-2 (2026-05-07 user 検収 Library 真因 #2):
     // 旧実装は空 query 時も `LIKE '%%'` を全行に評価して full scan を起こし、avg 168ms /
     // max 201ms (@ 690 items)。空 query 時は LIKE clause 自体を省き、idx_item_tags_tag
     // (migration 025) で tag_id INDEX のみを使う query にする。
-    const SELECT: &str = "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.card_override_json, i.source_widget_id, i.source_entry_key, i.created_at, i.updated_at
+    const SELECT_BASE: &str = "SELECT i.id, i.item_type, i.label, i.target, i.args, i.working_dir, i.icon_path, i.icon_type, i.aliases, i.sort_order, i.is_enabled, i.is_tracked, i.default_app, i.card_override_json, i.source_widget_id, i.source_entry_key, i.created_at, i.updated_at
          FROM items i
          INNER JOIN item_tags it ON it.item_id = i.id
-         WHERE it.tag_id = ?1
-           AND i.is_enabled = 1";
+         WHERE it.tag_id = ?1";
+    const ENABLED_FILTER: &str = "\n           AND i.is_enabled = 1";
     const ORDER: &str = " ORDER BY i.sort_order, i.label";
 
+    let enabled_clause = if include_disabled { "" } else { ENABLED_FILTER };
+
     if query.is_empty() {
-        let sql = format!("{}{}", SELECT, ORDER);
+        let sql = format!("{}{}{}", SELECT_BASE, enabled_clause, ORDER);
         let mut stmt = conn.prepare(&sql)?;
         let items = stmt
             .query_map(params![tag_id], Item::from_row)?
@@ -87,8 +103,11 @@ pub fn search_in_tag(conn: &Connection, tag_id: &str, query: &str) -> Result<Vec
     } else {
         let pattern = format!("%{}%", query);
         let sql = format!(
-            "{}{}{}",
-            SELECT, "\n           AND (i.label LIKE ?2 OR i.aliases LIKE ?2)", ORDER
+            "{}{}{}{}",
+            SELECT_BASE,
+            enabled_clause,
+            "\n           AND (i.label LIKE ?2 OR i.aliases LIKE ?2)",
+            ORDER
         );
         let mut stmt = conn.prepare(&sql)?;
         let items = stmt
@@ -183,11 +202,16 @@ pub fn update_target_by_path(
 }
 
 pub fn get_library_stats(conn: &Connection) -> Result<LibraryStats, AppError> {
+    // PH-CF-600 C3: launch_log.launched_at は launch_repository で
+    // `strftime('%Y-%m-%dT%H:%M:%SZ', 'now')` (ISO 8601 T 区切り + 'Z') 形式で保存される。
+    // 旧クエリは `datetime('now', '-7 days')` (SQLite 既定 ' ' 区切り) と string 比較しており、
+    // 位置 10 の 'T'(0x54) > ' '(0x20) で全 ISO 行が常に大評価 → 7 日境界が機能せず
+    // 実質「全期間カウント」 になっていた。 保存フォーマットに揃えて strftime で比較する。
     conn.query_row(
         "SELECT
             (SELECT COUNT(*) FROM items WHERE is_enabled = 1) AS total_items,
             (SELECT COUNT(*) FROM tags WHERE is_system = 0) AS total_tags,
-            (SELECT COUNT(*) FROM launch_log WHERE launched_at >= datetime('now', '-7 days')) AS recent_launch_count",
+            (SELECT COUNT(*) FROM launch_log WHERE launched_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days')) AS recent_launch_count",
         [],
         |row| {
             Ok(LibraryStats {
@@ -488,16 +512,64 @@ mod tests {
         set_tags(&conn, "id-002", &["tag-games".to_string()]).unwrap();
         set_tags(&conn, "id-003", &["tag-work".to_string()]).unwrap();
 
-        let results = search_in_tag(&conn, "tag-games", "").unwrap();
+        let results = search_in_tag(&conn, "tag-games", "", false).unwrap();
         assert_eq!(results.len(), 2);
 
-        let filtered = search_in_tag(&conn, "tag-games", "Blend").unwrap();
+        let filtered = search_in_tag(&conn, "tag-games", "Blend", false).unwrap();
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].label, "Blender");
 
-        let other = search_in_tag(&conn, "tag-work", "").unwrap();
+        let other = search_in_tag(&conn, "tag-work", "", false).unwrap();
         assert_eq!(other.len(), 1);
         assert_eq!(other[0].label, "VS Code");
+    }
+
+    /// PH-CF-600 C4: `include_disabled` 引数が hidden item の取得を制御することを確認する。
+    /// - `false` (default): is_enabled=0 の item は除外される (favorites widget の挙動)
+    /// - `true`: is_enabled=0 の item も結果に含まれる (Library 画面の「非表示を表示」 ON 時)
+    #[test]
+    fn test_search_in_tag_include_disabled_flag() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let user_tag = Tag {
+            id: "tag-mixed".to_string(),
+            name: "mixed".to_string(),
+            is_hidden: false,
+            is_system: false,
+            prefix: None,
+            icon: None,
+            sort_order: 0,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        tag_repository::insert(&conn, &user_tag).unwrap();
+
+        let visible = make_item("id-visible", "Visible App", ItemType::Exe);
+        insert(&conn, &visible).unwrap();
+        let mut hidden = make_item("id-hidden", "Hidden App", ItemType::Exe);
+        hidden.is_enabled = false;
+        insert(&conn, &hidden).unwrap();
+
+        set_tags(&conn, "id-visible", &["tag-mixed".to_string()]).unwrap();
+        set_tags(&conn, "id-hidden", &["tag-mixed".to_string()]).unwrap();
+
+        // include_disabled=false (default 挙動): hidden は除外。
+        let visible_only = search_in_tag(&conn, "tag-mixed", "", false).unwrap();
+        assert_eq!(visible_only.len(), 1);
+        assert_eq!(visible_only[0].id, "id-visible");
+
+        // include_disabled=true: hidden も結果に含まれる。
+        let both = search_in_tag(&conn, "tag-mixed", "", true).unwrap();
+        assert_eq!(both.len(), 2);
+        assert!(both.iter().any(|i| i.id == "id-hidden"));
+        assert!(both.iter().any(|i| i.id == "id-visible"));
+
+        // query LIKE 経路でも include_disabled が効くこと。
+        let with_query = search_in_tag(&conn, "tag-mixed", "Hidden", true).unwrap();
+        assert_eq!(with_query.len(), 1);
+        assert_eq!(with_query[0].id, "id-hidden");
+        let with_query_excl = search_in_tag(&conn, "tag-mixed", "Hidden", false).unwrap();
+        assert_eq!(with_query_excl.len(), 0);
     }
 
     #[test]
@@ -632,6 +704,62 @@ mod tests {
         assert_eq!(stats.total_items, 2); // disabled excluded
         assert_eq!(stats.total_tags, 1); // only user tags counted
         assert_eq!(stats.recent_launch_count, 0);
+    }
+
+    /// PH-CF-600 C3: 7 日境界 fixture で recent_launch_count が「直近 7 日以内」のみカウントされること。
+    /// 旧実装は datetime('now', '-7 days') (' ' 区切り) と launched_at ('T' 区切り) の string 比較
+    /// で全期間カウントになっていた回帰を防止する。
+    #[test]
+    fn test_get_library_stats_recent_launch_count_respects_7d_boundary() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+        insert(&conn, &make_item("id-001", "App1", ItemType::Exe)).unwrap();
+
+        // 直近 7 日以内 3 件 (今 / 1 日前 / 6 日前) と 7 日超 2 件 (8 日前 / 30 日前) を仕込む。
+        // launch_log.launched_at は ISO 8601 T 区切り + 'Z' (launch_repository と一致)。
+        // strftime の modifier (`-N days`) は SQL リテラルで埋め込む (parameter binding は
+        // varargs に効かない)。 'now' は modifier 不要。
+        let within: [(&str, Option<&str>); 3] = [
+            ("w0", None),
+            ("w1", Some("-1 days")),
+            ("w2", Some("-6 days")),
+        ];
+        let outside: [(&str, &str); 2] = [("o0", "-8 days"), ("o1", "-30 days")];
+        for (id_suffix, modifier_opt) in within.iter() {
+            let sql = match modifier_opt {
+                None => "INSERT INTO launch_log (id, item_id, launched_at, launch_source)
+                         VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), 'test')"
+                    .to_string(),
+                Some(modifier) => format!(
+                    "INSERT INTO launch_log (id, item_id, launched_at, launch_source)
+                     VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '{}'), 'test')",
+                    modifier
+                ),
+            };
+            conn.execute(
+                &sql,
+                rusqlite::params![format!("log-{}", id_suffix), "id-001"],
+            )
+            .unwrap();
+        }
+        for (id_suffix, modifier) in outside.iter() {
+            let sql = format!(
+                "INSERT INTO launch_log (id, item_id, launched_at, launch_source)
+                 VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '{}'), 'test')",
+                modifier
+            );
+            conn.execute(
+                &sql,
+                rusqlite::params![format!("log-{}", id_suffix), "id-001"],
+            )
+            .unwrap();
+        }
+
+        let stats = get_library_stats(&conn).unwrap();
+        assert_eq!(
+            stats.recent_launch_count, 3,
+            "only launches within last 7 days should be counted"
+        );
     }
 
     #[test]
