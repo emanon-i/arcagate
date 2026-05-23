@@ -9,6 +9,7 @@ import { t } from '$lib/i18n.svelte';
 import type { Opener } from '$lib/ipc/opener';
 import { openersStore } from '$lib/state/openers.svelte';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
+import WidgetExcludedItemsSection from '../_shared/WidgetExcludedItemsSection.svelte';
 import { DEFAULT_EXE_FOLDER_EXTENSIONS, MAX_EXE_FOLDER_SCAN_DEPTH } from './index';
 
 const DESCRIPTION_MAX = 120;
@@ -194,3 +195,7 @@ onMount(() => {
 		{t('widgets.common.default_opener_desc')}
 	</p>
 </div>
+
+<!-- PH-CF-500: 除外したアイテム (widget_item_hides の当該 widget 分を一覧 + 復元)。
+     widgetId は WidgetSettingsDialog が setContext した値を内部で getContext する。 -->
+<WidgetExcludedItemsSection />

@@ -63,13 +63,30 @@
 記録し、 **再 scan で復活させない**。 item.target は対象ファイル path、 entry_key は第1階層
 フォルダで key 空間が異なるため、 hide の橋渡しは `source_entry_key` 経由で 1 系統に揃える
 (`item_target` 列のセマンティクスは scan entry id = 第1階層フォルダ folder_path)。 widget 自体
-を削除すると除外リストは FK CASCADE で消える (fresh state)。 復元 UI は PH-CF-500。
+を削除すると除外リストは FK CASCADE で消える (fresh state)。 除外を解除する復元 UI は widget
+設定の「除外したアイテム」 section (PH-CF-500、 `WidgetExcludedItemsSection`) に置く。
 
 機械検出:
 
 - 統合 test `test_exe_folder_auto_register_delete_no_resurrection` (PH-CF-400 で entry_keys 明示版)
 - 統合 test `test_register_exe_items_bulk_entry_keys_fallback_to_parent` (entry_keys None back-compat)
+- e2e: `widget-excluded-items-restore.spec.ts` (UI 経路の Library 削除 → section 表示 → 復元 → 復活)
 - [item-service.md](../backend/item-service.md) §監視アイテムの所有関係契約 + [exe-scanner.md](../backend/exe-scanner.md) §scan reconcile 契約 と同根
+
+### 監視ウィジェット族 chrome 契約 (PH-CF-500 D3)
+
+`projects` / `exe_folder` / `script_folder` の chrome は [`_chrome-consistency.md`](./_chrome-consistency.md)
+§A5 「監視ウィジェット族契約」 に従う。 特に: WidgetShell の `icon` は `index.ts` meta と一致
+(`exe_folder` は `FolderOpen` で meta = shell)、 `config.watch_path` を `path` prop で渡す、
+config パースは `parseWidgetConfig` helper を使う。
+
+### 起動 cascade (PH-CF-500 D4)
+
+`default_opener_id` を `WidgetSettings` で設定可能。 entry click は
+`launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })` で
+**item-level override → widget default → system default** の順に解決する。 widget default は
+opener registry (`opener_service`) の id を参照、 未指定 (`null`) なら system default
+(`cmd_open_path`) にフォールバック。 同 cascade は `projects` widget も使用。
 
 ## 既知の判断
 

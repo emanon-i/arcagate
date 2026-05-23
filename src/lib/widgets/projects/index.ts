@@ -15,13 +15,12 @@ export const meta: WidgetMeta = {
 		return widgetLabel('projects');
 	},
 	defaultConfig: {
-		max_items: 10,
-		git_poll_interval_sec: 60,
 		// PH-issue-039 / 検収項目 #12: 旧 'ウォッチフォルダー' → 空文字 (WIDGET_LABELS から fallback)。
 		title: '',
 		description: '',
 		watched_folder: '',
-		auto_add: false,
+		// PH-CF-500 D4: widget レベルの起動アプリ default (cascade で per-item override 可)。
+		default_opener_id: null,
 	},
 	// J-2 (2026-05-12): folder card grid (container query で 1-3 列)、4:5 で複数列表示できる横幅 + 高さ。
 	defaultSize: { w: 4, h: 4 },

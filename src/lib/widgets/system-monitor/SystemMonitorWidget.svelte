@@ -22,7 +22,9 @@ import LoadingState from '$lib/components/common/LoadingState.svelte';
 import { t } from '$lib/i18n.svelte';
 import type { WorkspaceWidget } from '$lib/types/workspace';
 import { bufferToSparklinePath, pushBuffer } from '$lib/utils/history-buffer';
+import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
+import { SYSTEM_MONITOR_DEFAULTS } from './index';
 
 interface Props {
 	widget?: WorkspaceWidget;
@@ -64,28 +66,39 @@ interface SystemMonitorConfig {
 	title?: string;
 }
 
-let config = $derived.by<SystemMonitorConfig>(() => {
-	if (!widget?.config) return {};
-	try {
-		return JSON.parse(widget.config) as SystemMonitorConfig;
-	} catch {
-		return {};
-	}
-});
+// PH-CF-500 D7: SYSTEM_MONITOR_DEFAULTS (index.ts) を唯一の出所として merge する。
+// `?? <literal>` を各所に書かないことで widget / settings 間の default ズレを構造的に防止。
+// merged 後も型は Partial 由来で optional のまま (parseWidgetConfig が型 narrowing をしない)、
+// 値の存在は defaults merge で保証されるため `?? SYSTEM_MONITOR_DEFAULTS.<field>` で
+// 再度 fallback (literal 不使用) する。
+let config = $derived(
+	parseWidgetConfig<SystemMonitorConfig>(widget?.config, SYSTEM_MONITOR_DEFAULTS),
+);
 
-let refreshMs = $derived(Math.max(500, Math.min(10_000, config.refresh_interval_ms ?? 2000)));
-let showCpu = $derived(config.show_cpu ?? true);
-let showMemory = $derived(config.show_memory ?? true);
-let showDisk = $derived(config.show_disk ?? false);
-let showNetwork = $derived(config.show_network ?? false);
-// 4/30 user 検収: per-metric chart_type。各 metric は専用 config が無ければ既定値。
-// audit batch deferred (2026-05-13) #6: default を bar + value 表示に統一 (CPU / Memory / Disk)。
-// network は rate 値が直感的に把握しやすい sparkline default を維持。
-// W-8 (2026-05-19): 旧共通 `chart_type` fallback は migration 037 で per-metric key へ展開済のため撤去。
-let cpuChartType = $derived<ChartType>(config.cpu_chart_type ?? 'bar');
-let memChartType = $derived<ChartType>(config.memory_chart_type ?? 'bar');
-let diskChartType = $derived<ChartType>(config.disk_chart_type ?? 'bar');
-let networkChartType = $derived<ChartType>(config.network_chart_type ?? 'sparkline');
+// refresh interval だけは backend / display への影響が大きいため安全 clamp を残す
+// (default 自体は SYSTEM_MONITOR_DEFAULTS 由来、 clamp は手編集 JSON 等の防御層)。
+let refreshMs = $derived(
+	Math.max(
+		500,
+		Math.min(10_000, config.refresh_interval_ms ?? SYSTEM_MONITOR_DEFAULTS.refresh_interval_ms),
+	),
+);
+let showCpu = $derived(config.show_cpu ?? SYSTEM_MONITOR_DEFAULTS.show_cpu);
+let showMemory = $derived(config.show_memory ?? SYSTEM_MONITOR_DEFAULTS.show_memory);
+let showDisk = $derived(config.show_disk ?? SYSTEM_MONITOR_DEFAULTS.show_disk);
+let showNetwork = $derived(config.show_network ?? SYSTEM_MONITOR_DEFAULTS.show_network);
+let cpuChartType = $derived<ChartType>(
+	config.cpu_chart_type ?? SYSTEM_MONITOR_DEFAULTS.cpu_chart_type,
+);
+let memChartType = $derived<ChartType>(
+	config.memory_chart_type ?? SYSTEM_MONITOR_DEFAULTS.memory_chart_type,
+);
+let diskChartType = $derived<ChartType>(
+	config.disk_chart_type ?? SYSTEM_MONITOR_DEFAULTS.disk_chart_type,
+);
+let networkChartType = $derived<ChartType>(
+	config.network_chart_type ?? SYSTEM_MONITOR_DEFAULTS.network_chart_type,
+);
 
 let stats = $state<SystemStats | null>(null);
 let disks = $state<DiskStats[]>([]);

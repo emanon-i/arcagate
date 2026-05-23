@@ -660,7 +660,13 @@
 			"description_optional_label": "Description (optional)",
 			"description_placeholder": "Purpose of this widget",
 			"error_prefix": "Error: {error}",
-			"load_failed": "Failed to load",
+			"excluded_items_desc": "Items removed from the Library here are recorded and will not reappear in the next scan.",
+			"excluded_items_empty": "No excluded items",
+			"excluded_items_load_failed": "Failed to load the exclusion list",
+			"excluded_items_loading": "Loading…",
+			"excluded_items_restore_aria": "Restore {target} from exclusion",
+			"excluded_items_restore_label": "Restore",
+			"excluded_items_title": "Excluded items",
 			"folder": {
 				"clear_label": "Clear {label}",
 				"label": "Watched folder",
@@ -672,6 +678,7 @@
 			"launch_label": "Launch {label}",
 			"launch_with_context": "Launch {label} (right-click for details)",
 			"list_view": "List view",
+			"load_failed": "Failed to load",
 			"max_items_label": "Items to display (1-100)",
 			"open_settings": "Open settings",
 			"operation_save_settings": "Save settings",
@@ -795,13 +802,10 @@
 		},
 		"no_settings": "This widget has no settings.",
 		"projects": {
-			"auto_add_aria": "Automatically add subfolders",
-			"auto_add_label": "Auto-add subfolders",
 			"changed_count_one": "{count} change",
 			"changed_count_other": "{count} changes",
 			"empty_description": "Select a watch root in the settings modal and its subfolders will appear here.",
 			"empty_title": "No folder configured",
-			"git_poll_label": "Git polling interval (seconds, 10–600)",
 			"no_subfolders": "No subfolders found in the specified folder."
 		},
 		"quick_note": {

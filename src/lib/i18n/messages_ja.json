@@ -660,7 +660,13 @@
 			"description_optional_label": "説明 (任意)",
 			"description_placeholder": "このウィジェットの目的",
 			"error_prefix": "エラー: {error}",
-			"load_failed": "読み込みに失敗しました",
+			"excluded_items_desc": "Library から監視アイテムを削除するとここに記録され、次の scan で復活しなくなります。",
+			"excluded_items_empty": "除外したアイテムはありません",
+			"excluded_items_load_failed": "除外リストの読み込みに失敗しました",
+			"excluded_items_loading": "読み込み中…",
+			"excluded_items_restore_aria": "{target} の除外を解除",
+			"excluded_items_restore_label": "復元",
+			"excluded_items_title": "除外したアイテム",
 			"folder": {
 				"clear_label": "{label}を解除",
 				"label": "監視フォルダ",
@@ -672,6 +678,7 @@
 			"launch_label": "{label} を起動",
 			"launch_with_context": "{label} を起動 (右クリックで詳細)",
 			"list_view": "リスト表示",
+			"load_failed": "読み込みに失敗しました",
 			"max_items_label": "表示件数 (1〜100)",
 			"open_settings": "設定を開く",
 			"operation_save_settings": "設定の保存",
@@ -795,13 +802,10 @@
 		},
 		"no_settings": "このウィジェットには設定項目がありません。",
 		"projects": {
-			"auto_add_aria": "配下フォルダを自動的に追加する",
-			"auto_add_label": "配下フォルダの自動追加",
 			"changed_count_one": "{count} 件の変更",
 			"changed_count_other": "{count} 件の変更",
 			"empty_description": "設定モーダルで監視ルートを選ぶと、配下のフォルダがここに表示されます。",
 			"empty_title": "No folder configured",
-			"git_poll_label": "Git ポーリング間隔（秒、10〜600）",
 			"no_subfolders": "指定フォルダ内にサブフォルダがありません。"
 		},
 		"quick_note": {

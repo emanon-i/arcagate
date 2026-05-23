@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Trash2 } from '@lucide/svelte';
+import { setContext } from 'svelte';
 import BaseDialog from '$lib/components/common/BaseDialog.svelte';
 import { Button } from '$lib/components/ui/button';
 import { t } from '$lib/i18n.svelte';
@@ -7,6 +8,7 @@ import { toastStore } from '$lib/state/toast.svelte';
 import { workspaceStore } from '$lib/state/workspace.svelte';
 import { type WorkspaceWidget, widgetLabel } from '$lib/types/workspace';
 import { widgetRegistry } from '$lib/widgets';
+import { WIDGET_SETTINGS_CTX } from '$lib/widgets/_shared/settings-context';
 
 let {
 	widget,
@@ -33,6 +35,19 @@ $effect(() => {
 });
 
 let SettingsContent = $derived(widgetRegistry[widget.widget_type]?.SettingsContent);
+
+// PH-CF-500: widget id を context 経由で SettingsContent (任意の階層) に流す。
+// WidgetExcludedItemsSection (除外アイテム復元 UI) 等が widget id 起点で IPC を呼ぶ
+// ために必要。 各 widget の SettingsContent に prop drilling すると 13 widget 全部の
+// Props 型に widgetId を増やすことになるため context で一段抽象化する。
+setContext(WIDGET_SETTINGS_CTX, {
+	get widgetId() {
+		return widget.id;
+	},
+	get widgetType() {
+		return widget.widget_type;
+	},
+});
 
 async function handleSave() {
 	try {

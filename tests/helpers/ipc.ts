@@ -305,3 +305,27 @@ export async function listWidgetsWithPosition(
 ): Promise<WidgetWithPosition[]> {
 	return invoke<WidgetWithPosition[]>(page, 'cmd_list_widgets', { workspaceId });
 }
+
+/**
+ * PH-CF-500 helper: widget の除外リスト (widget_item_hides) 操作。
+ * scan で再登録しないよう entry key を hide / 解除 / 一覧する。
+ */
+export async function addWidgetItemHide(
+	page: Page,
+	widgetId: string,
+	itemTarget: string,
+): Promise<void> {
+	return invoke<void>(page, 'cmd_add_widget_item_hide', { widgetId, itemTarget });
+}
+
+export async function removeWidgetItemHide(
+	page: Page,
+	widgetId: string,
+	itemTarget: string,
+): Promise<void> {
+	return invoke<void>(page, 'cmd_remove_widget_item_hide', { widgetId, itemTarget });
+}
+
+export async function listWidgetItemHides(page: Page, widgetId: string): Promise<string[]> {
+	return invoke<string[]>(page, 'cmd_list_widget_item_hides', { widgetId });
+}

@@ -28,6 +28,7 @@ import { getErrorMessage } from '$lib/utils/format-error';
 import { formatIpcError } from '$lib/utils/ipc-error';
 import { launchItemWithCascade, launchTargetWithCascade } from '$lib/utils/launch-cascade';
 import { formatLaunchError } from '$lib/utils/launch-error';
+import { parseWidgetConfig } from '$lib/utils/widget-config';
 import { widgetMenuItems } from '../_shared/menu-items';
 import type { WidgetSortField, WidgetSortOrder } from '../_shared/types';
 import { DEFAULT_EXE_FOLDER_EXTENSIONS } from './index';
@@ -72,14 +73,8 @@ interface WidgetConfig {
 	view_mode?: 'list' | 'card';
 }
 
-let config = $derived.by<WidgetConfig>(() => {
-	if (!widget?.config) return {};
-	try {
-		return JSON.parse(widget.config) as WidgetConfig;
-	} catch {
-		return {};
-	}
-});
+// PH-CF-500 D3: parseWidgetConfig helper で 3 監視 widget 共通の config パース契約に統一。
+let config = $derived(parseWidgetConfig<WidgetConfig>(widget?.config, {}));
 
 let entries = $state<ExeFolderEntry[]>([]);
 let scanning = $state(false);
@@ -335,8 +330,10 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
 <!-- Lateral sweep (2026-05-12): config.watch_path を WidgetShell に渡し、 widget body 右クリック menu
-     で「監視 folder のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。 -->
-<WidgetShell title={config.title || t('widgets.widget_label.exe_folder')} icon={AppWindow} {menuItems} path={config.watch_path}>
+     で「監視 folder のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。
+     PH-CF-500 D3: shell icon を meta (index.ts: FolderOpen) と一致させる
+     (旧 AppWindow は palette の widget タイル / library 詳細 と乖離していた)。 -->
+<WidgetShell title={config.title || t('widgets.widget_label.exe_folder')} icon={FolderOpen} {menuItems} path={config.watch_path}>
 	<!-- B-7 #9 / PH-PQ-500: description は disclosure button。click で inline 展開
 	     (旧実装は onclick 無しの dead button + native title tooltip だった)。 -->
 	{#if config.description}
@@ -461,9 +458,11 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			</div>
 		</div>
 		<!-- audit batch deferred (2026-05-13) #8: list / card 表示 mode 切替。 card は @container で grid。
-		     list は 1 列、 card は auto-fit minmax(120px, 1fr) で widget 幅に応じて折返し。 -->
-		<ul class={viewMode === 'card' ? '@container' : 'space-y-1'}>
-			{#if viewMode === 'card'}
+		     list は 1 列、 card は auto-fit minmax(120px, 1fr) で widget 幅に応じて折返し。
+		     PH-CF-500 D1: card mode で `ul > div.grid` の不正ネストを撤去し div.grid を直 render。
+		     list mode は引き続き ul + li を使う。 -->
+		{#if viewMode === 'card'}
+			<div class="@container">
 				<div class="grid gap-1.5" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
 					{#each sortedEntries as entry (entry.folderPath)}
 						{@const currentExe = resolveExe(entry)}
@@ -496,7 +495,9 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 						</button>
 					{/each}
 				</div>
-			{:else}
+			</div>
+		{:else}
+		<ul class="space-y-1">
 			{#each sortedEntries as entry (entry.folderPath)}
 				{@const currentExe = resolveExe(entry)}
 				{@const hasOverride = !!config.item_overrides?.[entry.folderPath]}
@@ -581,8 +582,8 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 					{/if}
 				</li>
 			{/each}
-			{/if}
 		</ul>
+		{/if}
 	{/if}
 </WidgetShell>
 

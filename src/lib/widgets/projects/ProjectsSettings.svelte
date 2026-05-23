@@ -1,41 +1,49 @@
 <script lang="ts">
 /**
- * PH-issue-026 (Issue 23): ProjectsSettings polish — 共通 Switch / clamp / placeholder 統一。
- * PH-issue-039 / 検収項目 #12, #13: 名称「フォルダ監視」+ Clear button 追加。
- * 4/30 user 検収: ExeFolderSettings と **項目順を統一**。フォルダ監視 / EXE フォルダ監視
- * 似た機能は似た UI に。順序: 監視対象 → スキャン挙動 → 表示パラメータ → タイトル → 説明。
+ * ProjectsSettings (フォルダ監視 widget の設定 dialog)。
+ *
+ * PH-CF-500:
+ *  - D2: auto_add / max_items / git_poll_interval_sec を撤廃 (監視 = 常時自動)
+ *  - D3: ExeFolderSettings と項目順 / spacing を統一
+ *  - D4: default_opener_id select を追加 (exe_folder と同 cascade)
+ *  - 除外アイテム復元 UI を section として追加 (widget_item_hides 連動)
  */
-import Switch from '$lib/components/common/Switch.svelte';
+import { onMount } from 'svelte';
 import { t } from '$lib/i18n.svelte';
+import type { Opener } from '$lib/ipc/opener';
+import { openersStore } from '$lib/state/openers.svelte';
 import FolderPickerField from '../_shared/FolderPickerField.svelte';
-import {
-	clampGitPollIntervalSec,
-	DEFAULT_GIT_POLL_INTERVAL_SEC,
-	MAX_GIT_POLL_INTERVAL_SEC,
-	MIN_GIT_POLL_INTERVAL_SEC,
-} from './git-poll';
+import WidgetExcludedItemsSection from '../_shared/WidgetExcludedItemsSection.svelte';
 
 const DESCRIPTION_MAX = 120;
 
 interface Props {
 	config: {
-		max_items?: number;
-		git_poll_interval_sec?: number;
 		title?: string;
 		description?: string;
 		watched_folder?: string;
-		auto_add?: boolean;
+		default_opener_id?: string | null;
 	};
 }
 
 let { config = $bindable() }: Props = $props();
 
-let maxItems = $derived(config.max_items ?? 10);
-let gitPollInterval = $derived(config.git_poll_interval_sec ?? 60);
 let wsTitle = $derived(config.title ?? '');
 let wsDescription = $derived(config.description ?? '');
 let watchedFolder = $derived(config.watched_folder ?? '');
-let autoAdd = $derived(config.auto_add ?? false);
+
+// D4: Opener 一覧 (widget default opener select 用、 exe_folder と同 pattern)。
+let openers = $state<Opener[]>([]);
+onMount(() => {
+	openersStore
+		.load()
+		.then((list) => {
+			openers = list;
+		})
+		.catch(() => {
+			// best-effort: OpenerSettings 経路で error UI を出す。
+		});
+});
 </script>
 
 <!-- 1. 監視対象フォルダ (主要設定、最初に置く、ExeFolderSettings と同位置) -->
@@ -47,60 +55,7 @@ let autoAdd = $derived(config.auto_add ?? false);
 	id="ws-watched-folder"
 />
 
-<!-- 2. スキャン挙動: 配下自動追加 (ExeFolder の scan_depth 相当の挙動 toggle) -->
-<div class="flex items-center justify-between gap-3 text-sm">
-	<span class="text-[var(--ag-text-primary)]">{t('widgets.projects.auto_add_label')}</span>
-	<Switch
-		checked={autoAdd}
-		onChange={(v) => {
-			config = { ...config, auto_add: v };
-		}}
-		aria-label={t('widgets.projects.auto_add_aria')}
-	/>
-</div>
-
-<!-- 3. 表示パラメータ -->
-<div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-max-items">{t('widgets.common.max_items_label')}</label>
-	<input
-		id="ws-max-items"
-		type="number"
-		min="1"
-		max="100"
-		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
-		value={maxItems}
-		onchange={(e) => {
-			config = {
-				...config,
-				max_items: Math.max(1, Math.min(100, Number((e.currentTarget as HTMLInputElement).value) || 10)),
-			};
-		}}
-	/>
-</div>
-
-<div class="space-y-1">
-	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-git-poll">{t('widgets.projects.git_poll_label')}</label>
-	<input
-		id="ws-git-poll"
-		type="number"
-		min={MIN_GIT_POLL_INTERVAL_SEC}
-		max={MAX_GIT_POLL_INTERVAL_SEC}
-		autocomplete="off"
-		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
-		value={gitPollInterval}
-		onchange={(e) => {
-			config = {
-				...config,
-				git_poll_interval_sec: clampGitPollIntervalSec(
-					Number((e.currentTarget as HTMLInputElement).value) || DEFAULT_GIT_POLL_INTERVAL_SEC,
-				),
-			};
-		}}
-	/>
-</div>
-
-<!-- 4. タイトル + 説明 (ExeFolderSettings と同順) -->
+<!-- 2. タイトル + 説明 (ExeFolderSettings と同順) -->
 <div class="space-y-1">
 	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-title">{t('widgets.common.title_label')}</label>
 	<input
@@ -140,3 +95,31 @@ let autoAdd = $derived(config.auto_add ?? false);
 		}}
 	/>
 </div>
+
+<!-- 3. PH-CF-500 D4: widget レベルの起動アプリ default。 -->
+<div class="space-y-1">
+	<label class="text-sm font-medium text-[var(--ag-text-primary)]" for="ws-projects-default-opener">
+		{t('widgets.common.default_opener_label')}
+	</label>
+	<select
+		id="ws-projects-default-opener"
+		class="w-full rounded-[var(--ag-radius-input)] border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-3 py-2 text-sm text-[var(--ag-text-primary)]"
+		value={config.default_opener_id ?? ''}
+		onchange={(e) => {
+			const v = (e.currentTarget as HTMLSelectElement).value;
+			config = { ...config, default_opener_id: v || null };
+		}}
+	>
+		<option value="">{t('widgets.common.default_opener_system')}</option>
+		{#each openers as op (op.id)}
+			<option value={op.id}>{op.name}{op.is_builtin ? t('widgets.common.builtin_suffix') : ''}</option>
+		{/each}
+	</select>
+	<p class="text-xs text-[var(--ag-text-muted)]">
+		{t('widgets.common.default_opener_desc')}
+	</p>
+</div>
+
+<!-- 4. PH-CF-500: 除外したアイテム (widget_item_hides の当該 widget 分を一覧 + 復元)。
+     widgetId は WidgetSettingsDialog が setContext した値を内部で getContext する。 -->
+<WidgetExcludedItemsSection />
