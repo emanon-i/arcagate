@@ -1,5 +1,5 @@
 <script lang="ts">
-import { LayoutDashboard, Star } from '@lucide/svelte';
+import { CircleDashed, LayoutDashboard, Star, Tag } from '@lucide/svelte';
 import SidebarRow from '$lib/components/arcagate/common/SidebarRow.svelte';
 import { typeIconMap } from '$lib/constants/item-type';
 import { t } from '$lib/i18n.svelte';
@@ -74,7 +74,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 			{/if}
 			{#each typeTags as tag (tag.id)}
 				<SidebarRow
-					icon={typeIconMap[tag.name as keyof typeof typeIconMap] ?? LayoutDashboard}
+					icon={typeIconMap[tag.name as keyof typeof typeIconMap] ?? CircleDashed}
 					label={tag.name}
 					meta={expanded ? String(tag.item_count) : undefined}
 					iconOnly={!expanded}
@@ -123,7 +123,7 @@ let userTags = $derived(itemStore.tagWithCounts.filter((t) => !t.is_system));
 			{/if}
 			{#each userTags as tag (tag.id)}
 				<SidebarRow
-					icon={LayoutDashboard}
+					icon={Tag}
 					label={tag.name}
 					meta={expanded ? String(tag.item_count) : undefined}
 					iconOnly={!expanded}

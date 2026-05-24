@@ -123,6 +123,27 @@ pub struct UpdateWorkspaceWallpaperInput {
     pub blur: i64,
 }
 
+/// PH-CF-700 C8: Library 画面の壁紙 (グローバル単一値) の取得 / 更新で使う DTO。
+/// workspace 壁紙 (UpdateWorkspaceWallpaperInput) と同じ shape (`path` / `opacity` / `blur`)
+/// だが workspace_id を持たない。 config table に key 単位で格納する。
+///
+/// TS 型は `src/lib/types/workspace.ts` の `LibraryWallpaper` を手動で維持する (既存
+/// `Workspace` 型も同様に手動維持。 `WidgetType` enum のみ ts-rs で binding 自動生成)。
+/// i64 を auto-export すると TS 側が `bigint` になり、 既存 `number` 規約と齟齬を生むため。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LibraryWallpaper {
+    pub path: Option<String>,
+    pub opacity: f64,
+    pub blur: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateLibraryWallpaperInput {
+    pub path: Option<String>,
+    pub opacity: f64,
+    pub blur: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceWidget {
     pub id: String,

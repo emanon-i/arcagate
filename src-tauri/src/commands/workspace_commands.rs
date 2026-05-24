@@ -3,8 +3,9 @@ use tauri::{AppHandle, Manager, State};
 use crate::models::git::GitStatusBatchEntry;
 use crate::models::item::Item;
 use crate::models::workspace::{
-    AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
-    UpdateWorkspaceWallpaperInput, Workspace, WorkspaceWidget,
+    AddWidgetInput, CreateWorkspaceInput, LibraryWallpaper, UpdateLibraryWallpaperInput,
+    UpdateWidgetPositionInput, UpdateWorkspaceInput, UpdateWorkspaceWallpaperInput, Workspace,
+    WorkspaceWidget,
 };
 use crate::services::{wallpaper_service, workspace_service, AppServices};
 use crate::utils::error::AppError;
@@ -195,4 +196,25 @@ pub fn cmd_set_workspace_wallpaper(
     input: UpdateWorkspaceWallpaperInput,
 ) -> Result<Workspace, AppError> {
     wallpaper_service::set_workspace_wallpaper(&services.db, input)
+}
+
+/// PH-CF-700 C8: ライブラリ画面の壁紙設定 (グローバル) を取得する。
+/// 既存 `cmd_save_wallpaper_file` で copy 済の path を `cmd_set_library_wallpaper` で
+/// このグローバル設定に紐付ける。 path / opacity / blur の clamp は service 側で実施。
+#[tauri::command]
+pub fn cmd_get_library_wallpaper(
+    services: State<AppServices>,
+) -> Result<LibraryWallpaper, AppError> {
+    wallpaper_service::get_library_wallpaper(&services.db)
+}
+
+/// PH-CF-700 C8: ライブラリ画面の壁紙設定 (グローバル) を更新する。
+/// `path = None` でクリア。 opacity 0-1 / blur 0-40 を service 側で clamp、 戻り値は
+/// clamp 済の正規化値 (workspace 壁紙と同じ shape)。
+#[tauri::command]
+pub fn cmd_set_library_wallpaper(
+    services: State<AppServices>,
+    input: UpdateLibraryWallpaperInput,
+) -> Result<LibraryWallpaper, AppError> {
+    wallpaper_service::set_library_wallpaper(&services.db, input)
 }

@@ -16,8 +16,11 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 use crate::db::DbState;
-use crate::models::workspace::{UpdateWorkspaceWallpaperInput, Workspace};
-use crate::repositories::workspace_repository;
+use crate::models::config;
+use crate::models::workspace::{
+    LibraryWallpaper, UpdateLibraryWallpaperInput, UpdateWorkspaceWallpaperInput, Workspace,
+};
+use crate::repositories::{config_repository, workspace_repository};
 use crate::utils::error::AppError;
 
 const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp"];
@@ -86,6 +89,62 @@ pub fn set_workspace_wallpaper(
     )
 }
 
+/// PH-CF-700 C8: ライブラリ画面の壁紙設定 (グローバル単一値) を取得する。
+///
+/// 格納先は config table の `library_wallpaper_path` / `_opacity` / `_blur`。
+/// path 未設定 (NULL or 空文字) は `None`、 opacity / blur は parse 失敗 / 範囲外を
+/// default + clamp で正規化 (config 破損時の defensive、 hotkey の T4 と同方針)。
+pub fn get_library_wallpaper(db: &DbState) -> Result<LibraryWallpaper, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let path = config_repository::get(&conn, config::KEY_LIBRARY_WALLPAPER_PATH)?
+        .filter(|s| !s.is_empty());
+    let opacity = config_repository::get(&conn, config::KEY_LIBRARY_WALLPAPER_OPACITY)?
+        .as_deref()
+        .and_then(|s| s.parse::<f64>().ok())
+        .unwrap_or(config::DEFAULT_LIBRARY_WALLPAPER_OPACITY)
+        .clamp(MIN_OPACITY, MAX_OPACITY);
+    let blur = config_repository::get(&conn, config::KEY_LIBRARY_WALLPAPER_BLUR)?
+        .as_deref()
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(config::DEFAULT_LIBRARY_WALLPAPER_BLUR)
+        .clamp(MIN_BLUR, MAX_BLUR);
+    Ok(LibraryWallpaper {
+        path,
+        opacity,
+        blur,
+    })
+}
+
+/// PH-CF-700 C8: ライブラリ画面の壁紙設定 (グローバル単一値) を更新する。
+///
+/// `path = None` で壁紙クリア (空文字を保存して `get_library_wallpaper` で `None` に正規化)、
+/// それ以外は path 文字列をそのまま保存 (前段の `save_wallpaper_file` で copy 済の絶対
+/// パスを呼び出し側が渡す想定)。 opacity / blur は範囲 clamp 後の値を保存。
+///
+/// `workspaces` 行の wallpaper_* と挙動を揃えるため、 戻り値は **clamp 済の正規化済**
+/// `LibraryWallpaper` (frontend は `setLibraryWallpaper` レスポンスを store に書き戻す)。
+pub fn set_library_wallpaper(
+    db: &DbState,
+    input: UpdateLibraryWallpaperInput,
+) -> Result<LibraryWallpaper, AppError> {
+    let opacity = input.opacity.clamp(MIN_OPACITY, MAX_OPACITY);
+    let blur = input.blur.clamp(MIN_BLUR, MAX_BLUR);
+    let path_value: String = input.path.clone().unwrap_or_default();
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    config_repository::set(&conn, config::KEY_LIBRARY_WALLPAPER_PATH, &path_value)?;
+    config_repository::set(
+        &conn,
+        config::KEY_LIBRARY_WALLPAPER_OPACITY,
+        &opacity.to_string(),
+    )?;
+    config_repository::set(&conn, config::KEY_LIBRARY_WALLPAPER_BLUR, &blur.to_string())?;
+    Ok(LibraryWallpaper {
+        path: input.path.filter(|s| !s.is_empty()),
+        opacity,
+        blur,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -129,5 +188,85 @@ mod tests {
             "C:/nonexistent/foo.png",
         );
         assert!(result.is_err());
+    }
+
+    // --- PH-CF-700 C8: Library wallpaper (グローバル設定) の clamp / IO test ---
+
+    #[test]
+    fn test_get_library_wallpaper_defaults_to_seed() {
+        let db = crate::db::initialize_in_memory();
+        let wp = get_library_wallpaper(&db).unwrap();
+        // migration 040 で seed された default (opacity 0.6 / blur 0、 path は未設定 = None)。
+        assert_eq!(wp.path, None);
+        assert!((wp.opacity - 0.6).abs() < 1e-9);
+        assert_eq!(wp.blur, 0);
+    }
+
+    #[test]
+    fn test_set_library_wallpaper_clamps_opacity_and_blur() {
+        let db = crate::db::initialize_in_memory();
+        let updated = set_library_wallpaper(
+            &db,
+            UpdateLibraryWallpaperInput {
+                path: Some("/tmp/wp.png".to_string()),
+                opacity: 5.0, // 上限超え → 1.0 に clamp
+                blur: 999,    // 上限超え → 40 に clamp
+            },
+        )
+        .unwrap();
+        assert!((updated.opacity - 1.0).abs() < 1e-9);
+        assert_eq!(updated.blur, 40);
+        // 再取得しても clamp 済の値で帰ること (設定がレイテンシ無しに consistent)。
+        let reread = get_library_wallpaper(&db).unwrap();
+        assert!((reread.opacity - 1.0).abs() < 1e-9);
+        assert_eq!(reread.blur, 40);
+        assert_eq!(reread.path.as_deref(), Some("/tmp/wp.png"));
+    }
+
+    #[test]
+    fn test_set_library_wallpaper_clamps_negative() {
+        let db = crate::db::initialize_in_memory();
+        let updated = set_library_wallpaper(
+            &db,
+            UpdateLibraryWallpaperInput {
+                path: None,
+                opacity: -0.5, // 下限未満 → 0.0
+                blur: -10,     // 下限未満 → 0
+            },
+        )
+        .unwrap();
+        assert!((updated.opacity - 0.0).abs() < 1e-9);
+        assert_eq!(updated.blur, 0);
+        assert_eq!(updated.path, None);
+    }
+
+    #[test]
+    fn test_set_library_wallpaper_path_none_clears() {
+        let db = crate::db::initialize_in_memory();
+        // 1) set path
+        set_library_wallpaper(
+            &db,
+            UpdateLibraryWallpaperInput {
+                path: Some("/tmp/wp.png".to_string()),
+                opacity: 0.8,
+                blur: 10,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            get_library_wallpaper(&db).unwrap().path.as_deref(),
+            Some("/tmp/wp.png")
+        );
+        // 2) clear with path=None
+        set_library_wallpaper(
+            &db,
+            UpdateLibraryWallpaperInput {
+                path: None,
+                opacity: 0.8,
+                blur: 10,
+            },
+        )
+        .unwrap();
+        assert_eq!(get_library_wallpaper(&db).unwrap().path, None);
     }
 }

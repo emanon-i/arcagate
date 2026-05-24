@@ -2,6 +2,7 @@
 import { t } from '$lib/i18n.svelte';
 import BookmarkImport from './BookmarkImport.svelte';
 import LibraryCardSettings from './LibraryCardSettings.svelte';
+import LibraryWallpaperSettings from './LibraryWallpaperSettings.svelte';
 import OpenerSettings from './OpenerSettings.svelte';
 
 /**
@@ -28,6 +29,9 @@ import OpenerSettings from './OpenerSettings.svelte';
 		{t('nav.library')}
 	</h3>
 	<LibraryCardSettings />
+	<div class="border-t border-[var(--ag-border)] pt-5">
+		<LibraryWallpaperSettings />
+	</div>
 	<div class="border-t border-[var(--ag-border)] pt-5">
 		<OpenerSettings />
 	</div>

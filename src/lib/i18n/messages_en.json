@@ -474,6 +474,16 @@
 			"stroke_width": "Stroke width",
 			"text_color": "Text color"
 		},
+		"library_wallpaper": {
+			"description": "Set a background image for the Library screen (persists across restarts). Adjust opacity and blur to keep cards readable.",
+			"heading": "Library background",
+			"none": "No background set",
+			"op_adjust": "Update Library background opacity / blur",
+			"op_clear": "Clear Library background",
+			"op_set": "Set Library background",
+			"pick_title": "Choose Library background image",
+			"preview_alt": "Library background preview"
+		},
 		"loading": "Loading settings…",
 		"opener": {
 			"builtin_badge": "Built-in",

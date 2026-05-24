@@ -51,6 +51,7 @@ SYNC_ALLOWED="
   cmd_add_widget cmd_create_workspace cmd_delete_workspace cmd_get_folder_items
   cmd_get_frecency_items cmd_get_frequent_items cmd_get_recent_items cmd_list_widgets
   cmd_list_workspaces cmd_remove_widget cmd_set_workspace_wallpaper
+  cmd_get_library_wallpaper cmd_set_library_wallpaper
   cmd_update_widget_config cmd_update_widget_position cmd_update_workspace
 "
 

@@ -88,17 +88,25 @@ test('T2-2-4: searchItems IPC で query → filter', async ({ page }) => {
 	await deleteItem(page, created.id);
 });
 
-test('T2-2-5: selection mode toggle → button text 変化 (UI のみ)', async ({ page }) => {
-	// default 画面 = library、selection toggle button が visible
+test('T2-2-5: selection mode toggle → aria-label / aria-pressed 変化 (UI のみ)', async ({
+	page,
+}) => {
+	// PH-CF-700 C5: 複数選択トグルはアイコンボタン化されたため、 button text ではなく
+	// aria-label + aria-pressed の変化を verify する (`docs/l2_foundation/features/screens/library.md`
+	// §ツールバー契約)。 旧 toContainText('複数選択') / toContainText('選択解除') 判定は
+	// icon-only ボタン後は innerText が空になるため無効。
 	const toggleBtn = page.getByTestId('library-selection-toggle');
 	await expect(toggleBtn).toBeVisible({ timeout: 15_000 });
-	await expect(toggleBtn).toContainText('複数選択');
+	await expect(toggleBtn).toHaveAttribute('aria-label', '複数選択');
+	await expect(toggleBtn).toHaveAttribute('aria-pressed', 'false');
 
-	// click → text 「選択解除」 に変わる
+	// click → aria-label 「選択解除」 / aria-pressed=true に変わる
 	await toggleBtn.click();
-	await expect(toggleBtn).toContainText('選択解除');
+	await expect(toggleBtn).toHaveAttribute('aria-label', '選択解除');
+	await expect(toggleBtn).toHaveAttribute('aria-pressed', 'true');
 
-	// もう 1 回 click → 「複数選択」 に戻る
+	// もう 1 回 click → 「複数選択」 / aria-pressed=false に戻る
 	await toggleBtn.click();
-	await expect(toggleBtn).toContainText('複数選択');
+	await expect(toggleBtn).toHaveAttribute('aria-label', '複数選択');
+	await expect(toggleBtn).toHaveAttribute('aria-pressed', 'false');
 });
