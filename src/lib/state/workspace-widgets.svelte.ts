@@ -84,9 +84,10 @@ async function cascadeRemoveWatchedPath(
 
 /**
  * widget タイプごとの初回配置サイズを registry から取得する helper。
- * 2026-05-17 user 検収: 初回配置サイズを従来の倍 (全 widget defaultSize=4×4) に拡大。
- * defaultSize を優先し、 未指定なら minViableSize、 さらに無ければ (2, 2) フォールバック。
- * minViableSize (2×2) は resize 下限としてのみ機能する。
+ * PH-CF-1100 ④ (2026-05-25 user 検収): 全 widget の初回配置サイズを 4×4 → 3×3 に縮小
+ * (item widget のみ 2×2)。 旧 4×4 は「配置時 占有面積が大きすぎ配置しづらい」 (user 指摘)
+ * ため。 user resize で個別拡大は引き続き可能。 defaultSize を優先し、 未指定なら
+ * minViableSize、 さらに無ければ (2, 2) フォールバック。 minViableSize (2×2) は resize 下限。
  */
 function defaultSizeFor(type: WidgetType): { w: number; h: number } {
 	const meta = widgetRegistry[type];
@@ -185,8 +186,12 @@ class WorkspaceWidgets {
 			const { w, h } = defaultSizeFor(widgetType);
 			// Codex r3 #1 / r4 HIGH #1: viewport 幅から導出された responsive `cols` を **そのまま** 尊重。
 			// 引数未指定時のみ DEFAULT_GRID_COLS にフォールバック。 負/0 は最低 1 で sanity guard。
-			// image-widget-critical fix (2026-05-13): 既存 widget の最大右端を下回らないよう
-			// effectiveCols を補正 (cluster 中心 seed が effectiveCols 外に出て無効化される回避)。
+			//
+			// PH-CF-1100 ④: 旧実装は `Math.max(..., widgetMaxRight)` で既存 widget の右端まで配置可能
+			// 領域を拡張していたが、 viewport を逸脱した widget がそのまま残った状態で新規追加すると
+			// effectiveCols が肥大 → seed cell も viewport 外 → 新 widget も viewport 外に飛ばされる
+			// 「右に異常に伸びる」 真因だった。 viewport cols を厳格に守り、 viewport 外既存 widget は
+			// overlap 判定の障害物としてのみ機能させる (= 新 widget は必ず viewport 内に配置)。
 			//
 			// PH-CF-200: pin した workspace に対して widgets を IPC で取り直すと race / 非同期コストが
 			// 重いので、 通常 active と pin が同じケースが大半 (タブ切替なし) ではフロント widgets
@@ -194,8 +199,7 @@ class WorkspaceWidgets {
 			// が、 別 workspace の widget rect は無関係なので overlap 検出は実害なしで安全 fallback。
 			const useFrontRects = activeWorkspaceId === workspaceConfig.activeWorkspaceId;
 			const rects = useFrontRects ? widgetsToRects(this.widgets) : [];
-			const widgetMaxRight = rects.reduce((m, r) => Math.max(m, r.x + r.w), 0);
-			const effectiveCols = Math.max(1, opts.cols ?? DEFAULT_GRID_COLS, widgetMaxRight);
+			const effectiveCols = Math.max(1, opts.cols ?? DEFAULT_GRID_COLS);
 			// PH-CF-200: seed 解決を `resolveSeedCell` に集約 (4 経路の重複を排除)。
 			// dropCell → nearCell → クラスタ中心 → viewport 中心の優先順。 (0,0) フォールバック禁止。
 			const seedCell = resolveSeedCell({
