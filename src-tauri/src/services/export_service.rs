@@ -91,8 +91,33 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
     for item in &data.items {
         let aliases_json =
             serde_json::to_string(&item.aliases).unwrap_or_else(|_| "[]".to_string());
+        // アイテムライフサイクル契約 (Bug 8 / U-7): source_widget_id / source_entry_key /
+        // card_override_json も復元する。 ただし source_widget_id が指す widget が import 先
+        // DB に存在しない場合は FK 違反を避けて両列とも NULL にフォールバック (片肺禁止)。
+        let safe_source_widget_id: Option<String> = match item.source_widget_id.as_deref() {
+            Some(wid) => {
+                let exists: bool = tx
+                    .query_row(
+                        "SELECT 1 FROM workspace_widgets WHERE id = ?1",
+                        rusqlite::params![wid],
+                        |_| Ok(true),
+                    )
+                    .unwrap_or(false);
+                if exists {
+                    Some(wid.to_string())
+                } else {
+                    None
+                }
+            }
+            None => None,
+        };
+        let safe_entry_key: Option<&str> = if safe_source_widget_id.is_some() {
+            item.source_entry_key.as_deref()
+        } else {
+            None
+        };
         tx.execute(
-            "INSERT OR REPLACE INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            "INSERT OR REPLACE INTO items (id, item_type, label, target, args, working_dir, icon_path, icon_type, aliases, sort_order, is_enabled, is_tracked, default_app, card_override_json, source_widget_id, source_entry_key, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
             rusqlite::params![
                 item.id,
                 item.item_type.as_str(),
@@ -107,6 +132,9 @@ pub fn import_json(db: &DbState, input_path: &str) -> Result<(), AppError> {
                 item.is_enabled as i64,
                 item.is_tracked as i64,
                 item.default_app,
+                item.card_override_json,
+                safe_source_widget_id,
+                safe_entry_key,
                 item.created_at,
                 item.updated_at,
             ],
