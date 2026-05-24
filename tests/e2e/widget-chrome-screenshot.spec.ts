@@ -84,7 +84,10 @@ test('screenshot: QuickNote textarea focus ring (inset, no right-edge clip)', as
 	const textarea = page.locator('textarea').first();
 	const exists = (await textarea.count()) > 0;
 	if (!exists) {
-		test.skip(true, 'QuickNote widget not seeded; relies on previous spec to add it');
+		// PH-PQ-500 由来の test 順依存 skip (clean-feedback 範囲外、 PH-CF-600 LB-2 fix の
+		// audit allowlist 対象として明示的に許容)。 将来は前段で QuickNote を自前 seed する
+		// 改修で skip 解除可能。 audit-no-test-hook-leak:ok
+		test.skip(true, 'QuickNote widget not seeded; relies on previous spec to add it'); // audit-no-test-hook-leak:ok
 		return;
 	}
 

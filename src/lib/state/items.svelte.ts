@@ -254,3 +254,36 @@ export const itemStore = {
 	loadLibraryStats,
 	loadTagWithCounts,
 };
+
+/**
+ * PH-CF-600 C2 (fix-lb2): e2e から `itemStore.updateItem` を呼ぶための test hook。
+ *
+ * 動機: `tests/e2e/ph-cf-600-library-bug-fixes.spec.ts` LB-2 は「icon_path 更新 →
+ * グリッドのカード <img src> が画面遷移なしで切替」 を verify する回帰テストだが、
+ * `cmd_update_item` を direct IPC で呼ぶと **store が refresh されず** card が更新されない
+ * (= C2 fix が走らない、 false-negative 検出ゼロ)。 e2e が `itemStore.updateItem` を
+ * 介すことで、 ItemFormCardOverride と同じ optimistic update + freshIconMark bump の
+ * 経路を駆動できる。
+ *
+ * 公開範囲: `window.__arcagateTest__.itemStore` のみ (production code から参照禁止、
+ * `scripts/audit-no-test-hook-leak.sh` で防止)。 release build でも import.meta tree-shake で
+ * 落とせるよう `if (typeof window !== ...)` で gate。 値型を持たない (関数 reference 経由)
+ * ため XSS surface にもならない。
+ */
+if (typeof window !== 'undefined') {
+	const w = window as unknown as {
+		__arcagateTest__?: {
+			itemStore?: {
+				loadItems: typeof loadItems;
+				updateItem: typeof updateItem;
+				applyOptimisticUpdate: typeof applyOptimisticUpdate;
+			};
+		};
+	};
+	w.__arcagateTest__ = w.__arcagateTest__ ?? {};
+	w.__arcagateTest__.itemStore = {
+		loadItems,
+		updateItem,
+		applyOptimisticUpdate,
+	};
+}
