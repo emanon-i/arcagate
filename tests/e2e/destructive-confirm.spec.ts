@@ -280,8 +280,10 @@ test('DC-4: チェックボックス ON でタブ削除 → 他 workspace 非参
 				timeout: 10_000,
 			})
 			.toBe(false);
+		// この行までで `item` は必ず assign されている (型 narrowing 用 local 変数化)。
+		const created = item!;
 		await expect
-			.poll(async () => (await listItems(page)).some((i) => i.id === item.id), {
+			.poll(async () => (await listItems(page)).some((i) => i.id === created.id), {
 				timeout: 10_000,
 			})
 			.toBe(false);
