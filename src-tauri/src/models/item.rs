@@ -112,6 +112,13 @@ pub struct CreateItemInput {
     pub tag_ids: Vec<String>,
     #[serde(default = "default_true")]
     pub is_tracked: bool,
+    /// アイテムライフサイクル契約 (Bug 9 / U-6): Undo 復元 / JSON import から back-link を
+    /// 渡す。 backend で源 widget の存在チェックを行い、 存在しなければ両列とも NULL に
+    /// フォールバック (FK 違反回避 + 片肺禁止契約)。 通常の create 経路では None 渡し。
+    #[serde(default)]
+    pub source_widget_id: Option<String>,
+    #[serde(default)]
+    pub source_entry_key: Option<String>,
 }
 
 fn default_true() -> bool {

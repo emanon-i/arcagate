@@ -34,6 +34,31 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
 
     let id = Uuid::now_v7().to_string();
 
+    // audit 2026-05-13 F5: 手動 BEGIN/COMMIT/ROLLBACK を rusqlite::Transaction API に置換。
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
+
+    // アイテムライフサイクル契約 (Bug 9 / U-6): Undo / JSON import が back-link を渡してきた
+    // 場合に限り source 列を埋める。 通常の手動経路は両列 None。 source widget が現在の
+    // DB に存在しない場合は FK 違反回避のため両列とも NULL にフォールバック (片肺禁止)。
+    let (safe_source_widget_id, safe_source_entry_key) = match input.source_widget_id.as_deref() {
+        Some(wid) => {
+            let exists: bool = tx
+                .query_row(
+                    "SELECT 1 FROM workspace_widgets WHERE id = ?1",
+                    rusqlite::params![wid],
+                    |_| Ok(true),
+                )
+                .unwrap_or(false);
+            if exists {
+                (Some(wid.to_string()), input.source_entry_key.clone())
+            } else {
+                (None, None)
+            }
+        }
+        None => (None, None),
+    };
+
     let item = Item {
         id: id.clone(),
         item_type: input.item_type,
@@ -49,19 +74,11 @@ pub fn create_item(db: &DbState, input: CreateItemInput) -> Result<Item, AppErro
         is_tracked: input.is_tracked,
         default_app: None,
         card_override_json: None,
-        // PH-CF-100: user 作成経路は 監視非由来 → back-link は NULL。 監視自動登録経路
-        // (auto_register_folder_items / register_exe_item_on_conn) のみ両列を埋める。
-        source_widget_id: None,
-        source_entry_key: None,
+        source_widget_id: safe_source_widget_id,
+        source_entry_key: safe_source_entry_key,
         created_at: String::new(), // set by DB DEFAULT on insert
         updated_at: String::new(),
     };
-
-    // audit 2026-05-13 F5: 手動 BEGIN/COMMIT/ROLLBACK を rusqlite::Transaction API に置換。
-    // 利点: Drop で auto-rollback (panic / early-return でも safe)、 commit 失敗時の
-    // diagnostics 明確化。 bulk_* と同じ pattern に統一。
-    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    let tx = conn.transaction()?;
 
     item_repository::insert(&tx, &item)?;
 
@@ -170,28 +187,99 @@ pub fn update_item(db: &DbState, id: &str, input: UpdateItemInput) -> Result<Ite
     item_repository::find_by_id(&conn, id)
 }
 
+/// アイテムライフサイクル契約 (`docs/l2_foundation/features/cross-cutting/item-lifecycle.md`)
+/// の共通削除 helper。 1 行の item を削除し、 関連参照を全て後始末する。
+///
+/// 責務 (確定原則 4 / 5):
+/// 1. 監視自動登録 item (`source_widget_id` NOT NULL) なら `widget_item_hides` に
+///    「user が意図的に削除した」 を記録 (`INSERT OR IGNORE`) — 復活抑制契約
+/// 2. `workspace_widgets.config` JSON の `item_id` / `item_ids` を strip — dangling 防止
+/// 3. `items` row を削除 (`item_tags` / `launch_log` / `item_stats` / `confirmed_items`
+///    は FK CASCADE で自動)
+///
+/// Caller は外側で `conn.transaction()` を開き、 失敗時 rollback を保証すること
+/// (本 helper は transaction を開かない — 複数 item の一括削除を 1 tx でまとめる用途のため)。
+///
+/// 呼び出し元:
+/// - D1 `delete_item` (Library 単独削除)
+/// - D2 `bulk_delete_items` (multi-select)
+/// - D3 `workspace_service::delete_workspace(delete_items=true)` (監視 item のみ)
+/// - D6 `reset_service::factory_reset` (reset_library=true)
+/// - D7 `workspace_service::remove_widget` (監視 owned item)
+/// - D8 `watched_path_service::remove_watched_path`
+pub fn delete_item_with_cleanup(
+    conn: &rusqlite::Connection,
+    item_id: &str,
+) -> Result<DeleteCleanupResult, AppError> {
+    let hide_recorded = if let Some((widget_id, entry_key)) =
+        item_repository::find_source_back_link(conn, item_id)?
+    {
+        widget_item_hides_repository::add(conn, &widget_id, &entry_key)?;
+        true
+    } else {
+        false
+    };
+    let cascaded = workspace_repository::cascade_remove_item_from_widgets(conn, item_id)?;
+    item_repository::delete(conn, item_id)?;
+    Ok(DeleteCleanupResult {
+        hide_recorded,
+        cascaded_widgets: cascaded,
+    })
+}
+
+/// `delete_item_with_cleanup` の戻り値。 caller の log / test 用。
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DeleteCleanupResult {
+    pub hide_recorded: bool,
+    pub cascaded_widgets: usize,
+}
+
 pub fn delete_item(db: &DbState, id: &str) -> Result<(), AppError> {
     let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let tx = conn.transaction()?;
-    // PH-CF-100: 削除前に back-link を読み、 監視自動登録 item なら
-    // `widget_item_hides` に「user が意図的に削除した」を記録 (INSERT OR IGNORE)。
-    // これで次の scan reconcile が同 entry を skip するため、 復活させない (モグラ叩き解消)。
-    let recorded_hide =
-        if let Some((widget_id, entry_key)) = item_repository::find_source_back_link(&tx, id)? {
-            widget_item_hides_repository::add(&tx, &widget_id, &entry_key)?;
-            true
-        } else {
-            false
-        };
-    // PH-issue-006: item 削除前に widget config からも cascade 除去 (orphan 防止)。
-    let cascaded = workspace_repository::cascade_remove_item_from_widgets(&tx, id)?;
-    item_repository::delete(&tx, id)?;
+    let result = delete_item_with_cleanup(&tx, id)?;
     tx.commit()?;
     log::info!(
         "item deleted: id={} cascaded_widgets={} hide_recorded={}",
         id,
-        cascaded,
-        recorded_hide,
+        result.cascaded_widgets,
+        result.hide_recorded,
+    );
+    Ok(())
+}
+
+/// アイテムライフサイクル契約 (U-5): 「Library に残しつつ当該 workspace から外す」 専用 op。
+///
+/// 仕様 (確定原則 3 / 5 の補完):
+/// 1. `sys-ws-<workspace_id>` tag の紐付けを当該 item から削除 (= 当該 workspace に「属する」 を解除)
+/// 2. 当該 workspace の widget config JSON の `item_id` / `item_ids` から item_id を strip
+/// 3. item DB 行は **残す** (Library に残る)、 他 workspace への影響なし
+///
+/// Library 削除 (`delete_item`) と明示的に区別する操作。
+pub fn remove_item_from_workspace(
+    db: &DbState,
+    workspace_id: &str,
+    item_id: &str,
+) -> Result<(), AppError> {
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
+    let ws_tag_id = format!("sys-ws-{}", workspace_id);
+    let untagged = tx.execute(
+        "DELETE FROM item_tags WHERE item_id = ?1 AND tag_id = ?2",
+        rusqlite::params![item_id, ws_tag_id],
+    )?;
+    let stripped = workspace_repository::cascade_remove_item_from_workspace_widgets(
+        &tx,
+        item_id,
+        workspace_id,
+    )?;
+    tx.commit()?;
+    log::info!(
+        "item removed from workspace: workspace_id={} item_id={} untagged={} stripped_widgets={}",
+        workspace_id,
+        item_id,
+        untagged,
+        stripped,
     );
     Ok(())
 }
@@ -313,7 +401,12 @@ pub fn bulk_remove_tag(
     Ok(count)
 }
 
-/// PH-436: 複数アイテムを一括削除 (transaction、item_tags は CASCADE)。
+/// PH-436: 複数アイテムを一括削除 (transaction、 item_tags は CASCADE)。
+///
+/// アイテムライフサイクル契約 §D2 (Bug 1 修正): D1 と同じ後始末 (hide 記録 +
+/// widget config strip) を bulk loop 内の各 id にも適用。 `delete_item_with_cleanup`
+/// helper 経由で統一。 旧実装は raw `DELETE FROM items` のみで widget config dangling +
+/// 監視 item 復活 (モグラ叩き) が発生していた。
 pub fn bulk_delete_items(db: &DbState, item_ids: Vec<String>) -> Result<usize, AppError> {
     if item_ids.is_empty() {
         return Ok(0);
@@ -327,11 +420,14 @@ pub fn bulk_delete_items(db: &DbState, item_ids: Vec<String>) -> Result<usize, A
     let tx = conn.transaction()?;
     let mut count = 0usize;
     for item_id in &item_ids {
-        // audit 2026-05-13 F3: affected rows 加算 (非存在 id → 0 行)。
-        count += tx.execute(
-            "DELETE FROM items WHERE id = ?1",
-            rusqlite::params![item_id],
-        )?;
+        // 非存在 id は find_source_back_link で None / cascade で 0 / delete で 0 行 affected。
+        // delete_item_with_cleanup は AppError を返すか正常に完了するか。 後者なら count++。
+        // 存在しない id でも error にしない方針 (旧 raw SQL も 0 affected で素通り)。
+        match delete_item_with_cleanup(&tx, item_id) {
+            Ok(_) => count += 1,
+            Err(AppError::NotFound(_)) => continue,
+            Err(e) => return Err(e),
+        }
     }
     tx.commit()?;
     Ok(count)
@@ -387,12 +483,19 @@ pub fn auto_register_folder_items(
         }
     }
 
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // アイテムライフサイクル契約 (Bug 6 / U-8 / U-2): scan 全結果を 1 セットにまとめて
+    // backend で reconcile する。 stale entry (旧 watched_folder / 設定変更で出てこなくなった
+    // 旧 entry) は `is_enabled=false` グレーアウト化 (削除しない、 U-2 (b) 確定)。
+    // 再発見時は `is_enabled=true` に復帰させ、 user 操作で削除されたものは
+    // `widget_item_hides` で skip するため復活しない (確定原則 4)。
+    let mut fresh_entry_keys: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
     // PH-CF-100: 監視 widget 由来の scan (source_widget_id Some) では、
     // 当該 widget の hide リストを 1 回だけ取得し、 該当 entry は scan 結果から除外する。
     // これで「user が Library から削除した folder は次の scan で復活しない」 が成立。
     let hides: std::collections::HashSet<String> = if let Some(wid) = source_widget_id {
-        widget_item_hides_repository::list_by_widget(&conn, wid)?
+        widget_item_hides_repository::list_by_widget(&tx, wid)?
             .into_iter()
             .collect()
     } else {
@@ -407,15 +510,22 @@ pub fn auto_register_folder_items(
         // PH-CF-100: projects widget は item.target = folder path = entry_key で一致。
         // hide 判定は normalize 後の entry_key で行う (path 表現ゆらぎ吸収)。
         let entry_key = normalize_entry_key(&target);
+        fresh_entry_keys.insert(entry_key.clone());
         // PH-CF-100: 監視 widget 由来なら所有関係 (source_widget_id, source_entry_key) で
         // 重複判定。 異なる widget で同じ folder を監視している場合は別 item を作る (独立)。
         // user 経由 (source_widget_id None) の旧呼出は従来通り target パス一致。
         let existing = if let Some(wid) = source_widget_id {
-            item_repository::find_by_source(&conn, wid, &entry_key)?
+            item_repository::find_by_source(&tx, wid, &entry_key)?
         } else {
-            item_repository::find_by_target(&conn, &target)?
+            item_repository::find_by_target(&tx, &target)?
         };
-        if let Some(existing) = existing {
+        if let Some(mut existing) = existing {
+            // 既存 item が再 scan で発見された → 過去に stale 化されていたなら復活
+            // (U-2: 元ファイルが戻ってきたら is_enabled=true に戻す)。
+            if !existing.is_enabled {
+                item_repository::set_is_enabled(&tx, &existing.id, true)?;
+                existing.is_enabled = true;
+            }
             all_items.push(existing);
             continue;
         }
@@ -454,15 +564,15 @@ pub fn auto_register_folder_items(
             created_at: String::new(),
             updated_at: String::new(),
         };
-        item_repository::insert(&conn, &item)?;
+        item_repository::insert(&tx, &item)?;
         let sys_tag_id =
             crate::models::tag::sys_type_tag_id(&crate::models::item::ItemType::Folder);
-        item_repository::add_system_tag(&conn, &id, &sys_tag_id)?;
+        item_repository::add_system_tag(&tx, &id, &sys_tag_id)?;
         // U-7 (2026-05-12): widget 経由登録時、 workspace 名 system tag (sys-ws-<id>) も自動付与。
         if let Some(ws_id) = workspace_id {
             let ws_tag_id = format!("sys-ws-{}", ws_id);
             // tag 存在チェック (workspace 削除済 / migration 適用前等の race を抑制)
-            let exists: bool = conn
+            let exists: bool = tx
                 .query_row(
                     "SELECT 1 FROM tags WHERE id = ?1",
                     rusqlite::params![ws_tag_id],
@@ -470,29 +580,26 @@ pub fn auto_register_folder_items(
                 )
                 .unwrap_or(false);
             if exists {
-                item_repository::add_system_tag(&conn, &id, &ws_tag_id)?;
+                item_repository::add_system_tag(&tx, &id, &ws_tag_id)?;
             }
         }
         // Phase 1 (2026-05-12): widget_item_settings touch_seen は廃止 (snapshot 機構廃止)。
-        all_items.push(item_repository::find_by_id(&conn, &id)?);
+        all_items.push(item_repository::find_by_id(&tx, &id)?);
     }
+    // Bug 6 / U-2 / U-8 reconcile: 監視 widget 由来の場合のみ、 scan 結果に出てこなくなった
+    // 旧 entry の item を `is_enabled=false` グレーアウト化 (削除しない、 U-2 (b))。
+    // hide リストにあるものは元々 scan 結果に入らないので set_is_enabled 対象から除外。
+    if let Some(wid) = source_widget_id {
+        let stale = item_repository::find_stale_owned_entries(&tx, wid, &fresh_entry_keys)?;
+        for (stale_id, stale_key) in &stale {
+            if hides.contains(stale_key) {
+                continue;
+            }
+            item_repository::set_is_enabled(&tx, stale_id, false)?;
+        }
+    }
+    tx.commit()?;
     Ok(all_items)
-}
-
-/// 5/01 user 検収 (C2): EXE/Script ファイルを Library に Item として登録。
-/// U-4 (2026-05-12): extension で item_type / sys-type-tag を分岐 (exe/com/msi → Exe、
-/// bat/cmd/ps1/sh → Script)。同 target 既存なら既存 item を返す (idempotent)。
-/// `label` 未指定時は filename から導出。
-pub fn register_exe_item(
-    db: &DbState,
-    path: &str,
-    label: Option<String>,
-    workspace_id: Option<&str>,
-) -> Result<Item, AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    // PH-CF-100: 単発 register_exe_item は user 直接操作 (palette の D&D / library 追加) で
-    // 監視非由来。 source は None で固定 → 監視自動登録 item にならない。
-    register_exe_item_on_conn(&conn, path, label, workspace_id, None)
 }
 
 /// Mutex lock 取得済の `Connection` (or `Transaction`) を共有して 1 件分の exe item 登録処理を行う。
@@ -623,6 +730,16 @@ pub fn register_exe_items_bulk(
         .cloned();
     let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
     let tx = conn.transaction()?;
+    // Bug 6 / U-8: 監視 widget 由来のとき、 fresh entry_keys 集合を作って後段で
+    // stale 化 (is_enabled=false) する。 hide リストもここで 1 度だけ取る。
+    let mut fresh_entry_keys: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let hides: std::collections::HashSet<String> = if let Some(wid) = source_widget_id {
+        widget_item_hides_repository::list_by_widget(&tx, wid)?
+            .into_iter()
+            .collect()
+    } else {
+        std::collections::HashSet::new()
+    };
     let mut out = Vec::with_capacity(paths.len());
     for (i, path) in paths.iter().enumerate() {
         let parent_label = std::path::Path::new(path)
@@ -642,17 +759,41 @@ pub fn register_exe_items_bulk(
                 .unwrap_or_else(|| path.clone());
             normalize_entry_key(&parent)
         });
+        if let Some(ref key) = entry_key {
+            fresh_entry_keys.insert(key.clone());
+        }
         let source = match (source_widget_id, entry_key.as_deref()) {
             (Some(wid), Some(key)) => Some((wid, key)),
             _ => None,
         };
         match register_exe_item_on_conn(&tx, path, parent_label, workspace_id, source) {
-            Ok(item) => out.push(item),
+            Ok(item) => {
+                // U-2: 既存 item が再発見で is_enabled=false (= stale 化済) なら復活させる。
+                if !item.is_enabled {
+                    item_repository::set_is_enabled(&tx, &item.id, true)?;
+                    let mut revived = item;
+                    revived.is_enabled = true;
+                    out.push(revived);
+                } else {
+                    out.push(item);
+                }
+            }
             // 単一 path の「ファイル不在」 等は scan の race で起こりうるため skip。
             // hide 済 entry も InvalidInput で skip される (上記 register_exe_item_on_conn 参照)。
             // それ以外の DB error (lock / SQL) は伝播させ、 transaction Drop で rollback。
             Err(AppError::InvalidInput(_)) => continue,
             Err(e) => return Err(e),
+        }
+    }
+    // Bug 6 / U-2 / U-8 reconcile: scan 結果に出てこない旧 entry の item を
+    // is_enabled=false でグレーアウト化 (削除しない)。 hide 済の entry は対象外。
+    if let Some(wid) = source_widget_id {
+        let stale = item_repository::find_stale_owned_entries(&tx, wid, &fresh_entry_keys)?;
+        for (stale_id, stale_key) in &stale {
+            if hides.contains(stale_key) {
+                continue;
+            }
+            item_repository::set_is_enabled(&tx, stale_id, false)?;
         }
     }
     tx.commit()?;
@@ -795,6 +936,8 @@ mod tests {
             aliases: vec![],
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         }
     }
 
@@ -1583,6 +1726,8 @@ mod tests {
                 aliases: vec![],
                 tag_ids: vec![],
                 is_tracked: false,
+                source_widget_id: None,
+                source_entry_key: None,
             },
         )
         .unwrap();
@@ -1603,6 +1748,188 @@ mod tests {
         assert_eq!(normalize_entry_key("C:\\foo\\bar\\"), "C:/foo/bar");
         // root-only は trim_end_matches で空にならない
         assert_eq!(normalize_entry_key("/"), "/");
+    }
+
+    /// アイテムライフサイクル契約 (Bug 1 / D2): bulk_delete_items が監視 item に対しても
+    /// hide 記録 + widget config strip を行う (D1 と同じ後始末)。
+    #[test]
+    fn test_bulk_delete_records_hide_for_monitored_items() {
+        let db = initialize_in_memory();
+        let widget_id = seed_projects_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_bulk_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("Mon")).unwrap();
+        let root = tmp.to_string_lossy().to_string();
+        let items = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        let item_id = items[0].id.clone();
+        let entry_key = items[0].source_entry_key.clone().unwrap();
+
+        bulk_delete_items(&db, vec![item_id.clone()]).unwrap();
+
+        let conn = db.0.lock().unwrap();
+        let it_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM items WHERE id = ?1",
+                rusqlite::params![item_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(it_count, 0, "bulk_delete で item 削除");
+        let hides = widget_item_hides_repository::list_by_widget(&conn, &widget_id).unwrap();
+        assert!(
+            hides.contains(&entry_key),
+            "bulk_delete でも hide 記録 (復活抑制契約)"
+        );
+
+        drop(conn);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// アイテムライフサイクル契約 (U-2 / U-8): 再 scan で scan 結果に出てこなくなった
+    /// 旧 entry の item は `is_enabled=false` でグレーアウト化 (削除しない)。
+    #[test]
+    fn test_auto_register_disables_stale_items() {
+        let db = initialize_in_memory();
+        let widget_id = seed_projects_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_stale_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("Alpha")).unwrap();
+        std::fs::create_dir_all(tmp.join("Beta")).unwrap();
+        let root = tmp.to_string_lossy().to_string();
+
+        let first = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        assert_eq!(first.len(), 2);
+        let alpha_id = first
+            .iter()
+            .find(|i| i.label == "Alpha")
+            .map(|i| i.id.clone())
+            .unwrap();
+
+        // Alpha フォルダを物理削除 (元ファイル消失 シナリオ)
+        std::fs::remove_dir_all(tmp.join("Alpha")).unwrap();
+
+        let second = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        // Beta のみ返る (Alpha は scan 結果に無い)
+        assert_eq!(second.len(), 1);
+        assert_eq!(second[0].label, "Beta");
+
+        let conn = db.0.lock().unwrap();
+        let alpha = item_repository::find_by_id(&conn, &alpha_id).unwrap();
+        assert!(
+            !alpha.is_enabled,
+            "Alpha は is_enabled=false でグレーアウト"
+        );
+        assert_eq!(alpha.source_widget_id.as_deref(), Some(widget_id.as_str()));
+
+        drop(conn);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// アイテムライフサイクル契約 (U-2): 元ファイルが戻ってきたら is_enabled=true に復活。
+    #[test]
+    fn test_auto_register_re_enables_revived_items() {
+        let db = initialize_in_memory();
+        let widget_id = seed_projects_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_lc_revive_{}", Uuid::now_v7()));
+        std::fs::create_dir_all(tmp.join("Gamma")).unwrap();
+        let root = tmp.to_string_lossy().to_string();
+
+        let first = auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        let gamma_id = first[0].id.clone();
+
+        // Gamma を消して stale 化
+        std::fs::remove_dir_all(tmp.join("Gamma")).unwrap();
+        auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        {
+            let conn = db.0.lock().unwrap();
+            let gamma = item_repository::find_by_id(&conn, &gamma_id).unwrap();
+            assert!(!gamma.is_enabled);
+        }
+
+        // Gamma を戻して再 scan で復活
+        std::fs::create_dir_all(tmp.join("Gamma")).unwrap();
+        auto_register_folder_items(&db, &root, None, Some(&widget_id)).unwrap();
+        {
+            let conn = db.0.lock().unwrap();
+            let gamma = item_repository::find_by_id(&conn, &gamma_id).unwrap();
+            assert!(
+                gamma.is_enabled,
+                "再 scan で再発見されたら is_enabled=true 復活"
+            );
+        }
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// アイテムライフサイクル契約 (U-5): remove_item_from_workspace は item 行を残しつつ
+    /// sys-ws-* tag + 当該 workspace の widget config item 参照を strip する。
+    #[test]
+    fn test_remove_item_from_workspace_keeps_item_strips_refs() {
+        let db = initialize_in_memory();
+        // workspace + widget seed (workspace_id 取得用に直接 INSERT)
+        let workspace_id = "ws-u5".to_string();
+        let widget_id = "w-u5".to_string();
+        let item_id = "i-u5".to_string();
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "INSERT INTO workspaces (id, name, sort_order, wallpaper_opacity, wallpaper_blur)
+                 VALUES (?1, 'WS', 0, 0.6, 0)",
+                rusqlite::params![workspace_id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO tags (id, name, is_hidden, is_system, sort_order, created_at)
+                 VALUES (?1, 'WS', 0, 1, 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))",
+                rusqlite::params![format!("sys-ws-{}", workspace_id)],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO workspace_widgets (id, workspace_id, widget_type, position_x, position_y, width, height, config)
+                 VALUES (?1, ?2, 'item', 0, 0, 2, 2, '{\"item_ids\":[\"i-u5\"]}')",
+                rusqlite::params![widget_id, workspace_id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO items (id, item_type, label, target) VALUES (?1, 'url', 'I', 'https://x')",
+                rusqlite::params![item_id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO item_tags (item_id, tag_id) VALUES (?1, ?2)",
+                rusqlite::params![item_id, format!("sys-ws-{}", workspace_id)],
+            )
+            .unwrap();
+        }
+
+        remove_item_from_workspace(&db, &workspace_id, &item_id).unwrap();
+
+        let conn = db.0.lock().unwrap();
+        let it_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM items WHERE id = ?1",
+                rusqlite::params![item_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(it_count, 1, "item は Library に残る");
+        let tag_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM item_tags WHERE item_id = ?1 AND tag_id = ?2",
+                rusqlite::params![item_id, format!("sys-ws-{}", workspace_id)],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(tag_count, 0, "sys-ws-* tag は解除");
+        let cfg: String = conn
+            .query_row(
+                "SELECT config FROM workspace_widgets WHERE id = ?1",
+                rusqlite::params![widget_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            !cfg.contains("i-u5"),
+            "widget config から item 参照が strip されている"
+        );
     }
 }
 
@@ -1635,6 +1962,14 @@ impl ItemService {
 
     pub fn delete_item(&self, id: &str) -> Result<(), AppError> {
         delete_item(&self.db, id)
+    }
+
+    pub fn remove_item_from_workspace(
+        &self,
+        workspace_id: &str,
+        item_id: &str,
+    ) -> Result<(), AppError> {
+        remove_item_from_workspace(&self.db, workspace_id, item_id)
     }
 
     pub fn count_item_references(&self, id: &str) -> Result<usize, AppError> {
@@ -1709,15 +2044,6 @@ impl ItemService {
         source_widget_id: Option<&str>,
     ) -> Result<Vec<Item>, AppError> {
         auto_register_folder_items(&self.db, root_path, workspace_id, source_widget_id)
-    }
-
-    pub fn register_exe_item(
-        &self,
-        path: &str,
-        label: Option<String>,
-        workspace_id: Option<&str>,
-    ) -> Result<Item, AppError> {
-        register_exe_item(&self.db, path, label, workspace_id)
     }
 
     pub fn register_exe_items_bulk(

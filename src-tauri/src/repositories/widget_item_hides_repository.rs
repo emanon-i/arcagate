@@ -26,6 +26,32 @@ pub fn remove(conn: &Connection, widget_id: &str, item_target: &str) -> Result<(
     Ok(())
 }
 
+/// アイテムライフサイクル契約 (Bug 7 / D14 rename): folder rename イベントで
+/// `widget_item_hides.item_target` (= scan entry key 空間、 forward-slash 正規化済) を
+/// 一括 prefix 書き換えする。 戻り値は影響を受けた hide 行数。
+pub fn rename_path_prefix(
+    conn: &Connection,
+    old_path: &std::path::Path,
+    new_path: &std::path::Path,
+) -> Result<usize, AppError> {
+    let old = old_path.to_string_lossy().into_owned();
+    let new = new_path.to_string_lossy().into_owned();
+    let old_fwd = old.trim_end_matches(['/', '\\']).replace('\\', "/");
+    let new_fwd = new.trim_end_matches(['/', '\\']).replace('\\', "/");
+    let prefix = format!("{}/%", old_fwd);
+    let mut rows = conn.execute(
+        "UPDATE widget_item_hides SET item_target = ?1 WHERE item_target = ?2",
+        params![&new_fwd, &old_fwd],
+    )?;
+    let keep_from = (old_fwd.len() + 1) as i64;
+    rows += conn.execute(
+        "UPDATE widget_item_hides SET item_target = ?1 || substr(item_target, ?2)
+         WHERE item_target LIKE ?3",
+        params![&new_fwd, keep_from, &prefix],
+    )?;
+    Ok(rows)
+}
+
 /// widget_id の hide リスト (item_target 列)。
 pub fn list_by_widget(conn: &Connection, widget_id: &str) -> Result<Vec<String>, AppError> {
     let mut stmt = conn.prepare(
