@@ -37,7 +37,7 @@ export const meta: WidgetMeta = {
 	},
 	defaultConfig: SYSTEM_MONITOR_DEFAULTS,
 	// J-2 (2026-05-12): chart 系で横幅広め (W:H=4:3)、CPU/RAM/Disk 3 metric 横並び。
-	defaultSize: { w: 4, h: 4 },
+	defaultSize: { w: 3, h: 3 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'info',

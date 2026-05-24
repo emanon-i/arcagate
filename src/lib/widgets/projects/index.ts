@@ -23,7 +23,7 @@ export const meta: WidgetMeta = {
 		default_opener_id: null,
 	},
 	// J-2 (2026-05-12): folder card grid (container query で 1-3 列)、4:5 で複数列表示できる横幅 + 高さ。
-	defaultSize: { w: 4, h: 4 },
+	defaultSize: { w: 3, h: 3 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'watch',

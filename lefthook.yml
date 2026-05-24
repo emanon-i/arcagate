@@ -111,6 +111,17 @@ pre-commit:
       # bug (system-monitor cpu/memory/disk chart_type で実発) に直結する。
       glob: "src/lib/widgets/**/*.{svelte,ts}"
       run: bash scripts/audit-widget-default-config.sh
+    widget-default-size-budget:
+      # PH-CF-1100 ④: widget の defaultSize が 「配置しやすい小さめ」 (w<=3, h<=3) を守っているか
+      # + workspace-widgets.svelte.ts の effectiveCols 計算に widgetMaxRight を取り込み戻して
+      # いないかを gate (右に異常に伸びる真因)。
+      glob: "{src/lib/widgets/*/index.ts,src/lib/state/workspace-widgets.svelte.ts}"
+      run: bash scripts/audit-widget-default-size-budget.sh
+    appearance-state-mgmt:
+      # PH-CF-1100 ②⑤⑥: card override の state 管理契約 (disabled / icon_backup / 即時反映)
+      # と LibraryCard の content-visibility:auto 撤廃を gate。
+      glob: "{src/lib/utils/card-override.ts,src/lib/components/arcagate/library/LibraryCard.svelte,src/lib/components/arcagate/library/LibraryDetailPanel.svelte}"
+      run: bash scripts/audit-appearance-state-mgmt.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

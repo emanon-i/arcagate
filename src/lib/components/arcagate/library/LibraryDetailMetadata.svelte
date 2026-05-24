@@ -7,7 +7,11 @@ import { t } from '$lib/i18n.svelte';
 import { DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
 import { itemStore } from '$lib/state/items.svelte';
 import type { Item } from '$lib/types/item';
-import { cardRotationTransform, parseCardOverride } from '$lib/utils/card-override';
+import {
+	cardRotationTransform,
+	isCardOverrideActive,
+	parseCardOverride,
+} from '$lib/utils/card-override';
 
 /**
  * Library detail panel メタデータセクション (preview + DetailRows + visibility)。
@@ -23,7 +27,11 @@ interface Props {
 
 let { item }: Props = $props();
 
-let cardOverride = $derived(parseCardOverride(item.card_override_json));
+// PH-CF-1100 ⑤⑥: `disabled=true` の override は本体保持の soft-reset。 LibraryCard と同じ
+// `isCardOverrideActive` で判定して preview を default に倒す (= 「解除」 中は detail panel の
+// preview もデフォルト表示)。
+let parsedOverride = $derived(parseCardOverride(item.card_override_json));
+let cardOverride = $derived(isCardOverrideActive(parsedOverride) ? parsedOverride : null);
 
 let bg = $derived({
 	...DEFAULT_CARD_BACKGROUND,

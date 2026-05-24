@@ -117,30 +117,39 @@ instant-feedback 予算内。
 従う。 polish sweep (PH-PQ-600) で「DOM クラス名一致」 で揃ったと誤判定した取りこぼし (D1 /
 D3) を二度と起こさないため、 prop レベルで明文化する。
 
-| 観点               | 契約                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------- |
-| `WidgetShell.path` | `config.<watched_folder \| watch_path>` を **必ず** 渡す (右クリック menu に Explorer / コピー を出す)  |
-| `WidgetShell.icon` | `index.ts` meta の `icon` と **必ず** 一致 (meta=`FolderOpen` なら shell も `FolderOpen`)               |
-| description 配置   | empty / loading / error / list すべての state より **前** (= 外側) で render                            |
-| config パース      | `parseWidgetConfig` helper (`$lib/utils/widget-config`) を使用 — 各 widget で `JSON.parse` 直書きしない |
-| sort sticky bar    | `class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 ..."` 共通 class set                           |
+| 観点                  | 契約                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `WidgetShell.path`    | `config.<watched_folder \| watch_path>` を **必ず** 渡す (右クリック menu に Explorer / コピー を出す)  |
+| `WidgetShell.icon`    | `index.ts` meta の `icon` と **必ず** 一致 (meta=`FolderOpen` なら shell も `FolderOpen`)               |
+| description 配置      | empty / loading / error / list すべての state より **前** (= 外側) で render                            |
+| config パース         | `parseWidgetConfig` helper (`$lib/utils/widget-config`) を使用 — 各 widget で `JSON.parse` 直書きしない |
+| sort / filter toolbar | `WidgetShell.toolbar` snippet slot で渡す (= scroll container の外に静的配置)。 §A6 参照                |
 
 `script_folder` は Library に永続化しないため item-hide / opener cascade の対象外 (機能差は
 許容)、 上記 chrome 5 観点は 3 widget すべてで揃える。
 
-## A6. sticky bar 契約 (PH-CF-500 D1)
+## A6. toolbar 契約 (PH-CF-1100 ③ 構造化、 旧 sticky bar 契約 PH-CF-500 D1 を置換)
 
-card (= 不透明背景の item) を持つ widget の sort / filter sticky bar は **不透明 fill** を
-持ち、 scroll する不透明 card が裏に透けて見えてはならない。
+並び替え / フィルタ / 検索など scroll 不要の toolbar を持つ widget は `WidgetShell.toolbar`
+snippet slot を経由して **scroll container の外** に静的配置する。
 
-- 塗りは `--ag-sticky-bar-bg` token 経由。 token は `:root` (blur theme) で
-  `var(--ag-surface-opaque)`、 非 blur theme は `var(--surface-glass-regular)` (= 本体同色
-  solid)。
-- sticky bar 自身に `backdrop-filter` を付与してはならない (PR #535 で否定済: 親 `.ag-glass`
-  の blur と二重に適用され「濃いトーンの strip」 になる)。
-- 個別要素で `ag-sticky-bar` に `bg-transparent` を上書きしてはならない。
+- 旧 `ag-sticky-bar` class + `--ag-sticky-bar-bg` token は **撤廃済**。 sticky 配置 + 半透明 fill
+  自体が不要になり、 「色付き帯」 (token vs widget body の色差) も「めり込み」 (scroll item が
+  toolbar 下に透ける) も構造上発生しない。
+- toolbar 自身に背景塗りは持たない (widget 本体 `.ag-glass` の継続として見える)。 active 表示は
+  `font-semibold text-[var(--ag-accent-text)]` のみで表現し、 `bg-[var(--ag-surface-*)]` を子要素に
+  使ってはならない。
+- toolbar slot に渡す snippet は scan/load 完了かつ表示要素が存在するときだけ条件付きで渡す
+  (`hasEntries ? toolbarSnippet : undefined`)。 0 件 / loading / error 状態では slot に何も渡さず
+  WidgetShell 側で余白も出ない。
+- 該当 widget: `exe_folder` / `projects` / `script_folder` / `file_search` (検索バー)。
 
-機械検出: `scripts/audit-sticky-bar-occlusion.sh` で token / class 双方を fail-closed gate。
+機械検出: `scripts/audit-sticky-bar-occlusion.sh` で
+
+- `--ag-sticky-bar-bg` token 再導入 (CSS の左辺定義) を fail
+- `.ag-sticky-bar` CSS selector を fail
+- svelte template の `class="...ag-sticky-bar..."` を fail
+  の 3 軸 fail-closed gate。 旧 token (半透明 / glass / 本体同色等) の再導入を 一律禁止。
 
 ## A7. 設定デフォルト単一情報源契約 (PH-CF-500 D7)
 

@@ -11,6 +11,11 @@ import { itemStore } from '$lib/state/items.svelte';
 import { libraryHistory } from '$lib/state/library-history.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import type { Tag } from '$lib/types/tag';
+import {
+	type CardOverrideJson,
+	isCardOverrideActive,
+	parseCardOverride,
+} from '$lib/utils/card-override';
 import { formatLaunchError } from '$lib/utils/launch-error';
 import CardOverrideDialog from './CardOverrideDialog.svelte';
 import LibraryDetailActions from './LibraryDetailActions.svelte';
@@ -206,21 +211,67 @@ let moreMenuItems = $derived.by(() => {
 // checkbox + 「見た目設定モーダルを開く」 button を配置、CardOverrideDialog を別 modal で開く。
 let cardOverrideDialogOpen = $state(false);
 
+let selectedCardOverride = $derived(
+	selectedItem ? parseCardOverride(selectedItem.card_override_json) : null,
+);
+let cardOverrideActive = $derived(isCardOverrideActive(selectedCardOverride));
+
+/**
+ * 見た目設定の解除 / 復元。 ⑤⑥ 修正:
+ *
+ * - 解除 (enable=false): override の本体 (background / style / opener_id) は維持したまま
+ *   `disabled=true` を立て、 同時に `item.icon_path` を `icon_backup` へ退避 → null へ落とす。
+ *   LibraryCard は disabled override を non-active 扱いして共通 default 表示に戻り、 「画像が
+ *   残る」 (⑤) を完全に消す。
+ * - 復元 (enable=true): 既存 override がある場合は `disabled` を外し、 `icon_backup` を
+ *   `item.icon_path` へ戻して位置調整 (offsetX / offsetY / rotation 等) を含む 一切の設定を
+ *   そのまま蘇らせる (⑥)。
+ * - 初回 ON: 既存 override 無しの場合は CARD_OVERRIDE_INITIAL_BACKGROUND + 現在の global style
+ *   で新規に作成。 icon_path はそのまま維持。
+ *
+ * 状態遷移を 1 回の `updateItem` IPC に集約し、 icon_path と card_override_json を必ず一括で
+ * 切り替える (中間状態を露出しない)。
+ */
 function handleCardOverrideToggle(enable: boolean): void {
 	if (!selectedItem) return;
+	const current = selectedCardOverride;
 	if (enable) {
-		// 初期 background (fit: cover) を copy で見た目設定 enable
-		const initial = JSON.stringify({
+		if (current) {
+			// 復元: disabled を外し、 icon_backup を icon_path に戻す。 内容は破棄しない。
+			const restored: CardOverrideJson = { ...current };
+			delete restored.disabled;
+			const restoredIconPath = restored.icon_backup ?? selectedItem.icon_path;
+			delete restored.icon_backup;
+			void itemStore.updateItem(selectedItem.id, {
+				card_override_json: JSON.stringify(restored),
+				icon_path: restoredIconPath,
+			});
+			toastStore.add(t('toast.appearance_settings_restored'), 'success');
+			return;
+		}
+		// 初回 ON: initial 値で新規作成、 icon_path は維持。
+		const initial: CardOverrideJson = {
 			background: CARD_OVERRIDE_INITIAL_BACKGROUND,
 			style: configStore.libraryCard.style,
+		};
+		void itemStore.updateItem(selectedItem.id, {
+			card_override_json: JSON.stringify(initial),
 		});
-		void itemStore.updateItem(selectedItem.id, { card_override_json: initial });
 		toastStore.add(t('toast.appearance_settings_started'), 'success');
-	} else {
-		// reset: 見た目設定解除
-		void itemStore.updateItem(selectedItem.id, { card_override_json: null });
-		toastStore.add(t('toast.appearance_settings_cleared'), 'info');
+		return;
 	}
+	// 解除: 内容を維持しつつ disabled=true、 icon_path を icon_backup に退避して null へ。
+	const base: CardOverrideJson = current ?? {};
+	const disabled: CardOverrideJson = {
+		...base,
+		disabled: true,
+		icon_backup: selectedItem.icon_path ?? null,
+	};
+	void itemStore.updateItem(selectedItem.id, {
+		card_override_json: JSON.stringify(disabled),
+		icon_path: null,
+	});
+	toastStore.add(t('toast.appearance_settings_cleared'), 'info');
 }
 </script>
 
@@ -254,7 +305,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 					type="checkbox"
 					class="h-4 w-4 cursor-pointer accent-[var(--ag-accent-text)]"
 					data-testid="card-override-toggle"
-					checked={!!selectedItem.card_override_json}
+					checked={cardOverrideActive}
 					onchange={(e) =>
 						handleCardOverrideToggle((e.currentTarget as HTMLInputElement).checked)}
 				/>
@@ -264,7 +315,7 @@ function handleCardOverrideToggle(enable: boolean): void {
 				type="button"
 				variant="outline"
 				size="icon-sm"
-				disabled={!selectedItem.card_override_json}
+				disabled={!cardOverrideActive}
 				data-testid="card-override-open-dialog"
 				aria-label={t('library.detail.appearance_settings_open')}
 				title={t('library.detail.appearance_settings_open')}

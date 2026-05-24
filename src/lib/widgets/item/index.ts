@@ -12,8 +12,9 @@ export const meta: WidgetMeta = {
 	get label() {
 		return widgetLabel('item');
 	},
-	// J-2 (2026-05-12): ItemWidget は単一 item 表示 (list 不要)、tile 形状で 2:3 縦長。
-	defaultSize: { w: 4, h: 4 },
+	// PH-CF-1100 ④ (2026-05-25 user 検収): 単一 item 表示のため最小 tile (2x2) で十分。
+	// 旧 4x4 は配置時の占有面積が大きすぎ「全部でかすぎる」 (user 指摘)。 user resize で拡大は可能。
+	defaultSize: { w: 2, h: 2 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'library',

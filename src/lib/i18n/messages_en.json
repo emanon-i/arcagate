@@ -563,6 +563,7 @@
 	},
 	"toast": {
 		"appearance_settings_cleared": "Appearance settings cleared",
+		"appearance_settings_restored": "Appearance settings restored",
 		"appearance_settings_started": "Started customizing this card's appearance",
 		"bookmark_read_failed": "Read failed: {error}",
 		"calc_copied_to_clipboard": "Calculation copied to clipboard",

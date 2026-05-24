@@ -101,6 +101,34 @@ PH-CF-200 で widget 配置経路を以下に集約:
 分散していた。 PH-CF-200 で seed 解決を `resolveSeedCell` 1 関数に集約し、 (0,0) フォールバック
 禁止と viewport 中央 fallback を経路横断で保証する。
 
+## widget 初期配置サイズと effectiveCols 契約 (PH-CF-1100 ④)
+
+`addWidget` / `addWidgetAt` / `bulkAddItemWidgets` の **配置領域上限** は viewport から導出された
+`opts.cols` (= `dynamicCols`) のみで決め、 **既存 widget の最大右端 (`widgetMaxRight`) を反映
+しない**。
+
+- 旧実装 (PH-CF-1100 ④ 真因): `effectiveCols = Math.max(1, opts.cols ?? DEFAULT_GRID_COLS, widgetMaxRight)`
+  で既存 widget の右端まで配置領域を拡張していたため、 viewport 外に居座る widget があると seed が
+  viewport 外に飛び新規追加 widget も viewport 外へ。 user 検収 (2026-05-25) 「右に異常に伸びる」 の root cause。
+- 新実装: `effectiveCols = Math.max(1, opts.cols ?? DEFAULT_GRID_COLS)`。 viewport 外既存 widget は
+  overlap 判定の障害物としては引き続き考慮されるが、 新規 widget は 必ず viewport 内 (0..effectiveCols-w) に配置される。
+
+widget の **初期配置サイズ (`defaultSize`)** は「配置しやすい小さめ」 を維持する。 user は配置後に
+resize で個別拡大できるため、 初期占有面積を抑えることが優先。
+
+| 制約                            | 値          |
+| ------------------------------- | ----------- |
+| `defaultSize.w`                 | ≤ 3         |
+| `defaultSize.h`                 | ≤ 3         |
+| `defaultSize.w * defaultSize.h` | ≤ 9 (= 3×3) |
+
+例外: `item` widget のみ 2×2 (単一 launcher tile)。
+
+機械検出: `scripts/audit-widget-default-size-budget.sh` で `src/lib/widgets/*/index.ts` の
+`defaultSize` を grep し budget (`w<=3, h<=3`) を fail-closed gate。 加えて
+`workspace-widgets.svelte.ts` の `effectiveCols = Math.max(...widgetMaxRight...)` 再導入も同
+audit で禁止 (右伸び真因の再発防止)。
+
 ## 破壊的操作の確認契約 (PH-CF-300)
 
 workspace / タブ / widget の削除など取り返しのつかない操作は、 **専用 confirm modal** または

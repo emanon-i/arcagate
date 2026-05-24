@@ -15,7 +15,7 @@ export const meta: WidgetMeta = {
 	// config: { items: item_id[], label, launch_delay_ms? }。
 	defaultConfig: { items: [], label: '' },
 	// item list を縦に並べる + 起動 button、Item widget と同じ縦長サイズ。
-	defaultSize: { w: 4, h: 4 },
+	defaultSize: { w: 3, h: 3 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'library',

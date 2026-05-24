@@ -13,7 +13,7 @@ export const meta: WidgetMeta = {
 		return widgetLabel('script_folder');
 	},
 	defaultConfig: { scan_depth: 2 },
-	defaultSize: { w: 4, h: 4 },
+	defaultSize: { w: 3, h: 3 },
 	minViableSize: { w: 2, h: 2 },
 	addable: true,
 	category: 'watch',
