@@ -33,6 +33,7 @@ SYNC_ALLOWED="
   cmd_reset_first_run cmd_set_autostart cmd_set_config cmd_set_hotkey
   cmd_take_startup_notices
   cmd_cancel_exe_scan cmd_cancel_file_search
+  cmd_get_exe_scan_cached cmd_save_exe_scan_cache cmd_invalidate_exe_scan_cache
   cmd_bulk_add_tag cmd_bulk_delete_items cmd_bulk_remove_tag cmd_check_is_directory
   cmd_count_hidden_items cmd_count_item_references cmd_create_item cmd_create_tag
   cmd_delete_item cmd_delete_tag cmd_get_item_tags cmd_get_library_stats

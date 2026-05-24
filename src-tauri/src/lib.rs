@@ -14,7 +14,10 @@ use commands::config_commands::{
     cmd_is_setup_complete, cmd_mark_onboarding_complete, cmd_mark_setup_complete,
     cmd_reset_first_run, cmd_set_autostart, cmd_set_config, cmd_set_hotkey,
 };
-use commands::exe_scanner_commands::{cmd_cancel_exe_scan, cmd_scan_exe_folders};
+use commands::exe_scanner_commands::{
+    cmd_cancel_exe_scan, cmd_get_exe_scan_cached, cmd_invalidate_exe_scan_cache,
+    cmd_save_exe_scan_cache, cmd_scan_exe_folders,
+};
 use commands::export_commands::{cmd_export_json, cmd_import_json};
 use commands::file_preview_commands::cmd_read_file_preview;
 use commands::file_search_commands::{cmd_cancel_file_search, cmd_list_files, cmd_open_path};
@@ -446,6 +449,9 @@ pub fn run() {
             cmd_get_items_metadata_batch,
             cmd_scan_exe_folders,
             cmd_cancel_exe_scan,
+            cmd_get_exe_scan_cached,
+            cmd_save_exe_scan_cache,
+            cmd_invalidate_exe_scan_cache,
             cmd_scan_script_folder,
             cmd_run_script,
             cmd_confirm_script,

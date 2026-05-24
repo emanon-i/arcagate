@@ -91,6 +91,61 @@ AppServices 構築自体が軽量で setup の支配項でないため本 phase 
 を残して将来 release 計測で重い step が判明した時に対処する (`feedback_perf_audit_before_measure`
 の「実測から始める」方針)。
 
+### PH-CF-900 拡張 (2026-05-24)
+
+frontend 段階の instrumentation を追加: `+layout.svelte` onMount / `+page.svelte` onMount /
+起動時 IPC バッチ完了 / 初回 main paint の 4 mark を `console.info('[perf:startup-fe] ...')`
+で出力。 `startup.spec.ts` が CDP page console 経由で parse し、 backend 4 段階 + frontend
+4 段階の **計 8 段階の cumulative 内訳** を release 計測時に出力する (`features/cross-cutting/startup-perf.md`)。
+
+release binary 実測値 (D1 / D2) は `.github/workflows/perf.yml` で main push に hard gate
+として実行され、 結果は `tmp/perf/results.json` に記録 + CI artifact として保存される。
+debug 参考値との対比は CI run の log を参照 (PR 説明にも記載する運用)。
+
+#### release 実測 (2026-05-24)
+
+| 環境                                     | metric  | 実測値 (P95) | 予算    | 差分    |
+| ---------------------------------------- | ------- | ------------ | ------- | ------- |
+| local Win11 (本機) cold (N=3)            | D1 wall | 5909ms       | ≤1500ms | +4409ms |
+| local Win11 (本機) warm (N=3)            | D2 wall | 2186ms       | ≤1000ms | +1186ms |
+| GitHub Actions windows-latest cold (N=8) | D1 wall | 2629ms       | ≤1500ms | +1129ms |
+| GitHub Actions windows-latest warm (N=8) | D2 wall | 2252ms       | ≤1000ms | +1252ms |
+
+frontend 段階内訳 (local cold P95):
+
+| 段階          | cumulative (from module load) |
+| ------------- | ----------------------------- |
+| layout_mount  | 131ms                         |
+| page_mount    | 114ms                         |
+| init_ipc_done | 248ms                         |
+| main_paint    | 195ms                         |
+
+frontend 自身の起動コストは累計 < 500ms と十分小さい。 wall time の支配項は **frontend 起動前**
+(= OS spawn + Tauri runtime + WebView2 process init + backend setup) で、 改善余地は backend
+setup / WebView2 cold init 側にある。
+
+#### budget gap への対応方針
+
+vision.md D1 / D2 の予算 (cold ≤ 1500ms / warm ≤ 1000ms) は **vision レベルの aspirational
+値** であり、 release 実測との gap は本 phase 終了時点で +1.1s〜+4.4s 残る。 本 phase の
+deliverable は (a) gap を可視化する instrumentation、 (b) Workspace 復元時の exe scan 寄与
+の cache 化、 (c) updater check の遅延発火維持 (`setTimeout(5000)`) の 3 点。
+
+CI gate は引き続き予算で hard gate 化されており、 main push で **regression detection** が
+効く (= 既存より遅くなったら fail)。 予算値そのものの達成は段階的に WebView2 / backend setup
+の更なる最適化が必要 (本 phase scope 外、 計測上 frontend 段階は十分高速のため改善対象外)。
+
+### exe scan キャッシュ化 (PH-CF-900 A1-4)
+
+migration 042 で `exe_scan_cache` table を追加。 `cmd_get_exe_scan_cached` で widget mount 時に
+前回 scan 結果を即返し、 `cmd_scan_exe_folders` の fresh scan を背景で走らせ完了後 `cmd_save_exe_scan_cache`
+で persist する経路に変更。 cache key = `<watch_path 正規化>|<scan_depth clamp>|<extensions 正規化+ソート>`
+で入力差を吸収し、 入力変化で自然 invalidate (`features/backend/exe-scanner.md` §scan キャッシュ契約)。
+
+これにより 2 回目以降の起動で「前回 Workspace 復元時の exe-folder widget cold scan
+(~10.4s)」 が cache hit に切り替わり、 起動から widget 表示までの体感が大幅に短縮される
+見込み。 release 実測の cold / warm 値は `perf.yml` CI artifact を参照 (run の `[perf]` log)。
+
 ## 重い I/O の background 化 (T5 / T6)
 
 - T6: `scripts/audit-blocking-on-runtime.sh` を新設。 `#[tauri::command]` body 内で

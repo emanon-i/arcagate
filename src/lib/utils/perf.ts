@@ -186,6 +186,32 @@ export const PERF_LABELS = {
 } as const;
 
 /**
+ * PH-CF-900 A1: 起動段階 instrumentation (frontend)。
+ *
+ * 旧 (PH-PQ-400 T7): backend setup の 4 段階 (`perf:startup` log の
+ * `builder_plugins` / `db_init` / `watcher` / `setup_complete`) のみ計測されており、
+ * frontend 初期化 (`+layout.svelte` mount / `+page.svelte` mount / 起動時 IPC 完了 /
+ * `<main>` paint) は perf instrumentation の外で「wall time だけ取れる」 状態だった。
+ *
+ * 新 (PH-CF-900): `console.info` で `[perf:startup-fe] step=<name> cumulative=<ms>` を
+ * 出力し、 `startup.spec.ts` が CDP page console 経由で parse して段階内訳に追加する。
+ * dev / release 両 build で動く (PERF_ENABLED gate に依存しない、 計測対象が起動段階
+ * 自体のため release でも常時 emit)。 backend log と prefix を揃え (`perf:startup` →
+ * `perf:startup-fe`)、 計測パイプラインが同じ regex で拾える。
+ */
+const STARTUP_FE_T0 = typeof performance !== 'undefined' ? performance.now() : 0;
+
+export function markStartupFe(
+	step: 'layout_mount' | 'page_mount' | 'init_ipc_done' | 'main_paint',
+): void {
+	if (typeof console === 'undefined' || typeof performance === 'undefined') return;
+	const cumulative = Math.round(performance.now() - STARTUP_FE_T0);
+	// `console.info` を選んだ理由: `console.log` は dev 経路でノイズが多く、 `console.warn` は
+	// 正常起動でも警告扱いになるため。 info は perf:startup と区別しやすい一意 prefix。
+	console.info(`[perf:startup-fe] step=${step} cumulative=${cumulative}ms`);
+}
+
+/**
  * Resource timing observer で全 image / IPC fetch の load 時間を自動 capture。
  * idempotent。`installLongtaskObserver` と同様 +layout.svelte mount で 1 回呼ぶ。
  */

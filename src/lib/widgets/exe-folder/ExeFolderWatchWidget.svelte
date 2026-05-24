@@ -172,6 +172,25 @@ $effect(() => {
 	void ensureWatchedPath(path);
 	const myId = ++scanRequestId;
 	scanning = true;
+	// PH-CF-900 A1-4: 「キャッシュ即表示 → background で差分 re-scan」 経路。
+	// 1) `cmd_get_exe_scan_cached` で前回 scan 結果が cache にあるか確認
+	// 2) hit なら entries を即 set (UI 描画は cold walk 10s+ を待たない)
+	// 3) いずれの場合も `cmd_scan_exe_folders` で fresh scan を走らせ、 完了後 entries 上書き
+	//    + `cmd_save_exe_scan_cache` で persist (次回起動時の cache hit に備える)
+	// scanning フラグは cache miss のときだけ true にして spinner を出す。 hit 時は
+	// 既に表示済の entries に背景で fresh 結果を反映するため spinner 不要。
+	void invoke<ExeFolderEntry[] | null>('cmd_get_exe_scan_cached', {
+		root: path,
+		depth,
+		extensions,
+	}).then((cached) => {
+		if (myId !== scanRequestId) return;
+		if (cached && cached.length > 0) {
+			entries = cached;
+			scanning = false;
+		}
+	});
+
 	invoke<ExeFolderEntry[]>('cmd_scan_exe_folders', {
 		searchId: scanSearchId,
 		root: path,
@@ -181,6 +200,13 @@ $effect(() => {
 		.then(async (result) => {
 			if (myId !== scanRequestId) return;
 			entries = result;
+			// PH-CF-900 A1-4: fresh scan 結果を cache に persist (best-effort、 失敗は無視)。
+			void invoke('cmd_save_exe_scan_cache', {
+				root: path,
+				depth,
+				extensions,
+				entries: result,
+			}).catch((e) => console.warn('exe scan cache save failed', e));
 			// scan 完了時に発見 exe を Library に自動登録 (idempotent: 既存 target は skip)。
 			// PH-CF-400: entry_key (= 第1階層フォルダ folder_path) を paths と同順で送る。
 			const paths: string[] = [];
