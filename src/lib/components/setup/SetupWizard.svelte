@@ -20,6 +20,18 @@ async function finish(): Promise<void> {
 
 {#if !configStore.setupComplete}
   <div data-testid="setup-wizard" class="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--scrim)]">
+    <!-- PH-CF-1000 B1: フルスクリーンオーバーレイは TitleBar の drag region を覆い隠すため、
+         オーバーレイ最上部に細い帯 (h-8、 透明) で `data-tauri-drag-region` を露出させ、
+         ウィザード表示中も window を掴んで移動できるようにする (`features/cross-cutting/window-drag.md`
+         §オーバーレイ window 操作契約)。 click-through を保つため scrim と同 z-index で
+         配置せず、 overlay 内 top に absolute 配置する。 ボタン類には付けない (誤って
+         drag が button 操作を吸わない)。 -->
+    <div
+      data-tauri-drag-region
+      data-testid="overlay-drag-region"
+      class="pointer-events-auto absolute inset-x-0 top-0 h-8"
+      aria-hidden="true"
+    ></div>
     <div class="w-full max-w-md rounded-xl border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-8 shadow-[var(--ag-shadow-dialog)]">
       <!-- ステップインジケーター -->
       <div class="mb-6 flex gap-2" aria-hidden="true">

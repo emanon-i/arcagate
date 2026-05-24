@@ -68,6 +68,20 @@ function handleOpenChange(next: boolean): void {
 }
 </script>
 
+<!-- PH-CF-1000 B1: bits-ui Overlay は TitleBar の drag region を覆うため、 Dialog の外側
+     (Portal の dismiss / focus scope の影響を受けない位置) に細い `data-tauri-drag-region`
+     帯を別 layer として追加する。 z-[51] で Overlay (z-50) より前面に置き、 ボタン類は
+     dialog content 内 (z-50) なので操作の妨げにならない (`features/cross-cutting/window-drag.md`
+     §オーバーレイ window 操作契約)。 -->
+{#if open}
+	<div
+		data-tauri-drag-region
+		data-testid="overlay-drag-region"
+		class="pointer-events-auto fixed inset-x-0 top-0 z-[51] h-8"
+		aria-hidden="true"
+	></div>
+{/if}
+
 <Dialog.Root {open} onOpenChange={handleOpenChange}>
 	<Dialog.Portal>
 		<Dialog.Overlay

@@ -170,6 +170,16 @@ function handleKey(e: KeyboardEvent): void {
 		data-testid="onboarding-tour"
 		transition:fade={{ duration: dFast }}
 	>
+		<!-- PH-CF-1000 B1: TitleBar の drag region をオーバーレイが覆うため、 top に細い帯で
+		     `data-tauri-drag-region` を露出させ window 移動を維持する (`features/cross-cutting/window-drag.md`
+		     §オーバーレイ window 操作契約)。 spotlight より下層 (z 指定なし = stacking 順で先) に
+		     配置し、 spotlight の対象ボタン操作を吸わない。 -->
+		<div
+			data-tauri-drag-region
+			data-testid="overlay-drag-region"
+			class="pointer-events-auto absolute inset-x-0 top-0 h-8"
+			aria-hidden="true"
+		></div>
 		{#if spotlightStyle}
 			<!-- スポットライト: box-shadow で対象以外を dim、 対象は accent ring で強調。 -->
 			<div
