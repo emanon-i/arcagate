@@ -270,7 +270,8 @@ test('Library 117 item perf 計測', async ({ page }) => {
 
 	// --- 計測 3: 各テーマで Workspace -> Library 遷移 (テーマ依存差の確認) ---
 	// icon は既に cache 済のため、 ここで測るのは「テーマ CSS の描画コスト」。
-	const THEMES = ['dark', 'light', 'neumorph', 'brutalist', 'hud'];
+	// PH-CF-800 F1 (migration 041): builtin は 6 本 (3 系統 × Dark/Light)。 HUD 削除済。
+	const THEMES = ['dark', 'light', 'brutalist-dark', 'brutalist', 'neumorph-dark', 'neumorph'];
 	const themeRows: Record<string, string> = {};
 	for (const theme of THEMES) {
 		await page.evaluate(

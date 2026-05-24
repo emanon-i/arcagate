@@ -53,6 +53,9 @@ let themes = $state<Theme[]>([]);
 let activeMode = $state<ThemeMode>(readCachedMode());
 const resolvedMode = $derived(resolveMode(activeMode));
 let error = $state<string | null>(null);
+// PH-CF-800 F6: カスタムテーマ件数 + 上限 (backend `cmd_get_custom_theme_quota` の cache)。
+// 0 / 0 は「未取得」 を意味し、 quota fetch は loadTheme / create / import / delete の後で更新。
+let customQuota = $state<{ used: number; max: number }>({ used: 0, max: 0 });
 
 let themeChangedUnlisten: (() => void) | null = null;
 
@@ -109,13 +112,15 @@ function applyTheme(): void {
 async function loadTheme(): Promise<void> {
 	error = null;
 	try {
-		const [mode, allThemes] = await Promise.all([
+		const [mode, allThemes, quota] = await Promise.all([
 			themeIpc.getActiveThemeMode(),
 			themeIpc.listThemes(),
+			themeIpc.getCustomThemeQuota(),
 		]);
 		themes = allThemes;
 		activeMode = mode;
 		writeCachedMode(mode);
+		customQuota = { used: quota[0], max: quota[1] };
 		applyTheme();
 
 		if (!themeChangedUnlisten) {
@@ -125,6 +130,16 @@ async function loadTheme(): Promise<void> {
 		}
 	} catch (e) {
 		error = getErrorMessage(e);
+	}
+}
+
+/** PH-CF-800 F6: quota fetch を mutation 後に呼ぶ薄い helper (loadTheme の重複呼出を避ける)。 */
+async function refreshQuota(): Promise<void> {
+	try {
+		const quota = await themeIpc.getCustomThemeQuota();
+		customQuota = { used: quota[0], max: quota[1] };
+	} catch {
+		// best-effort: quota は表示のみのため fetch 失敗時は前回値を維持
 	}
 }
 
@@ -148,6 +163,8 @@ async function createTheme(
 	try {
 		const theme = await themeIpc.createTheme(name, baseTheme, cssVars);
 		themes = [...themes, theme];
+		// PH-CF-800 F6: 件数が変わるので quota を最新化 (上限到達 → ボタン disabled 等に反映)。
+		void refreshQuota();
 		return theme;
 	} catch (e) {
 		error = getErrorMessage(e);
@@ -181,6 +198,8 @@ async function deleteTheme(id: string): Promise<void> {
 	try {
 		await themeIpc.deleteTheme(id);
 		themes = themes.filter((t) => t.id !== id);
+		// PH-CF-800 F6: 削除で件数が減るので quota を最新化。
+		void refreshQuota();
 		// 削除した theme が active だった場合、backend は LG Dark に reset する
 		if (activeMode === id) {
 			activeMode = BUILTIN_THEME_DARK;
@@ -207,6 +226,7 @@ async function importTheme(json: string): Promise<Theme | null> {
 	try {
 		const theme = await themeIpc.importThemeJson(json);
 		themes = [...themes, theme];
+		void refreshQuota();
 		return theme;
 	} catch (e) {
 		error = getErrorMessage(e);
@@ -232,6 +252,13 @@ export const themeStore = {
 	},
 	get error() {
 		return error;
+	},
+	/**
+	 * PH-CF-800 F6: カスタムテーマの「使用数 / 上限」 (UI 「N / MAX」 表示 + ボタン disabled 用)。
+	 * `loadTheme` で初期取得、 create / import / delete 後に自動 refresh される。
+	 */
+	get customQuota() {
+		return customQuota;
 	},
 	loadTheme,
 	setThemeMode,

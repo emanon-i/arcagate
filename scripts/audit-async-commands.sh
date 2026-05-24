@@ -44,8 +44,8 @@ SYNC_ALLOWED="
   cmd_factory_reset cmd_confirm_script
   cmd_get_disk_stats cmd_get_network_stats cmd_get_system_stats
   cmd_create_theme cmd_delete_theme cmd_export_theme_json cmd_get_active_theme_mode
-  cmd_get_theme cmd_import_theme_json cmd_list_themes cmd_set_active_theme_mode
-  cmd_update_theme
+  cmd_get_custom_theme_quota cmd_get_theme cmd_import_theme_json cmd_list_themes
+  cmd_set_active_theme_mode cmd_update_theme
   cmd_add_watched_path cmd_get_watched_paths cmd_remove_watched_path
   cmd_add_widget_item_hide cmd_list_widget_item_hides cmd_remove_widget_item_hide
   cmd_add_widget cmd_create_workspace cmd_delete_workspace cmd_get_folder_items

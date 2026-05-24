@@ -6,7 +6,8 @@
  * ここでは「seed を決める」 / 「WCAG コントラストを検証する」 だけを担う。
  */
 
-export type Aesthetic = 'glass' | 'neumorph' | 'brutalist' | 'hud';
+// PH-CF-800 F1: HUD は user 判断で builtin から削除。 aesthetic axis は 3 軸に縮約。
+export type Aesthetic = 'glass' | 'neumorph' | 'brutalist';
 
 interface Oklch {
 	l: number;
@@ -121,7 +122,6 @@ const AESTHETIC_RANGE: Record<Aesthetic, { c: [number, number]; l: [number, numb
 	glass: { c: [0.16, 0.22], l: [0.58, 0.7] },
 	neumorph: { c: [0.02, 0.06], l: [0.85, 0.95] },
 	brutalist: { c: [0.18, 0.28], l: [0.55, 0.65] },
-	hud: { c: [0.2, 0.3], l: [0.6, 0.8] },
 };
 
 /** harmony angle 候補 (補色 / 三角 / 類似 等)。 */

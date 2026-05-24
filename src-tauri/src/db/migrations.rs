@@ -42,6 +42,7 @@ const MIGRATION_037: &str =
 const MIGRATION_038: &str = include_str!("../../migrations/038_card_override_drop_fit.sql");
 const MIGRATION_039: &str = include_str!("../../migrations/039_items_source_back_link.sql");
 const MIGRATION_040: &str = include_str!("../../migrations/040_library_wallpaper_config.sql");
+const MIGRATION_041: &str = include_str!("../../migrations/041_theme_six_builtins.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -85,6 +86,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_038),
         M::up(MIGRATION_039),
         M::up(MIGRATION_040),
+        M::up(MIGRATION_041),
     ])
 }
 
@@ -295,6 +297,71 @@ mod tests {
             "no background → no rotation: {nobg}"
         );
         assert!(nobg.contains("op1"), "opener_id should be kept: {nobg}");
+    }
+
+    #[test]
+    fn test_migration_041_remaps_hud_theme_mode_to_dark() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // migration 040 まで適用し、 theme_mode='hud' の既存 user を再現。
+        m.to_version(&mut conn, 40).unwrap();
+        conn.execute(
+            "INSERT OR REPLACE INTO config (key, value) VALUES ('theme_mode', 'hud')",
+            [],
+        )
+        .unwrap();
+
+        // migration 041 適用 → HUD は builtin から削除され、 'hud' は 'dark' へフォールバック。
+        m.to_version(&mut conn, 41).unwrap();
+        let mode: String = conn
+            .query_row(
+                "SELECT value FROM config WHERE key = 'theme_mode'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(mode, "dark", "hud → dark fallback");
+
+        // HUD row は themes table から消えている。
+        let hud_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM themes WHERE id = 'hud'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(hud_count, 0, "hud builtin must be deleted");
+
+        // dark variant 2 本が builtin として追加されている。
+        let dark_variant_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM themes WHERE id IN ('brutalist-dark', 'neumorph-dark') AND is_builtin = 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(dark_variant_count, 2, "dark variants must be added");
+
+        // 6 builtin の sort_order が dark=0 / light=1 / brutalist-dark=2 / brutalist=3 /
+        // neumorph-dark=4 / neumorph=5 で設定されている。
+        let ordered_ids: Vec<String> = conn
+            .prepare("SELECT id FROM themes WHERE is_builtin = 1 ORDER BY sort_order")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(
+            ordered_ids,
+            vec![
+                "dark",
+                "light",
+                "brutalist-dark",
+                "brutalist",
+                "neumorph-dark",
+                "neumorph",
+            ],
+        );
     }
 
     #[test]

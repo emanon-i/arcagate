@@ -4,7 +4,7 @@
    3 層構成 (詳細は docs/l2_foundation/design-tokens.md):
 
      1. color seeds (--c-*)        : 1〜2 色 + base。色全体は色彩学で自動派生
-     2. aesthetic primitives       : glass / neumorph / brutalist / HUD を
+     2. aesthetic primitives       : glass / neumorph / brutalist を
         (--radius-* / --surface-* …)  色とは直交した軸で表現
      3. semantic tokens (--ag-*)   : component が直接参照する派生層。
                                      seeds + color-mix() + oklch(from …) で runtime 計算
@@ -31,7 +31,10 @@
 	   ======================================================== */
 	--c-bg: oklch(0.985 0.003 250);
 	--c-fg: oklch(0.22 0.02 260);
-	--c-primary: oklch(0.62 0.13 215);
+	/* PH-CF-800 F2: 旧 L0.62 では白文字との contrast が ≈ 3.6:1 で AA 未達。 L0.50 へ統一。
+	   全 builtin で「primary ベタ + 白文字」 が 4.5:1 を満たす契約
+	   (`features/cross-cutting/design-tokens.md` §accent コントラスト契約)。 */
+	--c-primary: oklch(0.50 0.14 215);
 	/* secondary 未指定時は primary の補色 (色相 +180°) を自動派生 */
 	--c-secondary: oklch(from var(--c-primary) l c calc(h + 180));
 	/* frosted overlay tint — 両 base で near-white */
@@ -47,7 +50,7 @@
 
 	/* ========================================================
 	   LAYER 2 — AESTHETIC PRIMITIVES (色と直交、 既定 = Light whisper)
-	   テーマはこの群を差し替えて glass/neumorph/brutalist/HUD を表現。
+	   テーマはこの群を差し替えて glass/neumorph/brutalist を表現。
 	   ======================================================== */
 	--ag-radius-sm: 8px;
 	--ag-radius-md: 14px;
@@ -66,19 +69,10 @@
 	--shadow-inner-light: inset 1px 1px 2px oklch(1 0 0 / 0.5);
 	--shadow-inner-dark: inset -1px -1px 2px oklch(0 0 0 / 0.1);
 
-	/* text 装飾効果 (HUD 等) */
-	--text-effect-glow: none;
-	--text-effect-stroke: none;
-
 	/* 背景 pattern (brutalist の dot grid 等) */
 	--bg-pattern: none;
 	--bg-pattern-opacity: 0;
 	--bg-pattern-color: var(--c-fg);
-
-	/* 構造装飾 (HUD の bracket / tickmark / frame) */
-	--decoration-bracket-corners: 0;
-	--decoration-tickmarks: 0;
-	--decoration-frame-border: 0;
 
 	/* ========================================================
 	   LAYER 3 — SEMANTIC TOKENS (--ag-*)  component が参照する層
@@ -107,7 +101,7 @@
 	   blur の外側 (= 上層) を流れるため、 sticky bar は自身で occluder を持つ
 	   必要がある。 ag-surface-opaque (本体と同色の solid surface) を使用し、
 	   PR #535 で否定された backdrop-filter 二重適用は避ける (solid fill のみ)。
-	   非 blur theme (neumorph / brutalist / hud) と reduce-transparency も下の
+	   非 blur theme (neumorph / brutalist / 各 dark variant) と reduce-transparency も下の
 	   各 block で solid fill 化済 (どの theme でも透けない契約)。 */
 	--ag-sticky-bar-bg: var(--ag-surface-opaque);
 
@@ -220,7 +214,11 @@
 .dark {
 	--c-bg: oklch(0.17 0.013 260);
 	--c-fg: oklch(0.96 0.004 250);
-	--c-primary: oklch(0.78 0.13 200);
+	/* PH-CF-800 F2: dark の primary は旧 L0.78 → L0.50 へ。 旧値は明るすぎて
+	   primary ベタ塗り上の白文字 (`--ag-accent-text` 派生) の WCAG コントラストが
+	   1.3:1 程度しか出ず、 4.5:1 を大きく下回っていた (`features/cross-cutting/design-tokens.md`
+	   §accent コントラスト契約)。 L0.50 で白文字 (L0.96) との比は ≈ 7.5:1 で AAA 達成。 */
+	--c-primary: oklch(0.50 0.14 215);
 	--c-glass-tint: oklch(0.99 0.004 250);
 	--c-warn: oklch(0.82 0.15 80);
 	--c-error: oklch(0.68 0.17 25);
@@ -343,7 +341,7 @@
    strip」 で、 solid fill 自体は否定されていない。 sticky bar 自身の
    backdrop-filter は付与しない (二重 blur を避ける)。
    blur theme (Dark / Light) は ag-surface-opaque (= bg と 4% fg mix)、
-   非 blur theme (neumorph / brutalist / hud) と reduce-transparency は
+   非 blur theme (neumorph / brutalist / 各 dark variant) と reduce-transparency は
    各 block で本体同色 solid に差し替えており、 widget body との継ぎ目は
    小さく保つ。
    下端の divider は呼出側でも描かない (継ぎ目を作らない)。
@@ -412,9 +410,10 @@
 }
 
 /* =====================================================================
-   BUILT-IN AESTHETIC THEMES (色と直交した 3 軸: Neumorph / Brutalist / HUD)
-   Dark (glass) / Light (whisper) は上の :root / .dark で定義済。
-   各 theme は seeds + aesthetic primitives を差し替えるだけ。
+   BUILT-IN AESTHETIC THEMES (色と直交した 2 軸: Neumorph / Brutalist) ×
+   Dark/Light 4 本。 Dark (glass) / Light (whisper) は上の :root / .dark で
+   定義済 (= 6 本構成、 PH-CF-800 F1)。 各 theme は seeds + aesthetic
+   primitives を差し替えるだけ (audit-no-hud-references:ok 旧 HUD は削除済)。
    ===================================================================== */
 
 /* ---------------------------------------------------------------------
@@ -423,7 +422,8 @@
 [data-theme='neumorph'] {
 	--c-bg: oklch(0.93 0.012 270);
 	--c-fg: oklch(0.34 0.02 270);
-	--c-primary: oklch(0.66 0.09 280);
+	/* PH-CF-800 F2: 旧 L0.66 では白文字との contrast が ≈ 3.0:1 で 4.5:1 未満。 L0.50 へ。 */
+	--c-primary: oklch(0.50 0.10 280);
 	--c-glass-tint: oklch(0.99 0.004 270);
 	--c-warn: oklch(0.78 0.11 75);
 	--c-error: oklch(0.64 0.14 25);
@@ -462,8 +462,9 @@
 [data-theme='brutalist'] {
 	--c-bg: oklch(0.99 0 0);
 	--c-fg: oklch(0.16 0 0);
-	--c-primary: oklch(0.58 0.24 28);
-	--c-secondary: oklch(0.58 0.24 28);
+	/* PH-CF-800 F2: 旧 L0.58 では白文字との contrast が ≈ 4.0:1 で AA 未達。 L0.50 で 4.5:1+。 */
+	--c-primary: oklch(0.50 0.22 28);
+	--c-secondary: oklch(0.50 0.22 28);
 	--c-glass-tint: oklch(1 0 0);
 	--c-warn: oklch(0.62 0.18 75);
 	--c-error: oklch(0.52 0.22 25);
@@ -515,17 +516,66 @@
 }
 
 /* ---------------------------------------------------------------------
-   HUD — 黒地 + 黄/orange accent + monospace + radius 0 + glow + bracket
+   Neumorph Dark — neumorph と対をなす Dark variant (PH-CF-800 F1)
+   pastel solid + inner/outer dual shadow、 blur 無し。 dark base のため
+   surface は near-black で、 shadow は明 / 暗 を反転 (white highlight が淡く
+   見え、 dark shadow が深く落ちる)。
    --------------------------------------------------------------------- */
-[data-theme='hud'] {
-	--c-bg: oklch(0.16 0.01 250);
-	--c-fg: oklch(0.92 0.03 95);
-	--c-primary: oklch(0.82 0.17 85);
-	--c-secondary: oklch(0.74 0.18 55);
-	--c-glass-tint: oklch(0.9 0.1 90);
-	--c-warn: oklch(0.82 0.15 80);
-	--c-error: oklch(0.66 0.2 28);
-	--c-success: oklch(0.8 0.14 155);
+[data-theme='neumorph-dark'] {
+	--c-bg: oklch(0.22 0.012 270);
+	--c-fg: oklch(0.92 0.01 270);
+	/* PH-CF-800 F2: white-on-primary が 4.5:1 を満たす L0.50。 */
+	--c-primary: oklch(0.50 0.10 280);
+	--c-glass-tint: oklch(0.99 0.004 270);
+	--c-warn: oklch(0.78 0.13 75);
+	--c-error: oklch(0.64 0.16 25);
+	--c-success: oklch(0.66 0.13 150);
+
+	--ag-radius-sm: 12px;
+	--ag-radius-md: 18px;
+	--ag-radius-lg: 24px;
+
+	--surface-blur: none;
+	--surface-noise-opacity: 0;
+	--ag-backdrop: none;
+
+	/* neumorph の肝: surface はほぼ bg と同色、 立体感は dual shadow が担う */
+	--ag-surface-opaque: var(--c-bg);
+	--surface-glass-regular: var(--c-bg);
+	--surface-glass-clear: var(--c-bg);
+	--ag-surface-tint: none;
+	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
+	--ag-sticky-bar-bg: var(--surface-glass-regular);
+
+	/* dark 向け shadow: light highlight は微弱 (透過大)、 dark shadow を深く */
+	--shadow-outer-light: -5px -5px 12px oklch(1 0 0 / 0.05);
+	--shadow-outer-dark: 5px 5px 14px oklch(0 0 0 / 0.55);
+
+	--ag-shadow-sm: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-md: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-lg: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-dialog: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-shadow-palette: var(--shadow-outer-dark), var(--shadow-outer-light);
+	--ag-widget-shadow-hover: var(--shadow-inner-dark), var(--shadow-inner-light);
+}
+
+/* ---------------------------------------------------------------------
+   Brutalist Dark — brutalist と対をなす Dark variant (PH-CF-800 F1)
+   黒地 + 1 accent + dotted grid + radius 0 + 1px solid。 brutalist の
+   反転で bg≈黒 / fg≈白、 grid は淡い白点に。 box-shadow も白 (`oklch(1 0 0)`) で
+   オフセット表現。
+   --------------------------------------------------------------------- */
+[data-theme='brutalist-dark'] {
+	--c-bg: oklch(0.14 0 0);
+	--c-fg: oklch(0.96 0 0);
+	/* PH-CF-800 F2: white-on-primary 4.5:1 を満たす L0.50。 brutalist と同 hue (28) で
+	   warm-red accent の世界観を維持しつつ contrast を確保。 */
+	--c-primary: oklch(0.50 0.20 28);
+	--c-secondary: oklch(0.50 0.20 28);
+	--c-glass-tint: oklch(0.16 0 0);
+	--c-warn: oklch(0.70 0.16 75);
+	--c-error: oklch(0.58 0.20 25);
+	--c-success: oklch(0.62 0.15 150);
 
 	--ag-radius-sm: 0px;
 	--ag-radius-md: 0px;
@@ -535,37 +585,40 @@
 	--surface-noise-opacity: 0;
 	--ag-backdrop: none;
 
-	--surface-glass-regular: color-mix(in oklab, var(--c-bg), var(--c-fg) 6%);
-	--surface-glass-clear: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
-	--ag-surface-opaque: color-mix(in oklab, var(--c-bg), var(--c-fg) 5%);
+	--ag-border: var(--c-fg);
+	--ag-border-hover: var(--c-fg);
+	--ag-border-dashed: var(--c-fg);
+
+	--surface-glass-regular: var(--c-bg);
+	--surface-glass-clear: var(--c-bg);
+	--ag-surface-opaque: var(--c-bg);
 	--ag-surface-tint: none;
 	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
 	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
-	/* HUD: workspace 背景は sci-fi の暗黒空間 — uniform な near-black。
-	   雰囲気は surface (panel) / bracket / glow 等の content chrome 側で出す。 */
-	--ag-workspace-bg: oklch(0.07 0.012 250);
+	--ag-shadow-sm: none;
+	--ag-shadow-md: none;
+	--ag-shadow-lg: none;
+	/* dark base: offset shadow は白 (=fg と同色)、 brutalist と同形だが色を反転 */
+	--ag-shadow-dialog: 6px 6px 0 var(--c-fg);
+	--ag-shadow-palette: 8px 8px 0 var(--c-fg);
+	--ag-widget-shadow-hover: 4px 4px 0 var(--c-fg);
 
-	--ag-border: color-mix(in oklab, var(--c-primary), transparent 64%);
-	--ag-border-hover: color-mix(in oklab, var(--c-primary), transparent 40%);
-
-	--font-family-base: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
 	--font-family-display: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
 
-	--text-effect-glow: 0 0 6px color-mix(in oklab, var(--c-primary), transparent 45%);
-	--ag-accent-glow: 0 0 10px color-mix(in oklab, var(--c-primary), transparent 40%);
-	--decoration-bracket-corners: 1;
-	--decoration-tickmarks: 1;
-
-	--ag-shadow-dialog: 0 0 0 1px var(--ag-border), 0 8px 32px oklch(0 0 0 / 0.6);
-	--ag-shadow-palette: 0 0 0 1px var(--ag-border), 0 16px 48px oklch(0 0 0 / 0.7);
-	--ag-widget-shadow-hover: 0 0 16px color-mix(in oklab, var(--c-primary), transparent 70%);
+	--bg-pattern: dots;
+	--bg-pattern-opacity: 0.10;
+	--bg-pattern-color: var(--c-fg);
 }
 
-/* HUD: 見出し / widget title に subtle glow */
-[data-theme='hud'] {
-	color: var(--ag-text-primary);
-}
-[data-theme='hud'] .widget-shell {
-	box-shadow: inset 0 0 0 1px var(--ag-border);
+/* Brutalist Dark: dotted grid 背景 overlay (brutalist と同形、 色は fg=白) */
+[data-theme='brutalist-dark'] body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	opacity: var(--bg-pattern-opacity);
+	background-image: radial-gradient(var(--bg-pattern-color) 1px, transparent 1px);
+	background-size: 16px 16px;
 }
