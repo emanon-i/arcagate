@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { expect, test } from '../fixtures/tauri.js';
 import { mockTauriOpenDialog, unmockTauriOpenDialog } from '../helpers/dialog-mock.js';
 import { createItem, deleteItem } from '../helpers/ipc.js';
-import { resizeMainWindow } from '../helpers/window-resize.js';
+import { disableForceDetailWrapper, enableForceDetailWrapper } from '../helpers/window-resize.js';
 
 /**
  * PH-CF-1100 ⑤⑥ e2e: 見た目設定 (card_override + icon) の解除 / 復元 状態管理。
@@ -47,17 +47,21 @@ function cleanupFixtureIcons(suffix: string): void {
 }
 
 async function openLibrary(page: import('@playwright/test').Page): Promise<void> {
-	// Tauri default 800x600 だと `LibraryLayout` の detail wrapper が `hidden lg:block` で
-	// display:none になり panel 内要素を操作できない。 e2e 用に 1280x800 へ wide-size
-	// resize して `lg:` (>=1024px) breakpoint を満たす (PH-CF-1100 ②⑤⑥ 実 UI 経路の前提)。
-	await resizeMainWindow(page, 1280, 800);
 	await page.evaluate(() => localStorage.setItem('arcagate.app.activeView', 'library'));
 	await page.reload();
 	await page.waitForLoadState('domcontentloaded');
 	await page.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
-	// reload 後にも resize を再適用 (Tauri window state は維持されるが念のため idempotent)。
-	await resizeMainWindow(page, 1280, 800);
+	// PH-CF-1100 ②⑤⑥ 実 UI 経路: detail wrapper を CSS hack で強制表示する。 sharedBrowser
+	// worker scope に持ち越して後続 spec を壊さないよう、 必ず afterEach で disableForceDetailWrapper
+	// を呼んで cleanup する (本 spec の test.afterEach で実施)。
+	await enableForceDetailWrapper(page);
 }
+
+test.afterEach(async ({ page }) => {
+	// CSS hack の cleanup。 sharedBrowser worker scope に持ち越して LB-7 等で
+	// search input が wrapper に intercept される regression を防ぐ。
+	await disableForceDetailWrapper(page);
+});
 
 test('LB-5 (PH-CF-1100 ⑤): 見た目設定を解除すると一覧カードの画像が消える', async ({ page }) => {
 	const suffix = `${process.pid}-${Date.now()}`;
