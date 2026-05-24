@@ -66,11 +66,13 @@ mod tests {
         }
         factory_reset(&db, true, false).unwrap();
         let conn = db.0.lock().unwrap();
-        // library reset で custom テーマは削除、builtin (design tokens v2 で 5 本) は残る。
+        // library reset で custom テーマは削除、builtin (PH-CF-800 F1 / migration 041 で 6 本)
+        // は残る。 3 系統 × Dark/Light = dark / light / brutalist / brutalist-dark /
+        // neumorph / neumorph-dark (HUD は migration 041 で削除済)。
         let themes: i64 = conn
             .query_row("SELECT COUNT(*) FROM themes", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(themes, 5, "builtin テーマのみ残る (custom は削除)");
+        assert_eq!(themes, 6, "builtin テーマのみ残る (custom は削除)");
         let custom: i64 = conn
             .query_row(
                 "SELECT COUNT(*) FROM themes WHERE id = 'custom-x'",

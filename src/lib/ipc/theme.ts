@@ -45,3 +45,11 @@ export async function exportThemeJson(id: string): Promise<string> {
 export async function importThemeJson(json: string): Promise<Theme> {
 	return invoke<Theme>('cmd_import_theme_json', { json });
 }
+
+/**
+ * PH-CF-800 F6: カスタムテーマ件数 + 上限。 UI が「N / MAX」 を表示し、 上限到達で
+ * 「複製」 「インポート」 ボタンを disabled にする。 戻り値は `[used, max]` のタプル。
+ */
+export async function getCustomThemeQuota(): Promise<[number, number]> {
+	return invoke<[number, number]>('cmd_get_custom_theme_quota');
+}

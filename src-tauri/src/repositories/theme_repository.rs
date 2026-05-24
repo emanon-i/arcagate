@@ -28,8 +28,14 @@ pub fn find_by_id(conn: &Connection, id: &str) -> Result<Theme, AppError> {
 }
 
 pub fn find_all(conn: &Connection) -> Result<Vec<Theme>, AppError> {
+    // PH-CF-800 F1: builtin の並び順は migration 041 で seed した `sort_order` で明示する
+    // (旧 `ORDER BY is_builtin DESC, name` は英名 ABC 順 = "Brutalist → Dark → ..." と直感的でなかった)。
+    // builtin (sort_order NOT NULL) が先、 custom (sort_order NULL) は後で name 順
+    // (`features/screens/settings.md` §テーマ並び順契約)。 NULL 順は SQLite 既定で NULLS LAST、
+    // ORDER BY 句で `is_builtin DESC` を残せば builtin が確実に先に来る。
     let mut stmt = conn.prepare(
-        "SELECT id, name, base_theme, css_vars, is_builtin, created_at, updated_at FROM themes ORDER BY is_builtin DESC, name",
+        "SELECT id, name, base_theme, css_vars, is_builtin, created_at, updated_at FROM themes
+         ORDER BY is_builtin DESC, sort_order, name",
     )?;
     let themes = stmt
         .query_map([], Theme::from_row)?
@@ -95,20 +101,51 @@ mod tests {
         let conn = db.0.lock().unwrap();
 
         let themes = find_all(&conn).unwrap();
-        // Design tokens v2 (migration 035): built-in は 5 本
-        // (Dark / Light / Neumorph / Brutalist / HUD、 id prefix なし)。
-        assert_eq!(themes.len(), 5);
+        // PH-CF-800 F1: built-in は 6 本 (migration 041 で再編成)。
+        // 3 系統 (glass / brutalist / neumorph) × Dark/Light の対。 HUD は削除済。
+        assert_eq!(themes.len(), 6);
         assert!(themes.iter().all(|t| t.is_builtin));
         assert!(themes.iter().any(|t| t.id == "dark" && t.name == "Dark"));
         assert!(themes
             .iter()
             .any(|t| t.id == "light" && t.name == "Light" && t.base_theme == "light"));
         assert!(themes.iter().any(|t| t.id == "neumorph"));
+        assert!(themes
+            .iter()
+            .any(|t| t.id == "neumorph-dark" && t.base_theme == "dark"));
         assert!(themes.iter().any(|t| t.id == "brutalist"));
-        assert!(themes.iter().any(|t| t.id == "hud"));
+        assert!(themes
+            .iter()
+            .any(|t| t.id == "brutalist-dark" && t.base_theme == "dark"));
+        // HUD は migration 041 で削除済 (F1 契約: builtin から HUD を完全に除去)。
+        // audit-no-hud-references:ok (削除を verify する assertion)
+        assert!(!themes.iter().any(|t| t.id == "hud"));
         // 旧 builtin プリセットは廃止済
         assert!(!themes.iter().any(|t| t.id == "theme-builtin-endfield"));
         assert!(!themes.iter().any(|t| t.id == "theme-builtin-liquid-glass"));
+    }
+
+    /// PH-CF-800 F1: テーマ一覧の順序は sort_order 列で明示する (英名 ABC 順に依存しない)。
+    /// 期待順 = dark → light → brutalist-dark → brutalist → neumorph-dark → neumorph。
+    #[test]
+    fn test_builtin_themes_sort_order() {
+        let db = initialize_in_memory();
+        let conn = db.0.lock().unwrap();
+
+        let themes = find_all(&conn).unwrap();
+        let ids: Vec<&str> = themes.iter().map(|t| t.id.as_str()).collect();
+        assert_eq!(
+            ids,
+            vec![
+                "dark",
+                "light",
+                "brutalist-dark",
+                "brutalist",
+                "neumorph-dark",
+                "neumorph"
+            ],
+            "builtin order must follow sort_order from migration 041"
+        );
     }
 
     #[test]
@@ -134,11 +171,11 @@ mod tests {
         insert(&conn, &make_theme("custom-001", "Custom", "light", false)).unwrap();
 
         let themes = find_all(&conn).unwrap();
-        // 5 builtin (design tokens v2) + 1 custom = 6
-        assert_eq!(themes.len(), 6);
+        // PH-CF-800 F1: 6 builtin + 1 custom = 7
+        assert_eq!(themes.len(), 7);
         // builtin first (is_builtin DESC), then custom
-        assert!(themes[..5].iter().all(|t| t.is_builtin));
-        assert!(!themes[5].is_builtin);
+        assert!(themes[..6].iter().all(|t| t.is_builtin));
+        assert!(!themes[6].is_builtin);
     }
 
     #[test]

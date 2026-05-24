@@ -6,6 +6,16 @@ use crate::models::theme::{CreateThemeInput, Theme, UpdateThemeInput};
 use crate::repositories::{config_repository, theme_repository};
 use crate::utils::error::AppError;
 
+/// PH-CF-800 F6: カスタムテーマの作成上限 (builtin は対象外、 `is_builtin = 1` を除いた件数)。
+///
+/// 上限の根拠: daily-use launcher の typical 利用範囲 (< 10 本) を大きく上回り、 import
+/// loop / accidental flood で DB を肥大させない緩い stop-loss として 50 本に設定。
+/// `create_theme` と `import_theme_json` の両方で同じ MAX を検査する契約
+/// (`features/backend/theme-service.md` §カスタムテーマ上限契約)。
+///
+/// UI (`SettingsAppearancePane.svelte`) は常時「N / MAX」 を表示し、 上限到達でボタン disabled。
+pub const MAX_CUSTOM_THEMES: usize = 50;
+
 fn validate_theme_name(name: &str) -> Result<(), AppError> {
     if name.trim().is_empty() {
         return Err(AppError::InvalidInput("name must not be empty".to_string()));
@@ -39,12 +49,35 @@ pub fn get_theme(db: &DbState, id: &str) -> Result<Theme, AppError> {
     theme_repository::find_by_id(&conn, id)
 }
 
+/// PH-CF-800 F6: 現在のカスタムテーマ件数 (`is_builtin = 0`)。 UI / 上限チェック共用。
+pub fn count_custom_themes(db: &DbState) -> Result<usize, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let all = theme_repository::find_all(&conn)?;
+    Ok(all.iter().filter(|t| !t.is_builtin).count())
+}
+
+/// PH-CF-800 F6: カスタムテーマが上限に達しているか否かを共用 check (create / import で再利用)。
+fn ensure_custom_theme_capacity(conn: &rusqlite::Connection) -> Result<(), AppError> {
+    let all = theme_repository::find_all(conn)?;
+    let custom_count = all.iter().filter(|t| !t.is_builtin).count();
+    if custom_count >= MAX_CUSTOM_THEMES {
+        return Err(AppError::InvalidInput(format!(
+            "custom theme limit reached ({} / {})",
+            custom_count, MAX_CUSTOM_THEMES
+        )));
+    }
+    Ok(())
+}
+
 pub fn create_theme(db: &DbState, input: CreateThemeInput) -> Result<Theme, AppError> {
     validate_theme_name(&input.name)?;
     validate_base_theme(&input.base_theme)?;
     validate_css_vars(&input.css_vars)?;
 
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // PH-CF-800 F6: MAX_CUSTOM_THEMES 超過は早期 reject (`features/backend/theme-service.md`
+    // §カスタムテーマ上限契約)。
+    ensure_custom_theme_capacity(&conn)?;
     let id = Uuid::now_v7().to_string();
 
     let theme = Theme {
@@ -97,8 +130,9 @@ pub fn get_active_theme_mode(db: &DbState) -> Result<String, AppError> {
 pub fn set_active_theme_mode(db: &DbState, mode: &str) -> Result<(), AppError> {
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
 
-    // mode は実在する theme ID ('dark' / 'light' / 'neumorph' / 'brutalist' /
-    // 'hud' / custom) でなければならない。 OS 追従 ('system') は撤廃済。
+    // mode は実在する theme ID ('dark' / 'light' / 'brutalist' / 'brutalist-dark' /
+    // 'neumorph' / 'neumorph-dark' / custom) でなければならない。 PH-CF-800 F1 で
+    // HUD は builtin から削除。 OS 追従 ('system') は migration 036 で撤廃済。
     theme_repository::find_by_id(&conn, mode)?;
 
     config_repository::set(&conn, KEY_THEME_MODE, mode)
@@ -121,6 +155,9 @@ pub fn import_theme_json(db: &DbState, json: &str) -> Result<Theme, AppError> {
     validate_css_vars(&imported.css_vars)?;
 
     let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    // PH-CF-800 F6: import 経路でも create と同じ MAX_CUSTOM_THEMES を検査 (loop import で
+    // DB が肥大しないように、 `features/backend/theme-service.md` §カスタムテーマ上限契約)。
+    ensure_custom_theme_capacity(&conn)?;
 
     // Check name uniqueness
     let all = theme_repository::find_all(&conn)?;
@@ -156,8 +193,8 @@ mod tests {
     fn test_list_themes() {
         let db = initialize_in_memory();
         let themes = list_themes(&db).unwrap();
-        // 5 builtin (design tokens v2 / migration 035: Dark / Light / Neumorph / Brutalist / HUD)
-        assert_eq!(themes.len(), 5);
+        // PH-CF-800 F1 (migration 041): builtin は 6 本 (3 系統 × Dark/Light、 HUD 削除済)。
+        assert_eq!(themes.len(), 6);
     }
 
     #[test]
@@ -169,16 +206,31 @@ mod tests {
 
     #[test]
     fn test_builtin_themes_v2_set() {
-        // design tokens v2 (migration 035): built-in は 5 本
-        // (Dark / Light / Neumorph / Brutalist / HUD)。
+        // PH-CF-800 F1 (migration 041): built-in は 6 本
+        // (3 系統 × Dark/Light = dark / light / brutalist / brutalist-dark / neumorph / neumorph-dark)。
+        // HUD は削除済。
         let db = initialize_in_memory();
         let themes = list_themes(&db).unwrap();
         let mut ids: Vec<&str> = themes.iter().map(|t| t.id.as_str()).collect();
         ids.sort_unstable();
-        assert_eq!(ids, vec!["brutalist", "dark", "hud", "light", "neumorph"]);
+        assert_eq!(
+            ids,
+            vec![
+                "brutalist",
+                "brutalist-dark",
+                "dark",
+                "light",
+                "neumorph",
+                "neumorph-dark",
+            ]
+        );
         let light = get_theme(&db, "light").unwrap();
         assert_eq!(light.name, "Light");
         assert_eq!(light.base_theme, "light");
+        let brutalist_dark = get_theme(&db, "brutalist-dark").unwrap();
+        assert_eq!(brutalist_dark.base_theme, "dark");
+        let neumorph_dark = get_theme(&db, "neumorph-dark").unwrap();
+        assert_eq!(neumorph_dark.base_theme, "dark");
     }
 
     #[test]
@@ -281,7 +333,8 @@ mod tests {
 
         delete_theme(&db, &theme.id).unwrap();
         let all = list_themes(&db).unwrap();
-        assert_eq!(all.len(), 5); // 5 builtins (design tokens v2 / migration 035)
+        // PH-CF-800 F1 (migration 041): 6 builtins (3 系統 × Dark/Light)
+        assert_eq!(all.len(), 6);
     }
 
     #[test]
@@ -315,12 +368,17 @@ mod tests {
     #[test]
     fn test_set_active_theme_mode_valid() {
         let db = initialize_in_memory();
-        // 有効値は実在する builtin theme ID ('dark' / 'light' / 'hud' 等)。
+        // PH-CF-800 F1: 有効値は実在する builtin theme ID
+        // ('dark' / 'light' / 'brutalist' / 'brutalist-dark' / 'neumorph' / 'neumorph-dark')。
+        // HUD は削除済のため reject される (test_set_active_theme_mode_rejects_unknown_id を参照)。
         set_active_theme_mode(&db, "light").unwrap();
         assert_eq!(get_active_theme_mode(&db).unwrap(), "light");
 
-        set_active_theme_mode(&db, "hud").unwrap();
-        assert_eq!(get_active_theme_mode(&db).unwrap(), "hud");
+        set_active_theme_mode(&db, "brutalist-dark").unwrap();
+        assert_eq!(get_active_theme_mode(&db).unwrap(), "brutalist-dark");
+
+        set_active_theme_mode(&db, "neumorph-dark").unwrap();
+        assert_eq!(get_active_theme_mode(&db).unwrap(), "neumorph-dark");
 
         set_active_theme_mode(&db, "dark").unwrap();
         assert_eq!(get_active_theme_mode(&db).unwrap(), "dark");
@@ -331,8 +389,11 @@ mod tests {
         let db = initialize_in_memory();
         // 実在しない theme ID は reject
         assert!(set_active_theme_mode(&db, "no-such-theme").is_err());
-        // OS 追従撤廃: 'system' も実在 theme ID ではないので reject される
+        // OS 追従撤廃: 'system' も実在 theme ID ではないので reject される (migration 036)
         assert!(set_active_theme_mode(&db, "system").is_err());
+        // PH-CF-800 F1 (migration 041): HUD は builtin から削除済 → reject される
+        // audit-no-hud-references:ok (この assertion 自体が削除を verify)
+        assert!(set_active_theme_mode(&db, "hud").is_err());
     }
 
     #[test]
@@ -383,6 +444,87 @@ mod tests {
         let imported = import_theme_json(&db, json).unwrap();
         assert_ne!(imported.id, "old-id");
         assert_eq!(imported.name, "Imported");
+    }
+
+    /// PH-CF-800 F6: create が MAX_CUSTOM_THEMES を超えたら InvalidInput を返す。
+    #[test]
+    fn test_create_theme_enforces_custom_theme_limit() {
+        let db = initialize_in_memory();
+        // MAX 本まで作る
+        for i in 0..MAX_CUSTOM_THEMES {
+            create_theme(
+                &db,
+                CreateThemeInput {
+                    name: format!("Custom-{i}"),
+                    base_theme: "dark".to_string(),
+                    css_vars: "{}".to_string(),
+                },
+            )
+            .unwrap();
+        }
+        // MAX + 1 本目は reject
+        let result = create_theme(
+            &db,
+            CreateThemeInput {
+                name: "OverLimit".to_string(),
+                base_theme: "dark".to_string(),
+                css_vars: "{}".to_string(),
+            },
+        );
+        assert!(matches!(result, Err(AppError::InvalidInput(_))));
+    }
+
+    /// PH-CF-800 F6: import も同じ MAX を検査する (loop import 防止)。
+    #[test]
+    fn test_import_theme_enforces_custom_theme_limit() {
+        let db = initialize_in_memory();
+        for i in 0..MAX_CUSTOM_THEMES {
+            create_theme(
+                &db,
+                CreateThemeInput {
+                    name: format!("Imp-{i}"),
+                    base_theme: "dark".to_string(),
+                    css_vars: "{}".to_string(),
+                },
+            )
+            .unwrap();
+        }
+        let json = r#"{
+            "id": "any",
+            "name": "Imported",
+            "base_theme": "dark",
+            "css_vars": "{}",
+            "is_builtin": false,
+            "created_at": "",
+            "updated_at": ""
+        }"#;
+        let result = import_theme_json(&db, json);
+        assert!(matches!(result, Err(AppError::InvalidInput(_))));
+    }
+
+    #[test]
+    fn test_count_custom_themes() {
+        let db = initialize_in_memory();
+        assert_eq!(count_custom_themes(&db).unwrap(), 0);
+        create_theme(
+            &db,
+            CreateThemeInput {
+                name: "A".to_string(),
+                base_theme: "dark".to_string(),
+                css_vars: "{}".to_string(),
+            },
+        )
+        .unwrap();
+        create_theme(
+            &db,
+            CreateThemeInput {
+                name: "B".to_string(),
+                base_theme: "dark".to_string(),
+                css_vars: "{}".to_string(),
+            },
+        )
+        .unwrap();
+        assert_eq!(count_custom_themes(&db).unwrap(), 2);
     }
 
     #[test]
@@ -449,5 +591,11 @@ impl ThemeService {
 
     pub fn import_theme_json(&self, json: &str) -> Result<Theme, AppError> {
         import_theme_json(&self.db, json)
+    }
+
+    /// PH-CF-800 F6: カスタムテーマ件数 + 上限の情報。 UI 「N / MAX」 表示用。
+    pub fn get_custom_theme_quota(&self) -> Result<(usize, usize), AppError> {
+        let used = count_custom_themes(&self.db)?;
+        Ok((used, MAX_CUSTOM_THEMES))
     }
 }

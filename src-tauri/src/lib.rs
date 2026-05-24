@@ -44,8 +44,8 @@ use commands::system_monitor_commands::{
 };
 use commands::theme_commands::{
     cmd_create_theme, cmd_delete_theme, cmd_export_theme_json, cmd_get_active_theme_mode,
-    cmd_get_theme, cmd_import_theme_json, cmd_list_themes, cmd_set_active_theme_mode,
-    cmd_update_theme,
+    cmd_get_custom_theme_quota, cmd_get_theme, cmd_import_theme_json, cmd_list_themes,
+    cmd_set_active_theme_mode, cmd_update_theme,
 };
 use commands::url_commands::cmd_fetch_url_title;
 use commands::watched_path_commands::{
@@ -465,6 +465,7 @@ pub fn run() {
             cmd_set_active_theme_mode,
             cmd_export_theme_json,
             cmd_import_theme_json,
+            cmd_get_custom_theme_quota,
             cmd_check_kill_switch,
             cmd_list_openers,
             cmd_save_opener,

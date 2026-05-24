@@ -79,3 +79,12 @@ pub fn cmd_import_theme_json(
 ) -> Result<Theme, AppError> {
     services.theme.import_theme_json(&json)
 }
+
+/// PH-CF-800 F6: カスタムテーマ件数 + 上限。 UI が「N / MAX」 を表示し、 上限到達で
+/// 作成 / import を disabled にする。 戻り値は `(used, max)`。
+#[tauri::command]
+pub fn cmd_get_custom_theme_quota(
+    services: State<AppServices>,
+) -> Result<(usize, usize), AppError> {
+    services.theme.get_custom_theme_quota()
+}
