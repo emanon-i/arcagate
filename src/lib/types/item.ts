@@ -17,6 +17,11 @@ export interface Item {
 	default_app: DefaultApp | null;
 	/** PH-290: per-card 背景・文字 override（JSON 文字列、null = global default） */
 	card_override_json: string | null;
+	/** アイテムライフサイクル契約 (PH-CF-100): 監視ウィジェット由来 item の back-link。
+	 *  null = 手動 item / 監視非由来。 source_entry_key と 2 列セット (片肺禁止)。 */
+	source_widget_id: string | null;
+	/** アイテムライフサイクル契約: scan reconcile の entry id (正規化済 絶対パス)。 */
+	source_entry_key: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -31,6 +36,11 @@ export interface CreateItemInput {
 	aliases: string[];
 	tag_ids: string[];
 	is_tracked: boolean;
+	/** アイテムライフサイクル契約 U-6: Undo / JSON import の back-link 完全復元用。
+	 *  指定された source_widget_id が backend に存在しない場合は NULL にフォールバック。 */
+	source_widget_id?: string | null;
+	/** source_entry_key も同時指定 (片肺禁止)。 */
+	source_entry_key?: string | null;
 }
 
 export interface LibraryStats {

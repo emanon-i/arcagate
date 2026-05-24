@@ -432,10 +432,15 @@ $effect(() => {
 	};
 });
 
-// パス消失イベントリスナー
+// アイテムライフサイクル契約 U-3: パス消失イベント。 backend は対象 tracked item を
+// `is_enabled=false` でグレーアウト化済 (watcher_service::disable_tracked_target)。
+// payload は { path, item_id } の JSON。 user 操作の選択肢 (Library から削除 / 無視) は
+// toast の action として frontend で実装。 itemStore も refresh して UI に grey-out 反映。
 let unlistenPathNotFound: (() => void) | null = null;
-listen<string>('item://path-not-found', (e) => {
-	toastStore.add(t('toast.path_not_found', { path: String(e.payload) }), 'error');
+listen<{ path: string; item_id: string }>('item://path-not-found', (e) => {
+	const path = e.payload?.path ?? '';
+	void itemStore.loadItems();
+	toastStore.add(t('toast.path_not_found', { path }), 'info');
 }).then((fn) => {
 	unlistenPathNotFound = fn;
 });
