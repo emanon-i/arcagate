@@ -1,3 +1,5 @@
+import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test } from '../fixtures/tauri.js';
 import {
 	createItem,
@@ -39,12 +41,140 @@ async function openLibrary(page: import('@playwright/test').Page): Promise<void>
 	await page.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
 }
 
-// PH-CF-600 C2 (画像即時反映) は実 file picker (Tauri `dialog.open`) で OS picker を
-// 開く経路 + 実 file copy が前提のため、 e2e で安定再現するには picker mock と icon
-// 用 fixture が必要になる。 paint stale の真因 (LibraryCard の `content-visibility:
-// auto` を初回 2 rAF 後に後付け + ItemFormCardOverride の `applyOptimisticUpdate`) は
-// コード変更点が明確なため、 e2e ではなく実装上の review で verify する方針とする
-// (plan doc §C2 の「e2e は IPC レイヤと UI close 条件に集中、 C2 は実装で verify」と整合)。
+// PH-CF-600 C2 (画像即時反映) e2e fixture: asset:// scope (`$APPDATA/com.arcagate.desktop/icons/`)
+// 配下に実 PNG を 2 枚仕込み、 ItemIcon が onerror で fallback に降格しないようにする。
+// 1 枚を初期 icon に、 もう 1 枚を更新後 icon に使う。 path は forward slash 正規化
+// (= save_icon_file が返す形式と一致させる)。
+function iconDir(): string {
+	const appData = process.env.APPDATA ?? join(process.env.USERPROFILE ?? '.', 'AppData', 'Roaming');
+	return join(appData, 'com.arcagate.desktop', 'icons');
+}
+
+const LB2_ICON_PREFIX = 'ph-cf-600-lb-2-';
+
+function setupLb2Icons(suffix: string): { initial: string; updated: string } {
+	const dir = iconDir();
+	mkdirSync(dir, { recursive: true });
+	// 既存の Tauri app icon (PNG) を流用 (有効な PNG bytes、 fallback 降格を回避)。
+	const srcPng = join(process.cwd(), 'src-tauri', 'icons', '128x128.png');
+	const initial = join(dir, `${LB2_ICON_PREFIX}initial-${suffix}.png`);
+	const updated = join(dir, `${LB2_ICON_PREFIX}updated-${suffix}.png`);
+	copyFileSync(srcPng, initial);
+	copyFileSync(srcPng, updated);
+	// asset:// scope への path は forward slash 正規化が安定 (save_icon_file と同方式)。
+	return {
+		initial: initial.replace(/\\/g, '/'),
+		updated: updated.replace(/\\/g, '/'),
+	};
+}
+
+function cleanupLb2Icons(suffix: string): void {
+	const dir = iconDir();
+	for (const name of [
+		`${LB2_ICON_PREFIX}initial-${suffix}.png`,
+		`${LB2_ICON_PREFIX}updated-${suffix}.png`,
+	]) {
+		try {
+			rmSync(join(dir, name), { force: true });
+		} catch {
+			// 既に消えていても無視 (ベストエフォート)
+		}
+	}
+}
+
+test('LB-2 (C2): icon_path 更新で画面遷移なしにグリッドのカード <img src> が新 path に切替', async ({
+	page,
+}, testInfo) => {
+	// PH-CF-600 C2 回帰検出。 真因 (LibraryCard の `content-visibility: auto` 仮想化 +
+	// `{#key item.icon_path}` 再マウントの相互作用で paint stale) と修正
+	// (`itemStore.updateItem` 内で `applyOptimisticUpdate` + `freshIconMark` bump → LibraryCard
+	// が freshIconMark を検知して 2 rAF だけ CV を suppress) を経路ごと駆動する。
+	//
+	// 駆動方式: `window.__arcagateTest__.itemStore.updateItem` を介して frontend 経路を
+	// 通す (= ItemFormCardOverride と同じ optimistic update + freshIconMark bump)。
+	// direct IPC (`cmd_update_item`) だけだと store が refresh されず C2 fix が走らない
+	// ため使えない (= かつての LB-2 撤回理由の正体だった structural flake)。
+	const suffix = `${process.pid}-${Date.now()}`;
+	const { initial: initialIcon, updated: updatedIcon } = setupLb2Icons(suffix);
+	const item = await createItem(page, {
+		item_type: 'url',
+		label: `PH-CF-600 LB-2 ${suffix}`,
+		target: `https://example.com/ph-cf-600-lb-2-${suffix}`,
+		icon_path: initialIcon,
+		aliases: [],
+		tag_ids: [],
+		is_tracked: false,
+	});
+
+	try {
+		await openLibrary(page);
+		// store を最新化 (新規 item を store の reactive list に load)。
+		await page.evaluate(() => {
+			const w = window as unknown as {
+				__arcagateTest__?: { itemStore?: { loadItems: () => Promise<void> } };
+			};
+			return w.__arcagateTest__?.itemStore?.loadItems?.();
+		});
+
+		const card = page.getByTestId(`library-card-${item.id}`);
+		await card.waitFor({ state: 'attached', timeout: 15_000 });
+		await card.scrollIntoViewIfNeeded();
+
+		// 初期 src は initial icon (filename を含む asset:// URL)。
+		const cardImg = card.locator('img').first();
+		const initialTail = initialIcon.split('/').pop() ?? initialIcon;
+		await expect
+			.poll(async () => (await cardImg.getAttribute('src')) ?? '', {
+				timeout: 5_000,
+				intervals: [100, 200, 400],
+			})
+			.toContain(initialTail);
+
+		// updateItem を **frontend 経路** で呼ぶ (= itemStore.updateItem)。 これが
+		// applyOptimisticUpdate + freshIconMark bump → LibraryCard の CV 一時 suppress を駆動。
+		const updateOk = await page.evaluate(
+			async ({ id, newPath }) => {
+				const w = window as unknown as {
+					__arcagateTest__?: {
+						itemStore?: {
+							updateItem: (id: string, input: { icon_path: string }) => Promise<void>;
+						};
+					};
+				};
+				const fn = w.__arcagateTest__?.itemStore?.updateItem;
+				if (!fn) return false;
+				await fn(id, { icon_path: newPath });
+				return true;
+			},
+			{ id: item.id, newPath: updatedIcon },
+		);
+		expect(updateOk, '__arcagateTest__.itemStore.updateItem が利用可能').toBe(true);
+
+		// 画面遷移なしで `<img src>` が新 path に切替わる。 5s 以内に成立すれば C2 契約 OK。
+		// LibraryView の `{#key item.icon_path}` 再マウントで `<img>` 要素は別 instance に
+		// 入れ替わるため、 locator を再取得する形で poll する。
+		const updatedTail = updatedIcon.split('/').pop() ?? updatedIcon;
+		await expect
+			.poll(
+				async () =>
+					(await card
+						.locator('img')
+						.first()
+						.getAttribute('src')
+						.catch(() => '')) ?? '',
+				{ timeout: 5_000, intervals: [100, 200, 400] },
+			)
+			.toContain(updatedTail);
+
+		await testInfo.attach('lb-2-after-icon-update.png', {
+			body: await page.screenshot({ fullPage: false }),
+			contentType: 'image/png',
+		});
+	} finally {
+		await deleteItem(page, item.id).catch(() => {});
+		cleanupLb2Icons(suffix);
+	}
+});
 
 test('LB-4a: searchItemsInTag(includeDisabled=true) は hidden item を含む', async ({ page }) => {
 	const visible = await createItem(page, {
