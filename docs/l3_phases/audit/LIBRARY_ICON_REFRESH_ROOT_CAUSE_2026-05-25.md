@@ -44,14 +44,14 @@
 
 ## 用語整理
 
-| 語                  | 指すもの                                                                     |
-| ------------------- | ---------------------------------------------------------------------------- |
-| ②                   | 「見た目設定で画像変更 → Library 一覧カードが即時反映」 という user 要求     |
-| 即時反映            | dialog open / close を待たず、 grid card の `<img src>` が新 path に切替わる |
-| paint stale         | DOM/src は更新されているのに、 browser が古い image を表示し続ける現象       |
-| `{#key}` 再マウント | 各 card を `{#key item.icon_path                                             |
-| LB-2                | ② を実 UI 経路で検証する e2e (現在 skip)                                     |
-| LB-2-real           | PR #573 で導入を計画した、 dialog mock + 実 UI click sequence 版 LB-2        |
+| 語                  | 指すもの                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| ②                   | 「見た目設定で画像変更 → Library 一覧カードが即時反映」 という user 要求                                                            |
+| 即時反映            | dialog open / close を待たず、 grid card の `<img src>` が新 path に切替わる                                                        |
+| paint stale         | DOM/src は更新されているのに、 browser が古い image を表示し続ける現象                                                              |
+| `{#key}` 再マウント | 各 card を <code>{#key item.icon_path&#124;card_override_json}</code> で囲み、 src 変化で DOM 自体を作り直す PR #573 の構造的回避策 |
+| LB-2                | ② を実 UI 経路で検証する e2e (現在 skip)                                                                                            |
+| LB-2-real           | PR #573 で導入を計画した、 dialog mock + 実 UI click sequence 版 LB-2                                                               |
 
 ---
 
@@ -59,16 +59,16 @@
 
 ### 1.1 画像変更フロー (file:line)
 
-| Step | 場所                                                                                                          | 内容                                                                                                                     |
-| ---- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 1    | [`LibraryDetailPanel.svelte`](../../../src/lib/components/arcagate/library/LibraryDetailPanel.svelte):214-326 | 「見た目設定」 checkbox = ON → 歯車 button enable → click で `cardOverrideDialogOpen = true`                             |
-| 2    | [`CardOverrideDialog.svelte`](../../../src/lib/components/arcagate/library/CardOverrideDialog.svelte):31-58   | `<ItemFormCardOverride item={item}>` を render                                                                           |
-| 3    | [`ItemFormCardOverride.svelte`](../../../src/lib/components/item/ItemFormCardOverride.svelte):89-117          | `selectImage()` で `plugin-dialog open()` → `cmd_save_icon_file` → `applyOptimisticUpdate` → `updateItem`                |
-| 4    | [`items.svelte.ts`](../../../src/lib/state/items.svelte.ts):62-67                                             | `items = items.map((item) => (item.id === id ? updated : item))` で配列再代入                                            |
-| 5    | [`LibraryMainArea.svelte`](../../../src/lib/components/arcagate/library/LibraryMainArea.svelte):227-246       | `filteredItems = $derived.by(...)` で fuzzy filter / sort をかけ直し                                                     |
-| 6    | [`LibraryView.svelte`](../../../src/lib/components/arcagate/library/LibraryView.svelte):187-209, 246-262      | `{#each filteredItems as item (item.id)}` の中で `{#key \`${item.icon_path}                                              |
-| 7    | [`LibraryCard.svelte`](../../../src/lib/components/arcagate/library/LibraryCard.svelte):148-159               | `<ItemIcon iconPath={item.icon_path} ...>`                                                                               |
-| 8    | [`ItemIcon.svelte`](../../../src/lib/components/arcagate/common/ItemIcon.svelte):32, 61-71                    | `iconSrc = $derived(iconPath ? convertFileSrc(iconPath) : null)` → `<img src={iconSrc} loading="lazy" decoding="async">` |
+| Step | 場所                                                                                                          | 内容                                                                                                                                                               |
+| ---- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | [`LibraryDetailPanel.svelte`](../../../src/lib/components/arcagate/library/LibraryDetailPanel.svelte):214-326 | 「見た目設定」 checkbox = ON → 歯車 button enable → click で `cardOverrideDialogOpen = true`                                                                       |
+| 2    | [`CardOverrideDialog.svelte`](../../../src/lib/components/arcagate/library/CardOverrideDialog.svelte):31-58   | `<ItemFormCardOverride item={item}>` を render                                                                                                                     |
+| 3    | [`ItemFormCardOverride.svelte`](../../../src/lib/components/item/ItemFormCardOverride.svelte):89-117          | `selectImage()` で `plugin-dialog open()` → `cmd_save_icon_file` → `applyOptimisticUpdate` → `updateItem`                                                          |
+| 4    | [`items.svelte.ts`](../../../src/lib/state/items.svelte.ts):62-67                                             | `items = items.map((item) => (item.id === id ? updated : item))` で配列再代入                                                                                      |
+| 5    | [`LibraryMainArea.svelte`](../../../src/lib/components/arcagate/library/LibraryMainArea.svelte):227-246       | `filteredItems = $derived.by(...)` で fuzzy filter / sort をかけ直し                                                                                               |
+| 6    | [`LibraryView.svelte`](../../../src/lib/components/arcagate/library/LibraryView.svelte):187-209, 246-262      | <code>{#each filteredItems as item (item.id)}</code> の中で <code>{#key `${item.icon_path}&#124;${item.card_override_json}`}</code> で LibraryCard を **再 mount** |
+| 7    | [`LibraryCard.svelte`](../../../src/lib/components/arcagate/library/LibraryCard.svelte):148-159               | `<ItemIcon iconPath={item.icon_path} ...>`                                                                                                                         |
+| 8    | [`ItemIcon.svelte`](../../../src/lib/components/arcagate/common/ItemIcon.svelte):32, 61-71                    | `iconSrc = $derived(iconPath ? convertFileSrc(iconPath) : null)` → `<img src={iconSrc} loading="lazy" decoding="async">`                                           |
 
 ### 1.2 `{#key}` 再マウントは本当に必要か
 
@@ -100,11 +100,11 @@
 
 ### 2.1 過去に積まれた対症メカニズムの棚卸し
 
-| PR                  | 機構                                                                          | ブロックしていた相手 (主張)                                      | 現状                                                                                        |
-| ------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| #564 (PH-CF-600 C2) | `content-visibility: auto` 2 rAF 経過後にだけ有効化 + `applyOptimisticUpdate` | CV による off-screen 扱いで fresh mount card の paint をスキップ | #573 で **撤廃**                                                                            |
-| #570                | `freshIconMark` (items.svelte.ts に bump カウンタ) + 実 UI 経路 LB-2 復活     | CV: auto + lazy img の paint window 不整合                       | #573 で **撤廃**                                                                            |
-| #573 (PH-CF-1100 ②) | `content-visibility: auto` 全撤廃 + `freshIconMark` 撤廃 + `{#key icon_path   | card_override_json}` 再マウント                                  | 旧 freshIconMark + onMount/$effect の 2 段 fix が「modal overlay 下で paint window を浪費」 |
+| PR                  | 機構                                                                                                                        | ブロックしていた相手 (主張)                                                                 | 現状             |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------- |
+| #564 (PH-CF-600 C2) | `content-visibility: auto` 2 rAF 経過後にだけ有効化 + `applyOptimisticUpdate`                                               | CV による off-screen 扱いで fresh mount card の paint をスキップ                            | #573 で **撤廃** |
+| #570                | `freshIconMark` (items.svelte.ts に bump カウンタ) + 実 UI 経路 LB-2 復活                                                   | CV: auto + lazy img の paint window 不整合                                                  | #573 で **撤廃** |
+| #573 (PH-CF-1100 ②) | `content-visibility: auto` 全撤廃 + `freshIconMark` 撤廃 + <code>{#key icon_path&#124;card_override_json}</code> 再マウント | 旧 freshIconMark + onMount/$effect の 2 段 fix が「modal overlay 下で paint window を浪費」 | #573 で **現状** |
 
 PR 本文 (PR #573 body) は ② の root cause を以下と主張:
 
