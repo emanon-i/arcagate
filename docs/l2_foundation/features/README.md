@@ -74,7 +74,7 @@ Arcagate の全 feature / module の **機能契約 (Functional Spec)**。各 fe
 - [Wallpaper Service](./backend/wallpaper-service.md) — 壁紙保存
 - [Export / Import Service](./backend/export-import.md) — JSON backup / reset
 
-### Cross-cutting (cross-cutting/) — 6
+### Cross-cutting (cross-cutting/) — 9
 
 - [Design Tokens](./cross-cutting/design-tokens.md) — token system (規範本体は `../design-tokens.md`)
 - [i18n](./cross-cutting/i18n.md) — 文言判定 (規範本体は `../i18n-policy.md`)
@@ -82,6 +82,9 @@ Arcagate の全 feature / module の **機能契約 (Functional Spec)**。各 fe
 - [Auto Update](./cross-cutting/auto-update.md) — GitHub Releases 自動更新
 - [Security Model](./cross-cutting/security-model.md) — injection / path 防御
 - [IPC Bridge](./cross-cutting/ipc-bridge.md) — frontend ⇄ backend 境界
+- [Startup Perf](./cross-cutting/startup-perf.md) — cold start 体感目標
+- [Window Drag](./cross-cutting/window-drag.md) — frameless window drag region
+- [Item Lifecycle](./cross-cutting/item-lifecycle.md) — item の生成 / 削除 / 保持 / 孤立 contract matrix (table 主体、 7-section 規範形式の例外)
 
 ## 使い方
 
