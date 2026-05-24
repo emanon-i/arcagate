@@ -38,6 +38,22 @@
 - backend: [Config Service](../backend/config-service.md)
 - 依存される: なし (起動時 overlay)
 
+## 機能契約
+
+### overlay window 操作契約 (PH-CF-1000 B1)
+
+SetupWizard / OnboardingTour は `fixed inset-0` のフルスクリーンオーバーレイで TitleBar を
+完全に覆うため、 自身の内部に細い `data-tauri-drag-region` 帯 (`h-8`、 `pointer-events-auto`、
+`aria-hidden="true"`) を **window 上端** に配置して window をドラッグ移動できるようにする。
+規範本体は [Window Drag Region](../cross-cutting/window-drag.md)。
+
+機械検出: `scripts/audit-overlay-drag-region.sh` (audit:all + lefthook) で全 `fixed inset-0`
+overlay component に `data-tauri-drag-region` が存在することを grep gate。 e2e
+(`tests/e2e/ph-cf-1000-overlay-drag.spec.ts`) で setup-wizard / overlay-drag-region の DOM 存在
+
+- `data-tauri-drag-region` 属性を verify。
+
 ## 既知の判断
 
 - 表示判定は DB の `setup_complete` key。`%APPDATA%\com.arcagate.desktop\` を wipe すると再表示
+- PH-CF-1000 (2026-05-24) で「初回ウィザード中に window 移動不能」 を fix。 SetupWizard / OnboardingTour 個別ではなく、 共通 overlay window 操作契約 (cross-cutting) に格上げして横展開

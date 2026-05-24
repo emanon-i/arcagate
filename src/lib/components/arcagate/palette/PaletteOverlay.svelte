@@ -85,6 +85,7 @@ function handleKeydown(e: KeyboardEvent) {
 }
 </script>
 
+<!-- audit-overlay-drag-region:skip palette は独自 webview window (TitleBar 無し) で動くため対象外 -->
 {#if open}
 	<!-- B-6 #1: il-zone scope 撤去、accent は theme 追従。 -->
 	<div

@@ -538,6 +538,15 @@ function handleFormClose() {
 		tabindex="-1"
 		onclick={(e) => { if (e.target === e.currentTarget) showSettings = false; }}
 	>
+		<!-- PH-CF-1000 B1: TitleBar の drag region をオーバーレイが覆うため、 top に細い帯で
+		     `data-tauri-drag-region` を露出させ Settings 表示中も window 移動を維持する
+		     (`features/cross-cutting/window-drag.md` §オーバーレイ window 操作契約)。 -->
+		<div
+			data-tauri-drag-region
+			data-testid="overlay-drag-region"
+			class="pointer-events-auto absolute inset-x-0 top-0 h-8"
+			aria-hidden="true"
+		></div>
 		<div class="ag-glass relative flex h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--ag-radius-widget)] border border-[var(--ag-border)] shadow-[var(--ag-shadow-dialog)]">
 			<div class="flex shrink-0 items-center justify-between border-b border-[var(--ag-border)] px-5 py-3">
 				<h2 class="text-base font-semibold text-[var(--ag-text-primary)]">{t('nav.settings')}</h2>

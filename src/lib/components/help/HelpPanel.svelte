@@ -79,6 +79,15 @@ function handleKeydown(e: KeyboardEvent) {
 		onkeydown={handleKeydown}
 		tabindex="-1"
 	>
+		<!-- PH-CF-1000 B1: TitleBar の drag region をオーバーレイが覆うため、 top に細い帯で
+		     `data-tauri-drag-region` を露出させ help panel 表示中も window 移動を維持する
+		     (`features/cross-cutting/window-drag.md` §オーバーレイ window 操作契約)。 -->
+		<div
+			data-tauri-drag-region
+			data-testid="overlay-drag-region"
+			class="pointer-events-auto absolute inset-x-0 top-0 h-8"
+			aria-hidden="true"
+		></div>
 		<div
 			class="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-[var(--ag-border)] bg-[var(--ag-surface-1)] shadow-[var(--ag-shadow-dialog)]"
 			transition:fly={{ y: -16, duration: dNormal }}
