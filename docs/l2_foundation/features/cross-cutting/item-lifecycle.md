@@ -163,6 +163,7 @@ D2 / D3 / D6 / D8 で `find_source_back_link` / `cascade_remove_item_from_widget
 
 - `docs/l3_phases/audit/CODEX_ITEM_LIFECYCLE_2026-05-25.md` — Codex 独立列挙結果 (1 回目、 生成 / 削除 / 保持 / 設定 / FS の 5 軸 + POTENTIAL BUG LIST)
 - `docs/l3_phases/audit/CODEX_ITEM_LIFECYCLE_VERIFY_2026-05-25.md` — Codex 漏れ検証 (2 回目、 script-folder cascade 漏れ / cross-workspace 早期 unwatch / UNIQUE 制約 / CLI 経路 を追加発見)
+- `docs/l3_phases/audit/ITEM_LIFECYCLE_GAP_AUDIT_2026-05-25.md` — gap 分析詳細 (本契約の根拠データ、 全パターン総数 / バグ判定 / 要確認 を network 図で整理)
 - `docs/l3_phases/clean-feedback/PH-CF-100_workspace-library-integrity.md` — back-link + reverse lifecycle data model
 - `docs/l3_phases/clean-feedback/PH-CF-500_watch-widget-chrome.md` — 除外 / 復元 UI
 - migration: `001_initial.sql` (FK CASCADE) / `003_watched_paths.sql` / `029_widget_item_hides.sql` / `033_confirmed_items.sql` / `039_items_source_back_link.sql`
