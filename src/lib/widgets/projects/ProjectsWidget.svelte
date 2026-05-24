@@ -249,6 +249,11 @@ let title = $derived(config.title || WIDGET_LABELS.projects);
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 
+// PH-CF-1100 ③: scan が成功して folder 一覧があるときだけ toolbar を表示する。
+let hasFolders = $derived(
+	!!config.watched_folder && !scanning && !scanError && folderItems.length > 0,
+);
+
 async function handleLaunch(item: Item) {
 	// PH-CF-500 D4: cascade resolve (item-level override → widget default_opener_id → system)。
 	// exe_folder と同 pattern で「VSCode で開く」 等の widget default opener を尊重する。
@@ -261,10 +266,82 @@ async function handleLaunch(item: Item) {
 }
 </script>
 
+{#snippet toolbarSnippet()}
+	<!-- PH-CF-1100 ③: 並び替え / view 切替 toolbar。 WidgetShell の scroll container の外に
+	     静的配置 (sticky / ag-sticky-bar 撤廃)。 active 表示は accent text + font-semibold のみ、
+	     bg fill 子要素を持たない (= 色付き帯の再発を構造的に防ぐ)。 -->
+	<div class="flex items-center gap-1 text-xs">
+		<button
+			type="button"
+			class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] {sortField ===
+			'name'
+				? 'font-semibold text-[var(--ag-accent-text)]'
+				: 'text-[var(--ag-text-secondary)]'}"
+			onclick={() => void setSort('name')}
+			aria-label="{t('widgets.common.sort_by_name')}{sortField === 'name'
+				? sortOrder === 'asc'
+					? t('widgets.common.sort_current_asc')
+					: t('widgets.common.sort_current_desc')
+				: ''}"
+		>
+			{t('widgets.common.sort_name')}
+			{#if sortField === 'name'}
+				{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown class="h-3 w-3" />{/if}
+			{/if}
+		</button>
+		<button
+			type="button"
+			class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] {sortField ===
+			'mtime'
+				? 'font-semibold text-[var(--ag-accent-text)]'
+				: 'text-[var(--ag-text-secondary)]'}"
+			onclick={() => void setSort('mtime')}
+			aria-label="{t('widgets.common.sort_by_mtime')}{sortField === 'mtime'
+				? sortOrder === 'asc'
+					? t('widgets.common.sort_current_oldest')
+					: t('widgets.common.sort_current_newest')
+				: ''}"
+		>
+			{t('widgets.common.sort_mtime')}
+			{#if sortField === 'mtime'}
+				{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown class="h-3 w-3" />{/if}
+			{/if}
+		</button>
+		<div class="ml-auto flex items-center gap-0.5">
+			<button
+				type="button"
+				class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] {viewMode ===
+				'card'
+					? 'text-[var(--ag-accent-text)]'
+					: 'text-[var(--ag-text-muted)]'}"
+				aria-label={t('widgets.common.card_view')}
+				aria-pressed={viewMode === 'card'}
+				title={t('widgets.common.card_view')}
+				onclick={() => void setViewMode('card')}
+			>
+				<LayoutGrid class="h-3 w-3" />
+			</button>
+			<button
+				type="button"
+				class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] {viewMode ===
+				'list'
+					? 'text-[var(--ag-accent-text)]'
+					: 'text-[var(--ag-text-muted)]'}"
+				aria-label={t('widgets.common.list_view')}
+				aria-pressed={viewMode === 'list'}
+				title={t('widgets.common.list_view')}
+				onclick={() => void setViewMode('list')}
+			>
+				<LayoutList class="h-3 w-3" />
+			</button>
+		</div>
+	</div>
+{/snippet}
+
 <!-- PH-CF-500 D3: 監視 widget 共通契約に揃え、 WidgetShell に config.watched_folder を path
      として渡し、 widget body 右クリックで「監視 folder のパスをコピー / Explorer で開く」
      を有効化 (exe_folder / script_folder と同 pattern)。 -->
-<WidgetShell {title} icon={FolderKanban} {menuItems} path={config.watched_folder}>
+<WidgetShell {title} icon={FolderKanban} {menuItems} path={config.watched_folder} toolbar={hasFolders ? toolbarSnippet : undefined}>
 	<!-- PH-CF-500 D3: description disclosure は empty / error 状態でも表示するため
 	     {:else} の外に移動 (旧実装は scan 結果ありの時だけ見える死角があった)。 -->
 	{#if config.description}
@@ -311,85 +388,9 @@ async function handleLaunch(item: Item) {
 			testId="projects-no-subfolders-state"
 		/>
 	{:else}
-		<!-- I-4 (2026-05-10 user 検収): 並び替え toolbar (ExeFolder I-3 と同じ sticky pattern)。
-		     widget header に pin して scroll 中も常時操作可能。
-		     ag-sticky-bar で widget 本体 glass 面の継続にする (独立した塗りつぶし矩形を持たない)。
-		     padding は WidgetShell の p-3 と一致させて (-mx-3 / px-3) widget の rounded
-		     glass 領域内に sticky bar を完全に収める。「並び替え:」 prefix label は
-		     タブ (Name / Updated) で意味が通るため撤去。 -->
-		<div
-			class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 flex shrink-0 items-center gap-1 px-3 pb-1.5 pt-1 text-xs"
-		>
-			<button
-				type="button"
-				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
-				'name'
-					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
-					: 'text-[var(--ag-text-secondary)]'}"
-				onclick={() => void setSort('name')}
-				aria-label="{t('widgets.common.sort_by_name')}{sortField === 'name'
-					? sortOrder === 'asc'
-						? t('widgets.common.sort_current_asc')
-						: t('widgets.common.sort_current_desc')
-					: ''}"
-			>
-				{t('widgets.common.sort_name')}
-				{#if sortField === 'name'}
-					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
-							class="h-3 w-3"
-						/>{/if}
-				{/if}
-			</button>
-			<button
-				type="button"
-				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
-				'mtime'
-					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
-					: 'text-[var(--ag-text-secondary)]'}"
-				onclick={() => void setSort('mtime')}
-				aria-label="{t('widgets.common.sort_by_mtime')}{sortField === 'mtime'
-					? sortOrder === 'asc'
-						? t('widgets.common.sort_current_oldest')
-						: t('widgets.common.sort_current_newest')
-					: ''}"
-			>
-				{t('widgets.common.sort_mtime')}
-				{#if sortField === 'mtime'}
-					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
-							class="h-3 w-3"
-						/>{/if}
-				{/if}
-			</button>
-			<!-- card / list view 切替 (PH-PQ-500: config.view_mode を操作する UI を追加)。 -->
-			<div class="ml-auto flex items-center gap-0.5">
-				<button
-					type="button"
-					class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {viewMode ===
-					'card'
-						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
-						: 'text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
-					aria-label={t('widgets.common.card_view')}
-					aria-pressed={viewMode === 'card'}
-					title={t('widgets.common.card_view')}
-					onclick={() => void setViewMode('card')}
-				>
-					<LayoutGrid class="h-3 w-3" />
-				</button>
-				<button
-					type="button"
-					class="flex items-center rounded p-1 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] {viewMode ===
-					'list'
-						? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
-						: 'text-[var(--ag-text-muted)] hover:bg-[var(--ag-surface-3)] hover:text-[var(--ag-text-primary)]'}"
-					aria-label={t('widgets.common.list_view')}
-					aria-pressed={viewMode === 'list'}
-					title={t('widgets.common.list_view')}
-					onclick={() => void setViewMode('list')}
-				>
-					<LayoutList class="h-3 w-3" />
-				</button>
-			</div>
-		</div>
+		<!-- PH-CF-1100 ③: 旧 ag-sticky-bar toolbar は撤廃し、 toolbar slot で WidgetShell の
+		     scroll container の **外** に静的配置 (HTML は <script> 末尾の `toolbarSnippet`)。
+		     sort 帯の色付き戻りと scroll 内容の透けめり込みを構造的に排除。 -->
 		<!-- PH-issue-039 / 検収項目 #18: container query で widget 幅に応じて 1/2/3 列に動的調整。
 		     PH-issue-039 / 検収項目 #17: 各 row のアイコンを削除 (folder 型では meaningless)。
 		     git branch chip + 変更数 chip を保持 (P3 主要情報)。 -->

@@ -192,9 +192,31 @@ async function pickRoot() {
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 </script>
 
+{#snippet searchToolbarSnippet()}
+	<!-- PH-CF-1100 ③: 検索バー toolbar。 旧 ag-sticky-bar (scroll container 内 sticky top-0) は
+	     撤廃し、 WidgetShell の scroll container の **外** に静的配置。 検索 input 自身は
+	     bg-surface-2 (= 入力可能領域の明示) を持つが、 toolbar 本体には bg fill を持たない
+	     (= 色付き帯ではなく入力エリアとして識別)。 -->
+	<div class="flex items-center gap-1">
+		<div class="flex flex-1 items-center gap-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2">
+			<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
+			<input
+				type="text"
+				class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
+				placeholder={t('widgets.file_search.filter_placeholder')}
+				autocomplete="off"
+				bind:value={query}
+				onkeydown={handleSearchKeydown}
+				onfocus={() => (searchActive = true)}
+				onblur={() => (searchActive = false)}
+			/>
+		</div>
+	</div>
+{/snippet}
+
 <!-- Lateral sweep (2026-05-12): root path を WidgetShell に渡し、 body 右クリック menu で
      「検索 root のパスをコピー / Explorer で開く」 を有効化。 PR #440 の Fix A と同パターン。 -->
-<WidgetShell title={config.title || t('widgets.file_search.default_title')} icon={FileSearch} {menuItems} path={root}>
+<WidgetShell title={config.title || t('widgets.file_search.default_title')} icon={FileSearch} {menuItems} path={root} toolbar={root ? searchToolbarSnippet : undefined}>
 	{#if !root}
 		<!-- PH-issue-022: 共通 EmptyState component で統一 (P12 整合性、§7 Do/Don't) -->
 		<EmptyState
@@ -209,23 +231,9 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			testId="file-search-empty-state"
 		/>
 	{:else}
-		<!-- PH-issue-018: 検索バー sticky で scroll 中も検索可能。z-1 で結果リストより上。
-		     ag-sticky-bar で widget 本体 glass 面の継続にする (独立した塗りつぶし矩形を持たない)。 -->
-		<div class="ag-sticky-bar sticky top-0 z-[1] mb-2 flex items-center gap-1 pb-1">
-			<div class="flex flex-1 items-center gap-1 rounded border border-[var(--ag-border)] bg-[var(--ag-surface-2)] px-2">
-				<Search class="h-3 w-3 text-[var(--ag-text-muted)]" />
-				<input
-					type="text"
-					class="min-w-0 flex-1 bg-transparent py-1 text-xs text-[var(--ag-text-primary)] focus-visible:outline-none"
-					placeholder={t('widgets.file_search.filter_placeholder')}
-					autocomplete="off"
-					bind:value={query}
-					onkeydown={handleSearchKeydown}
-					onfocus={() => (searchActive = true)}
-					onblur={() => (searchActive = false)}
-				/>
-			</div>
-		</div>
+		<!-- PH-CF-1100 ③: 旧 ag-sticky-bar 検索バーは撤廃し、 toolbar slot で WidgetShell の
+		     scroll container の **外** に静的配置 (HTML は <script> 末尾の `searchToolbarSnippet`)。
+		     z-[1] / sticky / -mx-3 等の hack も不要 (構造的に scroll content と重ならない)。 -->
 		{#if loading}
 			<!-- A3 (PH-PQ-600): 独自 loading UI を共通 LoadingState に統一。
 			     長い fs walk の「中止」は LoadingState の action slot で担保。 -->

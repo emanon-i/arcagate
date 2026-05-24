@@ -94,16 +94,13 @@
 	--surface-glass-regular: color-mix(in oklab, var(--c-bg), transparent 28%);
 	--surface-glass-clear: color-mix(in oklab, var(--c-bg), transparent 55%);
 
-	/* widget 内 sticky toolbar の背景 (.ag-sticky-bar)。
-	   PH-CF-500 D1: 不透明 fill で scroll する不透明 card (= bg-surface-3 等) が
-	   sticky bar の裏に透けて見える「めり込み」を防ぐ。 widget 本体は .ag-glass
-	   で backdrop-filter を持つが、 widget INSIDE で scroll する子要素は本体
-	   blur の外側 (= 上層) を流れるため、 sticky bar は自身で occluder を持つ
-	   必要がある。 ag-surface-opaque (本体と同色の solid surface) を使用し、
-	   PR #535 で否定された backdrop-filter 二重適用は避ける (solid fill のみ)。
-	   非 blur theme (neumorph / brutalist / 各 dark variant) と reduce-transparency も下の
-	   各 block で solid fill 化済 (どの theme でも透けない契約)。 */
-	--ag-sticky-bar-bg: var(--ag-surface-opaque);
+	/* PH-CF-1100 ③: 旧 `--ag-sticky-bar-bg` token は撤廃。 widget 内 sort/filter toolbar は
+	   `WidgetShell.toolbar` snippet で scroll container の **外** に静的配置されるため、 帯の
+	   塗り (= 「色付き帯」 の真因) も scroll content の透けめり込みも構造上発生しなくなった。
+	   旧 token は PR #535 → #563 (D1) → #566 と版数を重ねたが、 半透明 token 経由の回帰を
+	   audit が検出できず PH-CF-1100 ③ で再発した。 機械検出は `scripts/audit-sticky-bar-occlusion.sh`
+	   に集約し、 (a) `--ag-sticky-bar-bg` token と (b) `.ag-sticky-bar` class が src/ に残存
+	   していないかを fail-closed gate (token / class そのものを禁止)。 */
 
 	/* --- border --- */
 	--ag-border: color-mix(in oklab, var(--c-fg), transparent 88%);
@@ -329,27 +326,10 @@
 	}
 }
 
-/* =====================================================================
-   STICKY TOOLBAR — widget 本体 glass 面と継ぎ目なく揃った occluder
-   widget 内の sort / filter / search 行に使う。 .ag-glass と違い
-   border / box-shadow / noise / highlight を一切持たず「浮いた矩形」に
-   ならない。
-   PH-CF-500 D1 契約: card (不透明背景の item) を持つ widget で sort
-   バー下に item が透けて見える「めり込み」 を解消するため、 全 theme
-   で --ag-sticky-bar-bg を不透明 fill (本体同色 surface) に統一した。
-   PR #535 で否定されたのは backdrop-filter 二重適用による「濃いトーンの
-   strip」 で、 solid fill 自体は否定されていない。 sticky bar 自身の
-   backdrop-filter は付与しない (二重 blur を避ける)。
-   blur theme (Dark / Light) は ag-surface-opaque (= bg と 4% fg mix)、
-   非 blur theme (neumorph / brutalist / 各 dark variant) と reduce-transparency は
-   各 block で本体同色 solid に差し替えており、 widget body との継ぎ目は
-   小さく保つ。
-   下端の divider は呼出側でも描かない (継ぎ目を作らない)。
-   position は付与しない — Tailwind の sticky utility にそのまま委ねる。
-   ===================================================================== */
-.ag-sticky-bar {
-	background-color: var(--ag-sticky-bar-bg);
-}
+/* PH-CF-1100 ③: 旧 `.ag-sticky-bar` rule は撤廃。 widget 内 toolbar は
+   `WidgetShell.toolbar` slot で scroll container の **外** に静的配置されるため、 sticky bar の
+   塗り (色付き帯) も scroll content の透けめり込みも構造上発生しない。 機械検出は
+   `scripts/audit-sticky-bar-occlusion.sh` が token / class 残存を fail-closed gate。 */
 
 @media (prefers-reduced-motion: reduce) {
 	:root {
@@ -375,7 +355,6 @@
 	--surface-glass-clear: var(--ag-surface-opaque);
 	--ag-surface-tint: none;
 	/* blur 無効化済 — sticky toolbar は本体同色の solid fill で occlude */
-	--ag-sticky-bar-bg: var(--ag-surface-opaque);
 }
 
 /* コントラストを上げる — border 強化 / text の base 混合を弱める */
@@ -443,7 +422,6 @@
 	--surface-glass-clear: var(--c-bg);
 	--ag-surface-tint: none;
 	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
-	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
 	--shadow-outer-light: -5px -5px 12px oklch(1 0 0 / 0.75);
 	--shadow-outer-dark: 5px 5px 14px oklch(0.55 0.03 270 / 0.35);
@@ -487,7 +465,6 @@
 	--ag-surface-opaque: var(--c-bg);
 	--ag-surface-tint: none;
 	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
-	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
 	--ag-shadow-sm: none;
 	--ag-shadow-md: none;
@@ -545,7 +522,6 @@
 	--surface-glass-clear: var(--c-bg);
 	--ag-surface-tint: none;
 	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
-	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
 	/* dark 向け shadow: light highlight は微弱 (透過大)、 dark shadow を深く */
 	--shadow-outer-light: -5px -5px 12px oklch(1 0 0 / 0.05);
@@ -594,7 +570,6 @@
 	--ag-surface-opaque: var(--c-bg);
 	--ag-surface-tint: none;
 	/* blur 無し theme — sticky toolbar は本体同色 solid で継ぎ目なく occlude */
-	--ag-sticky-bar-bg: var(--surface-glass-regular);
 
 	--ag-shadow-sm: none;
 	--ag-shadow-md: none;

@@ -159,9 +159,47 @@ async function execute(entry: ScriptEntry) {
 }
 
 let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
+
+// PH-CF-1100 ③: scan が成功して entries があるときだけ toolbar を表示する。
+let hasEntries = $derived(!!config.watch_path && !scanning && !scanError && entries.length > 0);
 </script>
 
-<WidgetShell title={config.title || t('widgets.widget_label.script_folder')} icon={Terminal} {menuItems} path={config.watch_path}>
+{#snippet toolbarSnippet()}
+	<!-- PH-CF-1100 ③: 並び替え toolbar (sticky / ag-sticky-bar 撤廃)。 WidgetShell の scroll
+	     container の **外** に静的配置、 sort 帯の色付き戻り + scroll 透けを構造的に排除。 -->
+	<div class="flex items-center gap-1 text-xs">
+		<button
+			type="button"
+			class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] {sortField ===
+			'name'
+				? 'font-semibold text-[var(--ag-accent-text)]'
+				: 'text-[var(--ag-text-secondary)]'}"
+			onclick={() => void setSort('name')}
+			aria-label={t('widgets.common.sort_by_name')}
+		>
+			{t('widgets.common.sort_name')}
+			{#if sortField === 'name'}
+				{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown class="h-3 w-3" />{/if}
+			{/if}
+		</button>
+		<button
+			type="button"
+			class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:text-[var(--ag-text-primary)] {sortField ===
+			'mtime'
+				? 'font-semibold text-[var(--ag-accent-text)]'
+				: 'text-[var(--ag-text-secondary)]'}"
+			onclick={() => void setSort('mtime')}
+			aria-label={t('widgets.common.sort_by_mtime')}
+		>
+			{t('widgets.common.sort_mtime')}
+			{#if sortField === 'mtime'}
+				{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown class="h-3 w-3" />{/if}
+			{/if}
+		</button>
+	</div>
+{/snippet}
+
+<WidgetShell title={config.title || t('widgets.widget_label.script_folder')} icon={Terminal} {menuItems} path={config.watch_path} toolbar={hasEntries ? toolbarSnippet : undefined}>
 	<!-- PH-PQ-500: description は disclosure button。click で inline 展開
 	     (旧実装は onclick 無しの dead button + native title tooltip だった)。 -->
 	{#if config.description}
@@ -207,41 +245,8 @@ let menuItems = $derived(widgetMenuItems(widget, () => (settingsOpen = true)));
 			testId="script-folder-no-scripts-state"
 		/>
 	{:else}
-		<!-- 並び替え toolbar。 ag-sticky-bar で widget 本体 glass 面の継続にする
-		     (独立した塗りつぶし矩形を持たない — border / shadow / 疑似要素なし)。
-		     padding は WidgetShell の p-3 と一致させて (-mx-3 / px-3) widget の rounded
-		     glass 領域内に sticky bar を完全に収める。「並び替え:」 prefix label は
-		     タブ (Name / Updated) で意味が通るため撤去。 -->
-		<div class="ag-sticky-bar sticky top-0 z-10 -mx-3 -mt-1 mb-2 flex shrink-0 items-center gap-1 px-3 pb-1.5 pt-1 text-xs">
-			<button
-				type="button"
-				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
-				'name'
-					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
-					: 'text-[var(--ag-text-secondary)]'}"
-				onclick={() => void setSort('name')}
-				aria-label={t('widgets.common.sort_by_name')}
-			>
-				{t('widgets.common.sort_name')}
-				{#if sortField === 'name'}
-					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown class="h-3 w-3" />{/if}
-				{/if}
-			</button>
-			<button
-				type="button"
-				class="flex items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors duration-[var(--ag-duration-fast)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] {sortField ===
-				'mtime'
-					? 'bg-[var(--ag-surface-3)] text-[var(--ag-text-primary)]'
-					: 'text-[var(--ag-text-secondary)]'}"
-				onclick={() => void setSort('mtime')}
-				aria-label={t('widgets.common.sort_by_mtime')}
-			>
-				{t('widgets.common.sort_mtime')}
-				{#if sortField === 'mtime'}
-					{#if sortOrder === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown class="h-3 w-3" />{/if}
-				{/if}
-			</button>
-		</div>
+		<!-- PH-CF-1100 ③: 旧 ag-sticky-bar toolbar は撤廃し、 toolbar slot で WidgetShell の
+		     scroll container の **外** に静的配置 (HTML は <script> 末尾の `toolbarSnippet`)。 -->
 		<ul class="space-y-1">
 			{#each sortedEntries as entry (entry.path)}
 				{@const Icon = iconFor(entry.ext)}

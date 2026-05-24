@@ -17,10 +17,19 @@ interface Props {
 	 * 持つ file path。 指定時、 widget body 右クリック menu で「パスをコピー / Explorer で開く」
 	 * が機能する (Library item 不在でも widget 内 path から取れる)。 */
 	path?: string | null;
+	/**
+	 * PH-CF-1100 ③: 並び替え / フィルタ / 検索 など scroll 不要の toolbar を render する slot。
+	 * scroll container の **外** (= header の直下) に静的配置されるため、 sticky-bar の塗り
+	 * (色付き帯) や scroll content との「めり込み」 自体が発生しない構造。 旧 `.ag-sticky-bar`
+	 * + `--ag-sticky-bar-bg` token は撤廃済。
+	 *
+	 * 引用元 guideline: `docs/l2_foundation/features/widgets/_chrome-consistency.md` §A6 (toolbar 契約)。
+	 */
+	toolbar?: Snippet;
 	children: Snippet;
 }
 
-let { title, icon: Icon, menuItems = [], path, children }: Props = $props();
+let { title, icon: Icon, menuItems = [], path, toolbar, children }: Props = $props();
 
 // I-2: widget body 右 click → 共通 context menu (settings 経路を menuItems の 1 件目から拝借)。
 // 「全 widget 共通の基本機能」 として WidgetShell 経由で 13 widget 全部に attach される。
@@ -80,6 +89,14 @@ let btnClass =
 			</div>
 		{/if}
 	</div>
+
+	<!-- PH-CF-1100 ③: toolbar slot (並び替え / フィルタ / 検索 等)。 scroll container の外に
+	     静的配置することで、 旧 `ag-sticky-bar` の「色付き帯」 (= sticky-bar-bg token と
+	     widget 本体 glass 面の色差) と「scroll item の透けめり込み」 を同時に解消する。
+	     toolbar 自身は背景塗りを持たず、 widget 本体 ag-glass の継続として見える。 -->
+	{#if toolbar}
+		<div class="widget-shell__toolbar mb-2 shrink-0">{@render toolbar()}</div>
+	{/if}
 
 	<!-- PH-issue-014: scroll-area inner のみ scrollbar-gutter: stable
 	     (旧 PH-489 の root 全 stable 過剰反応を回避、scope を限定)。
