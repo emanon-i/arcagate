@@ -1,42 +1,37 @@
 import type { Page } from '@playwright/test';
 
 /**
- * Tauri main window を logical size で resize する test helper。
+ * Tauri default window (800x600) は Tailwind `lg:` breakpoint (1024px) 未満のため、
+ * `LibraryLayout` の detail wrapper (`class="hidden ... lg:block"`) が display:none に
+ * なり panel 内要素を click できない。
  *
- * Tauri default は 800x600 (`src-tauri/tauri.conf.json`) で Tailwind `lg:` breakpoint
- * (1024px) を満たさないため、 `LibraryLayout` の detail panel wrapper が
- * `class="hidden ... lg:block"` で display:none になり panel 内要素を操作できない。
- * 実 UI 経路の e2e (PH-CF-1100 ②⑤⑥ 等) で detail panel を経由するテストは本 helper で
- * main window を 1280×800 等の wide size に変えてから実行する。
+ * 当初 Tauri internal IPC `plugin:window|set_size` で window を 1280x800 にリサイズする
+ * helper を作ったが、 CI run 26372482935 (job 77626989503) で「Target page, context or
+ * browser has been closed」 が 30+ spec で連鎖発生し全 e2e が落ちる回帰を起こした。
+ * payload 形式 (`{ type, data }` / `{ value: { Logical } }`) のいずれでも Tauri window が
+ * 不安定化したため、 e2e からの window resize 自体を放棄する。
  *
- * 実装は `@tauri-apps/api/window` の bare specifier が WebView 内で resolve できない
- * (= Vite build 前提) ため、 Tauri v2 internal IPC `plugin:window|set_size` を
- * `window.__TAURI_INTERNALS__.invoke` 経由で直接呼ぶ。 IPC payload は dpi.js の
- * `Size#[SERIALIZE_TO_IPC_FN]` と一致させる必要があり、 `value` キー + 外部 tag 化
- * された `{ Logical: { width, height } }` 形式を使う (旧実装の `{ type, data }` は
- * v1 系の serde adjacently tagged 形式で v2 では受け付けられない)。
+ * 代替: `<style>` を head に inject して `library-detail-wrapper` を `display:block !important`
+ * で強制表示する。 Tauri window のサイズは変えないので panic risk なし。 CSS-only な hack なので
+ * production code への影響もない (e2e セッション内に閉じる)。
  */
-export async function resizeMainWindow(page: Page, width: number, height: number): Promise<void> {
-	await page.evaluate(
-		async ({ w, h }) => {
-			const win = window as unknown as {
-				__TAURI_INTERNALS__?: {
-					invoke?: (cmd: string, args: unknown) => Promise<unknown>;
-					metadata?: { currentWindow?: { label?: string } };
-				};
-			};
-			const invoke = win.__TAURI_INTERNALS__?.invoke;
-			if (!invoke) return;
-			const label = win.__TAURI_INTERNALS__?.metadata?.currentWindow?.label ?? 'main';
-			await invoke('plugin:window|set_size', {
-				label,
-				value: { Logical: { width: w, height: h } },
-			});
-		},
-		{ w: width, h: height },
-	);
-	// resize 直後は CSS media query の再評価 + LibraryLayout の reactive flush に数 frame 要する。
-	// `lg:block` が effective になるまで wait しないと直後の `getByTestId(...).waitFor visible`
-	// が hidden で resolve され続けて timeout する。
-	await page.waitForTimeout(300);
+export async function forceDetailWrapperVisible(page: Page): Promise<void> {
+	await page.evaluate(() => {
+		const styleId = 'arcagate-e2e-force-detail-wrapper';
+		if (document.getElementById(styleId)) return;
+		const style = document.createElement('style');
+		style.id = styleId;
+		style.textContent =
+			'[data-testid="library-detail-wrapper"]{display:block !important;min-width:360px;}';
+		document.head.appendChild(style);
+	});
+}
+
+/**
+ * 旧 `resizeMainWindow` API は名前を残しつつ実装は `forceDetailWrapperVisible` へ移譲。
+ * window resize を止めて CSS-only hack に変えた経緯は本 file 冒頭コメントを参照。 引数の
+ * width / height は無視する (interface 互換のため引数を残す)。
+ */
+export async function resizeMainWindow(page: Page, _width: number, _height: number): Promise<void> {
+	await forceDetailWrapperVisible(page);
 }
