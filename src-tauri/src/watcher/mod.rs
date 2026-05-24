@@ -75,24 +75,21 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
 
     match &event.kind {
         Create(_) => {
-            for path in &event.paths {
-                if path.is_dir() {
-                    let path_str = path.to_string_lossy().to_string();
-                    if let Err(e) = app.emit("folder://new-directory", &path_str) {
-                        log::warn!("failed to emit folder://new-directory: {:?}", e);
-                    } else {
-                        log::info!("new-directory detected: {}", path_str);
-                    }
-                }
-            }
+            // アイテムライフサイクル契約 (U-4 / D15): 旧 `folder://new-directory` emit は
+            // PH-CF-500 D2 で auto_add 機構を撤廃した時点から frontend に listener が無く
+            // dead path 化していた。 backend 計算節約のため emit を完全撤廃 (確定方針 U-4 (a))。
+            // 必要なら debug log のみ残す。
+            log::debug!("watch create event (no-op per item-lifecycle contract U-4)");
         }
         Modify(ModifyKind::Name(RenameMode::Both)) if event.paths.len() == 2 => {
             let old = &event.paths[0];
             let new = &event.paths[1];
             let services = app.state::<AppServices>();
+            // Bug 7 / D14 rename: target / source_entry_key / widget_item_hides の 3 経路を
+            // 1 transaction で同期更新する (watcher_service::rename_item_target が helper 経由)。
             match watcher_service::rename_item_target(&services.db, old, new) {
                 Ok(n) if n > 0 => {
-                    log::info!("auto-tracked: {:?} → {:?}", old, new);
+                    log::info!("auto-tracked rename: {:?} → {:?} (items={})", old, new, n);
                 }
                 Ok(_) => {}
                 Err(e) => log::warn!("rename_item_target failed: {}", e),
@@ -101,16 +98,26 @@ fn handle_event(event: &notify::Event, app: &tauri::AppHandle) {
         Remove(_) => {
             // Codex High #3: RecursiveMode::Recursive で watch path 配下の **全削除** が
             // event 化される。フォルダ削除で 100s ファイルが連続削除イベントを生むため、
-            // **DB に登録されている tracked item の target と一致する場合のみ emit** する
+            // **DB に登録されている tracked item の target と一致する場合のみ処理** する
             // (toast 嵐 防止)。一致しないファイルは debug log のみ。
+            //
+            // アイテムライフサイクル契約 (U-3 / D13): item は削除せず `is_enabled=false` で
+            // グレーアウト化し、 toast にアクションを提示する (確定方針 U-3 (b))。
+            // payload は path 文字列 (旧仕様互換) + item id を含む JSON。
             let services = app.state::<AppServices>();
             for path in &event.paths {
                 let path_str = path.to_string_lossy().to_string();
-                if watcher_service::is_tracked_target(&services.db, &path_str) {
-                    app.emit("item://path-not-found", &path_str).ok();
-                    log::info!("path-not-found (tracked): {}", path_str);
+                if let Some(item_id) =
+                    watcher_service::disable_tracked_target(&services.db, &path_str)
+                {
+                    let payload = serde_json::json!({
+                        "path": &path_str,
+                        "item_id": item_id,
+                    });
+                    app.emit("item://path-not-found", payload).ok();
+                    log::info!("path-not-found → disabled (tracked): {}", path_str);
                 } else {
-                    log::debug!("watch remove (untracked, suppressed): {}", path_str);
+                    log::debug!("watch remove (untracked or already disabled): {}", path_str);
                 }
             }
         }
