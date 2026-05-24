@@ -6,6 +6,13 @@
  *   画像は常に全面 cover 固定 (表示モード selector 撤廃済)。
  * - style?: LibraryCardStyleConfig (textColor / overlay / stroke 等)
  * - opener_id?: string (Opener ID、cascade で widget default / system 起動より優先)
+ * - disabled?: boolean — PH-CF-1100 ⑤⑥: 解除フラグ。 detail panel の「見た目設定」
+ *   checkbox を OFF にすると true、 background / style / opener_id 等の本体は保持される。
+ *   ON に戻すと false に復帰し、 直近の設定値がそのまま蘇る。 LibraryCard は disabled=true
+ *   の override を「設定なし」 と同等に扱い、 global default にフォールバックする。
+ * - icon_backup?: string | null — PH-CF-1100 ⑤: 解除中の `item.icon_path` 退避場所。
+ *   解除時に LibraryCard が画像を非表示にできるよう `item.icon_path` は null に倒すが、
+ *   元 path を本フィールドに控えておき、 ON 復帰時に `item.icon_path` へ戻す。
  */
 
 import type { LibraryCardBackgroundConfig, LibraryCardStyleConfig } from '$lib/state/config.svelte';
@@ -15,6 +22,18 @@ export interface CardOverrideJson {
 	style?: Partial<LibraryCardStyleConfig>;
 	/** C-15 #10 + #19: 各 card で起動アプリ (Opener) を override (最優先 cascade)。 */
 	opener_id?: string | null;
+	/** PH-CF-1100 ⑤⑥: 解除フラグ。 true なら LibraryCard は override を適用しない。 */
+	disabled?: boolean;
+	/** PH-CF-1100 ⑤: 解除中の icon_path 退避場所。 ON 復帰時に item.icon_path へ戻す。 */
+	icon_backup?: string | null;
+}
+
+/**
+ * card_override が active (= LibraryCard に適用すべき) かどうかを判定する。
+ * null / 未定義 / `disabled === true` はいずれも非 active 扱い。
+ */
+export function isCardOverrideActive(override: CardOverrideJson | null | undefined): boolean {
+	return !!override && override.disabled !== true;
 }
 
 const VALID_ROTATIONS: readonly number[] = [0, 90, 180, 270];

@@ -185,21 +185,19 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			{#key `${item.card_override_json ?? ''}|${item.icon_path ?? ''}`}
-				<LibraryCard
-					{item}
-					{viewMode}
-					{sizeClasses}
-					isStarred={starredIds.has(item.id)}
-					isSelected={selectedIds.has(item.id)}
-					onclick={() => {
-						if (selectionMode) onToggleSelection(item.id);
-						else onSelectItem?.(item.id);
-					}}
-					ondblclick={() => onLaunch(item)}
-					oncontextmenu={(e) => openCardMenu(e, item)}
-				/>
-			{/key}
+			<LibraryCard
+				{item}
+				{viewMode}
+				{sizeClasses}
+				isStarred={starredIds.has(item.id)}
+				isSelected={selectedIds.has(item.id)}
+				onclick={() => {
+					if (selectionMode) onToggleSelection(item.id);
+					else onSelectItem?.(item.id);
+				}}
+				ondblclick={() => onLaunch(item)}
+				oncontextmenu={(e) => openCardMenu(e, item)}
+			/>
 		{/each}
 		{#if filteredItems.length === 0}
 			{#if !searchQuery && !activeTag && itemStore.items.length === 0}
@@ -238,20 +236,18 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			{#key `${item.card_override_json ?? ''}|${item.icon_path ?? ''}`}
-				<LibraryCard
-					{item}
-					{sizeClasses}
-					isStarred={starredIds.has(item.id)}
-					isSelected={selectedIds.has(item.id)}
-					onclick={() => {
-						if (selectionMode) onToggleSelection(item.id);
-						else onSelectItem?.(item.id);
-					}}
-					ondblclick={() => onLaunch(item)}
-					oncontextmenu={(e) => openCardMenu(e, item)}
-				/>
-			{/key}
+			<LibraryCard
+				{item}
+				{sizeClasses}
+				isStarred={starredIds.has(item.id)}
+				isSelected={selectedIds.has(item.id)}
+				onclick={() => {
+					if (selectionMode) onToggleSelection(item.id);
+					else onSelectItem?.(item.id);
+				}}
+				ondblclick={() => onLaunch(item)}
+				oncontextmenu={(e) => openCardMenu(e, item)}
+			/>
 		{/each}
 		{#if filteredItems.length === 0}
 			{#if !searchQuery && !activeTag && itemStore.items.length === 0}

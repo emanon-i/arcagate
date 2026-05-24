@@ -12,18 +12,10 @@ let tagItems = $state<Item[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 
-/**
- * PH-CF-600 C2: icon_path / card_override_json 更新時の「即時 paint 再評価」 マーカー。
- *
- * LibraryCard は `content-visibility: auto` で off-screen 仮想化しており、 モーダル
- * オーバーレイ下で update が走ると新 icon の paint が stale 化 (画面切替まで反映されない) する。
- * `updateItem` が icon_path / card_override_json に触れたら `{ id, ts }` を bump し、
- * LibraryCard は対象 id / 直近 ts を見て短時間だけ content-visibility を visible へ
- * 強制 override → browser 再 paint。
- *
- * id == null = 初期状態 (どの card にも影響しない)。 ts ms は LibraryCard の閾値判定用。
- */
-let freshIconMark = $state<{ id: string | null; ts: number }>({ id: null, ts: 0 });
+// PH-CF-1100 ②: 旧 `freshIconMark` (content-visibility:auto + 短時間 paint window 強制) は撤廃。
+// LibraryCard の CV 仮想化自体を取り外したため、 items 配列更新 → Svelte の reactive flush
+// → LibraryView の {#each} + {#key} で再 mount → 通常 paint で即時反映される。 経緯は
+// `src/lib/components/arcagate/library/LibraryCard.svelte` の <script> 冒頭コメントを参照。
 
 async function loadItems(): Promise<void> {
 	loading = true;
@@ -75,13 +67,6 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
 		items = items.map((item) => (item.id === id ? updated : item));
 		// target / item_type 変更で metadata が古くなる可能性 → cache 無効化
 		metadataStore.invalidate(id);
-		// PH-CF-600 C2: 視覚要素 (icon_path / card_override_json) の更新時に LibraryCard の
-		// content-visibility 仮想化が paint stale を起こすため、 freshIconMark を bump して
-		// LibraryCard に即時再 paint を要求する。 純粋 data 更新 (label / target 等) は
-		// 視覚仮想化に影響しないので bump しない。
-		if (input.icon_path !== undefined || input.card_override_json !== undefined) {
-			freshIconMark = { id, ts: Date.now() };
-		}
 		// tag_ids 変更で tagWithCounts が変動する
 		await refreshSidebarStats();
 	} catch (e) {
@@ -102,16 +87,12 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
  *
  * 失敗 path 無し (in-memory only)。 onchange の updateItem が server resp で上書きするので
  * drift しても自動収束する。
+ *
+ * PH-CF-1100 ②: 旧 freshIconMark bump は撤廃 (LibraryCard CV:auto 仮想化を取り外したため
+ * items の reactive 更新だけで即時 paint される)。
  */
 function applyOptimisticUpdate(id: string, patch: Partial<Item>): void {
 	items = items.map((item) => (item.id === id ? { ...item, ...patch } : item));
-	// PH-CF-600 C2: 画像 picker → cmd_save_icon_file → applyOptimisticUpdate の経路では
-	// updateItem を待たずにこのまま LibraryCard を再 paint させる必要がある。 視覚要素を
-	// 含む patch でだけ bump する (slider drag の offsetX/offsetY 等は patch.background 配下で
-	// card_override_json 経由)。
-	if ('icon_path' in patch || 'card_override_json' in patch) {
-		freshIconMark = { id, ts: Date.now() };
-	}
 }
 
 async function toggleStar(id: string, starred: boolean): Promise<void> {
@@ -234,14 +215,6 @@ export const itemStore = {
 	get error() {
 		return error;
 	},
-	/**
-	 * PH-CF-600 C2: 直近の icon_path / card_override_json 更新マーカー。 LibraryCard が
-	 * 自 item の id と一致 + 直近 (ts) の bump を検出したら content-visibility を visible に
-	 * 一時 override して再 paint を強制する。
-	 */
-	get freshIconMark() {
-		return freshIconMark;
-	},
 	loadItems,
 	loadItemsByTag,
 	createItem,
@@ -255,35 +228,11 @@ export const itemStore = {
 	loadTagWithCounts,
 };
 
-/**
- * PH-CF-600 C2 (fix-lb2): e2e から `itemStore.updateItem` を呼ぶための test hook。
- *
- * 動機: `tests/e2e/ph-cf-600-library-bug-fixes.spec.ts` LB-2 は「icon_path 更新 →
- * グリッドのカード <img src> が画面遷移なしで切替」 を verify する回帰テストだが、
- * `cmd_update_item` を direct IPC で呼ぶと **store が refresh されず** card が更新されない
- * (= C2 fix が走らない、 false-negative 検出ゼロ)。 e2e が `itemStore.updateItem` を
- * 介すことで、 ItemFormCardOverride と同じ optimistic update + freshIconMark bump の
- * 経路を駆動できる。
- *
- * 公開範囲: `window.__arcagateTest__.itemStore` のみ (production code から参照禁止、
- * `scripts/audit-no-test-hook-leak.sh` で防止)。 release build でも import.meta tree-shake で
- * 落とせるよう `if (typeof window !== ...)` で gate。 値型を持たない (関数 reference 経由)
- * ため XSS surface にもならない。
- */
-if (typeof window !== 'undefined') {
-	const w = window as unknown as {
-		__arcagateTest__?: {
-			itemStore?: {
-				loadItems: typeof loadItems;
-				updateItem: typeof updateItem;
-				applyOptimisticUpdate: typeof applyOptimisticUpdate;
-			};
-		};
-	};
-	w.__arcagateTest__ = w.__arcagateTest__ ?? {};
-	w.__arcagateTest__.itemStore = {
-		loadItems,
-		updateItem,
-		applyOptimisticUpdate,
-	};
-}
+// PH-CF-1100 ②: 旧 `window.__arcagateTest__.itemStore` test hook は撤廃。
+// e2e (`tests/e2e/ph-cf-600-library-bug-fixes.spec.ts` の LB-2 系) は本 hook を介さず、
+// `@tauri-apps/plugin-dialog` の `open()` を `mockIPC` で stub して LibraryDetailPanel の
+// 「見た目設定」 checkbox → 歯車 button → CardOverrideDialog → 「画像を選択」 button まで
+// 実 UI と同じ click sequence で駆動する経路に置き換えた (`tests/helpers/dialog-mock.ts`)。
+// 合成フック駆動だと PR #570 のように「test は通るが実機で直っていない」 ことを許してしまう
+// (PH-CF-1100 ② root cause)。 機械検出は実 UI 経路を踏むことを `scripts/audit-no-test-hook-leak.sh`
+// と e2e 自体で二重に担保する。

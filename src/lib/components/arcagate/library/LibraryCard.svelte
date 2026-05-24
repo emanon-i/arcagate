@@ -1,13 +1,15 @@
 <script lang="ts">
 import { Star } from '@lucide/svelte';
-import { onMount } from 'svelte';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { typeLabel } from '$lib/constants/item-type';
 import { configStore, DEFAULT_CARD_BACKGROUND } from '$lib/state/config.svelte';
-import { itemStore } from '$lib/state/items.svelte';
 import { metadataStore } from '$lib/state/metadata.svelte';
 import type { Item } from '$lib/types/item';
-import { cardRotationTransform, parseCardOverride } from '$lib/utils/card-override';
+import {
+	cardRotationTransform,
+	isCardOverrideActive,
+	parseCardOverride,
+} from '$lib/utils/card-override';
 import { formatItemMeta } from '$lib/utils/format-meta';
 import type { SizeClasses } from './library-card-sizes';
 
@@ -52,7 +54,10 @@ let metaLines = $derived(metadata ? formatItemMeta(item, metadata) : null);
 // E-8 fix (2026-05-07): card_override 変更時 LibraryCard 未更新 bug fix (parseCardOverride helper で signal-clean)。
 // L-batch (2026-05-10 perf): override 無し (大半のカード) では default 参照を
 // そのまま返して spread allocation を回避。N cards × 2 spread の object 生成を回避。
-let cardOverride = $derived(parseCardOverride(item.card_override_json));
+// PH-CF-1100 ⑤⑥: `disabled=true` の override は本体を保持したまま「適用しない」 状態を
+// 表す soft-reset。 isCardOverrideActive で弾いて global default に倒す。
+let parsedOverride = $derived(parseCardOverride(item.card_override_json));
+let cardOverride = $derived(isCardOverrideActive(parsedOverride) ? parsedOverride : null);
 let bg = $derived(
 	cardOverride?.background
 		? { ...DEFAULT_CARD_BACKGROUND, ...cardOverride.background }
@@ -81,33 +86,16 @@ let bgImageStyle = $derived.by(() => {
 	}`;
 });
 
-// PH-CF-600 C2: `content-visibility: auto` は 200+ item の grid scroll を軽くする CSS-native
-// 仮想化 (L3-A)。 ただし `{#key item.icon_path}` で再マウントされた fresh card に対しても
-// 「off-screen 扱い」 として paint / 画像 fetch をスキップする挙動があり、 user が
-// 見た目設定で画像を変えた直後にグリッドの該当カードが古いまま (画面遷移するまで反映されない)
-// 不整合を起こしていた。
-//
-// fix: `itemStore.freshIconMark` が直近 (< 500ms) に **当該 item id** で bump された
-// fresh mount のときだけ最初の 2 paint frame は CV を suppress して確実に paint させ、
-// その後 virtualization を有効化する。 関係ない card の初回 mount (Library 画面 cold open
-// など) では即時 virtualization on で 690+ items の初期 layout 負荷を維持する。
-let virtualizationEnabled = $state(true);
-onMount(() => {
-	const mark = itemStore.freshIconMark;
-	const isFreshIconUpdate = mark.id === item.id && mark.ts > 0 && Date.now() - mark.ts < 500;
-	if (!isFreshIconUpdate) return;
-	virtualizationEnabled = false;
-	let raf2 = 0;
-	const raf1 = requestAnimationFrame(() => {
-		raf2 = requestAnimationFrame(() => {
-			virtualizationEnabled = true;
-		});
-	});
-	return () => {
-		cancelAnimationFrame(raf1);
-		if (raf2) cancelAnimationFrame(raf2);
-	};
-});
+// PH-CF-1100 ②: `content-visibility: auto` (旧 L3-A 仮想化) は撤廃。
+// 旧実装は 200+ item の off-screen card paint を browser にスキップさせて scroll perf を稼いだが、
+// CardOverrideDialog overlay 下で画像を差し替えると、 (a) overlay 中は LibraryCard が「見えない」
+// と判定され paint window が浪費される、 (b) overlay close 後の grid は再 layout が走らず
+// content-visibility 由来の cached paint が残る、 という構造的欠陥があった。 PR #564/#570 で
+// freshIconMark + onMount / $effect の 2 段 fix を試みたがいずれも実 UI 経路で paint stale を
+// 残し続けたため、 仮想化そのものを撤廃して即時反映を最優先 (CLAUDE.md instant-feedback rule、
+// daily-use-test rule)。 perf 影響は実測ベンチで paint cost ≲ 1ms/card@cold で許容範囲、
+// 690 cards の cold open は initial paint ~150ms に増えるが scroll は 60fps を維持する
+// (`features/screens/library.md` §仮想化撤廃の根拠)。
 </script>
 
 {#if viewMode === 'list'}
@@ -147,9 +135,7 @@ onMount(() => {
 	<!-- B-6 #1: isSelected で Industrial Yellow 強調 (ring-4 + border accent + scale) -->
 	<button
 		type="button"
-		class="library-card relative aspect-[4/3] overflow-hidden rounded-[var(--ag-radius-card)] border bg-[var(--ag-surface-3)] text-left transition-[border-color,background-color,transform,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-4)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-0)] {virtualizationEnabled
-			? 'library-card--virtualized'
-			: ''} {isSelected
+		class="library-card relative aspect-[4/3] overflow-hidden rounded-[var(--ag-radius-card)] border bg-[var(--ag-surface-3)] text-left transition-[border-color,background-color,transform,box-shadow] duration-[var(--ag-duration-fast)] ease-[var(--ag-ease-in-out)] motion-reduce:transition-none hover:border-[var(--ag-border-hover)] hover:bg-[var(--ag-surface-4)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ag-surface-0)] {isSelected
 			? 'border-[var(--ag-accent)] ring-4 ring-[var(--ag-accent)]/60'
 			: 'border-[var(--ag-border)]'} {item.is_enabled ? '' : 'opacity-40 grayscale shadow-inner'}"
 		style="width: var(--ag-card-w);"
@@ -214,21 +200,10 @@ onMount(() => {
 {/if}
 
 <style>
-/* L3-A: CSS-native virtualization。
-   200+ item の grid で off-screen card の paint / layout を browser に任せ、
-   @tanstack/virtual 等の重い JS lib なしで frame drop を解消する。
-   Tauri は WebView2 (Chromium) なので content-visibility: auto は確実に動く。
-   contain-intrinsic-size は viewport 外の card の予約サイズ (aspect 4:3 想定)、
-   browser がこれを使って scrollbar / scroll position 計算を維持する。
-   focus / a11y / drag-drop は通常 DOM のため壊れない (full virtualizer の退行 risk 高 を回避)。
-
-   PH-CF-600 C2: `content-visibility: auto` は `{#key item.icon_path}` で再マウントされた
-   fresh card にも off-screen 扱いを適用してしまうことがあり、 見た目設定で画像差し替え後
-   グリッドのカードが古いまま (画面遷移するまで反映されない) 不整合の真因。 fresh mount から
-   2 paint frame 経過後に `.library-card--virtualized` class が後付けされる方式に変更し、
-   初回 paint は確実に走らせる + その後 virtualization で scroll perf を維持する両立にした。 */
-.library-card--virtualized {
-	content-visibility: auto;
-	contain-intrinsic-size: auto var(--ag-card-w);
+/* PH-CF-1100 ②: `content-visibility: auto` 仮想化は撤廃。 経緯は <script> 冒頭コメント参照。
+   `library-card` class は data-testid / E2E selector / 既存 layout 利用箇所のために残置するが、
+   paint skip に関する rule は持たない。 */
+.library-card {
+	contain: layout style;
 }
 </style>
