@@ -8,7 +8,7 @@ use crate::models::workspace::{
     AddWidgetInput, CreateWorkspaceInput, UpdateWidgetPositionInput, UpdateWorkspaceInput,
     Workspace, WorkspaceWidget,
 };
-use crate::repositories::workspace_repository;
+use crate::repositories::{item_repository, workspace_repository};
 use crate::utils::error::AppError;
 use crate::utils::git;
 
@@ -102,18 +102,31 @@ pub fn delete_workspace(db: &DbState, id: &str, delete_items: bool) -> Result<()
     let tag_id = format!("sys-ws-{}", id);
 
     if delete_items {
-        // PH-CF-100: 参照集合 (tag ∪ widget config item_ids) のうち、 他 workspace から
-        // 参照されない item のみ削除。 旧実装は経路 1 (tag) のみ見ていたため E5 が残った。
+        // アイテムライフサイクル契約 (Bug 2 修正): 「監視自動登録 item のみ」 を削除対象に絞る。
+        // 確定原則 1 / 3: 手動 item (source_widget_id IS NULL) は workspace 削除で消さない。
+        // widget config item_ids への参照は widget 行 FK CASCADE で連鎖して消えるため strip 不要。
+        // 確定原則 4: 監視由来 item 削除時は `delete_item_with_cleanup` で hide 記録 → 再 scan
+        // で復活しない (旧実装は raw DELETE で hide 記録漏れ)。
         let referenced = workspace_repository::collect_workspace_referenced_item_ids(&tx, id)?;
         for item_id in &referenced {
-            if !workspace_repository::is_item_referenced_outside_workspace(&tx, item_id, id)? {
-                // item 削除前に widget config からも cascade (image_scrap 等の cross-widget 参照)。
-                workspace_repository::cascade_remove_item_from_widgets(&tx, item_id)?;
-                tx.execute(
-                    "DELETE FROM items WHERE id = ?1",
-                    rusqlite::params![item_id],
-                )?;
+            // 手動 item は対象外 (back-link なし)。
+            let Some((source_widget_id, _entry_key)) =
+                item_repository::find_source_back_link(&tx, item_id)?
+            else {
+                continue;
+            };
+            // 別 workspace 由来の監視 item は対象外 (この workspace の widget config item_ids
+            // に picker 経由で乗っているだけのケース)。
+            let owner = workspace_repository::find_widget_by_id(&tx, &source_widget_id);
+            let belongs_to_this_workspace = matches!(&owner, Ok(w) if w.workspace_id == id);
+            if !belongs_to_this_workspace {
+                continue;
             }
+            // 他参照あり (他 workspace tag / 他 workspace widget config) は残す。
+            if workspace_repository::is_item_referenced_outside_workspace(&tx, item_id, id)? {
+                continue;
+            }
+            crate::services::item_service::delete_item_with_cleanup(&tx, item_id)?;
         }
     }
 
@@ -177,10 +190,44 @@ pub fn update_widget_config(
     // G-7: sync_workspace_item_tags 撤去 (sys-ws-* 機能ごと廃止)。
 }
 
+/// アイテムライフサイクル契約 (Bug 4 / U-1): widget 削除時、 当該 widget が auto-register
+/// した監視 item (`source_widget_id == id`) のうち「他 widget / 他 workspace から参照されない」
+/// ものを `delete_item_with_cleanup` 経由で削除する (確定原則 2)。
+///
+/// 他 widget 参照 / 他 workspace sys-ws-* tag が残っていれば item は残し、 FK
+/// `ON DELETE SET NULL` (migration 039) で source_widget_id を NULL に降格させる。
+///
+/// 1 transaction で実行 (item 削除 + widget 削除を atomic にする)。
 pub fn remove_widget(db: &DbState, id: &str) -> Result<(), AppError> {
-    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-    workspace_repository::delete_widget(&conn, id)?;
-    // G-7: sync_workspace_item_tags 撤去 (sys-ws-* 機能ごと廃止)。
+    let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let tx = conn.transaction()?;
+    // widget 存在 + workspace_id 取得 (削除後は引けないので先に)。
+    let widget = workspace_repository::find_widget_by_id(&tx, id)?;
+    let owned_items = item_repository::find_owned_items_by_widget(&tx, id)?;
+    let mut deleted_count = 0usize;
+    let mut demoted_count = 0usize;
+    for item_id in &owned_items {
+        if workspace_repository::is_item_referenced_outside_widget(
+            &tx,
+            item_id,
+            id,
+            &widget.workspace_id,
+        )? {
+            // 他参照あり → item は残す (widget 削除で FK SET NULL により降格)。
+            demoted_count += 1;
+            continue;
+        }
+        crate::services::item_service::delete_item_with_cleanup(&tx, item_id)?;
+        deleted_count += 1;
+    }
+    workspace_repository::delete_widget(&tx, id)?;
+    tx.commit()?;
+    log::info!(
+        "widget removed: id={} owned_items_deleted={} owned_items_demoted={}",
+        id,
+        deleted_count,
+        demoted_count,
+    );
     Ok(())
 }
 
@@ -421,8 +468,11 @@ mod tests {
         assert_eq!(all.len(), 0);
     }
 
+    // アイテムライフサイクル契約 (Bug 2 / U-9): workspace 削除では監視 widget 由来の
+    // 自動登録 item のみ Library から消す。 sys-ws-* tag だけで source_widget_id を持たない
+    // 「手動 item」 は Library に残す (確定原則 1 / 3)。
     #[test]
-    fn test_delete_workspace_cascades_orphan_items() {
+    fn test_delete_workspace_deletes_only_monitored_items() {
         let db = initialize_in_memory();
         let ws = create_workspace(
             &db,
@@ -431,31 +481,54 @@ mod tests {
             },
         )
         .unwrap();
-        // create_workspace で sys-ws-<id> tag は作成済。 widget 経由登録を模して item に付与。
+        // 当該 workspace に widget を追加 (監視 item の所有元)。
+        let widget = add_widget(
+            &db,
+            AddWidgetInput {
+                workspace_id: ws.id.clone(),
+                widget_type: WidgetType::Projects,
+            },
+        )
+        .unwrap();
         {
             let conn = db.0.lock().unwrap();
+            // 監視自動登録 item: source_widget_id NOT NULL + sys-ws tag (= 当該 widget が auto-register)。
             conn.execute(
-                "INSERT INTO items (id, item_type, label, target) VALUES ('it1', 'exe', 'A', 'C:/a.exe')",
+                "INSERT INTO items (id, item_type, label, target, source_widget_id, source_entry_key) VALUES ('mon', 'folder', 'M', 'C:/m', ?1, 'C:/m')",
+                rusqlite::params![widget.id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO item_tags (item_id, tag_id) VALUES ('mon', ?1)",
+                rusqlite::params![format!("sys-ws-{}", ws.id)],
+            )
+            .unwrap();
+            // 手動 item: sys-ws tag は持つが source_widget_id NULL。
+            conn.execute(
+                "INSERT INTO items (id, item_type, label, target) VALUES ('manu', 'url', 'U', 'https://example')",
                 [],
             )
             .unwrap();
             conn.execute(
-                "INSERT INTO item_tags (item_id, tag_id) VALUES ('it1', ?1)",
+                "INSERT INTO item_tags (item_id, tag_id) VALUES ('manu', ?1)",
                 rusqlite::params![format!("sys-ws-{}", ws.id)],
             )
             .unwrap();
         }
         delete_workspace(&db, &ws.id, true).unwrap();
         let conn = db.0.lock().unwrap();
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM items WHERE id = 'it1'", [], |r| {
+        let mon_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM items WHERE id = 'mon'", [], |r| {
                 r.get(0)
             })
             .unwrap();
-        assert_eq!(
-            count, 0,
-            "workspace 削除で widget 登録 item も Library から消える"
-        );
+        let manu_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM items WHERE id = 'manu'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(mon_count, 0, "監視自動登録 item は cascade で削除");
+        assert_eq!(manu_count, 1, "手動 item は workspace 削除で消さない");
     }
 
     #[test]
@@ -541,11 +614,12 @@ mod tests {
         );
     }
 
-    // PH-CF-100: E5 真因 #1 — LibraryItemPicker で widget config item_ids に追加された item
-    // は `sys-ws-*` tag を持たない。 旧実装は tag 経由でしか cascade しなかったため孤立残留。
-    // 修正: 参照集合を tag ∪ widget config item_ids の和集合に広げ、 他 workspace 非参照のみ削除。
+    // アイテムライフサイクル契約 (Bug 2 / 確定原則 3): LibraryItemPicker で widget config
+    // item_ids に追加された手動 item は workspace 削除で **消えない**。 widget は FK CASCADE で
+    // 消えるので config 参照も同時に消えるが、 item 自体は Library に残る (= 「workspace 削除で
+    // 手動追加 item を消さない」)。
     #[test]
-    fn test_delete_workspace_cascades_widget_config_item_ids() {
+    fn test_delete_workspace_keeps_manual_items_in_widget_config() {
         let db = initialize_in_memory();
         let ws = create_workspace(
             &db,
@@ -554,16 +628,15 @@ mod tests {
             },
         )
         .unwrap();
-        // item を Library に追加 (sys-ws-* tag は付けない = LibraryItemPicker 相当)。
+        // 手動 item を Library に追加 (sys-ws-* tag も source_widget_id も無し)。
         {
             let conn = db.0.lock().unwrap();
             conn.execute(
-                "INSERT INTO items (id, item_type, label, target) VALUES ('orphan-it', 'exe', 'A', 'C:/orphan.exe')",
+                "INSERT INTO items (id, item_type, label, target) VALUES ('manu-it', 'exe', 'A', 'C:/manu.exe')",
                 [],
             )
             .unwrap();
         }
-        // 当該 workspace に item widget を載せ、 config の item_ids に追加。
         let w = add_widget(
             &db,
             AddWidgetInput {
@@ -572,25 +645,22 @@ mod tests {
             },
         )
         .unwrap();
-        update_widget_config(&db, &w.id, Some(r#"{"item_ids":["orphan-it"]}"#)).unwrap();
+        update_widget_config(&db, &w.id, Some(r#"{"item_ids":["manu-it"]}"#)).unwrap();
 
         delete_workspace(&db, &ws.id, true).unwrap();
         let conn = db.0.lock().unwrap();
         let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM items WHERE id = 'orphan-it'",
-                [],
-                |r| r.get(0),
-            )
+            .query_row("SELECT COUNT(*) FROM items WHERE id = 'manu-it'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
-        assert_eq!(
-            count, 0,
-            "widget config item_ids 経路の item も cascade 削除 (E5 真因 #1 解消)"
-        );
+        assert_eq!(count, 1, "手動 item は workspace 削除で Library に残る");
     }
 
-    // PH-CF-100: mixed widget payload (sys-ws-* tag 経由 + widget config item_ids 経由) を
-    // 1 workspace に混ぜて配置した状態で削除しても、 全部消えて孤立 / dangling 参照が残らないこと。
+    // アイテムライフサイクル契約 (Bug 2): mixed payload で「監視 item は消える、 手動 item は
+    // 残る」 を verify。 さらに監視 item の削除では `widget_item_hides` に hide が記録されて
+    // 復活抑制契約が成立すること (確定原則 4)、 widget config から item 参照が strip されて
+    // dangling が残らないこと (確定原則 5) も同時に確認。
     #[test]
     fn test_delete_workspace_mixed_payload_no_orphans_or_dangling() {
         let db = initialize_in_memory();
@@ -601,27 +671,35 @@ mod tests {
             },
         )
         .unwrap();
+        let mon_widget = add_widget(
+            &db,
+            AddWidgetInput {
+                workspace_id: ws.id.clone(),
+                widget_type: WidgetType::Projects,
+            },
+        )
+        .unwrap();
         {
             let conn = db.0.lock().unwrap();
-            // 経路 1 (sys-ws tag): widget 由来 auto-register 相当
+            // 監視 item: source_widget_id NOT NULL + sys-ws tag
             conn.execute(
-                "INSERT INTO items (id, item_type, label, target) VALUES ('tag-it', 'folder', 'A', 'C:/a')",
-                [],
+                "INSERT INTO items (id, item_type, label, target, source_widget_id, source_entry_key) VALUES ('mon-it', 'folder', 'A', 'C:/a', ?1, 'C:/a')",
+                rusqlite::params![mon_widget.id],
             )
             .unwrap();
             conn.execute(
-                "INSERT INTO item_tags (item_id, tag_id) VALUES ('tag-it', ?1)",
+                "INSERT INTO item_tags (item_id, tag_id) VALUES ('mon-it', ?1)",
                 rusqlite::params![format!("sys-ws-{}", ws.id)],
             )
             .unwrap();
-            // 経路 2 (widget config item_ids): LibraryItemPicker 相当
+            // 手動 item: source NULL、 widget config item_ids にだけ載っている。
             conn.execute(
-                "INSERT INTO items (id, item_type, label, target) VALUES ('cfg-it', 'url', 'B', 'https://x')",
+                "INSERT INTO items (id, item_type, label, target) VALUES ('manu-it', 'url', 'B', 'https://x')",
                 [],
             )
             .unwrap();
         }
-        let w = add_widget(
+        let pick_widget = add_widget(
             &db,
             AddWidgetInput {
                 workspace_id: ws.id.clone(),
@@ -629,20 +707,28 @@ mod tests {
             },
         )
         .unwrap();
-        update_widget_config(&db, &w.id, Some(r#"{"item_ids":["tag-it","cfg-it"]}"#)).unwrap();
+        update_widget_config(
+            &db,
+            &pick_widget.id,
+            Some(r#"{"item_ids":["mon-it","manu-it"]}"#),
+        )
+        .unwrap();
 
         delete_workspace(&db, &ws.id, true).unwrap();
 
         let conn = db.0.lock().unwrap();
-        // 孤立 item ゼロ
-        let item_count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM items WHERE id IN ('tag-it','cfg-it')",
-                [],
-                |r| r.get(0),
-            )
+        let mon_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM items WHERE id = 'mon-it'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
-        assert_eq!(item_count, 0, "mixed payload で孤立 item ゼロ");
+        let manu_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM items WHERE id = 'manu-it'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(mon_count, 0, "監視 item は cascade で削除");
+        assert_eq!(manu_count, 1, "手動 item は Library に残る");
         // dangling 参照ゼロ (widget 自体 cascade で消えるはずだが念のため)
         let widget_count: i64 = conn
             .query_row(
