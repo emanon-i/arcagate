@@ -95,6 +95,10 @@ export interface CreateItemInput {
 	is_tracked?: boolean;
 	aliases: string[];
 	tag_ids?: string[];
+	/** アイテムライフサイクル契約: 監視自動登録 item の back-link (test fixture から渡す用)。
+	 *  Backend が源 widget の存在チェック後に items に書く (FK 安全)。 */
+	source_widget_id?: string | null;
+	source_entry_key?: string | null;
 }
 
 export async function createItem(page: Page, input: CreateItemInput): Promise<Item> {

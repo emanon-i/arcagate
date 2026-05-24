@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::db::DbState;
 use crate::models::watched_path::{CreateWatchedPathInput, WatchedPath};
-use crate::repositories::{item_repository, watched_path_repository, workspace_repository};
+use crate::repositories::{item_repository, watched_path_repository};
 use crate::utils::error::AppError;
 use crate::watcher::WatcherState;
 
@@ -57,20 +57,23 @@ pub fn get_watched_paths(db: &DbState) -> Result<Vec<WatchedPath>, AppError> {
 
 pub fn remove_watched_path(db: &DbState, watcher: &WatcherState, id: &str) -> Result<(), AppError> {
     let (path, cascade_count) = {
-        let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
-        let wp = watched_path_repository::find_by_id(&conn, id)?;
-        // PH-issue-023: watched_path 削除前に、当該 path 配下の tracked items を Library から削除。
-        // 各 item は workspace_widgets cascade (PH-issue-006) で widget config からも自動除去される。
-        // Phase 1 (2026-05-12): path-key snapshot 機構を廃止 (widget_item_settings)。
-        // 再 watch で fresh state に戻す方が user 意図と整合する判断 (詳細 E:/tmp/arcagate-delete-restore-ux.md)。
-        let tracked_ids = item_repository::find_tracked_ids_under_path(&conn, &wp.path)?;
+        let mut conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+        // アイテムライフサイクル契約 (Bug 5 修正): 旧実装は raw `conn.execute` 連鎖で
+        // 中途失敗時に inconsistent (items 削除済だが watched_paths は残る 等) になるリスクと、
+        // 監視自動登録 item の `widget_item_hides` 記録漏れがあった。
+        // 1 transaction でくくり、 各 item は共通 helper `delete_item_with_cleanup` 経由で
+        // hide 記録 + widget config strip + delete を行う。
+        let tx = conn.transaction()?;
+        let wp = watched_path_repository::find_by_id(&tx, id)?;
+        let tracked_ids = item_repository::find_tracked_ids_under_path(&tx, &wp.path)?;
         let cascade_count = tracked_ids.len();
         for item_id in &tracked_ids {
-            workspace_repository::cascade_remove_item_from_widgets(&conn, item_id)?;
-            item_repository::delete(&conn, item_id)?;
+            crate::services::item_service::delete_item_with_cleanup(&tx, item_id)?;
         }
-        watched_path_repository::delete(&conn, id)?;
-        (wp.path, cascade_count)
+        watched_path_repository::delete(&tx, id)?;
+        let path = wp.path.clone();
+        tx.commit()?;
+        (path, cascade_count)
     };
     log::info!(
         "watched_path removed: path='{}' cascade_items={}",

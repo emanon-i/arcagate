@@ -26,9 +26,10 @@ use commands::item_commands::{
     cmd_auto_register_folder_items, cmd_bulk_add_tag, cmd_bulk_delete_items, cmd_bulk_remove_tag,
     cmd_check_is_directory, cmd_count_hidden_items, cmd_count_item_references, cmd_create_item,
     cmd_create_tag, cmd_delete_item, cmd_delete_tag, cmd_extract_item_icon, cmd_get_item_tags,
-    cmd_get_library_stats, cmd_get_tag_counts, cmd_get_tags, cmd_list_items, cmd_register_exe_item,
-    cmd_register_exe_items_bulk, cmd_save_icon_file, cmd_search_items, cmd_search_items_in_tag,
-    cmd_toggle_star, cmd_update_item, cmd_update_tag, cmd_update_tag_prefix,
+    cmd_get_library_stats, cmd_get_tag_counts, cmd_get_tags, cmd_list_items,
+    cmd_register_exe_items_bulk, cmd_remove_item_from_workspace, cmd_save_icon_file,
+    cmd_search_items, cmd_search_items_in_tag, cmd_toggle_star, cmd_update_item, cmd_update_tag,
+    cmd_update_tag_prefix,
 };
 use commands::kill_switch_commands::cmd_check_kill_switch;
 use commands::launch_commands::{
@@ -378,6 +379,7 @@ pub fn run() {
             cmd_search_items_in_tag,
             cmd_update_item,
             cmd_delete_item,
+            cmd_remove_item_from_workspace,
             cmd_count_item_references,
             cmd_bulk_add_tag,
             cmd_bulk_remove_tag,
@@ -436,7 +438,6 @@ pub fn run() {
             cmd_count_hidden_items,
             cmd_toggle_star,
             cmd_auto_register_folder_items,
-            cmd_register_exe_item,
             cmd_register_exe_items_bulk,
             cmd_fetch_url_title,
             cmd_parse_bookmark_file,

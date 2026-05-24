@@ -20,6 +20,15 @@ export async function deleteItem(id: string): Promise<void> {
 	return invoke<void>('cmd_delete_item', { id });
 }
 
+/**
+ * アイテムライフサイクル契約 U-5: 「Library に残しつつ当該 workspace から外す」 操作。
+ * 削除 (`deleteItem`) と意図的に区別する。 backend が sys-ws-* tag 解除 +
+ * 当該 workspace の widget config から item 参照を strip する (item 行は残る)。
+ */
+export async function removeItemFromWorkspace(workspaceId: string, itemId: string): Promise<void> {
+	return invoke<void>('cmd_remove_item_from_workspace', { workspaceId, itemId });
+}
+
 // PH-issue-006: 削除確認 dialog 用 — 該当 item を参照する widget 数。
 export async function countItemReferences(id: string): Promise<number> {
 	return invoke<number>('cmd_count_item_references', { id });
@@ -105,19 +114,6 @@ export async function autoRegisterFolderItems(
 		rootPath,
 		workspaceId,
 		sourceWidgetId,
-	});
-}
-
-// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録 (idempotent: 既存 target はそのまま返す)。
-export async function registerExeItem(
-	path: string,
-	label?: string,
-	workspaceId?: string,
-): Promise<Item> {
-	return invoke<Item>('cmd_register_exe_item', {
-		path,
-		label: label ?? null,
-		workspaceId,
 	});
 }
 

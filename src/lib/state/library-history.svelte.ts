@@ -79,6 +79,9 @@ async function undo(): Promise<boolean> {
 	}
 	const snap = entry.itemSnapshot;
 	try {
+		// アイテムライフサイクル契約 (Bug 9 / U-6): back-link (source_widget_id /
+		// source_entry_key) も snapshot から復元する。 backend で source widget の
+		// 存在チェックを行い、 widget が消えていれば両列とも NULL にフォールバック。
 		await createItem({
 			item_type: snap.item_type,
 			label: snap.label,
@@ -89,6 +92,8 @@ async function undo(): Promise<boolean> {
 			aliases: snap.aliases,
 			tag_ids: entry.tagIds,
 			is_tracked: snap.is_tracked,
+			source_widget_id: snap.source_widget_id,
+			source_entry_key: snap.source_entry_key,
 		});
 		await itemStore.loadItems();
 		clearPending();

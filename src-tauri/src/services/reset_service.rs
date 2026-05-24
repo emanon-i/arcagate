@@ -21,7 +21,22 @@ pub fn factory_reset(
     let tx = conn.transaction()?;
 
     if reset_library {
-        // items 削除 → item_tags も明示削除 (FK cascade に依存しない)。
+        // アイテムライフサイクル契約 (Bug 3 修正): reset_workspace=false で workspace_widgets
+        // が残る場合に widget config JSON の item_ids が全件 dangling になるのを防ぐため、
+        // items 削除前に全 widget config から item_id / item_ids を strip する。
+        // 旧実装は raw `DELETE FROM items` のみで、 config に存在しない id 参照が永続残留していた。
+        // reset_workspace=true の場合は下流で workspace_widgets ごと消えるため strip 不要だが、
+        // どちらの順序でも contract を満たすため両分岐で実行。
+        let item_ids: Vec<String> = {
+            let mut stmt = tx.prepare("SELECT id FROM items")?;
+            let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        for id in &item_ids {
+            crate::repositories::workspace_repository::cascade_remove_item_from_widgets(&tx, id)?;
+        }
+        // widget_item_hides は item_ids strip 後に明示 DELETE (item へ FK 無いため CASCADE
+        // しない)。 hide 記録自体も reset 対象 = 「クリーン状態」 に戻す意図。
         tx.execute("DELETE FROM item_tags", [])?;
         tx.execute("DELETE FROM items", [])?;
         tx.execute("DELETE FROM tags", [])?;

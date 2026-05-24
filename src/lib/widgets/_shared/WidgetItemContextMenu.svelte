@@ -1,13 +1,14 @@
 <script lang="ts">
-import { Copy, EyeOff, FolderOpen, Play, Settings2, Trash2 } from '@lucide/svelte';
+import { Copy, EyeOff, FolderMinus, FolderOpen, Play, Settings2, Trash2 } from '@lucide/svelte';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import ContextMenu from '$lib/components/common/ContextMenu.svelte';
 import { t } from '$lib/i18n.svelte';
-import { deleteItem } from '$lib/ipc/items';
+import { deleteItem, removeItemFromWorkspace } from '$lib/ipc/items';
 import { revealInExplorer } from '$lib/ipc/launch';
 import { itemStore } from '$lib/state/items.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
 import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
+import { workspaceConfig } from '$lib/state/workspace-config.svelte';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
 
@@ -112,6 +113,27 @@ async function handleHideFromWidget(): Promise<void> {
 		onClose();
 	}
 }
+
+/**
+ * アイテムライフサイクル契約 U-5: 「Library に残しつつ当該 workspace から外す」 専用操作。
+ * 削除 (handleDeleteItem) と意図的に区別する。 sys-ws-* tag 解除 + 当該 workspace の
+ * widget config item 参照を strip するが item 行は Library に残る。
+ */
+async function handleRemoveFromWorkspace(): Promise<void> {
+	if (!itemId) return;
+	const wsId = workspaceConfig.activeWorkspaceId;
+	if (!wsId) return;
+	const label = item?.label ?? t('widgets.context_menu.item_fallback');
+	try {
+		await removeItemFromWorkspace(wsId, itemId);
+		await itemStore.loadItems();
+		toastStore.add(t('toast.removed_from_workspace', { label }), 'info');
+	} catch (e: unknown) {
+		toastStore.add(t('toast.remove_from_workspace_failed', { error: getErrorMessage(e) }), 'error');
+	} finally {
+		onClose();
+	}
+}
 </script>
 
 <ContextMenu {open} {x} {y} {onClose}>
@@ -183,8 +205,25 @@ async function handleHideFromWidget(): Promise<void> {
 		</button>
 	{/if}
 
-	{#if itemId}
+	{#if itemId && workspaceConfig.activeWorkspaceId}
 		{#if path || widgetId}
+			<div class="my-1 border-t border-[var(--ag-border)]"></div>
+		{/if}
+		<!-- アイテムライフサイクル契約 U-5: Library 残しの workspace 配置解除。 削除と区別。 -->
+		<button
+			type="button"
+			role="menuitem"
+			class="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-[var(--ag-text-secondary)] focus-visible:outline-none focus-visible:bg-[var(--ag-surface-3)] hover:bg-[var(--ag-surface-3)]"
+			data-testid="widget-context-remove-from-workspace"
+			onclick={() => void handleRemoveFromWorkspace()}
+		>
+			<FolderMinus class="h-3.5 w-3.5" />
+			{t('widgets.context_menu.remove_from_workspace')}
+		</button>
+	{/if}
+
+	{#if itemId}
+		{#if path || widgetId || workspaceConfig.activeWorkspaceId}
 			<div class="my-1 border-t border-[var(--ag-border)]"></div>
 		{/if}
 		<button

@@ -231,6 +231,42 @@ fn strip_item_id_from_config(config_text: &str, item_id: &str) -> String {
     serde_json::to_string(&value).unwrap_or_else(|_| config_text.to_string())
 }
 
+/// アイテムライフサイクル契約 (U-5): 当該 workspace の widget だけに対し item_id / item_ids
+/// 参照を strip する (cascade 全体には影響させない)。「Library に残しつつ workspace 配置だけ
+/// 外す」 専用 helper。 戻り値は影響を受けた widget 数。
+pub fn cascade_remove_item_from_workspace_widgets(
+    conn: &Connection,
+    item_id: &str,
+    workspace_id: &str,
+) -> Result<usize, AppError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, config FROM workspace_widgets
+         WHERE workspace_id = ?1 AND config IS NOT NULL AND config != ''",
+    )?;
+    let rows = stmt
+        .query_map(params![workspace_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<rusqlite::Result<Vec<(String, String)>>>()?;
+    let mut affected = 0usize;
+    for (widget_id, config_text) in rows {
+        if !widget_config_references_item(&config_text, item_id) {
+            continue;
+        }
+        let new_config = strip_item_id_from_config(&config_text, item_id);
+        if new_config != config_text {
+            conn.execute(
+                "UPDATE workspace_widgets SET config = ?1,
+                                              updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+                 WHERE id = ?2",
+                params![new_config, widget_id],
+            )?;
+            affected += 1;
+        }
+    }
+    Ok(affected)
+}
+
 /// PH-issue-006: item 削除 cascade — 該当 item を参照する全 widget の config を更新。
 /// 戻り値は影響を受けた widget 数。
 pub fn cascade_remove_item_from_widgets(
@@ -298,6 +334,47 @@ pub fn collect_workspace_referenced_item_ids(
         }
     }
     Ok(ids)
+}
+
+/// アイテムライフサイクル契約 (Bug 4 / U-1): ある item が「指定 widget 以外から」
+/// 参照されているか判定する。 `remove_widget` で監視 owned item を消すかどうかの判定に使う。
+///   - 他 widget の config の `item_id` / `item_ids` (除外: 当該 widget)
+///   - **当該 widget の workspace 以外** の `sys-ws-*` tag (= 別 workspace に属している)
+///
+/// 当該 widget の workspace と同じ `sys-ws-*` tag は「同 workspace の自然な所属」 であり
+/// 「他参照」 とはみなさない (= widget 削除と共に item も消える方が UX として自然)。
+pub fn is_item_referenced_outside_widget(
+    conn: &Connection,
+    item_id: &str,
+    widget_id: &str,
+    widget_workspace_id: &str,
+) -> Result<bool, AppError> {
+    let own_tag_id = format!("sys-ws-{}", widget_workspace_id);
+    // 経路 1: 他 workspace の sys-ws-* tag
+    let tag_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM item_tags
+         WHERE item_id = ?1 AND tag_id LIKE 'sys-ws-%' AND tag_id <> ?2",
+        params![item_id, own_tag_id],
+        |row| row.get(0),
+    )?;
+    if tag_count > 0 {
+        return Ok(true);
+    }
+    // 経路 2: 他 widget config が参照 (除外: 当該 widget)
+    let mut stmt = conn.prepare(
+        "SELECT id, config FROM workspace_widgets
+         WHERE id <> ?1 AND config IS NOT NULL AND config != ''",
+    )?;
+    let rows = stmt.query_map(params![widget_id], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?;
+    for row in rows {
+        let (_other_widget, cfg) = row?;
+        if widget_config_references_item(&cfg, item_id) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// PH-CF-100: ある item が「他 workspace から」 参照されているか判定する。

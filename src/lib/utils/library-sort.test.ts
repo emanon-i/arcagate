@@ -27,6 +27,8 @@ function mkItem(o: { id: string; label: string; created_at?: string; updated_at?
 		is_tracked: false,
 		default_app: null,
 		card_override_json: null,
+		source_widget_id: null,
+		source_entry_key: null,
 		created_at: o.created_at ?? '2026-01-01T00:00:00Z',
 		updated_at: o.updated_at ?? '2026-01-01T00:00:00Z',
 	} as Item;

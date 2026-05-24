@@ -186,21 +186,6 @@ pub fn delete(conn: &Connection, id: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn update_target_by_path(
-    conn: &Connection,
-    old_path: &std::path::Path,
-    new_path: &std::path::Path,
-) -> Result<usize, AppError> {
-    let old = old_path.to_string_lossy();
-    let new = new_path.to_string_lossy();
-    let rows = conn.execute(
-        "UPDATE items SET target = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-         WHERE target = ?2",
-        params![new.as_ref(), old.as_ref()],
-    )?;
-    Ok(rows)
-}
-
 pub fn get_library_stats(conn: &Connection) -> Result<LibraryStats, AppError> {
     // PH-CF-600 C3: launch_log.launched_at は launch_repository で
     // `strftime('%Y-%m-%dT%H:%M:%SZ', 'now')` (ISO 8601 T 区切り + 'Z') 形式で保存される。
@@ -281,6 +266,147 @@ pub fn find_source_back_link(
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(AppError::Database(e)),
     }
+}
+
+/// アイテムライフサイクル契約 (Bug 4 / U-1): 指定 widget が所有する (= 監視自動登録した)
+/// item の id 一覧を返す。 `remove_widget` 時に「他参照なしのものを削除」 する判定用。
+pub fn find_owned_items_by_widget(
+    conn: &Connection,
+    widget_id: &str,
+) -> Result<Vec<String>, AppError> {
+    let mut stmt = conn.prepare("SELECT id FROM items WHERE source_widget_id = ?1 ORDER BY id")?;
+    let rows = stmt
+        .query_map(params![widget_id], |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<Vec<String>>>()?;
+    Ok(rows)
+}
+
+/// アイテムライフサイクル契約 (Bug 6 / U-8): 指定 widget の所有 item のうち、
+/// 与えられた entry_key 集合に **含まれない** stale entry の id 一覧を返す。
+/// auto_register 系の reconcile で「scan 結果に出てこない旧 entry の item」 を
+/// `is_enabled=false` グレーアウト化する用途。
+pub fn find_stale_owned_entries(
+    conn: &Connection,
+    widget_id: &str,
+    fresh_entry_keys: &std::collections::HashSet<String>,
+) -> Result<Vec<(String, String)>, AppError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, source_entry_key FROM items
+         WHERE source_widget_id = ?1 AND source_entry_key IS NOT NULL",
+    )?;
+    let rows = stmt
+        .query_map(params![widget_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<rusqlite::Result<Vec<(String, String)>>>()?;
+    Ok(rows
+        .into_iter()
+        .filter(|(_, key)| !fresh_entry_keys.contains(key))
+        .collect())
+}
+
+/// アイテムライフサイクル契約 (U-2): 指定 item の `is_enabled` を更新する。
+/// reconcile の stale 化 (`is_enabled=false` グレーアウト) / 再発見時の復活
+/// (`is_enabled=true`) の専用 helper。
+pub fn set_is_enabled(conn: &Connection, id: &str, is_enabled: bool) -> Result<usize, AppError> {
+    let rows = conn.execute(
+        "UPDATE items SET is_enabled = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE id = ?2",
+        params![is_enabled as i64, id],
+    )?;
+    Ok(rows)
+}
+
+/// アイテムライフサイクル契約 (Bug 7 / D14 rename): folder rename イベントで
+/// `items.target` と `items.source_entry_key` の両方を一括更新する。
+///
+/// - `target`: OS path のまま (Windows は backslash) 保存されるため backslash / forward
+///   slash 両方の prefix を見る。 exact + nested prefix の両パターン。
+/// - `source_entry_key`: `normalize_entry_key` で forward slash + 末尾 separator 除去済の
+///   形で保存されているため、 forward slash 形式で比較。 exact + nested prefix 両方。
+///
+/// 戻り値は影響を受けた item 数 (target / entry_key の重複更新は double count されない)。
+pub fn rename_path_prefix(
+    conn: &Connection,
+    old_path: &std::path::Path,
+    new_path: &std::path::Path,
+) -> Result<usize, AppError> {
+    let old = old_path.to_string_lossy().into_owned();
+    let new = new_path.to_string_lossy().into_owned();
+    let old_trim = old.trim_end_matches(['/', '\\']).to_string();
+    let new_trim = new.trim_end_matches(['/', '\\']).to_string();
+    let old_fwd = old_trim.replace('\\', "/");
+    let new_fwd = new_trim.replace('\\', "/");
+
+    let mut affected_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    // (1) target exact match
+    {
+        let mut stmt = conn.prepare("SELECT id FROM items WHERE target = ?1 OR target = ?2")?;
+        let rows = stmt.query_map(params![&old_trim, &old_fwd], |r| r.get::<_, String>(0))?;
+        for r in rows {
+            affected_ids.insert(r?);
+        }
+    }
+    conn.execute(
+        "UPDATE items SET target = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE target = ?2 OR target = ?3",
+        params![&new_trim, &old_trim, &old_fwd],
+    )?;
+
+    // (2) target nested prefix (folder rename で配下の exe 等)
+    let prefix_bs = format!("{}\\%", old_trim);
+    let prefix_fs = format!("{}/%", old_trim);
+    {
+        let mut stmt =
+            conn.prepare("SELECT id FROM items WHERE target LIKE ?1 OR target LIKE ?2")?;
+        let rows = stmt.query_map(params![&prefix_bs, &prefix_fs], |r| r.get::<_, String>(0))?;
+        for r in rows {
+            affected_ids.insert(r?);
+        }
+    }
+    // backslash prefix → 新 prefix + サフィックス (元の separator 維持のため raw 形式)。
+    let bs_keep_from = (old_trim.len() + 1) as i64;
+    conn.execute(
+        "UPDATE items SET target = ?1 || substr(target, ?2),
+                          updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE target LIKE ?3",
+        params![&new_trim, bs_keep_from, &prefix_bs],
+    )?;
+    conn.execute(
+        "UPDATE items SET target = ?1 || substr(target, ?2),
+                          updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE target LIKE ?3",
+        params![&new_trim, bs_keep_from, &prefix_fs],
+    )?;
+
+    // (3) source_entry_key (= 正規化済 forward slash) exact + nested prefix
+    let entry_prefix = format!("{}/%", old_fwd);
+    {
+        let mut stmt = conn.prepare(
+            "SELECT id FROM items
+             WHERE source_entry_key = ?1 OR source_entry_key LIKE ?2",
+        )?;
+        let rows = stmt.query_map(params![&old_fwd, &entry_prefix], |r| r.get::<_, String>(0))?;
+        for r in rows {
+            affected_ids.insert(r?);
+        }
+    }
+    conn.execute(
+        "UPDATE items SET source_entry_key = ?1,
+                          updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE source_entry_key = ?2",
+        params![&new_fwd, &old_fwd],
+    )?;
+    let fwd_keep_from = (old_fwd.len() + 1) as i64;
+    conn.execute(
+        "UPDATE items SET source_entry_key = ?1 || substr(source_entry_key, ?2),
+                          updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+         WHERE source_entry_key LIKE ?3",
+        params![&new_fwd, fwd_keep_from, &entry_prefix],
+    )?;
+
+    Ok(affected_ids.len())
 }
 
 /// PH-issue-023: 指定 path 配下にある **tracked** items の id 一覧を返す。
@@ -640,7 +766,7 @@ mod tests {
 
         let old = std::path::Path::new("C:/old/app.exe");
         let new = std::path::Path::new("C:/new/app.exe");
-        let count = update_target_by_path(&conn, old, new).unwrap();
+        let count = rename_path_prefix(&conn, old, new).unwrap();
         assert_eq!(count, 1);
 
         let updated = find_by_id(&conn, "id-001").unwrap();
@@ -658,7 +784,7 @@ mod tests {
 
         let old = std::path::Path::new("C:/old/app.exe");
         let new = std::path::Path::new("C:/new/app.exe");
-        let count = update_target_by_path(&conn, old, new).unwrap();
+        let count = rename_path_prefix(&conn, old, new).unwrap();
         assert_eq!(count, 0);
 
         let unchanged = find_by_id(&conn, "id-001").unwrap();
@@ -836,7 +962,7 @@ mod tests {
 
         let old = std::path::Path::new("C:/shared/app.exe");
         let new = std::path::Path::new("C:/moved/app.exe");
-        let count = update_target_by_path(&conn, old, new).unwrap();
+        let count = rename_path_prefix(&conn, old, new).unwrap();
         assert_eq!(count, 2);
     }
 

@@ -445,6 +445,8 @@ fn cmd_create(
         aliases: vec![],
         tag_ids: vec![],
         is_tracked: true,
+        source_widget_id: None,
+        source_entry_key: None,
     };
 
     let item = item_service::create_item(db, input)?;

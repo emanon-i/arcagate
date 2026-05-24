@@ -614,6 +614,8 @@
 		"placement_failed": "Failed to place image: {error}",
 		"preview_placement_failed": "Failed to place file: {error}",
 		"removed_from_widget": "Removed from this widget",
+		"removed_from_workspace": "Removed \"{label}\" from this workspace (still in Library)",
+		"remove_from_workspace_failed": "Failed to remove from workspace: {error}",
 		"save_failed": "Failed to save",
 		"saved": "Saved",
 		"search_aborted": "Search canceled",
@@ -715,6 +717,7 @@
 			"item_fallback": "Item",
 			"open_default_app": "Open in default app",
 			"open_settings": "Open widget settings",
+			"remove_from_workspace": "Remove from this workspace (keep in Library)",
 			"reveal_in_explorer": "Reveal in Explorer"
 		},
 		"daily_task": {

@@ -48,6 +48,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Exe,
@@ -60,6 +62,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Exe,
@@ -72,6 +76,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Url,
@@ -84,6 +90,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Url,
@@ -96,6 +104,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Url,
@@ -108,6 +118,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Folder,
@@ -120,6 +132,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Folder,
@@ -132,6 +146,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Script,
@@ -144,6 +160,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
         CreateItemInput {
             item_type: arcagate_lib::models::item::ItemType::Command,
@@ -156,6 +174,8 @@ fn main() {
 
             tag_ids: vec![],
             is_tracked: true,
+            source_widget_id: None,
+            source_entry_key: None,
         },
     ];
 

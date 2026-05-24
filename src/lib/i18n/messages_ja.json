@@ -614,6 +614,8 @@
 		"placement_failed": "画像の配置に失敗: {error}",
 		"preview_placement_failed": "ファイルの配置に失敗: {error}",
 		"removed_from_widget": "この widget から外しました",
+		"removed_from_workspace": "「{label}」 をこのワークスペースから外しました (Library に残ります)",
+		"remove_from_workspace_failed": "ワークスペースから外せませんでした: {error}",
 		"save_failed": "保存に失敗しました",
 		"saved": "保存しました",
 		"search_aborted": "検索を中止しました",
@@ -715,6 +717,7 @@
 			"item_fallback": "アイテム",
 			"open_default_app": "Default app で開く",
 			"open_settings": "ウィジェット設定を開く",
+			"remove_from_workspace": "このワークスペースから外す (Library には残す)",
 			"reveal_in_explorer": "Explorer で開く"
 		},
 		"daily_task": {

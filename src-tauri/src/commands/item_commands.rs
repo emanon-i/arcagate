@@ -48,6 +48,19 @@ pub fn cmd_delete_item(services: State<AppServices>, id: String) -> Result<(), A
     services.item.delete_item(&id)
 }
 
+/// アイテムライフサイクル契約 U-5: 「Library に残しつつ当該 workspace から外す」 操作。
+/// 削除 (`cmd_delete_item`) と意図的に区別する。
+#[tauri::command]
+pub fn cmd_remove_item_from_workspace(
+    services: State<AppServices>,
+    workspace_id: String,
+    item_id: String,
+) -> Result<(), AppError> {
+    services
+        .item
+        .remove_item_from_workspace(&workspace_id, &item_id)
+}
+
 /// PH-issue-006: 削除確認 dialog 用 — 該当 item を参照する widget 数。
 #[tauri::command]
 pub fn cmd_count_item_references(
@@ -207,20 +220,6 @@ pub async fn cmd_auto_register_folder_items(
     })
     .await
     .map_err(AppError::from_join_error)?
-}
-
-/// 5/01 user 検収 (C2): EXE ファイルを Library に Item として登録。
-/// U-7: workspace_id 指定時、 sys-ws-<id> tag も自動付与 (widget 経由登録時用)。
-#[tauri::command]
-pub fn cmd_register_exe_item(
-    services: State<AppServices>,
-    path: String,
-    label: Option<String>,
-    workspace_id: Option<String>,
-) -> Result<Item, AppError> {
-    services
-        .item
-        .register_exe_item(&path, label, workspace_id.as_deref())
 }
 
 /// 5/01 user 検収 (C2): 複数 EXE を一括 Library 登録 (ExeFolderWatchWidget の "全部追加" button 用)。
