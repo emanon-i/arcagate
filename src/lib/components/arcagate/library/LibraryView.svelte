@@ -185,19 +185,27 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			<LibraryCard
-				{item}
-				{viewMode}
-				{sizeClasses}
-				isStarred={starredIds.has(item.id)}
-				isSelected={selectedIds.has(item.id)}
-				onclick={() => {
-					if (selectionMode) onToggleSelection(item.id);
-					else onSelectItem?.(item.id);
-				}}
-				ondblclick={() => onLaunch(item)}
-				oncontextmenu={(e) => openCardMenu(e, item)}
-			/>
+			<!-- PH-CF-1100 ② (再導入): icon_path / card_override_json 変化で LibraryCard を
+			     再 mount する。 旧 PH-CF-600 で {#key} を撤去した時、 svelte 5 の reactive prop
+			     更新で <img src> が patch されるはずだったが、 実 UI 経路 e2e (LB-2) で
+			     `card.locator('img').first().getAttribute('src')` が古い path を返す regression
+			     を出した。 content-visibility:auto は既に撤廃済 (paint stale 問題なし) なので、
+			     {#key} re-mount は 1 card 分の DOM destroy+create のみで軽量、 perf 影響なし。 -->
+			{#key `${item.icon_path ?? ''}|${item.card_override_json ?? ''}`}
+				<LibraryCard
+					{item}
+					{viewMode}
+					{sizeClasses}
+					isStarred={starredIds.has(item.id)}
+					isSelected={selectedIds.has(item.id)}
+					onclick={() => {
+						if (selectionMode) onToggleSelection(item.id);
+						else onSelectItem?.(item.id);
+					}}
+					ondblclick={() => onLaunch(item)}
+					oncontextmenu={(e) => openCardMenu(e, item)}
+				/>
+			{/key}
 		{/each}
 		{#if filteredItems.length === 0}
 			{#if !searchQuery && !activeTag && itemStore.items.length === 0}
@@ -236,18 +244,21 @@ let sizeClasses = $derived(getSizeClasses(configStore.itemSize));
 		onkeydown={onGridKeydown}
 	>
 		{#each filteredItems as item (item.id)}
-			<LibraryCard
-				{item}
-				{sizeClasses}
-				isStarred={starredIds.has(item.id)}
-				isSelected={selectedIds.has(item.id)}
-				onclick={() => {
-					if (selectionMode) onToggleSelection(item.id);
-					else onSelectItem?.(item.id);
-				}}
-				ondblclick={() => onLaunch(item)}
-				oncontextmenu={(e) => openCardMenu(e, item)}
-			/>
+			<!-- PH-CF-1100 ② (再導入): grid mode の {#key} re-mount。 詳細は list mode 側 comment 参照。 -->
+			{#key `${item.icon_path ?? ''}|${item.card_override_json ?? ''}`}
+				<LibraryCard
+					{item}
+					{sizeClasses}
+					isStarred={starredIds.has(item.id)}
+					isSelected={selectedIds.has(item.id)}
+					onclick={() => {
+						if (selectionMode) onToggleSelection(item.id);
+						else onSelectItem?.(item.id);
+					}}
+					ondblclick={() => onLaunch(item)}
+					oncontextmenu={(e) => openCardMenu(e, item)}
+				/>
+			{/key}
 		{/each}
 		{#if filteredItems.length === 0}
 			{#if !searchQuery && !activeTag && itemStore.items.length === 0}

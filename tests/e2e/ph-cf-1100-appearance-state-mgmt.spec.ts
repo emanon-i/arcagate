@@ -1,7 +1,6 @@
 import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '../fixtures/tauri.js';
-import { mockTauriOpenDialog, unmockTauriOpenDialog } from '../helpers/dialog-mock.js';
 import { createItem, deleteItem } from '../helpers/ipc.js';
 import { disableForceDetailWrapper, enableForceDetailWrapper } from '../helpers/window-resize.js';
 
@@ -117,7 +116,13 @@ test('LB-5 (PH-CF-1100 ⑤): 見た目設定を解除すると一覧カードの
 
 test('LB-6 (PH-CF-1100 ⑥): 見た目設定 OFF→ON で画像 + 位置 (offsetX/Y) が完全復元する', async ({
 	page,
-}, testInfo) => {
+}) => {
+	// PH-CF-1100 ⑥ 真因経路: handleCardOverrideToggle の OFF/ON が 1 IPC で
+	// `disabled` / `icon_backup` を退避 / 復元する契約。 CardOverrideDialog の slider UI 経由で
+	// offset を入れる経路は bits-ui overlay の dialog close button click が flaky (CI run
+	// 26373656972 で連鎖 fail を起こした) なため、 dialog UI を経由せず IPC 直叩きで初期値を
+	// 仕込んで「UI で toggle OFF → ON → items 配列を read して 状態が完全保存」 を verify する。
+	// dialog UI (= slider) は別 spec で別途 verify する分担 (LB-2 が picker UI 経路を担う)。
 	const suffix = `${process.pid}-${Date.now()}`;
 	const { primary } = setupFixtureIcons(suffix);
 	const item = await createItem(page, {
@@ -131,72 +136,73 @@ test('LB-6 (PH-CF-1100 ⑥): 見た目設定 OFF→ON で画像 + 位置 (offset
 	});
 
 	try {
+		// (1) 初期 card_override_json (background offsetX=15 / offsetY=80) を IPC で仕込む。
+		const initialJson = JSON.stringify({
+			background: { offsetX: 15, offsetY: 80, rotation: 0 },
+			style: {
+				textColor: '#ffffff',
+				overlayEnabled: true,
+				strokeEnabled: false,
+				strokeColor: '#000000',
+				strokeWidthPx: 1,
+			},
+		});
+		await page.evaluate(
+			async ({ id, json }) => {
+				const w = window as unknown as {
+					__TAURI_INTERNALS__?: { invoke?: (cmd: string, args: unknown) => Promise<unknown> };
+				};
+				await w.__TAURI_INTERNALS__?.invoke?.('cmd_update_item', {
+					id,
+					input: { card_override_json: json },
+				});
+			},
+			{ id: item.id, json: initialJson },
+		);
+
+		// (2) Library を開いて detail panel → toggle を UI で OFF → ON。
 		await openLibrary(page);
 		const card = page.getByTestId(`library-card-${item.id}`);
 		await card.waitFor({ state: 'attached', timeout: 15_000 });
 		await card.scrollIntoViewIfNeeded();
 		await card.click();
 		await page.getByTestId('library-detail-panel').waitFor({ state: 'visible', timeout: 5_000 });
-
-		// (1) 「見た目設定」 を ON にして歯車から CardOverrideDialog を開く。
 		const toggle = page.getByTestId('card-override-toggle');
-		if (!(await toggle.isChecked())) await toggle.check();
-		await expect(page.getByTestId('card-override-open-dialog')).toBeEnabled({ timeout: 5_000 });
-		await page.getByTestId('card-override-open-dialog').click();
-		const offsetX = page.getByTestId('card-override-offset-x');
-		const offsetY = page.getByTestId('card-override-offset-y');
-		await offsetX.waitFor({ state: 'visible', timeout: 5_000 });
-
-		// (2) offsetX / offsetY を 0 / 50 (= 既定 50/50 と異なる値) に変更し persist。
-		//     slider は range input なので fill で値を入力 → input/change イベントを発火させる。
-		await offsetX.fill('15');
-		await offsetX.dispatchEvent('change');
-		await offsetY.fill('80');
-		await offsetY.dispatchEvent('change');
-
-		// 「画像を選択」 で primary icon を再 pick (test 用に固定 path)。
-		await mockTauriOpenDialog(page, primary);
-		await page.getByTestId('card-override-image-select').click();
-		await page.waitForTimeout(400); // updateItem の persist 完了待ち
-
-		// dialog を閉じる。
-		const closeBtns = page.getByRole('button', { name: /閉じる|Close/i });
-		const dialogClose = closeBtns.first();
-		if (await dialogClose.isVisible().catch(() => false)) {
-			await dialogClose.click();
-		} else {
-			await page.keyboard.press('Escape');
-		}
-		await page.waitForTimeout(200);
-
-		// (3) OFF → ON: disabled flag + icon_backup 経由で復元される。
+		await expect.poll(async () => await toggle.isChecked(), { timeout: 5_000 }).toBe(true);
 		await toggle.uncheck();
-		await page.waitForTimeout(200);
+		await page.waitForTimeout(300);
 		await toggle.check();
 		await page.waitForTimeout(400);
 
-		// (4) 再度 dialog を開き offsetX / offsetY が 15 / 80 のまま復元されていることを verify。
-		await page.getByTestId('card-override-open-dialog').click();
-		const restoredOffsetX = page.getByTestId('card-override-offset-x');
-		const restoredOffsetY = page.getByTestId('card-override-offset-y');
-		await restoredOffsetX.waitFor({ state: 'visible', timeout: 5_000 });
-		await expect
-			.poll(async () => await restoredOffsetX.inputValue(), { timeout: 5_000 })
-			.toBe('15');
-		await expect
-			.poll(async () => await restoredOffsetY.inputValue(), { timeout: 5_000 })
-			.toBe('80');
+		// (3) items 配列を IPC で read して PH-CF-1100 ⑥ 契約 (disabled 消費 / icon_backup 消費 /
+		// offsetX/Y 完全保存) を assert する。 dialog UI を経由しないので flaky path を踏まない。
+		const restored = (await page.evaluate(async (id) => {
+			const w = window as unknown as {
+				__TAURI_INTERNALS__?: { invoke?: (cmd: string, args: unknown) => Promise<unknown> };
+			};
+			const items = (await w.__TAURI_INTERNALS__?.invoke?.('cmd_list_items', {})) as Array<{
+				id: string;
+				icon_path: string | null;
+				card_override_json: string | null;
+			}>;
+			return items.find((i) => i.id === id) ?? null;
+		}, item.id)) as { icon_path: string | null; card_override_json: string | null } | null;
 
-		// icon_path も復元されている (= 一覧カードに <img> がある)。
-		await expect
-			.poll(async () => await card.locator('img').count(), { timeout: 5_000 })
-			.toBeGreaterThan(0);
-
-		await testInfo.attach('lb-6-after-restore.png', {
-			body: await page.screenshot({ fullPage: false }),
-			contentType: 'image/png',
-		});
-		await unmockTauriOpenDialog(page);
+		expect(restored).not.toBeNull();
+		expect(restored?.icon_path, 'PH-CF-1100 ⑤: 復元で icon_path が icon_backup から戻る').toBe(
+			primary,
+		);
+		const restoredJson = JSON.parse(restored?.card_override_json ?? '{}');
+		expect(restoredJson.disabled, 'PH-CF-1100 ⑥: 復元で disabled フラグが消える').toBeUndefined();
+		expect(
+			restoredJson.icon_backup,
+			'PH-CF-1100 ⑥: 復元で icon_backup フィールドが消費される (delete restored.icon_backup)',
+		).toBeUndefined();
+		expect(
+			restoredJson.background?.offsetX,
+			'PH-CF-1100 ⑥: 復元で offsetX が OFF 直前の値と完全一致',
+		).toBe(15);
+		expect(restoredJson.background?.offsetY, 'PH-CF-1100 ⑥: 復元で offsetY が完全一致').toBe(80);
 	} finally {
 		await deleteItem(page, item.id).catch(() => {});
 		cleanupFixtureIcons(suffix);
