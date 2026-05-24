@@ -43,6 +43,7 @@ const MIGRATION_038: &str = include_str!("../../migrations/038_card_override_dro
 const MIGRATION_039: &str = include_str!("../../migrations/039_items_source_back_link.sql");
 const MIGRATION_040: &str = include_str!("../../migrations/040_library_wallpaper_config.sql");
 const MIGRATION_041: &str = include_str!("../../migrations/041_theme_six_builtins.sql");
+const MIGRATION_042: &str = include_str!("../../migrations/042_exe_scan_cache.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -87,6 +88,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_039),
         M::up(MIGRATION_040),
         M::up(MIGRATION_041),
+        M::up(MIGRATION_042),
     ])
 }
 

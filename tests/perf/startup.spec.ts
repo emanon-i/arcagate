@@ -53,6 +53,13 @@ interface Measured {
 	wallMs: number;
 	backendSetupMs: number | null;
 	backendTotalMs: number | null;
+	// PH-CF-900 A1: frontend startup 段階の cumulative 時間 (`+layout` mount → `+page` mount
+	// → 初回 IPC バッチ完了 → main paint)。 `markStartupFe` が `console.info` で出した
+	// `[perf:startup-fe] step=<name> cumulative=<ms>` を page console 経由で拾う。
+	feLayoutMountMs: number | null;
+	fePageMountMs: number | null;
+	feInitIpcDoneMs: number | null;
+	feMainPaintMs: number | null;
 }
 
 async function measureLaunch(port: number, dbPath: string, wv2Dir: string): Promise<Measured> {
@@ -75,6 +82,10 @@ async function measureLaunch(port: number, dbPath: string, wv2Dir: string): Prom
 		output += d.toString();
 	});
 
+	// PH-CF-900 A1: frontend startup log (`[perf:startup-fe]`) は page console に出る。
+	// CDP page attach 経由で console message を収集する (browser log と page console は別経路)。
+	const feLog: string[] = [];
+
 	try {
 		await waitForCdp(port);
 		const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
@@ -86,8 +97,15 @@ async function measureLaunch(port: number, dbPath: string, wv2Dir: string): Prom
 				pg = ctx.pages().find((p) => MAIN_URL.test(p.url()));
 			}
 			if (!pg) throw new Error('main window (/) page did not attach');
+			pg.on('console', (msg) => {
+				const text = msg.text();
+				if (text.includes('[perf:startup-fe]')) feLog.push(text);
+			});
 			await pg.waitForLoadState('domcontentloaded');
 			await pg.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
+			// main_paint は requestAnimationFrame 2 段経由で記録するため、 <main> 可視後に
+			// 1 frame だけ待って console を回収する (= 取りこぼし防止)。
+			await pg.waitForTimeout(150);
 		} finally {
 			await browser.close();
 		}
@@ -99,10 +117,22 @@ async function measureLaunch(port: number, dbPath: string, wv2Dir: string): Prom
 	const wallMs = Date.now() - t0;
 	// T7: backend の perf:startup log から setup 内訳を拾う (informational)。
 	const m = /step=setup_complete setup=(\d+)ms total=(\d+)ms/.exec(output);
+	const parseFe = (step: string): number | null => {
+		const re = new RegExp(`step=${step} cumulative=(\\d+)ms`);
+		for (const line of feLog) {
+			const fm = re.exec(line);
+			if (fm) return Number.parseInt(fm[1], 10);
+		}
+		return null;
+	};
 	return {
 		wallMs,
 		backendSetupMs: m ? Number.parseInt(m[1], 10) : null,
 		backendTotalMs: m ? Number.parseInt(m[2], 10) : null,
+		feLayoutMountMs: parseFe('layout_mount'),
+		fePageMountMs: parseFe('page_mount'),
+		feInitIpcDoneMs: parseFe('init_ipc_done'),
+		feMainPaintMs: parseFe('main_paint'),
 	};
 }
 
@@ -117,6 +147,11 @@ test('D1/D2 起動 P95 (cold / warm)', async () => {
 	// --- cold: 毎回 fresh DB + fresh WebView2 profile ---
 	const cold: number[] = [];
 	const coldBackend: number[] = [];
+	// PH-CF-900 A1: frontend 段階内訳の累積 cumulative。 P95 で見る (wall と同じ)。
+	const coldFeLayout: number[] = [];
+	const coldFePage: number[] = [];
+	const coldFeIpc: number[] = [];
+	const coldFePaint: number[] = [];
 	for (let i = 0; i < N; i++) {
 		const db = join(tmpRoot, `cold-${i}.db`);
 		const wv2 = join(tmpRoot, `cold-wv2-${i}`);
@@ -124,6 +159,10 @@ test('D1/D2 起動 P95 (cold / warm)', async () => {
 		const r = await measureLaunch(port++, db, wv2);
 		cold.push(r.wallMs);
 		if (r.backendTotalMs != null) coldBackend.push(r.backendTotalMs);
+		if (r.feLayoutMountMs != null) coldFeLayout.push(r.feLayoutMountMs);
+		if (r.fePageMountMs != null) coldFePage.push(r.fePageMountMs);
+		if (r.feInitIpcDoneMs != null) coldFeIpc.push(r.feInitIpcDoneMs);
+		if (r.feMainPaintMs != null) coldFePaint.push(r.feMainPaintMs);
 	}
 
 	// --- warm: DB + WebView2 profile を再利用 (初回は warm-up で捨てる) ---
@@ -150,6 +189,13 @@ test('D1/D2 起動 P95 (cold / warm)', async () => {
 			`[perf] backend setup (perf:startup total): p95=${percentile(coldBackend, 95).toFixed(0)}ms`,
 		);
 	}
+	// PH-CF-900 A1: frontend 段階内訳。 backend setup_complete から frontend layout_mount
+	// までの gap が「frontend が起動するまでの bootstrap (= WebView2 init + hydration)」
+	// で、 layout_mount → main_paint が「frontend 自身の起動コスト」 になる。
+	const fmt = (arr: number[]) => (arr.length > 0 ? percentile(arr, 95).toFixed(0) : 'n/a');
+	console.log(
+		`[perf] FE cumulative p95 (cold): layout_mount=${fmt(coldFeLayout)}ms / page_mount=${fmt(coldFePage)}ms / init_ipc_done=${fmt(coldFeIpc)}ms / main_paint=${fmt(coldFePaint)}ms`,
+	);
 
 	reportBudget({
 		budget: 'D1',

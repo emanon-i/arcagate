@@ -3,8 +3,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
+use crate::db::DbState;
+use crate::repositories::exe_scan_cache_repository;
 use crate::utils::error::AppError;
 
 /// scan 階層の上限。 user 入力 (`scan_depth`) はこの値にクランプされる。 plan
@@ -24,7 +26,7 @@ const MAX_SCAN_DEPTH: u8 = 10;
 /// - 列挙順は deterministic (第1階層フォルダ path 昇順)
 /// - 監視拡張子はハードコードせず、 呼び出し側 (`extensions`) が指定する
 /// - symlink は follow しない (ループ回避)、 permission denied は該当ディレクトリを skip
-#[derive(Serialize, Default, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExeFolderEntry {
     pub folder_path: String,
@@ -36,7 +38,7 @@ pub struct ExeFolderEntry {
     pub mtime_ms: u64,
 }
 
-#[derive(Serialize, Default, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExeCandidate {
     pub path: String,
@@ -176,6 +178,77 @@ pub fn scan_exe_folders_with_cancel(
         return Err(AppError::Cancelled);
     }
     Ok(entries)
+}
+
+/// PH-CF-900 A1-4: cache key を `<watch_path>|<scan_depth>|<extensions sorted>` で合成する。
+///
+/// watch_path は forward slash + 末尾 separator 除去で正規化 (= entry id と同 logic、
+/// `normalize_folder_path`)、 extensions は小文字 + 先頭 `.` 除去 + 重複除去 + 昇順ソート。
+/// 入力が同じなら key が一致するので backend は素朴な KV (`exe_scan_cache_repository`) で
+/// hit / miss を判定するだけで良い。
+///
+/// `scan_depth` は service 側で 1..=MAX_SCAN_DEPTH に clamp された後の値を渡す前提
+/// (frontend が異なる raw 値で同じ clamp 後 depth に着地しても key は揃う)。
+pub fn build_scan_cache_key(watch_path: &str, scan_depth: u8, extensions: &[String]) -> String {
+    let path_norm = {
+        let s = watch_path.replace('\\', "/");
+        let trimmed = s.trim_end_matches('/');
+        if trimmed.is_empty() {
+            s
+        } else {
+            trimmed.to_string()
+        }
+    };
+    let mut ext_norm: Vec<String> = extensions
+        .iter()
+        .map(|e| e.trim().trim_start_matches('.').to_ascii_lowercase())
+        .filter(|e| !e.is_empty())
+        .collect();
+    ext_norm.sort();
+    ext_norm.dedup();
+    let depth_clamped = scan_depth.clamp(1, MAX_SCAN_DEPTH);
+    format!("{}|{}|{}", path_norm, depth_clamped, ext_norm.join(","))
+}
+
+/// PH-CF-900 A1-4: scan 結果を DB cache から取得する (なければ `None`)。
+/// 「キャッシュ即表示 → background で差分 re-scan」 経路の前段 (高速 path)。
+/// JSON parse 失敗は `None` 扱いで cache miss と同等に縮退 (= 安全側、 再 scan で復旧)。
+pub fn get_cached_scan(
+    db: &DbState,
+    cache_key: &str,
+) -> Result<Option<Vec<ExeFolderEntry>>, AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    let Some(json) = exe_scan_cache_repository::find(&conn, cache_key)? else {
+        return Ok(None);
+    };
+    match serde_json::from_str::<Vec<ExeFolderEntry>>(&json) {
+        Ok(entries) => Ok(Some(entries)),
+        Err(e) => {
+            log::warn!(
+                "exe_scan_cache JSON parse failed for key='{cache_key}': {e}; treating as miss"
+            );
+            Ok(None)
+        }
+    }
+}
+
+/// PH-CF-900 A1-4: scan 結果を DB cache に upsert する。 entry が `Vec` 空 (0 件) でも
+/// 「scan は走ったが対象なし」 を記録するため persist する (次回 mount でも cache hit)。
+pub fn save_cached_scan(
+    db: &DbState,
+    cache_key: &str,
+    entries: &[ExeFolderEntry],
+) -> Result<(), AppError> {
+    let json = serde_json::to_string(entries)
+        .map_err(|e| AppError::InvalidInput(format!("failed to serialize scan entries: {e}")))?;
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    exe_scan_cache_repository::upsert(&conn, cache_key, &json)
+}
+
+/// PH-CF-900 A1-4: cache を明示 invalidate する (key 変更時 / watcher 検知時の force-refresh 用)。
+pub fn invalidate_cached_scan(db: &DbState, cache_key: &str) -> Result<(), AppError> {
+    let conn = db.0.lock().map_err(|_| AppError::DbLock)?;
+    exe_scan_cache_repository::delete(&conn, cache_key)
 }
 
 /// 第1階層フォルダの正規化済 絶対パス。 `widget_item_hides.item_target` /
@@ -570,6 +643,109 @@ mod tests {
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].folder_name, "Good");
         fs::remove_dir_all(&dir).ok();
+    }
+
+    // ----- PH-CF-900 A1-4: cache key の正規化 + invalidation -----
+
+    /// PH-CF-900: 同 watch_path / depth / extensions なら key が一致 (cache hit 条件)。
+    #[test]
+    fn cache_key_is_stable_for_same_inputs() {
+        let a = build_scan_cache_key("C:/Games", 2, &["exe".into(), "bat".into()]);
+        let b = build_scan_cache_key("C:/Games", 2, &["exe".into(), "bat".into()]);
+        assert_eq!(a, b);
+    }
+
+    /// PH-CF-900: watch_path 表記ゆらぎ (backslash / 末尾 /) を吸収し同 key になる。
+    #[test]
+    fn cache_key_normalizes_watch_path() {
+        let a = build_scan_cache_key("C:\\Games\\", 2, &["exe".into()]);
+        let b = build_scan_cache_key("C:/Games", 2, &["exe".into()]);
+        assert_eq!(a, b, "backslash / 末尾 / で同 key");
+    }
+
+    /// PH-CF-900: extensions の順序 / 大文字 / 先頭 `.` を吸収し同 key になる
+    /// (= scan_exe_folders と同じ正規化、 入力差で偽の cache miss が起きない)。
+    #[test]
+    fn cache_key_normalizes_extensions() {
+        let a = build_scan_cache_key("C:/Games", 2, &[".EXE".into(), "Bat".into()]);
+        let b = build_scan_cache_key("C:/Games", 2, &["bat".into(), "exe".into()]);
+        let c = build_scan_cache_key("C:/Games", 2, &["exe".into(), "exe".into(), "bat".into()]);
+        assert_eq!(a, b, ".EXE / Bat と bat / exe は同 key");
+        assert_eq!(a, c, "重複 ext は dedup されて同 key");
+    }
+
+    /// PH-CF-900 受け入れ条件: cache key (watch_path + extensions + scan_depth) が変わると
+    /// 別 key として扱われ、 cache が invalidate される (= 別 row として cache miss)。
+    #[test]
+    fn cache_key_invalidates_on_any_input_change() {
+        let base = build_scan_cache_key("C:/Games", 2, &["exe".into()]);
+        // watch_path 変更
+        assert_ne!(base, build_scan_cache_key("D:/Games", 2, &["exe".into()]));
+        // scan_depth 変更
+        assert_ne!(base, build_scan_cache_key("C:/Games", 3, &["exe".into()]));
+        // extensions 変更 (要素追加)
+        assert_ne!(
+            base,
+            build_scan_cache_key("C:/Games", 2, &["exe".into(), "bat".into()])
+        );
+        // extensions 変更 (別 ext)
+        assert_ne!(base, build_scan_cache_key("C:/Games", 2, &["bat".into()]));
+    }
+
+    /// PH-CF-900: depth が MAX_SCAN_DEPTH の clamp 後で揃えば同 key (= 表記差を吸収)。
+    #[test]
+    fn cache_key_clamps_depth() {
+        // raw 99 と raw 10 は両方とも 10 に clamp → 同 key
+        let a = build_scan_cache_key("C:/Games", 99, &["exe".into()]);
+        let b = build_scan_cache_key("C:/Games", 10, &["exe".into()]);
+        assert_eq!(a, b);
+        // raw 0 と raw 1 は両方 1 に clamp → 同 key
+        let c = build_scan_cache_key("C:/Games", 0, &["exe".into()]);
+        let d = build_scan_cache_key("C:/Games", 1, &["exe".into()]);
+        assert_eq!(c, d);
+    }
+
+    /// PH-CF-900 受け入れ条件 (cache hit): save → get で同じ entries が round-trip する。
+    #[test]
+    fn cache_round_trip_persists_entries() {
+        let db = crate::db::initialize_in_memory();
+        let key = build_scan_cache_key("C:/Games", 2, &["exe".into()]);
+        let entries = vec![ExeFolderEntry {
+            folder_path: "C:/Games/A".to_string(),
+            folder_name: "A".to_string(),
+            exe_candidates: vec![ExeCandidate {
+                path: "C:/Games/A/launcher.exe".to_string(),
+                size_bytes: 100,
+                name: "launcher.exe".to_string(),
+            }],
+            icon_path: None,
+            mtime_ms: 12345,
+        }];
+        save_cached_scan(&db, &key, &entries).unwrap();
+        let loaded = get_cached_scan(&db, &key).unwrap().expect("cache hit");
+        assert_eq!(loaded, entries);
+    }
+
+    /// PH-CF-900: invalidate で row が消え、 次回 get は None を返す。
+    #[test]
+    fn cache_invalidate_clears_entries() {
+        let db = crate::db::initialize_in_memory();
+        let key = build_scan_cache_key("C:/Games", 2, &["exe".into()]);
+        save_cached_scan(&db, &key, &[]).unwrap();
+        assert!(get_cached_scan(&db, &key).unwrap().is_some());
+        invalidate_cached_scan(&db, &key).unwrap();
+        assert!(get_cached_scan(&db, &key).unwrap().is_none());
+    }
+
+    /// PH-CF-900: 別 key の cache 同士は干渉しない。
+    #[test]
+    fn cache_keys_do_not_collide() {
+        let db = crate::db::initialize_in_memory();
+        let k1 = build_scan_cache_key("C:/Games", 2, &["exe".into()]);
+        let k2 = build_scan_cache_key("D:/Games", 2, &["exe".into()]);
+        save_cached_scan(&db, &k1, &[]).unwrap();
+        assert!(get_cached_scan(&db, &k1).unwrap().is_some());
+        assert!(get_cached_scan(&db, &k2).unwrap().is_none());
     }
 
     /// 古い API 互換: scan_depth_limits_recursion (旧 walk のディレクトリ単位

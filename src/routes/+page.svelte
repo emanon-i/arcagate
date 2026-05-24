@@ -2,7 +2,7 @@
 import { HelpCircle, X } from '@lucide/svelte';
 import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { onDestroy } from 'svelte';
+import { onDestroy, onMount, tick } from 'svelte';
 import TitleAction from '$lib/components/arcagate/common/TitleAction.svelte';
 import TitleBar from '$lib/components/arcagate/common/TitleBar.svelte';
 import TitleTab from '$lib/components/arcagate/common/TitleTab.svelte';
@@ -30,6 +30,7 @@ import { workspaceSelection } from '$lib/state/workspace-selection.svelte';
 import type { CreateItemInput, Item, UpdateItemInput } from '$lib/types/item';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { loadString, saveString } from '$lib/utils/local-storage';
+import { markStartupFe } from '$lib/utils/perf';
 
 type ActiveView = 'library' | 'workspace';
 
@@ -48,7 +49,33 @@ let droppedUrl = $state<string | undefined>(undefined);
 let isDraggingOver = $state(false);
 let showSettings = $state(false);
 
-// 初期化
+// PH-CF-900 A1: +page.svelte mount = root component (LibraryLayout / WorkspaceLayout) を
+// render する起動段階の起点。 `onMount` は SvelteKit の初回 hydration 後に走るため、
+// layout_mount → page_mount の gap が 「Svelte が page tree を mount するまでの時間」 になる。
+onMount(() => {
+	markStartupFe('page_mount');
+	// 起動時 IPC バッチが完了したタイミング (= 初回 paint 直前) を計測。 `Promise.all` で
+	// 全 fetch が settle してから 1 micro-task 待ち、 DOM 反映が走った後に mark を打つ。
+	Promise.allSettled([
+		configStore.loadConfig(),
+		itemStore.loadItems(),
+		itemStore.loadTags(),
+		itemStore.loadLibraryStats(),
+		themeStore.loadTheme(),
+	])
+		.then(() => tick())
+		.then(() => markStartupFe('init_ipc_done'));
+	// main paint は requestAnimationFrame 2 段で「次フレームが commit された時点」 を取る
+	// (LibraryLayout の初回 paint と一致するよう、 layout/paint の確定を待つ)。
+	requestAnimationFrame(() => {
+		requestAnimationFrame(() => markStartupFe('main_paint'));
+	});
+});
+
+// 初期化 (旧 `$effect` を残し、 svelte の reactive 再評価で起動時 IPC が走る経路は維持)。
+// `onMount` の `Promise.allSettled` は計測目的のみで、 実際の load 動作は store 側で
+// idempotent (重複 fetch は no-op or 結果上書きの best-effort) のため計測 fetch と
+// 共存する。 旧 effect を消すと SSR 経路 / HMR で抜けるケースがあるため保持。
 $effect(() => {
 	void configStore.loadConfig();
 	void itemStore.loadItems();

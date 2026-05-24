@@ -8,7 +8,7 @@ import { detectOsLocale, type Locale, setLocale, t } from '$lib/i18n.svelte';
 import { takeStartupNotices } from '$lib/ipc/config';
 import { installErrorMonitor, uninstallErrorMonitor } from '$lib/state/error-monitor.svelte';
 import { toastStore } from '$lib/state/toast.svelte';
-import { installLongtaskObserver, installResourceObserver } from '$lib/utils/perf';
+import { installLongtaskObserver, installResourceObserver, markStartupFe } from '$lib/utils/perf';
 // Library 遷移 timeline collector (prototype): 起動時に window.__agTimeline__ を用意する。
 import '$lib/utils/perf-timeline';
 
@@ -64,6 +64,10 @@ async function showStartupNotices(): Promise<void> {
 // log + WAL checkpoint + native dialog を担う。 起動時 config 破損などの軽度 recovery は
 // 下記 showStartupNotices() で toast 表示する (T4)。
 onMount(() => {
+	// PH-CF-900 A1: 起動段階 instrumentation。 `+layout.svelte` mount = SvelteKit hydration
+	// 完了の最初の hook (= WebView2 が JS を実行可能になり Svelte component tree が
+	// mount された時点)。 backend setup (perf:startup) との gap がここまでで取れる。
+	markStartupFe('layout_mount');
 	installErrorMonitor();
 	installLongtaskObserver();
 	installResourceObserver();
