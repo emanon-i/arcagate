@@ -251,18 +251,18 @@ user の理解は **実コード上で成立する**。 `img.decode()` 待ちよ
 
 ### 3.1 剥がせる (A 案で不要になる)
 
-| 位置                                                                                                | 内容                                                             | 撤去理由                                                               |
-| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [LibraryView.svelte:194](../../../src/lib/components/arcagate/library/LibraryView.svelte)           | `{#key \`${item.icon_path}                                       | ${item.card_override_json}\`}` (list mode)                             |
-| [LibraryView.svelte:248](../../../src/lib/components/arcagate/library/LibraryView.svelte)           | 同 (grid mode)                                                   | 同上                                                                   |
-| [LibraryView.svelte:188-193, 247](../../../src/lib/components/arcagate/library/LibraryView.svelte)  | `{#key}` 経緯コメント                                            | 不要になる                                                             |
-| [scripts/audit-appearance-state-mgmt.sh:93-104](../../../scripts/audit-appearance-state-mgmt.sh)    | (F) LibraryView `{#key}` 必須化 gate                             | ItemIcon 内 `{#key iconSrc}` を必須化する新 gate に置換                |
-| [items.svelte.ts:15-18](../../../src/lib/state/items.svelte.ts)                                     | `freshIconMark` 撤廃 + LibraryView `{#key}` への切替経緯コメント | A 案の経緯コメントに更新                                               |
-| [items.svelte.ts:91-92](../../../src/lib/state/items.svelte.ts)                                     | `applyOptimisticUpdate` の freshIconMark 言及コメント            | freshIconMark 言及部分のみ削除                                         |
-| [ItemFormCardOverride.svelte:106-110](../../../src/lib/components/item/ItemFormCardOverride.svelte) | 「`{#key icon_path}` で再マウント」 言及コメント                 | 「ItemIcon 内 `{#key iconSrc}` で `<img>` 再マウント」 に書き換え      |
-| [ItemIcon.svelte:13-21](../../../src/lib/components/arcagate/common/ItemIcon.svelte)                | `loading` prop docstring 内の `content-visibility` 言及          | `content-visibility` は #573 で撤廃済、 古い理由付け。 docstring 整理  |
-| [LibraryCard.svelte:89-98](../../../src/lib/components/arcagate/library/LibraryCard.svelte)         | `content-visibility: auto` 撤廃の長い経緯コメント                | library.md に集約、 svelte 内は短く / `${#key iconSrc}` 経緯に書き換え |
-| [LibraryCard.svelte:203-208](../../../src/lib/components/arcagate/library/LibraryCard.svelte)       | CSS 内 `content-visibility` 撤廃コメント                         | 同上                                                                   |
+| 位置                                                                                                | 内容                                                                                        | 撤去理由                                                               |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [LibraryView.svelte:194](../../../src/lib/components/arcagate/library/LibraryView.svelte)           | <code>{#key &#96;${item.icon_path}&#124;${item.card_override_json}&#96;}</code> (list mode) | A 案で ItemIcon 内 `{#key iconSrc}` に責務を局所化                     |
+| [LibraryView.svelte:248](../../../src/lib/components/arcagate/library/LibraryView.svelte)           | 同 (grid mode)                                                                              | 同上                                                                   |
+| [LibraryView.svelte:188-193, 247](../../../src/lib/components/arcagate/library/LibraryView.svelte)  | `{#key}` 経緯コメント                                                                       | 不要になる                                                             |
+| [scripts/audit-appearance-state-mgmt.sh:93-104](../../../scripts/audit-appearance-state-mgmt.sh)    | (F) LibraryView `{#key}` 必須化 gate                                                        | ItemIcon 内 `{#key iconSrc}` を必須化する新 gate に置換                |
+| [items.svelte.ts:15-18](../../../src/lib/state/items.svelte.ts)                                     | `freshIconMark` 撤廃 + LibraryView `{#key}` への切替経緯コメント                            | A 案の経緯コメントに更新                                               |
+| [items.svelte.ts:91-92](../../../src/lib/state/items.svelte.ts)                                     | `applyOptimisticUpdate` の freshIconMark 言及コメント                                       | freshIconMark 言及部分のみ削除                                         |
+| [ItemFormCardOverride.svelte:106-110](../../../src/lib/components/item/ItemFormCardOverride.svelte) | 「`{#key icon_path}` で再マウント」 言及コメント                                            | 「ItemIcon 内 `{#key iconSrc}` で `<img>` 再マウント」 に書き換え      |
+| [ItemIcon.svelte:13-21](../../../src/lib/components/arcagate/common/ItemIcon.svelte)                | `loading` prop docstring 内の `content-visibility` 言及                                     | `content-visibility` は #573 で撤廃済、 古い理由付け。 docstring 整理  |
+| [LibraryCard.svelte:89-98](../../../src/lib/components/arcagate/library/LibraryCard.svelte)         | `content-visibility: auto` 撤廃の長い経緯コメント                                           | library.md に集約、 svelte 内は短く / `${#key iconSrc}` 経緯に書き換え |
+| [LibraryCard.svelte:203-208](../../../src/lib/components/arcagate/library/LibraryCard.svelte)       | CSS 内 `content-visibility` 撤廃コメント                                                    | 同上                                                                   |
 
 ### 3.2 剥がせない (A 案後も必要)
 
