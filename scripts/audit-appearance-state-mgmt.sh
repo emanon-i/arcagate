@@ -90,6 +90,19 @@ if ! grep -qE 'delete\s+restored\.icon_backup' "$DP" 2>/dev/null; then
   VIOLATIONS=$((VIOLATIONS + 1))
 fi
 
+# (F) LibraryView (list / grid 両 mode) で {#key} re-mount を保持していること。
+# PH-CF-1100 ② の構造保証: icon_path / card_override_json 変化で LibraryCard を確実に再 mount し
+# `<img src>` の reactive update を奪わない (PH-CF-600 で {#key} を撤去した時、 svelte 5 の
+# reactive prop 更新だけでは実 UI 経路で <img src> が古い path のまま残る regression を出した
+# ため、 {#key} は撤廃禁止)。
+LV=src/lib/components/arcagate/library/LibraryView.svelte
+if ! grep -qE '\{#key.*item\.(icon_path|card_override_json)' "$LV" 2>/dev/null; then
+  echo "ERROR (F): $LV から {#key item.icon_path|item.card_override_json} re-mount が消えています"
+  echo "  → PH-CF-1100 ② 構造保証 (再 mount で <img src> 即時切替) が壊れます"
+  echo "  → PH-CF-600 で同じ撤廃を試みて regression を出した経緯あり (本 audit 冒頭コメント参照)"
+  VIOLATIONS=$((VIOLATIONS + 1))
+fi
+
 if [ "$VIOLATIONS" -gt 0 ]; then
   echo
   echo "audit-appearance-state-mgmt: $VIOLATIONS violation(s)"
@@ -97,5 +110,5 @@ if [ "$VIOLATIONS" -gt 0 ]; then
   exit 1
 fi
 
-echo "audit-appearance-state-mgmt: OK (disabled/icon_backup スキーマ + content-visibility 撤廃 維持)"
+echo "audit-appearance-state-mgmt: OK (disabled/icon_backup スキーマ + content-visibility 撤廃 + LibraryView {#key} 維持)"
 exit 0
