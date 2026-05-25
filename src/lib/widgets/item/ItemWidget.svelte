@@ -45,7 +45,9 @@ let { widget }: Props = $props();
 let settingsOpen = $state(false);
 let pickerOpen = $state(false);
 
-/** I-2: item-row 右 click → 共通 context menu (path + itemId + 設定 callback)。 */
+/** I-2: item-row 右 click → 共通 context menu (path + itemId + 設定 callback)。
+ *  PH-CF-1200 ⑨: widgetDefaultOpenerId を伝播し、 右クリック「デフォルトアプリで開く」 が
+ *  click 経路 (handleLaunch) と同じ cascade (card → widget opener → system) を通る。 */
 function handleItemContext(item: Item, ev: MouseEvent): void {
 	ev.preventDefault();
 	ev.stopPropagation();
@@ -53,6 +55,7 @@ function handleItemContext(item: Item, ev: MouseEvent): void {
 		itemId: item.id,
 		path: item.target,
 		widgetId: widget?.id ?? null,
+		widgetDefaultOpenerId: config.default_opener_id ?? null,
 		onOpenSettings: () => (settingsOpen = true),
 		ev,
 	});

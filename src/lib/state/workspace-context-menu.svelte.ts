@@ -18,6 +18,12 @@ class WorkspaceContextMenuStore {
 	itemId = $state<string | null>(null);
 	path = $state<string | null>(null);
 	widgetId = $state<string | null>(null);
+	/**
+	 * PH-CF-1200 ⑨: 右クリック「デフォルトアプリで開く」 が widget の opener を尊重するため
+	 * の伝播チャネル。 caller widget が自身の config.default_opener_id を渡す。
+	 * 未指定 (null) なら item-level / system default の cascade のみ。
+	 */
+	widgetDefaultOpenerId = $state<string | null>(null);
 	onOpenSettings = $state<(() => void) | null>(null);
 
 	item = $derived.by(() =>
@@ -33,6 +39,7 @@ class WorkspaceContextMenuStore {
 		this.itemId = id;
 		this.path = item?.target ?? null;
 		this.widgetId = null;
+		this.widgetDefaultOpenerId = null;
 		this.onOpenSettings = null;
 		this.x = ev?.clientX ?? 0;
 		this.y = ev?.clientY ?? 0;
@@ -44,18 +51,23 @@ class WorkspaceContextMenuStore {
 	 * - itemId: Library item id (削除に使う、null なら delete メニュー非表示)
 	 * - path: file/folder path (copy / explorer に使う、null なら 2 項目非表示)
 	 * - widgetId: workspace widget id (settings 用、null なら settings 非表示)
+	 * - widgetDefaultOpenerId: PH-CF-1200 ⑨ で追加。 caller widget の config.default_opener_id。
+	 *   右クリック「デフォルトアプリで開く」 が `widget opener → item.default_app → system` の
+	 *   cascade を通るために伝播する (clicking 経路と同等の opener 解決を保証)。
 	 * - onOpenSettings: 設定 modal を開く callback (widget が自身の settings dialog を保有するため)
 	 */
 	openMenuFor(opts: {
 		itemId?: string | null;
 		path?: string | null;
 		widgetId?: string | null;
+		widgetDefaultOpenerId?: string | null;
 		onOpenSettings?: (() => void) | null;
 		ev?: MouseEvent;
 	}) {
 		this.itemId = opts.itemId ?? null;
 		this.path = opts.path ?? null;
 		this.widgetId = opts.widgetId ?? null;
+		this.widgetDefaultOpenerId = opts.widgetDefaultOpenerId ?? null;
 		this.onOpenSettings = opts.onOpenSettings ?? null;
 		this.x = opts.ev?.clientX ?? 0;
 		this.y = opts.ev?.clientY ?? 0;

@@ -413,6 +413,7 @@ async function handleLaunch(item: Item) {
 								itemId: item.id,
 								path: item.target,
 								widgetId: widget?.id ?? null,
+								widgetDefaultOpenerId: config.default_opener_id ?? null,
 								onOpenSettings: () => (settingsOpen = true),
 								ev: e,
 							});

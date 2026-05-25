@@ -11,6 +11,7 @@ import { widgetItemHidesStore } from '$lib/state/widget-item-hides.svelte';
 import { workspaceConfig } from '$lib/state/workspace-config.svelte';
 import { getErrorMessage } from '$lib/utils/format-error';
 import { launchItemWithCascade } from '$lib/utils/launch-cascade';
+import { formatLaunchError } from '$lib/utils/launch-error';
 
 /**
  * I-2 (2026-05-10 user 検収): 全 widget 共通 context menu。
@@ -36,11 +37,28 @@ interface Props {
 	/** Phase 2 (2026-05-12): per-widget hide menu を表示する場合の widget id。
 	 * widgetId + path が両方ある時のみ「この widget から外す」 button が出る。 */
 	widgetId?: string | null;
+	/**
+	 * PH-CF-1200 ⑨: caller widget の config.default_opener_id。
+	 * 右クリック「デフォルトアプリで開く」 が `widget opener → item.default_app → system` の
+	 * cascade を通るために使う。 未指定 (null) なら item-level / system default の cascade のみ。
+	 * widget 内 click 経路 (handleLaunch 等) と同等の opener 解決を保証する。
+	 */
+	widgetDefaultOpenerId?: string | null;
 	onOpenSettings?: (() => void) | null;
 	onClose: () => void;
 }
 
-let { open, x, y, path, itemId, widgetId, onOpenSettings, onClose }: Props = $props();
+let {
+	open,
+	x,
+	y,
+	path,
+	itemId,
+	widgetId,
+	widgetDefaultOpenerId = null,
+	onOpenSettings,
+	onClose,
+}: Props = $props();
 
 let item = $derived(itemId ? (itemStore.items.find((i) => i.id === itemId) ?? null) : null);
 
@@ -87,15 +105,21 @@ function handleOpenSettings(): void {
 	onClose();
 }
 
-// audit batch deferred (2026-05-13) #11: Default app (Opener) で起動。
-// item.default_app (per-item override) > widget config (widgetDefaultOpenerId) > global default の cascade。
-// widget config からの opener id は context menu props に無いので item-level のみ resolve、 fallback は cmd_open_path 経由。
+// PH-CF-1200 ⑨: Default app (Opener) で起動。 click 経路 (widget.launchEntry / handleLaunch 等)
+// と同じ cascade を通す: card_override.opener_id → widget.default_opener_id → item.default_app /
+// system default。 widgetDefaultOpenerId は openMenuFor 経由で caller widget が伝播する。
+// 旧実装は ctx 引数を渡さず widget opener を完全無視 + エラー表示も `launch_failed` 生 message で
+// 「clicking と右クリックで挙動が食い違う」 状態 (PH-CF-1200 ⑨ の root cause)。
+// toast 文言も click 経路の `formatLaunchError(label, e)` + `toast.launched_label` と揃えて、
+// 「Path not found - check the item setting」 等の i18n 化された案内が同じく出るようにする。
 async function handleLaunchDefault(): Promise<void> {
 	if (!item) return;
+	const label = item.label;
 	try {
-		await launchItemWithCascade(item);
+		await launchItemWithCascade(item, { widgetDefaultOpenerId });
+		toastStore.add(t('toast.launched_label', { label }), 'success');
 	} catch (e: unknown) {
-		toastStore.add(t('toast.launch_failed', { error: getErrorMessage(e) }), 'error');
+		toastStore.add(formatLaunchError(label, e), 'error');
 	} finally {
 		onClose();
 	}
