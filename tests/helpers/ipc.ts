@@ -371,3 +371,31 @@ export async function removeWidgetItemHide(
 export async function listWidgetItemHides(page: Page, widgetId: string): Promise<string[]> {
 	return invoke<string[]>(page, 'cmd_list_widget_item_hides', { widgetId });
 }
+
+// PH-CF-1210 ⑨: opener registry を e2e から生成する helper。 spec が widget の
+// `default_opener_id` に渡す user opener を作る。
+export interface OpenerHelper {
+	id: string;
+	name: string;
+	command_template: string;
+	icon_path: string | null;
+	sort_order: number;
+	is_builtin: boolean;
+}
+
+export async function saveOpener(
+	page: Page,
+	input: {
+		id: string | null;
+		name: string;
+		command_template: string;
+		icon_path: string | null;
+		sort_order: number | null;
+	},
+): Promise<OpenerHelper> {
+	return invoke<OpenerHelper>(page, 'cmd_save_opener', { input });
+}
+
+export async function deleteOpener(page: Page, id: string): Promise<void> {
+	return invoke<void>(page, 'cmd_delete_opener', { id });
+}
