@@ -13,12 +13,16 @@
 #      が存在すること (型契約)
 #   B. LibraryCard.svelte が `isCardOverrideActive` を import + 使用していること (disabled
 #      respect)
-#   C. LibraryCard.svelte が `freshIconMark` を `$effect` で subscribe していること
-#      (paint stale 解消、 onMount 一回 check は穴あり)
+#   C. LibraryCard.svelte に `content-visibility: auto;` CSS 宣言が再導入されていないこと
+#      (PH-CF-1100 ② で意図的に撤廃した仮想化を書き戻すと paint stale が再発)
 #   D. LibraryDetailPanel.svelte の toggle OFF 経路が `disabled: true` + `icon_backup` +
 #      `icon_path: null` を 1 つの updateItem に詰めていること (中間状態を露出しない)
 #   E. LibraryDetailPanel.svelte の toggle ON 経路 (restore 分岐) が `delete restored.disabled`
 #      + `delete restored.icon_backup` で旧 backup を消費していること
+#   F. ItemIcon.svelte が `<img>` を `{#key iconSrc}` で囲んでいること (PH-CF-1100 ②: icon
+#      path 変化時に <img> 要素ごと作り直して modal overlay 下の paint stale を構造的に排除。
+#      LibraryView の card 全体 {#key} は撤去済 = paint stale 解消責務は ItemIcon に局所化、
+#      LibraryView / palette / workspace 等 ItemIcon 経由の全 caller に自動適用される)
 
 set -euo pipefail
 
@@ -90,16 +94,18 @@ if ! grep -qE 'delete\s+restored\.icon_backup' "$DP" 2>/dev/null; then
   VIOLATIONS=$((VIOLATIONS + 1))
 fi
 
-# (F) LibraryView (list / grid 両 mode) で {#key} re-mount を保持していること。
-# PH-CF-1100 ② の構造保証: icon_path / card_override_json 変化で LibraryCard を確実に再 mount し
-# `<img src>` の reactive update を奪わない (PH-CF-600 で {#key} を撤去した時、 svelte 5 の
-# reactive prop 更新だけでは実 UI 経路で <img src> が古い path のまま残る regression を出した
-# ため、 {#key} は撤廃禁止)。
-LV=src/lib/components/arcagate/library/LibraryView.svelte
-if ! grep -qE '\{#key.*item\.(icon_path|card_override_json)' "$LV" 2>/dev/null; then
-  echo "ERROR (F): $LV から {#key item.icon_path|item.card_override_json} re-mount が消えています"
-  echo "  → PH-CF-1100 ② 構造保証 (再 mount で <img src> 即時切替) が壊れます"
-  echo "  → PH-CF-600 で同じ撤廃を試みて regression を出した経緯あり (本 audit 冒頭コメント参照)"
+# (F) ItemIcon.svelte が `<img>` を `{#key iconSrc}` で囲んでいること。
+# PH-CF-1100 ② 構造保証 (再設計版): icon path 変化時に <img> 要素を作り直し、 modal overlay 下の
+# browser composite layer / tile cache 連続性に起因する paint stale を排除する。 旧 (F) は
+# LibraryView の card 全体 {#key item.icon_path|...} を強制していたが、 paint stale の主舞台は
+# <img> 単体であり、 card 全体再 mount は過剰負担 + 横展開漏れ (palette / workspace 等) を生む。
+# 本 gate は paint stale 解消責務を ItemIcon に局所化し、 ItemIcon を経由する全 caller に
+# 自動適用させる。
+II=src/lib/components/arcagate/common/ItemIcon.svelte
+if ! grep -qE '\{#key\s+iconSrc\s*\}' "$II" 2>/dev/null; then
+  echo "ERROR (F): $II から {#key iconSrc} (img 要素再生成) が消えています"
+  echo "  → PH-CF-1100 ② 構造保証 (icon path 変化で <img> 要素再生成 → paint stale 排除) が壊れます"
+  echo "  → <img> tag を {#key iconSrc} ... {/key} で囲むこと"
   VIOLATIONS=$((VIOLATIONS + 1))
 fi
 
@@ -110,5 +116,5 @@ if [ "$VIOLATIONS" -gt 0 ]; then
   exit 1
 fi
 
-echo "audit-appearance-state-mgmt: OK (disabled/icon_backup スキーマ + content-visibility 撤廃 + LibraryView {#key} 維持)"
+echo "audit-appearance-state-mgmt: OK (disabled/icon_backup スキーマ + content-visibility 撤廃 + ItemIcon {#key iconSrc} 維持)"
 exit 0

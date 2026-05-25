@@ -1,8 +1,8 @@
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
 import ItemIcon from '$lib/components/arcagate/common/ItemIcon.svelte';
 import { t } from '$lib/i18n.svelte';
+import { pickIconFile } from '$lib/ipc/icon-picker';
 import {
 	configStore,
 	DEFAULT_CARD_BACKGROUND,
@@ -87,26 +87,20 @@ async function patchOverride(patch: {
 }
 
 async function selectImage(): Promise<void> {
-	const selected = await open({
-		multiple: false,
-		filters: [
-			{
-				name: t('item.appearance_settings.filter_image'),
-				extensions: ['png', 'ico', 'jpg', 'jpeg', 'svg', 'webp'],
-			},
-		],
-	});
+	// `pickIconFile` は native dialog leaf 1 個だけ test seam を持つ thin wrapper。 上流の
+	// UI (settings checkbox → 歯車 → 本 button click) は production と同じ click sequence で
+	// 走る。 詳細は `$lib/ipc/icon-picker.ts` 参照。
+	const selected = await pickIconFile(t('item.appearance_settings.filter_image'));
 	if (!selected) return;
 	try {
 		// 生の picker path は asset protocol scope (`$APPDATA/icons/**`) 外で webview が
 		// 描画できないため、 `$APPDATA/icons/` へ copy した path を icon_path に保存する。
 		const saved = await invoke<string>('cmd_save_icon_file', {
-			sourcePath: selected as string,
+			sourcePath: selected,
 		});
-		// PH-CF-600 C2: 即時反映。 cmd_update_item IPC 完了を待つと items 配列の再代入が
-		// 1 ラウンドトリップ遅れ、 grid LibraryCard ({#key icon_path} で再マウント) の更新も
-		// 同じ frame に間に合わない。 saved 取得直後に optimistic update で in-memory store を
-		// 更新し、 同一 microtask 内で {#key} 再マウントを発火させる (slider drag と同 pattern)。
+		// 即時反映: cmd_update_item IPC 完了を待つと items 配列の再代入が 1 ラウンドトリップ
+		// 遅れ体感が悪い。 saved 取得直後に optimistic update で in-memory store を更新し、
+		// ItemIcon の `{#key iconSrc}` で `<img>` 要素を再生成 → 一覧 grid が即時反映する。
 		// 後続 updateItem の IPC 戻りで同値を上書きしても挙動は no-op (= safe)。
 		itemStore.applyOptimisticUpdate(item.id, { icon_path: saved });
 		await itemStore.updateItem(item.id, { icon_path: saved });
@@ -117,7 +111,7 @@ async function selectImage(): Promise<void> {
 }
 
 async function clearImage(): Promise<void> {
-	// PH-CF-600 C2: 削除も同様に即時反映。
+	// 削除も同様に即時反映 (in-memory 先行 → IPC persist)。
 	itemStore.applyOptimisticUpdate(item.id, { icon_path: null });
 	await itemStore.updateItem(item.id, { icon_path: null });
 	toastStore.add(t('toast.icon_removed'), 'info');

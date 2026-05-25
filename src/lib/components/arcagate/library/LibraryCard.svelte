@@ -86,16 +86,11 @@ let bgImageStyle = $derived.by(() => {
 	}`;
 });
 
-// PH-CF-1100 ②: `content-visibility: auto` (旧 L3-A 仮想化) は撤廃。
-// 旧実装は 200+ item の off-screen card paint を browser にスキップさせて scroll perf を稼いだが、
-// CardOverrideDialog overlay 下で画像を差し替えると、 (a) overlay 中は LibraryCard が「見えない」
-// と判定され paint window が浪費される、 (b) overlay close 後の grid は再 layout が走らず
-// content-visibility 由来の cached paint が残る、 という構造的欠陥があった。 PR #564/#570 で
-// freshIconMark + onMount / $effect の 2 段 fix を試みたがいずれも実 UI 経路で paint stale を
-// 残し続けたため、 仮想化そのものを撤廃して即時反映を最優先 (CLAUDE.md instant-feedback rule、
-// daily-use-test rule)。 perf 影響は実測ベンチで paint cost ≲ 1ms/card@cold で許容範囲、
-// 690 cards の cold open は initial paint ~150ms に増えるが scroll は 60fps を維持する
-// (`features/screens/library.md` §仮想化撤廃の根拠)。
+// `content-visibility: auto` 仮想化は撤廃済。 paint stale 解消責務は ItemIcon 内の
+// `{#key iconSrc}` (`<img>` 要素単独再生成) に局所化された。 LibraryCard は通常の Svelte
+// reactive prop 更新で済む。 経緯:
+// `docs/l2_foundation/features/screens/library.md` §即時反映、
+// `docs/l3_phases/audit/LIBRARY_ICON_REFRESH_TARGET_ARCH_2026-05-25.md`。
 </script>
 
 {#if viewMode === 'list'}
@@ -200,9 +195,8 @@ let bgImageStyle = $derived.by(() => {
 {/if}
 
 <style>
-/* PH-CF-1100 ②: `content-visibility: auto` 仮想化は撤廃。 経緯は <script> 冒頭コメント参照。
-   `library-card` class は data-testid / E2E selector / 既存 layout 利用箇所のために残置するが、
-   paint skip に関する rule は持たない。 */
+/* `library-card` class はレイアウト分離 (`contain: layout style`) のみを持つ。 paint skip
+   ルールは持たない (`content-visibility: auto` は撤廃済)。 */
 .library-card {
 	contain: layout style;
 }
