@@ -32,11 +32,14 @@ export default defineConfig({
 	},
 	globalSetup: './tests/fixtures/global-setup.ts',
 	globalTeardown: './tests/fixtures/global-teardown.ts',
-	// debug バイナリは devUrl (http://localhost:5173) を使うため Vite が必要
+	// debug バイナリは devUrl (http://localhost:5173) を使うため Vite が必要。
+	// `VITE_E2E=1` で `src/lib/ipc/icon-picker.ts` の test seam を有効化する (production build
+	// では `import.meta.env.VITE_E2E` が undefined になり seam ブロックが tree-shake で除去される)。
 	webServer: {
 		command: 'pnpm dev',
 		url: 'http://localhost:5173',
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,
+		env: { VITE_E2E: '1' },
 	},
 });

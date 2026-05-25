@@ -12,10 +12,13 @@ let tagItems = $state<Item[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 
-// PH-CF-1100 ②: 旧 `freshIconMark` (content-visibility:auto + 短時間 paint window 強制) は撤廃。
-// LibraryCard の CV 仮想化自体を取り外したため、 items 配列更新 → Svelte の reactive flush
-// → LibraryView の {#each} + {#key} で再 mount → 通常 paint で即時反映される。 経緯は
-// `src/lib/components/arcagate/library/LibraryCard.svelte` の <script> 冒頭コメントを参照。
+// 画像即時反映 (icon_path 変更時): items 配列更新 → Svelte reactive flush →
+// LibraryView の {#each} で props 伝播 → ItemIcon の {#key iconSrc} で `<img>` 要素のみ
+// 再生成 → fresh paint pipeline で stale を構造的に回避。 旧 freshIconMark / LibraryView
+// 全体 {#key} 等の対症ハックは撤廃済。 経緯:
+// `src/lib/components/arcagate/common/ItemIcon.svelte`、
+// `docs/l2_foundation/features/screens/library.md` §即時反映、
+// `docs/l3_phases/audit/LIBRARY_ICON_REFRESH_TARGET_ARCH_2026-05-25.md`。
 
 async function loadItems(): Promise<void> {
 	loading = true;
@@ -87,9 +90,6 @@ async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
  *
  * 失敗 path 無し (in-memory only)。 onchange の updateItem が server resp で上書きするので
  * drift しても自動収束する。
- *
- * PH-CF-1100 ②: 旧 freshIconMark bump は撤廃 (LibraryCard CV:auto 仮想化を取り外したため
- * items の reactive 更新だけで即時 paint される)。
  */
 function applyOptimisticUpdate(id: string, patch: Partial<Item>): void {
 	items = items.map((item) => (item.id === id ? { ...item, ...patch } : item));
@@ -228,11 +228,9 @@ export const itemStore = {
 	loadTagWithCounts,
 };
 
-// PH-CF-1100 ②: 旧 `window.__arcagateTest__.itemStore` test hook は撤廃。
-// e2e (`tests/e2e/ph-cf-600-library-bug-fixes.spec.ts` の LB-2 系) は本 hook を介さず、
-// `@tauri-apps/plugin-dialog` の `open()` を `mockIPC` で stub して LibraryDetailPanel の
-// 「見た目設定」 checkbox → 歯車 button → CardOverrideDialog → 「画像を選択」 button まで
-// 実 UI と同じ click sequence で駆動する経路に置き換えた (`tests/helpers/dialog-mock.ts`)。
-// 合成フック駆動だと PR #570 のように「test は通るが実機で直っていない」 ことを許してしまう
-// (PH-CF-1100 ② root cause)。 機械検出は実 UI 経路を踏むことを `scripts/audit-no-test-hook-leak.sh`
-// と e2e 自体で二重に担保する。
+// e2e (LB-2 系) は `window.__arcagateTest__` 経由の UI bypass を持たない。 実 UI 全パス
+// (settings checkbox → 歯車 → 「画像を選択」 button click → cmd_save_icon_file) を踏み、
+// native file picker leaf のみ `src/lib/ipc/icon-picker.ts` の seam で fixture path に差し替える。
+// 合成フック駆動だと「test は通るが実機で直っていない」 を許す (PR #570 の教訓)。
+// 機械検出は `scripts/audit-no-test-hook-leak.sh` + `scripts/audit-appearance-state-mgmt.sh` で
+// 二重 gate。

@@ -10,13 +10,9 @@ interface Props {
 	class?: string;
 	style?: string;
 	/**
-	 * PH-CF-600 C2: img の lazy loading を call-site で制御できるようにする。
-	 *
-	 * default `'lazy'` は Library 一覧で 100+ 件の icon が一斉に asset:// fetch されて
-	 * 直列処理で初期描画が固まる問題への対策 (旧コメント参照)。 ただし、 caller が
-	 * `content-visibility: auto` 等の他の virtualization で off-screen 制御済の場合は
-	 * `'eager'` を指定して image の paint を即時化できる (e.g. LibraryCard では
-	 * content-visibility: auto + lazy が重なって icon 変更後 paint stale になる)。
+	 * `<img loading>` 属性。 default `'lazy'` は Library 一覧で 100+ 件の icon が一斉に
+	 * asset:// fetch されて直列処理で初期描画が固まる問題への対策 (117 item 計測で確認)。
+	 * caller 側で off-screen 制御済等の場合は `'eager'` を指定可。
 	 */
 	loading?: 'lazy' | 'eager';
 }
@@ -53,22 +49,29 @@ let FallbackIcon = $derived(
 
 {#if iconSrc && !iconError}
 	<!--
-	  loading="lazy": Library 一覧で全 card の icon が一斉に asset:// fetch される問題の対策。
-	  asset protocol は request を直列処理するため、117 item で 117 件の icon request が
-	  serialize し初期表示が固まる (117 item 計測で確認)。 lazy で viewport 近傍のみ fetch する。
+	  loading="lazy": Library 一覧で全 card の icon が一斉に asset:// fetch される問題の対策
+	  (asset protocol は request を直列処理、 117 item 計測で確認)。 viewport 近傍のみ fetch。
 	  decoding="async": decode を critical path から外す。
+	  {#key iconSrc}: iconSrc 変化時に <img> 要素ごと作り直す。 modal overlay 下で src を差し
+	  替えた時に browser の composite layer / tile cache 連続性が原因となる paint stale を
+	  構造的に排除し、 icon の即時反映 (Library 見た目設定 ②) を保証する。 LibraryView 側の
+	  card 全体 {#key item.icon_path|...} 対症ハックは撤廃済。
+	  機械検出: scripts/audit-appearance-state-mgmt.sh (F)、
+	  仕様: docs/l2_foundation/features/screens/library.md §即時反映。
 	-->
-	<img
-		src={iconSrc}
-		{alt}
-		class={className}
-		{style}
-		{loading}
-		decoding="async"
-		onerror={() => {
-			iconError = true;
-		}}
-	/>
+	{#key iconSrc}
+		<img
+			src={iconSrc}
+			{alt}
+			class={className}
+			{style}
+			{loading}
+			decoding="async"
+			onerror={() => {
+				iconError = true;
+			}}
+		/>
+	{/key}
 {:else}
 	<FallbackIcon class="{className} text-[var(--ag-text-muted)]" {style} />
 {/if}
