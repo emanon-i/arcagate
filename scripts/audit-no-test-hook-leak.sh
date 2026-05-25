@@ -38,11 +38,16 @@ if [ -n "$HOOK_LEAK" ]; then
   VIOLATIONS=$((VIOLATIONS + 1))
 fi
 
-# (b) unconditional `test.skip(true, ...)` / `test.fixme(true, ...)` の検出。
-# 条件付き (`test.skip(!cond, ...)` 等) は環境依存 skip として許容、 unconditional は禁止。
+# (b) unconditional `test.skip(true, ...)` / `test.fixme(true, ...)` および 静的形式
+# `test.skip('title', fn)` / `test.fixme('title', fn)` の検出。
+#   - `test.skip(true, …)`     : if-block 等の中で「条件成立時に常に skip」 する形式
+#   - `test.skip('title', fn)` : test 定義そのものを常に skip する静的形式 (旧 regex で見逃し、
+#                                WD-3 が長期残存していた reason、 2026-05-25 拡張)
+# 条件付き (`test.skip(!cond, ...)` / `test.skip(cond, ...)`) は環境依存 skip として許容。
 # `tests/e2e/` 配下のみ対象 (`tests/perf/` は環境差で skip が現実解の場合あり、 別途運用)。
+# 第 1 引数が `true` リテラル または 文字列リテラル (`'` / `"` / バッククォート で開始) を検出。
 UNCONDITIONAL_SKIP=$(
-  grep -rnE 'test\.(skip|fixme)\s*\(\s*true\s*[,)]' tests/e2e/ 2>/dev/null || true
+  grep -rnE "test\.(skip|fixme)\s*\(\s*(true\s*[,)]|['\"\`])" tests/e2e/ 2>/dev/null || true
 )
 if [ -n "$UNCONDITIONAL_SKIP" ]; then
   # allowlist 行 (test 固有事情で意図的に skip): 行末に `// audit-no-test-hook-leak:ok` で許容
