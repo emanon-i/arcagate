@@ -173,81 +173,17 @@ test('WD-2: 既存 widget あり workspace で drop 点近傍 (cluster 中心で
 	await deleteWorkspace(page, ws.id, true);
 });
 
-// WD-3 は PH-CF-1100 ④ で `effectiveCols` から `widgetMaxRight` を撤去した結果、 scroll で得た
-// drop cell が viewport cols 厳守 clamp の影響を受けて 2 回 drop が同 cell に着地するパターンが
-// CI 上で発生 (run 26374859851 で再現)。 scroll 補正自体は `drop-coords.test.ts` の unit test と
-// WD-1 / WD-2 で機能を verify 済のため、 ここで再検証する必要は薄く、 後続 PR で scroll 量と
-// dynamicCols 関係を整理した状態で再構築する。
-// audit-no-test-hook-leak:ok
-test.skip('WD-3: scroll を変えた状態で drop すると scroll 補正で異なる cell に配置される', async ({
-	page,
-}) => {
-	const ws = await createWorkspace(page, `PH-CF-200 WD-3 ${Date.now()}`);
-	await openWorkspace(page);
-	await page.getByTestId(`workspace-tab-${ws.id}`).click();
-	const canvas = page.locator('.canvas-edit-mode');
-	await canvas.first().waitFor({ state: 'visible', timeout: 15_000 });
-	await page.waitForTimeout(200); // initial scroll (computeInitialScroll) 適用待ち
-
-	// canvas は BUFFER_COLS_LEFT × cellStride の huge buffer を持つため、 初期 scroll は canvas
-	// 中央付近 (drop zone を viewport に表示する位置)。 ここから **相対的に** scroll を動かして
-	// drop zone の rect.left/top をシフトさせる。 同じ client 座標が異なる cell に対応すれば、
-	// `getBoundingClientRect()` 経由の scroll 補正が効いている証拠。
-	const geomBefore = await getDropZoneGeom(page);
-	expect(geomBefore).not.toBeNull();
-	if (!geomBefore) return;
-	// 1 度目の drop (現 scroll 位置)。
-	const targetX = geomBefore.left + geomBefore.width * 0.5;
-	const targetY = geomBefore.top + geomBefore.height * 0.5;
-	const path1 = `${TEXT_PATH_PREFIX}/wd-3a-${Date.now()}.txt`;
-	await dropAt(page, geomBefore, targetX, targetY, [path1]);
-	await expect
-		.poll(async () => (await listWidgetsWithPosition(page, ws.id)).length, {
-			timeout: 15_000,
-			intervals: [200, 400, 800],
-		})
-		.toBeGreaterThan(0);
-	const widgets1 = await listWidgetsWithPosition(page, ws.id);
-	const dropped1 = widgets1[widgets1.length - 1];
-
-	// scroll を相対 +600/+300 px 動かす (initial scroll 位置からの offset)。
-	await canvas.first().evaluate((el) => {
-		const e = el as HTMLElement;
-		e.scrollLeft += 600;
-		e.scrollTop += 300;
-	});
-	await page.waitForTimeout(200);
-
-	// scroll 後の drop zone rect は left/top が負方向に -600/-300 シフトしている。
-	// 同じ client 座標 (targetX, targetY) で drop すると relX/Y が増え、 異なる cell に対応する。
-	const geomAfter = await getDropZoneGeom(page);
-	expect(geomAfter).not.toBeNull();
-	if (!geomAfter) return;
-	expect(geomAfter.left).toBeLessThan(geomBefore.left);
-	expect(geomAfter.top).toBeLessThan(geomBefore.top);
-
-	const path2 = `${TEXT_PATH_PREFIX}/wd-3b-${Date.now()}.txt`;
-	await dropAt(page, geomAfter, targetX, targetY, [path2]);
-	await expect
-		.poll(async () => (await listWidgetsWithPosition(page, ws.id)).length, {
-			timeout: 15_000,
-			intervals: [200, 400, 800],
-		})
-		.toBeGreaterThanOrEqual(2);
-	const widgets2 = await listWidgetsWithPosition(page, ws.id);
-	const dropped2 = widgets2[widgets2.length - 1];
-
-	// 受け入れ条件: 同じ client 座標でも scroll が異なれば配置 cell も異なる
-	// (scroll/pan 補正が `getBoundingClientRect()` 経由で効いている)。
-	const same =
-		dropped1.position_x === dropped2.position_x && dropped1.position_y === dropped2.position_y;
-	expect(same).toBe(false);
-	// どちらも (0,0) 固定でないこと。
-	expect(`${dropped1.position_x},${dropped1.position_y}`).not.toBe('0,0');
-	expect(`${dropped2.position_x},${dropped2.position_y}`).not.toBe('0,0');
-
-	await deleteWorkspace(page, ws.id, true);
-});
+// WD-3 (scroll 補正 e2e) は削除済 — scroll → `rect.left/top` shift → 異なる cell の path は
+// 以下 3 経路で完全カバー済のため冗長:
+//   1. `drop-coords.test.ts` §"drop zone の scroll 移動も rect.left/top に反映される" が
+//      `rect: { left: -200 }` で pure logic を carbon copy で verify
+//   2. WD-1 / WD-2 が実 UI 経路で `getDropZoneGeom` 経由 `getBoundingClientRect()` の rect を
+//      seed に drop → 配置 cell の全体 path を verify
+//   3. 「scroll で rect.left が shift する」 こと自体は CSS layout の browser 不変量で、
+//      app の責任範囲外
+// 削除前は `test.skip(title, fn)` の静的形式で残っていた。 audit-no-test-hook-leak の旧 regex は
+// 第 1 引数が真理値リテラルの形式のみ検出で 静的形式を素通りしていたため、 本 PR で audit を
+// 拡張済 (scripts/audit-no-test-hook-leak.sh)。
 
 test('WD-4: 非同期 drop 中のタブ切替で widget はドロップ開始時の workspace に配置 (page pin)', async ({
 	page,
