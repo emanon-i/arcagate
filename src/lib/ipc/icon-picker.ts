@@ -7,10 +7,10 @@ import { open } from '@tauri-apps/plugin-dialog';
  * ## E2E test seam (なぜ production code に置くか)
  *
  * Tauri v2 の `window.__TAURI_INTERNALS__.invoke` は `writable: false` で定義されており、
- * Playwright の `page.evaluate` から IPC を上書きできない。 旧 PR #570 の
- * `__arcagateTest__.itemStore` 経由 UI bypass は「test は通るが実機で直っていない」
- * (PH-CF-1100 ② root cause) を許してしまった。 そこで、 **自動化不能なネイティブダイアログ
- * の葉 1 点だけ** を差し替える seam を本 wrapper に持たせる。
+ * Playwright の `page.evaluate` から IPC を上書きできない。 旧 PR #570 の合成 store hook
+ * 経路は「test は通るが実機で直っていない」 (PH-CF-1100 ② root cause) を許してしまった。
+ * そこで、 **自動化不能なネイティブダイアログの葉 1 点だけ** を差し替える seam を本 wrapper
+ * に持たせる。
  *
  * ## Seam protocol
  *
