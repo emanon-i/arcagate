@@ -6,6 +6,87 @@ use std::process::Command;
 
 use crate::utils::error::AppError;
 
+/// PH-CF-1210 ⑨ e2e: 全ての external process spawn が通過する単一葉。
+///
+/// 通常経路は `cmd.spawn()` を呼ぶだけ。 `test-launch-seam` feature 有効 build + `ARCAGATE_TEST_LAUNCH_SEAM_LOG`
+/// 環境変数 (path) が設定されている時のみ、 実 spawn を skip して `{ what, program, args, cwd }` の JSON 行を
+/// 指定 path に append する (e2e test が後で読んで「click 経路と右クリック『デフォルトで開く』が同じ opener +
+/// 同じ target で launch 要求を出した」 ことを機械検証する)。 release build / 通常 dev には feature が無く
+/// 一切のオーバーヘッドは無い。
+///
+/// 引用元: feedback_self_verification.md / dom-not-fixed rule (生 UI 経路の機械検証必須)。
+pub fn try_spawn_cmd(cmd: &mut Command, what: &str) -> Result<(), AppError> {
+    #[cfg(feature = "test-launch-seam")]
+    {
+        if let Ok(log_path) = std::env::var("ARCAGATE_TEST_LAUNCH_SEAM_LOG") {
+            return record_seam(&log_path, cmd, what);
+        }
+    }
+    let _ = what;
+    cmd.spawn().map_err(map_spawn_error)?;
+    Ok(())
+}
+
+#[cfg(feature = "test-launch-seam")]
+fn record_seam(log_path: &str, cmd: &Command, what: &str) -> Result<(), AppError> {
+    use std::io::Write;
+
+    let program = cmd.get_program().to_string_lossy().into_owned();
+    let args: Vec<String> = cmd
+        .get_args()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
+    let cwd: Option<String> = cmd
+        .get_current_dir()
+        .map(|p| p.to_string_lossy().into_owned());
+
+    // 手書きで JSON 1 行を組み立てる (serde_json::to_string と等価だが extra dependency に頼らない)。
+    let mut line = String::from("{");
+    line.push_str(&format!("\"what\":{},", json_str(what)));
+    line.push_str(&format!("\"program\":{},", json_str(&program)));
+    line.push_str("\"args\":[");
+    for (i, a) in args.iter().enumerate() {
+        if i > 0 {
+            line.push(',');
+        }
+        line.push_str(&json_str(a));
+    }
+    line.push(']');
+    if let Some(d) = cwd {
+        line.push_str(&format!(",\"cwd\":{}", json_str(&d)));
+    }
+    line.push('}');
+    line.push('\n');
+
+    let mut f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+        .map_err(|e| AppError::LaunchFailed(format!("test seam open log failed: {e}")))?;
+    f.write_all(line.as_bytes())
+        .map_err(|e| AppError::LaunchFailed(format!("test seam write log failed: {e}")))?;
+    Ok(())
+}
+
+#[cfg(feature = "test-launch-seam")]
+fn json_str(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
 /// 実行を許可するスクリプト拡張子の allowlist (audit F15 2026-05-18)。
 ///
 /// security model: 旧 `launch_script` は未知拡張子も `cmd /c <path>` で起動する
@@ -79,8 +160,7 @@ pub fn launch_exe(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn().map_err(map_spawn_error)?;
-    Ok(())
+    try_spawn_cmd(&mut cmd, "exe")
 }
 
 /// 引数を構造化 Vec で渡す EXE 起動（スペース入りパス対応）
@@ -94,8 +174,7 @@ pub fn launch_exe_args(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn().map_err(map_spawn_error)?;
-    Ok(())
+    try_spawn_cmd(&mut cmd, "exe_args")
 }
 
 /// URL をデフォルトブラウザ / 関連付けハンドラで開く。
@@ -107,11 +186,9 @@ pub fn launch_exe_args(
 /// プロトコルハンドラ (http(s) → ブラウザ、 mailto → メール等) に委譲する。
 pub fn launch_url(url: &str) -> Result<(), AppError> {
     reject_control_chars(url, "url")?;
-    Command::new("explorer.exe")
-        .arg(url)
-        .spawn()
-        .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
-    Ok(())
+    let mut cmd = Command::new("explorer.exe");
+    cmd.arg(url);
+    try_spawn_cmd(&mut cmd, "url")
 }
 
 /// フォルダ / ファイルを Explorer (OS デフォルト) で開く。
@@ -120,11 +197,9 @@ pub fn launch_url(url: &str) -> Result<(), AppError> {
 /// path をシェル文字列に連結しないため `&` 等を含むパスでも安全に開ける。
 pub fn launch_folder(path: &str) -> Result<(), AppError> {
     reject_control_chars(path, "path")?;
-    Command::new("explorer.exe")
-        .arg(path)
-        .spawn()
-        .map_err(|e| AppError::LaunchFailed(e.to_string()))?;
-    Ok(())
+    let mut cmd = Command::new("explorer.exe");
+    cmd.arg(path);
+    try_spawn_cmd(&mut cmd, "folder")
 }
 
 /// PH-422: shell-words::split で quoted args を扱う helper
@@ -180,8 +255,7 @@ pub fn launch_script(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn().map_err(map_spawn_error)?;
-    Ok(())
+    try_spawn_cmd(&mut cmd, "script")
 }
 
 /// コマンド文字列を実行（最初のトークンがコマンド、残りが引数）。
@@ -199,8 +273,7 @@ pub fn launch_command(command: &str, working_dir: Option<&str>) -> Result<(), Ap
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn().map_err(map_spawn_error)?;
-    Ok(())
+    try_spawn_cmd(&mut cmd, "command")
 }
 
 /// 構造化トークン列を直接 process 起動する (shell 非経由)。
@@ -217,8 +290,7 @@ pub fn launch_argv(tokens: &[String], working_dir: Option<&str>) -> Result<(), A
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    cmd.spawn().map_err(map_spawn_error)?;
-    Ok(())
+    try_spawn_cmd(&mut cmd, "argv")
 }
 
 /// 指定ディレクトリを working directory として terminal を起動する。
@@ -228,12 +300,9 @@ pub fn launch_argv(tokens: &[String], working_dir: Option<&str>) -> Result<(), A
 /// シングルクォート文字列 escape を突くインジェクション経路を排除する。
 pub fn launch_terminal_in_dir(program: &str, args: &[&str], dir: &str) -> Result<(), AppError> {
     reject_control_chars(dir, "directory")?;
-    Command::new(program)
-        .args(args)
-        .current_dir(dir)
-        .spawn()
-        .map_err(map_spawn_error)?;
-    Ok(())
+    let mut cmd = Command::new(program);
+    cmd.args(args).current_dir(dir);
+    try_spawn_cmd(&mut cmd, "terminal_in_dir")
 }
 
 #[cfg(test)]

@@ -17,6 +17,14 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 name = "arcagate_cli"
 path = "src/bin/arcagate_cli.rs"
 
+[features]
+# PH-CF-1210 ⑨ e2e: external process spawn を葉 1 点でテストシームに差し替える build flag。
+# 有効時、 `launcher::try_spawn_cmd` は `ARCAGATE_TEST_LAUNCH_SEAM_LOG` 環境変数 path に
+# `{ what, program, args, cwd }` の JSON 行を append し、 実 spawn を skip する。 env 未設定なら
+# 通常 spawn に fallback (= 同じ binary を seam なしの dev で使える)。 release build にこの
+# feature は含まれない (production binary は seam コードを compile-out する)。
+test-launch-seam = []
+
 [build-dependencies]
 tauri-build = { version = "2.5.4", features = [] }
 
