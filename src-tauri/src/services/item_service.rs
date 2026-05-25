@@ -624,6 +624,28 @@ fn register_exe_item_on_conn(
     // ≠ item.target=exe path のため find_by_target は使えない)。 user 直接経路は従来の target 一致。
     if let Some((widget_id, entry_key)) = source {
         if let Some(existing) = item_repository::find_by_source(conn, widget_id, entry_key)? {
+            // PH-CF-1200 ⑧: scan が override 反映後の path を渡してきた時、 既存 item の
+            // target を新 path に同期する (旧実装は existing をそのまま return → 「user が
+            // widget 内で起動 EXE を切り替えても Library item.target が古いまま」 という
+            // ライフサイクル契約違反)。 label も parent folder 名を再導出して追従させる。
+            // user 編集列 (args / default_app / card_override_json / aliases 等) は温存。
+            let desired_label = label.clone().unwrap_or_else(|| {
+                p.file_stem()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| path.to_string())
+            });
+            let needs_target = existing.target != path;
+            let needs_label = existing.label != desired_label;
+            if needs_target || needs_label {
+                item_repository::set_source_target(
+                    conn,
+                    &existing.id,
+                    path,
+                    needs_label.then_some(desired_label.as_str()),
+                )?;
+                return item_repository::find_by_id(conn, &existing.id);
+            }
             return Ok(existing);
         }
         // hide 済 entry は復活させない。 InvalidInput を返して bulk 側で skip させる
@@ -1704,6 +1726,132 @@ mod tests {
         assert_eq!(
             first[0].source_entry_key.as_deref(),
             Some(parent_norm.as_str())
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// PH-CF-1200 ⑧: scan が override 反映後の新しい exe path を渡してきた時、
+    /// source 経由で再発見した既存 item の `target` (と派生 `label`) が新 path に同期する。
+    /// 旧実装は既存 item をそのまま return していたため Library item.target が古いまま残り、
+    /// Library 経路の起動で "not found" を起こしていた。
+    #[test]
+    fn test_register_exe_items_bulk_overrides_existing_target() {
+        let db = initialize_in_memory();
+        let widget_id = seed_exe_folder_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_target_sync_{}", Uuid::now_v7()));
+        let app_dir = tmp.join("AppMulti");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        let exe_a = app_dir.join("a.exe");
+        let exe_b = app_dir.join("b.exe");
+        std::fs::write(&exe_a, b"MZ").unwrap();
+        std::fs::write(&exe_b, b"MZ").unwrap();
+        let entry_key = app_dir.to_string_lossy().to_string();
+
+        // 1st scan: exe_a が選ばれて Library 登録される
+        let first = register_exe_items_bulk(
+            &db,
+            vec![exe_a.to_string_lossy().to_string()],
+            Some(vec![entry_key.clone()]),
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+        assert_eq!(first.len(), 1);
+        let item_a = first[0].clone();
+        assert_eq!(item_a.target, exe_a.to_string_lossy());
+
+        // user が widget 内で起動 EXE を b.exe に変更 → 次 scan で b path を渡す
+        let second = register_exe_items_bulk(
+            &db,
+            vec![exe_b.to_string_lossy().to_string()],
+            Some(vec![entry_key.clone()]),
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+        assert_eq!(second.len(), 1);
+        let item_b = second[0].clone();
+        assert_eq!(
+            item_b.id, item_a.id,
+            "同 source の item は ID 再利用 (新規 row を作らない)"
+        );
+        assert_eq!(
+            item_b.target,
+            exe_b.to_string_lossy(),
+            "target は override 反映後の新 path に同期する (PH-CF-1200 ⑧)"
+        );
+        // Library 経由で再取得しても同じ
+        let from_db = item_repository::find_by_id(&db.0.lock().unwrap(), &item_a.id).unwrap();
+        assert_eq!(from_db.target, exe_b.to_string_lossy());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// PH-CF-1200 ⑧: target 同期で user 編集列 (args / default_app / aliases /
+    /// card_override_json / is_tracked 等) が破壊されないこと。 set_source_target は
+    /// `target` と `label` のみ書く契約。
+    #[test]
+    fn test_register_exe_items_bulk_target_sync_preserves_user_edits() {
+        let db = initialize_in_memory();
+        let widget_id = seed_exe_folder_widget(&db);
+        let tmp = std::env::temp_dir().join(format!("arcagate_preserve_{}", Uuid::now_v7()));
+        let app_dir = tmp.join("AppEdit");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        let exe_a = app_dir.join("a.exe");
+        let exe_b = app_dir.join("b.exe");
+        std::fs::write(&exe_a, b"MZ").unwrap();
+        std::fs::write(&exe_b, b"MZ").unwrap();
+        let entry_key = app_dir.to_string_lossy().to_string();
+
+        let first = register_exe_items_bulk(
+            &db,
+            vec![exe_a.to_string_lossy().to_string()],
+            Some(vec![entry_key.clone()]),
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+        let item_a = first[0].clone();
+
+        // user が args / default_app / card_override_json を編集
+        update_item(
+            &db,
+            &item_a.id,
+            UpdateItemInput {
+                label: None,
+                target: None,
+                args: Some("--debug".to_string()),
+                working_dir: None,
+                icon_path: None,
+                aliases: Some(vec!["alias-x".to_string()]),
+                is_enabled: None,
+                is_tracked: None,
+                default_app: Some("my-opener".to_string()),
+                tag_ids: None,
+                card_override_json: Some(Some(r##"{"bg":"#000"}"##.to_string())),
+            },
+        )
+        .unwrap();
+
+        // EXE 切替 → target 同期
+        register_exe_items_bulk(
+            &db,
+            vec![exe_b.to_string_lossy().to_string()],
+            Some(vec![entry_key.clone()]),
+            None,
+            Some(&widget_id),
+        )
+        .unwrap();
+
+        let after = item_repository::find_by_id(&db.0.lock().unwrap(), &item_a.id).unwrap();
+        assert_eq!(after.target, exe_b.to_string_lossy());
+        assert_eq!(after.args.as_deref(), Some("--debug"));
+        assert_eq!(after.default_app.as_deref(), Some("my-opener"));
+        assert_eq!(after.aliases, vec!["alias-x".to_string()]);
+        assert_eq!(
+            after.card_override_json.as_deref(),
+            Some(r##"{"bg":"#000"}"##)
         );
 
         let _ = std::fs::remove_dir_all(&tmp);
