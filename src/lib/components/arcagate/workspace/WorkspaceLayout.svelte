@@ -278,6 +278,7 @@ function confirmRename(name: string) {
 		path={workspaceContextMenuStore.path}
 		itemId={workspaceContextMenuStore.itemId}
 		widgetId={workspaceContextMenuStore.widgetId}
+		widgetDefaultOpenerId={workspaceContextMenuStore.widgetDefaultOpenerId}
 		onOpenSettings={workspaceContextMenuStore.onOpenSettings}
 		onClose={() => workspaceContextMenuStore.close()}
 	/>

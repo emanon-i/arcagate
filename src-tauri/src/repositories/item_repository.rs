@@ -305,6 +305,35 @@ pub fn find_stale_owned_entries(
         .collect())
 }
 
+/// アイテムライフサイクル契約 (PH-CF-1200 ⑧): 監視 widget 由来 item の `target` (+ 必要に応じ
+/// `label`) を一括で書き換える専用 helper。 exe-folder watch 等で、 user が widget 内で
+/// 起動 EXE を変更したとき、 source 経由で再発見した既存 item に対して呼ばれる。
+///
+/// 影響を `target` (と任意で `label`) に限定することで、 user が個別に編集した他列
+/// (`args` / `default_app` / `card_override_json` / `aliases` 等) を温存する。
+/// `icon_path` も touch しない (icon は OS 抽出のため target 変更後の再抽出は別経路)。
+pub fn set_source_target(
+    conn: &Connection,
+    id: &str,
+    target: &str,
+    label: Option<&str>,
+) -> Result<usize, AppError> {
+    let rows = if let Some(lbl) = label {
+        conn.execute(
+            "UPDATE items SET target = ?1, label = ?2, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+             WHERE id = ?3",
+            params![target, lbl, id],
+        )?
+    } else {
+        conn.execute(
+            "UPDATE items SET target = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+             WHERE id = ?2",
+            params![target, id],
+        )?
+    };
+    Ok(rows)
+}
+
 /// アイテムライフサイクル契約 (U-2): 指定 item の `is_enabled` を更新する。
 /// reconcile の stale 化 (`is_enabled=false` グレーアウト) / 再発見時の復活
 /// (`is_enabled=true`) の専用 helper。

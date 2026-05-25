@@ -88,6 +88,42 @@ config パースは `parseWidgetConfig` helper を使う。
 opener registry (`opener_service`) の id を参照、 未指定 (`null`) なら system default
 (`cmd_open_path`) にフォールバック。 同 cascade は `projects` widget も使用。
 
+#### 右クリック「デフォルトアプリで開く」 の cascade 同等性契約 (PH-CF-1200 ⑨)
+
+widget 内アイテムの **右クリック context menu「デフォルトアプリで開く」** は、 **同じ entry の
+click 経路 (`launchEntry` / `handleLaunch`) と同一の cascade** を通る:
+
+- caller widget は `workspaceContextMenuStore.openMenuFor({ widgetDefaultOpenerId: config.default_opener_id, ... })`
+  で context menu store に widget opener を伝播する (`default_opener_id` を持つ widget はすべて必須)
+- `WidgetItemContextMenu.handleLaunchDefault` は `launchItemWithCascade(item, { widgetDefaultOpenerId })`
+  で同 helper を呼ぶ → 結果として「click と右クリック→デフォルトで開く」 で **同じ opener / 同じ
+  起動 path / 同じ i18n エラー文言 (`formatLaunchError`)** が出る
+- 旧実装は context menu 側が ctx 引数を渡さず widget opener を完全無視 + エラー文言も `launch_failed`
+  生文字列で乖離していた (PH-CF-1200 ⑨ root cause)
+
+機械検出: `scripts/audit-widget-context-opener.sh` で「`launchItemWithCascade` に
+`widgetDefaultOpenerId` を渡す widget は、 同 component の `workspaceContextMenuStore.openMenuFor`
+呼出にも `widgetDefaultOpenerId` を渡している」 を grep 化された静的 audit で検出。
+
+### Library item.target 同期契約 (PH-CF-1200 ⑧)
+
+user が widget 内の起動 EXE を切り替えると、 `config.item_overrides[folderPath] = exe_path` が
+保存され、 次 scan の `cmd_register_exe_items_bulk` に **override 反映後の path** が渡る。
+backend は `register_exe_item_on_conn` の source 経由 (`find_by_source`) で既存 item を再発見し、
+新 path と既存 `target` が異なれば、 同 transaction 内で `item_repository::set_source_target` で
+`target` (+ 派生 `label`) を新 path に書き戻す。 user 編集列 (`args` / `default_app` /
+`card_override_json` / `aliases` / `is_tracked` / `icon_path`) は touch しない契約。
+
+これにより:
+
+- Library 経路の launch (item.target ベース) で正しい EXE が起動される
+- widget 内の右クリック「デフォルトアプリで開く」 (item-level cascade) も新 path で開く
+- 旧実装は item をそのまま return しており、 切替後の Library 起動で "not found" を起こしていた
+
+詳細は [`cross-cutting/item-lifecycle.md`](../cross-cutting/item-lifecycle.md) U-10。
+test: `test_register_exe_items_bulk_overrides_existing_target` /
+`test_register_exe_items_bulk_target_sync_preserves_user_edits`。
+
 ## 既知の判断
 
 - U-4 で scan 対象に script (.bat / .cmd / .ps1 / .sh) も含む拡張 (default extensions に統合)

@@ -291,6 +291,11 @@ async function selectExe(entry: ExeFolderEntry, candPath: string) {
 	const overrides = { ...(config.item_overrides ?? {}), [entry.folderPath]: candPath };
 	await persistConfig({ ...config, item_overrides: overrides });
 	candidatePopoverFor = null;
+	// PH-CF-1200 ⑧: override 変更時、 scan は path/depth/extensions 変化でしか再走しないため、
+	// 既存 Library item の target を新 path に同期させる経路を **明示的** に踏む。
+	// backend `register_exe_item_on_conn` が source 経由 find + target 同期する契約 (item-lifecycle U-10)。
+	// 失敗は warn (ファイル不在 race 等)。 成功で itemStore を再取得して即時反映 (instant-feedback)。
+	await syncOverrideToLibrary(entry.folderPath, candPath);
 }
 
 async function clearOverride(entry: ExeFolderEntry) {
@@ -299,6 +304,21 @@ async function clearOverride(entry: ExeFolderEntry) {
 	delete overrides[entry.folderPath];
 	await persistConfig({ ...config, item_overrides: overrides });
 	candidatePopoverFor = null;
+	// PH-CF-1200 ⑧: override 解除時は自動選択 (= exeCandidates[0]) に戻すので、 同じく Library 同期。
+	const fallback = entry.exeCandidates[0]?.path;
+	if (fallback) await syncOverrideToLibrary(entry.folderPath, fallback);
+}
+
+/** PH-CF-1200 ⑧: 起動 EXE 切替 (override / clear) 後、 Library item.target を新 path に同期。
+ *  registerExeItemsBulk は backend で source (widget_id, entry_key) 一致時に target を sync する
+ *  契約 (item-lifecycle U-10)。 user 編集列は touch しない。 失敗は warn log のみ。 */
+async function syncOverrideToLibrary(folderPath: string, exePath: string): Promise<void> {
+	try {
+		await registerExeItemsBulk([exePath], [folderPath], widget?.workspace_id, widget?.id);
+		await itemStore.loadItems();
+	} catch (e: unknown) {
+		console.warn('exe override sync to Library failed', e);
+	}
 }
 
 async function persistConfig(next: WidgetConfig) {
@@ -513,6 +533,7 @@ let hasEntries = $derived(!!config.watch_path && !scanning && !scanError && entr
 									itemId: matchedItem?.id ?? null,
 									path: entry.folderPath,
 									widgetId: widget?.id ?? null,
+									widgetDefaultOpenerId: config.default_opener_id ?? null,
 									onOpenSettings: () => (settingsOpen = true),
 									ev: e,
 								});
@@ -551,6 +572,7 @@ let hasEntries = $derived(!!config.watch_path && !scanning && !scanError && entr
 								itemId: matchedItem?.id ?? null,
 								path: entry.folderPath,
 								widgetId: widget?.id ?? null,
+								widgetDefaultOpenerId: config.default_opener_id ?? null,
 								onOpenSettings: () => (settingsOpen = true),
 								ev: e,
 							});
