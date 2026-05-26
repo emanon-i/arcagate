@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::db::DbState;
@@ -119,64 +120,80 @@ pub fn scan_exe_folders_with_cancel(
     }
     first_level.sort();
 
-    let mut entries = Vec::with_capacity(first_level.len());
-    for first in first_level {
-        if cancel.load(Ordering::Relaxed) {
-            return Err(AppError::Cancelled);
-        }
-        let mut found: Vec<FoundFile> = Vec::new();
-        let mut found_ico: Option<String> = None;
-        collect(
-            &first,
-            1,
-            depth,
-            &ext_set,
-            cancel,
-            &mut found,
-            &mut found_ico,
-        );
-        if found.is_empty() {
-            continue;
-        }
-        // 浅い階層優先 → 同一階層はサイズ大優先で default 選択。 found を全体ソート
-        // することで、 popover の候補も最良順に並ぶ (フロント側は exe_candidates[0]
-        // を default 選択として扱う)。
-        found.sort_by(|a, b| {
-            a.relative_depth
-                .cmp(&b.relative_depth)
-                .then(b.size_bytes.cmp(&a.size_bytes))
-                .then(a.path.cmp(&b.path))
-        });
-        let candidates: Vec<ExeCandidate> = found
-            .iter()
-            .map(|f| ExeCandidate {
-                path: f.path.to_string_lossy().into_owned(),
-                size_bytes: f.size_bytes,
-                name: f.name.clone(),
+    // ⑩ 並列 walk (2026-05-27): 第1階層 dir ごとに rayon で並列化。 1 dir の
+    // `collect()` 内部は serial のまま (subdirs を深さ優先で sorted に降る)、 外側の
+    // first_level の loop だけを par_iter 化する。 cancel / ext_set は &T で borrow
+    // 共有 (AtomicBool / HashSet は Sync)。 結果は filter_map で空 entry を除外し、
+    // 最後に folder_path で再ソートして決定論的順序を保証 (rayon の filter_map は
+    // 順序保存を保証しないため、 明示 sort で fix)。
+    let walk_start = std::time::Instant::now();
+    let mut entries: Vec<ExeFolderEntry> = first_level
+        .par_iter()
+        .filter_map(|first| {
+            if cancel.load(Ordering::Relaxed) {
+                return None;
+            }
+            let mut found: Vec<FoundFile> = Vec::new();
+            let mut found_ico: Option<String> = None;
+            collect(
+                first,
+                1,
+                depth,
+                &ext_set,
+                cancel,
+                &mut found,
+                &mut found_ico,
+            );
+            if found.is_empty() {
+                return None;
+            }
+            // 浅い階層優先 → 同一階層はサイズ大優先で default 選択。 found を全体ソート
+            // することで、 popover の候補も最良順に並ぶ (フロント側は exe_candidates[0]
+            // を default 選択として扱う)。
+            found.sort_by(|a, b| {
+                a.relative_depth
+                    .cmp(&b.relative_depth)
+                    .then(b.size_bytes.cmp(&a.size_bytes))
+                    .then(a.path.cmp(&b.path))
+            });
+            let candidates: Vec<ExeCandidate> = found
+                .iter()
+                .map(|f| ExeCandidate {
+                    path: f.path.to_string_lossy().into_owned(),
+                    size_bytes: f.size_bytes,
+                    name: f.name.clone(),
+                })
+                .collect();
+            let folder_name = first
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default()
+                .to_string();
+            let mtime_ms = fs::metadata(first)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0);
+            Some(ExeFolderEntry {
+                folder_path: normalize_folder_path(first),
+                folder_name,
+                exe_candidates: candidates,
+                icon_path: found_ico,
+                mtime_ms,
             })
-            .collect();
-        let folder_name = first
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or_default()
-            .to_string();
-        let mtime_ms = fs::metadata(&first)
-            .ok()
-            .and_then(|m| m.modified().ok())
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
-        entries.push(ExeFolderEntry {
-            folder_path: normalize_folder_path(&first),
-            folder_name,
-            exe_candidates: candidates,
-            icon_path: found_ico,
-            mtime_ms,
-        });
-    }
+        })
+        .collect();
     if cancel.load(Ordering::Relaxed) {
         return Err(AppError::Cancelled);
     }
+    entries.sort_by(|a, b| a.folder_path.cmp(&b.folder_path));
+    log::debug!(
+        "scan_exe_folders: parallel walk first_level={} depth={} elapsed={:?}",
+        first_level.len(),
+        depth,
+        walk_start.elapsed(),
+    );
     Ok(entries)
 }
 
@@ -774,5 +791,231 @@ mod tests {
     #[cfg(unix)]
     fn create_dir_symlink(src: &Path, dst: &Path) -> std::io::Result<()> {
         std::os::unix::fs::symlink(src, dst)
+    }
+
+    // ----- ⑩ 並列 walk: 決定論的順序 + 並列再実行同値 -----
+
+    /// 並列 walk 後も entries が `folder_path` 昇順で deterministic である。
+    /// 内部 par_iter の到達順がブレても、 最終 sort_by で順序が固定されるはず。
+    #[test]
+    fn parallel_walk_keeps_deterministic_ordering() {
+        let dir = mk_temp_dir("parallel-order");
+        // 第1階層を 10 個作って各々 1 file。 par_iter で順序が乱れやすい条件。
+        for name in ["m", "a", "z", "c", "b", "k", "x", "d", "y", "n"] {
+            write_file(
+                &dir.join(format!("game-{name}")).join("launcher.exe"),
+                b"\x4D\x5A",
+            );
+        }
+        let r = scan_exe_folders(dir.to_str().unwrap(), 3, &default_exts()).unwrap();
+        let names: Vec<&str> = r.iter().map(|e| e.folder_name.as_str()).collect();
+        let mut expected = names.clone();
+        expected.sort();
+        assert_eq!(
+            names, expected,
+            "並列 walk 後でも folder_name 昇順 (folder_path 昇順) で deterministic"
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    /// 並列 walk を複数回実行しても entries 完全一致 (path / candidates / icon すべて)。
+    /// 並列化による race / 順序差で結果がブレないことを担保。
+    #[test]
+    fn parallel_walk_is_idempotent_across_runs() {
+        let dir = mk_temp_dir("parallel-idempotent");
+        // 深さ・幅とも変化を持たせる:
+        // - GameA: 浅い launcher.exe + 深い大きな game.exe (浅い側が勝つ)
+        // - GameB: 同階層に複数候補 (size 順)
+        // - GameC: ico + exe
+        // - GameD: 対象 0 件 (entry 出ない)
+        write_file(&dir.join("GameA").join("launcher.exe"), &vec![0u8; 100]);
+        write_file(
+            &dir.join("GameA").join("bin").join("game.exe"),
+            &vec![0u8; 5000],
+        );
+        write_file(&dir.join("GameB").join("small.exe"), &vec![0u8; 100]);
+        write_file(&dir.join("GameB").join("big.exe"), &vec![0u8; 9999]);
+        write_file(&dir.join("GameC").join("c.exe"), b"\x4D\x5A");
+        write_file(&dir.join("GameC").join("c.ico"), b"\x00\x00\x01\x00");
+        write_file(&dir.join("GameD").join("readme.txt"), b"docs only");
+        let r1 = scan_exe_folders(dir.to_str().unwrap(), 5, &default_exts()).unwrap();
+        let r2 = scan_exe_folders(dir.to_str().unwrap(), 5, &default_exts()).unwrap();
+        let r3 = scan_exe_folders(dir.to_str().unwrap(), 5, &default_exts()).unwrap();
+        assert_eq!(r1, r2, "並列 walk 1 回目 == 2 回目");
+        assert_eq!(r2, r3, "並列 walk 2 回目 == 3 回目");
+        // GameD は対象 0 件 → entry に出ない。 3 件 (GameA, GameB, GameC) が deterministic 順序。
+        let names: Vec<&str> = r1.iter().map(|e| e.folder_name.as_str()).collect();
+        assert_eq!(names, vec!["GameA", "GameB", "GameC"]);
+        // GameA: 浅い launcher.exe が default。
+        assert_eq!(r1[0].exe_candidates[0].name, "launcher.exe");
+        // GameB: 同階層なので big.exe が default。
+        assert_eq!(r1[1].exe_candidates[0].name, "big.exe");
+        // GameC: icon_path が拾われる。
+        assert!(r1[2].icon_path.as_deref().unwrap().ends_with("c.ico"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    /// ⑩ 並列 walk bench (デフォルト ignore): 深さ 4 階層・第1階層 30 個・各サブツリーに
+    /// 多数の対象 file を持つ fixture を作って scan 時間を測る。 user 実機で
+    /// `cargo test --release -p arcagate -- --ignored --nocapture parallel_walk_bench`
+    /// で実行すると、 並列化前後の体感差 (= 1 dir あたり syscall コストが大きい
+    /// Defender 経路) を確認できる。 fixture は OS の temp 上に作られ、 終了時に
+    /// 自動 cleanup されるが、 ファイル数が多いため初回は 1-2 秒のセットアップが入る。
+    /// short-runtime CI では skip するため `#[ignore]` を付ける。
+    ///
+    /// 並列 walk (production) と serial 参照実装 (test 専用 `scan_serial_for_bench`) を
+    /// 同 fixture で順に走らせて、 wall time を比較する。 出力例:
+    ///   `[bench] serial=2.3s parallel=446ms speedup=5.16x`
+    #[test]
+    #[ignore]
+    fn parallel_walk_bench_deep_fixture() {
+        let dir = mk_temp_dir("parallel-bench");
+        // 第1階層 30 個 × 各々 4 階層 × 各階層に 3 subdir + 5 ファイル。
+        // 5 ファイル × (1 + 3 + 9 + 27) dir = 5 × 40 = 200 ファイル / 第1階層。
+        // 全体: 6000 ファイル / 1200 dir 程度。
+        for top_idx in 0..30 {
+            let top = dir.join(format!("game-{top_idx:02}"));
+            seed_subtree(&top, 0, 4);
+        }
+        eprintln!("[bench] fixture seeded at {}", dir.display());
+
+        // serial 参照: rayon を使わず for-loop で順に collect する。 結果は
+        // 並列版と完全一致するはず (= 並列化が正しく等価)。
+        let cancel = AtomicBool::new(false);
+        let s_start = std::time::Instant::now();
+        let r_serial =
+            scan_serial_for_bench(dir.to_str().unwrap(), 5, &default_exts(), &cancel).unwrap();
+        let serial_elapsed = s_start.elapsed();
+
+        let p_start = std::time::Instant::now();
+        let r_parallel = scan_exe_folders(dir.to_str().unwrap(), 5, &default_exts()).unwrap();
+        let parallel_elapsed = p_start.elapsed();
+
+        eprintln!(
+            "[bench] serial={:?} parallel={:?} speedup={:.2}x (entries={})",
+            serial_elapsed,
+            parallel_elapsed,
+            serial_elapsed.as_secs_f64() / parallel_elapsed.as_secs_f64().max(1e-9),
+            r_parallel.len(),
+        );
+        assert_eq!(r_serial, r_parallel, "serial と parallel の結果が完全一致");
+        assert_eq!(r_parallel.len(), 30, "全 30 第1階層 entry が出るはず");
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    /// bench 用の serial 参照実装 (production 経路の `scan_exe_folders_with_cancel`
+    /// を rayon `par_iter` ではなく素朴な for-loop に置き換えたもの)。
+    /// 1 つの関数で並列/直列を切り替えると production code が肥大化するので、
+    /// test 内に baseline 専用関数を持つ。 仕様 (sort 規則 / icon_path / cancel
+    /// 等) は production と同一に揃える。
+    fn scan_serial_for_bench(
+        root: &str,
+        depth: u8,
+        extensions: &[String],
+        cancel: &AtomicBool,
+    ) -> Result<Vec<ExeFolderEntry>, AppError> {
+        let depth = depth.clamp(1, MAX_SCAN_DEPTH);
+        let root_path = Path::new(root);
+        if !root_path.is_dir() {
+            return Ok(Vec::new());
+        }
+        let ext_set: HashSet<String> = extensions
+            .iter()
+            .map(|e| e.trim().trim_start_matches('.').to_ascii_lowercase())
+            .filter(|e| !e.is_empty())
+            .collect();
+        if ext_set.is_empty() {
+            return Ok(Vec::new());
+        }
+        let read = match fs::read_dir(root_path) {
+            Ok(r) => r,
+            Err(_) => return Ok(Vec::new()),
+        };
+        let mut first_level: Vec<PathBuf> = Vec::new();
+        for entry in read.flatten() {
+            if cancel.load(Ordering::Relaxed) {
+                return Err(AppError::Cancelled);
+            }
+            let path = entry.path();
+            let meta = match fs::symlink_metadata(&path) {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            if meta.file_type().is_symlink() {
+                continue;
+            }
+            if meta.is_dir() {
+                first_level.push(path);
+            }
+        }
+        first_level.sort();
+
+        let mut entries = Vec::with_capacity(first_level.len());
+        for first in first_level {
+            if cancel.load(Ordering::Relaxed) {
+                return Err(AppError::Cancelled);
+            }
+            let mut found: Vec<FoundFile> = Vec::new();
+            let mut found_ico: Option<String> = None;
+            collect(
+                &first,
+                1,
+                depth,
+                &ext_set,
+                cancel,
+                &mut found,
+                &mut found_ico,
+            );
+            if found.is_empty() {
+                continue;
+            }
+            found.sort_by(|a, b| {
+                a.relative_depth
+                    .cmp(&b.relative_depth)
+                    .then(b.size_bytes.cmp(&a.size_bytes))
+                    .then(a.path.cmp(&b.path))
+            });
+            let candidates: Vec<ExeCandidate> = found
+                .iter()
+                .map(|f| ExeCandidate {
+                    path: f.path.to_string_lossy().into_owned(),
+                    size_bytes: f.size_bytes,
+                    name: f.name.clone(),
+                })
+                .collect();
+            let folder_name = first
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default()
+                .to_string();
+            let mtime_ms = fs::metadata(&first)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0);
+            entries.push(ExeFolderEntry {
+                folder_path: normalize_folder_path(&first),
+                folder_name,
+                exe_candidates: candidates,
+                icon_path: found_ico,
+                mtime_ms,
+            });
+        }
+        Ok(entries)
+    }
+
+    /// bench 用 fixture seeder: `dir` 配下に `depth` 階層、 各階層に 3 subdir + 5 file。
+    fn seed_subtree(dir: &Path, current: u8, max: u8) {
+        fs::create_dir_all(dir).ok();
+        for f in 0..5 {
+            write_file(&dir.join(format!("bin-{current}-{f}.exe")), &vec![0u8; 64]);
+        }
+        if current < max {
+            for s in 0..3 {
+                let sub = dir.join(format!("sub-{s}"));
+                seed_subtree(&sub, current + 1, max);
+            }
+        }
     }
 }
