@@ -122,6 +122,11 @@ pre-commit:
       # と LibraryCard の content-visibility:auto 撤廃を gate。
       glob: "{src/lib/utils/card-override.ts,src/lib/components/arcagate/library/LibraryCard.svelte,src/lib/components/arcagate/library/LibraryDetailPanel.svelte}"
       run: bash scripts/audit-appearance-state-mgmt.sh
+    launcher-spawn-leak:
+      # SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26: launcher/mod.rs 外で Command::new(<可変 program>)
+      # / .spawn() 直呼びを禁止 (PATHEXT 解決 + e2e seam を全 spawn 経路に集約)。
+      glob: "src-tauri/src/**/*.rs"
+      run: bash scripts/audit-launcher-spawn-leak.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行
