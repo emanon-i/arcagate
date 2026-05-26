@@ -39,5 +39,14 @@ export function formatLaunchError(label: string, error: unknown): string {
 	if (code === 'launch.not_executable' || msg.includes('Not executable:')) {
 		return t('error.launch.not_executable', { target });
 	}
+	// PH-CF-1210 ⑨: opener program が PATH に解決できなかった (= `Command::new("code")` が
+	// `code.cmd` shim を見つけられない等)。 toast は item 名でなく opener program 名を主語に
+	// 「インストールと PATH を確認してください」 と user に直すべき場所を示す。
+	if (code === 'launch.opener_not_found' || msg.includes('Opener program not found in PATH:')) {
+		// payload は program 名のみ (Rust `LaunchOpenerNotFound(String)`)、 message 全体から
+		// 末尾の program 名を取り出す。 backend message format: "Opener program not found in PATH: <program>"
+		const program = msg.replace(/^Opener program not found in PATH:\s*/, '') || target;
+		return t('error.launch.opener_not_found', { program });
+	}
 	return t('error.launch.generic', { target, msg });
 }

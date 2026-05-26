@@ -257,9 +257,18 @@ let hasFolders = $derived(
 async function handleLaunch(item: Item) {
 	// PH-CF-500 D4: cascade resolve (item-level override → widget default_opener_id → system)。
 	// exe_folder と同 pattern で「VSCode で開く」 等の widget default opener を尊重する。
+	// PH-CF-1210 ⑨ (B 採用): cascade が folder + opener_not_found で Explorer フォールバックした
+	// 場合は info toast (= 「opener が無いので Explorer で開きました」) を出し、 user が
+	// opener 設定を見直せるようにする (silent だと user は「なぜ Explorer で開いた」 と混乱)。
 	try {
-		await launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id });
-		toastStore.add(t('toast.launched_label', { label: item.label }), 'success');
+		const r = await launchItemWithCascade(item, {
+			widgetDefaultOpenerId: config.default_opener_id,
+		});
+		if (r.kind === 'fallback-explorer') {
+			toastStore.add(t('toast.launched_with_explorer_fallback', { label: item.label }), 'info');
+		} else {
+			toastStore.add(t('toast.launched_label', { label: item.label }), 'success');
+		}
 	} catch (e: unknown) {
 		toastStore.add(formatLaunchError(item.label, e), 'error');
 	}

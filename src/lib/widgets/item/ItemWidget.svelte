@@ -109,8 +109,16 @@ async function setViewMode(mode: 'grid' | 'list') {
 
 async function handleLaunch(item: Item) {
 	// C-15 #19: cascade resolve (card override → widget default → system)
+	// PH-CF-1210 ⑨: folder + opener_not_found なら cascade が Explorer フォールバックを返すので、
+	// 結果 kind を見て info toast を出す (silent fallback は user 混乱の元)。
 	void launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })
-		.then(() => toastStore.add(t('toast.launched_label', { label: item.label }), 'success'))
+		.then((r) => {
+			if (r.kind === 'fallback-explorer') {
+				toastStore.add(t('toast.launched_with_explorer_fallback', { label: item.label }), 'info');
+			} else {
+				toastStore.add(t('toast.launched_label', { label: item.label }), 'success');
+			}
+		})
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
 }
 

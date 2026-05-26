@@ -302,8 +302,15 @@ async function deleteWithUndo(item: import('$lib/types/item').Item) {
 
 function handleLaunch(item: import('$lib/types/item').Item) {
 	// C-15 #10 + #19: card_override.opener_id があれば opener 経由起動、無ければ既存 cmd_launch_item。
+	// PH-CF-1210 ⑨: folder + opener_not_found なら cascade が Explorer フォールバック (info toast)。
 	void launchItemWithCascade(item)
-		.then(() => toastStore.add(t('toast.launched_label', { label: item.label }), 'success'))
+		.then((r) => {
+			if (r.kind === 'fallback-explorer') {
+				toastStore.add(t('toast.launched_with_explorer_fallback', { label: item.label }), 'info');
+			} else {
+				toastStore.add(t('toast.launched_label', { label: item.label }), 'success');
+			}
+		})
 		.catch((e: unknown) => toastStore.add(formatLaunchError(item.label, e), 'error'));
 }
 

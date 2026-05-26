@@ -45,8 +45,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Tauri debug binary
+        # PH-CF-1210 ⑨: `--features test-launch-seam` で launcher の spawn 葉を build flag
+        # 付きシームに差し替えた binary を build する。 e2e (global-setup.ts) が
+        # `ARCAGATE_TEST_LAUNCH_SEAM_LOG` env を渡すと外部 process spawn を skip しつつ
+        # `{ what, program, args, cwd }` を log に append → 実 UI 経路で click / 右クリック
+        # 「デフォルトで開く」 の opener / target が一致するかを機械検証できる。
         working-directory: src-tauri
-        run: cargo build
+        run: cargo build --features test-launch-seam
 
       - name: Install Playwright Chromium
         # Codex P1: --with-deps は Linux 用 (apt-get install)。Windows runner では不要。

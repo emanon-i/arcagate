@@ -23,6 +23,14 @@ const TAURI_EXE = process.env.ARCAGATE_TEST_EXE
 	: join(process.cwd(), 'src-tauri', 'target', 'debug', 'arcagate.exe');
 const DB_DIR = join(process.cwd(), 'tmp');
 const DB_PATH = join(DB_DIR, `test-${Date.now()}.db`);
+/**
+ * PH-CF-1210 ⑨ e2e: launcher の spawn 葉を build flag (`test-launch-seam`) 経由で差し替え、
+ * 「click 経路と右クリック『デフォルトで開く』 が同じ opener + 同じ target で launch 要求を
+ * 出した」 ことを実 UI 経路で機械検証するための log file。 binary がこの env var を見て
+ * 実 spawn を skip し、 `{ what, program, args, cwd }` の JSON 行を append する。
+ * 各 spec は読み取り前に file を truncate するため共有 path で OK。
+ */
+const LAUNCH_SEAM_LOG = join(DB_DIR, `launch-seam-${Date.now()}.log`);
 
 /**
  * Windows runner で WebView2 cold start が 30s 内に CDP を開けない flake が頻発
@@ -50,6 +58,8 @@ export default async function globalSetup(): Promise<void> {
 
 	process.env.ARCAGATE_TEST_DB_PATH = DB_PATH;
 	process.env.ARCAGATE_TEST_CDP_PORT = String(CDP_PORT);
+	// PH-CF-1210 ⑨: launch seam log path を spec 側に渡す (helpers/launch-seam.ts が読む)。
+	process.env.ARCAGATE_TEST_LAUNCH_SEAM_LOG = LAUNCH_SEAM_LOG;
 
 	// user dev / 既存 webview2 instance と user-data-folder を共有しないよう e2e 専用 path に隔離。
 	// 共有すると既存 instance に被って --remote-debugging-port が新規 instance に伝わらず
@@ -65,6 +75,10 @@ export default async function globalSetup(): Promise<void> {
 			ARCAGATE_SKIP_HOTKEY: '1',
 			WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${CDP_PORT}`,
 			WEBVIEW2_USER_DATA_FOLDER: WV2_DIR,
+			// PH-CF-1210 ⑨: launcher::try_spawn_cmd が見る env var。 binary が
+			// `--features test-launch-seam` 付きで build されていれば、 実 spawn を skip して
+			// この path に JSON 行を append する。 build flag 無しなら無視 (普通の spawn)。
+			ARCAGATE_TEST_LAUNCH_SEAM_LOG: LAUNCH_SEAM_LOG,
 		},
 	});
 

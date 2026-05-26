@@ -116,8 +116,14 @@ async function handleLaunchDefault(): Promise<void> {
 	if (!item) return;
 	const label = item.label;
 	try {
-		await launchItemWithCascade(item, { widgetDefaultOpenerId });
-		toastStore.add(t('toast.launched_label', { label }), 'success');
+		// PH-CF-1210 ⑨ (B): folder + opener_not_found → cascade が Explorer フォールバック →
+		// info toast で誘導。 通常成功 / 非 folder の opener 失敗 → 既存挙動 (success / error)。
+		const r = await launchItemWithCascade(item, { widgetDefaultOpenerId });
+		if (r.kind === 'fallback-explorer') {
+			toastStore.add(t('toast.launched_with_explorer_fallback', { label }), 'info');
+		} else {
+			toastStore.add(t('toast.launched_label', { label }), 'success');
+		}
 	} catch (e: unknown) {
 		toastStore.add(formatLaunchError(label, e), 'error');
 	} finally {

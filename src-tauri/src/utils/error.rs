@@ -20,6 +20,12 @@ pub enum AppError {
     #[error("Not executable: {0}")]
     LaunchNotExecutable(String),
 
+    /// PH-CF-1210 ⑨: opener template の program (例 `code` / `blender`) が PATH に解決できず
+    /// `Command::spawn` 前に bail した状態。 `LaunchFileNotFound` (= 起動 target file が
+    /// 不在) と区別するため別 variant。 payload は解決不能だった program 名。
+    #[error("Opener program not found in PATH: {0}")]
+    LaunchOpenerNotFound(String),
+
     /// audit F15 (2026-05-18): Command / Script アイテムの初回起動確認が未済。
     /// payload は実行対象 (command / script 文字列) — frontend が確認ダイアログに表示する。
     #[error("{0}")]
@@ -59,6 +65,7 @@ impl AppError {
             AppError::LaunchFileNotFound(_) => "launch.file_not_found",
             AppError::LaunchPermissionDenied(_) => "launch.permission_denied",
             AppError::LaunchNotExecutable(_) => "launch.not_executable",
+            AppError::LaunchOpenerNotFound(_) => "launch.opener_not_found",
             AppError::ConfirmationRequired(_) => "launch.confirmation_required",
             AppError::Validation(_) => "validation",
             AppError::Io(_) => "io.error",
@@ -149,6 +156,10 @@ mod tests {
         assert_eq!(
             AppError::LaunchNotExecutable("x".into()).code(),
             "launch.not_executable"
+        );
+        assert_eq!(
+            AppError::LaunchOpenerNotFound("code".into()).code(),
+            "launch.opener_not_found"
         );
         assert_eq!(AppError::Cancelled.code(), "cancelled");
         assert_eq!(AppError::WatchFailed("x".into()).code(), "watch.failed");
