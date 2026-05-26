@@ -285,9 +285,11 @@ mod tests {
     #[test]
     fn run_script_returns_opener_not_found_when_interpreter_missing() {
         // run_script が interpreter を `launcher::resolved_command` 経由で解決していることを
-        // 確認する負例 test。 .lua interpreter (= `lua`) は CI 上に存在しない前提で、
-        // resolve 段階で `LaunchOpenerNotFound` が返る (旧実装は `Command::new("lua").spawn()` で
-        // 即 spawn し `LaunchFailed` を返していたため、 error 種別の差で routing 横展開を証明)。
+        // 確認する負例 test。 `.applescript` interpreter (= `osascript`) は Windows runner には
+        // 標準で存在しない前提のため、 resolve 段階で `LaunchOpenerNotFound` が返る (旧実装は
+        // `Command::new("osascript").spawn()` で即 spawn し `LaunchFailed` を返していたため、
+        // error 種別の差で routing 横展開を証明)。 PATH を直接 mutate しないので parallel test
+        // (utils::git tests 等が git を spawn する) と race しない。
         let dir = std::env::temp_dir().join(format!(
             "arcagate-rs-neg-{}-{}",
             std::process::id(),
@@ -295,30 +297,14 @@ mod tests {
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
-        write_file(&dir.join("noop.lua"), b"-- noop\n");
-
-        let orig_path = std::env::var_os("PATH").unwrap_or_default();
-        let empty_dir = std::env::temp_dir().join(format!(
-            "arcagate-rs-neg-empty-{}-{}",
-            std::process::id(),
-            uuid::Uuid::now_v7()
-        ));
-        fs::create_dir_all(&empty_dir).unwrap();
-        // SAFETY: test 内 single-threaded で env をいじる、 cleanup で復元。
-        unsafe {
-            std::env::set_var("PATH", empty_dir.as_os_str());
-        }
+        write_file(&dir.join("noop.applescript"), b"-- noop\n");
 
         let res = run_script(
             dir.to_str().unwrap(),
-            dir.join("noop.lua").to_str().unwrap(),
+            dir.join("noop.applescript").to_str().unwrap(),
         );
 
-        unsafe {
-            std::env::set_var("PATH", &orig_path);
-        }
         let _ = fs::remove_dir_all(&dir);
-        let _ = fs::remove_dir_all(&empty_dir);
 
         assert!(
             matches!(res, Err(AppError::LaunchOpenerNotFound(_))),
