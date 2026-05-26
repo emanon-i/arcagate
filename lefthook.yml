@@ -127,6 +127,13 @@ pre-commit:
       # / .spawn() 直呼びを禁止 (PATHEXT 解決 + e2e seam を全 spawn 経路に集約)。
       glob: "src-tauri/src/**/*.rs"
       run: bash scripts/audit-launcher-spawn-leak.sh
+    builtin-theme-css-vars:
+      # F3 根治 (migration 043): 6 builtin の css_vars が空 '{}' から実値 JSON へ seed 済で、
+      # 主要 token (--c-bg / --c-fg / --c-primary / --surface-blur / --ag-radius-lg) が揃って
+      # いることを fail-closed gate。 cloneTheme が source.css_vars を copy する経路で
+      # source aesthetic が伝播する条件を機械検出 (audit doc THEME_CLONE_AESTHETIC_LOST_2026-05-26.md)。
+      glob: "{src-tauri/migrations/*.sql,src/lib/styles/arcagate-theme.css}"
+      run: bash scripts/audit-builtin-theme-css-vars.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

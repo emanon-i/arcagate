@@ -31,6 +31,10 @@ import {
  * - cmd_get_item_tags (item に紐づく tag 取得、initial tag_ids 反映)
  *
  * 各 spec で fixture safe net (markSetupComplete) により SetupWizard 復活問題回避。
+ *
+ * audit-ui-bypass:ok T3 regression は backend IPC operation の対称検証 (toggleStar /
+ * createTag / updateWorkspace / bulkRemoveTag / getItemTags) と lifecycle CRUD のみ verify
+ * する scope。 UI 経路は T2 smoke / 個別機能 spec が担当する分業。
  */
 test('T3-2-1: toggleStar single item で sys-starred 個別 add/remove', async ({ page }) => {
 	const created = await createItem(page, {

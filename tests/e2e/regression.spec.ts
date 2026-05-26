@@ -27,6 +27,10 @@ import {
  * - searchItems case-insensitive (旧 fuzzy-search の lowercase 動作)
  *
  * 各 spec で fixture safe net (markSetupComplete) により SetupWizard 復活問題回避。
+ *
+ * audit-ui-bypass:ok T3 regression は state store の race / cache integrity を backend IPC
+ * + listWorkspaces / listWidgets / searchItems 等で verify する scope。 UI 経路は T2 smoke /
+ * 個別機能 spec が担当する分業。
  */
 test('T3-1: workspace 別 widgets ownership (PR-D race-fix、T2-3 移管)', async ({ page }) => {
 	// 2 つ workspace 作成 (deleteWorkspace は使わない、SetupWizard 復活回避)。

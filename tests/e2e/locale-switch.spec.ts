@@ -16,6 +16,10 @@ import { test } from '../fixtures/tauri.js';
  *    (= force key の優先順位を検証、 後続 test の isolation を担保)
  *
  * screenshot は testInfo.attach() で HTML report に証跡添付。
+ *
+ * audit-ui-bypass:ok i18n の visibility 契約 verify が scope のため UI 操作 (click 等) は無く、
+ * `localStorage.setItem` + reload + getByPlaceholder の visible assert で完結する。 UI 操作を
+ * 追加すると locale 文字列 visibility の純粋 verify から逸脱する。
  */
 
 test.describe('locale switch (i18n Phase 5)', () => {
