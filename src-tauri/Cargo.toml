@@ -54,6 +54,9 @@ ts-rs = { version = "10", features = ["serde-compat"] }
 shell-words = "1"
 tauri-plugin-updater = "2"
 ureq = { version = "2.10", default-features = false, features = ["tls", "json"] }
+# ⑩ 深い階層 scan 並列化 (2026-05-27): exe_scanner_service の第1階層 fork 並列 walk。
+# rayon の work-stealing で first-level dir の walk を CPU core 数だけ並列化。
+rayon = "1.10"
 
 # PH-470 batch-106: ureq + rustls 追加で 20MB cap 直前 → release profile 最適化で回収
 [profile.release]
