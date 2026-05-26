@@ -42,9 +42,13 @@ const SEED_VARS: string[] = [
 	'--c-warn',
 	'--c-error',
 	'--c-success',
+	// PR #588: info semantic seed (青系、 link / hint / detail callout 用)。
+	'--c-info',
 ];
 
 const AG_VARS: string[] = [
+	// PR #588: surface に primary hue を微量注入する strength control (0-100%、 default 30%)。
+	'--ag-surface-tint-strength',
 	'--ag-surface-page',
 	'--ag-surface-0',
 	'--ag-surface-1',
@@ -60,6 +64,10 @@ const AG_VARS: string[] = [
 	'--ag-accent-bg',
 	'--ag-accent-border',
 	'--ag-accent-secondary',
+	// PR #588: accent hover / focus state variants (CSS chain で primary live 連動)。
+	'--ag-accent-hover',
+	'--ag-accent-hover-bg',
+	'--ag-accent-focus-ring',
 	'--ag-text-primary',
 	'--ag-text-secondary',
 	'--ag-text-muted',
@@ -73,6 +81,10 @@ const AG_VARS: string[] = [
 	'--ag-success-bg',
 	'--ag-success-border',
 	'--ag-success-text',
+	// PR #588: info tone (link / hint / detail callout)。
+	'--ag-info-bg',
+	'--ag-info-border',
+	'--ag-info-text',
 ];
 
 const ALL_VARS: string[] = [...SEED_VARS, ...AG_VARS];
@@ -267,6 +279,7 @@ const GROUP_ORDER = [
 	'--ag-error',
 	'--ag-warm',
 	'--ag-success',
+	'--ag-info',
 ];
 
 const grouped = $derived.by(() => {
