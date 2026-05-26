@@ -103,6 +103,7 @@ function handleNameKeydown(e: KeyboardEvent) {
 			size="sm"
 			disabled={saving || !isDirty}
 			onclick={onSave}
+			data-testid="theme-editor-save"
 		>
 			<Check class="h-3.5 w-3.5" />
 			{saving ? t('settings.appearance.saving') : t('common.save')}
