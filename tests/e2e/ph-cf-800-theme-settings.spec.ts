@@ -75,8 +75,18 @@ async function createTheme(
 }
 
 /** Settings modal を実 UI で開き、 Appearance pane へ切り替える。
- * audit doc §推奨 D 案: 「IPC 直叩きでなく 実 UI ボタン click 経路で test seam を構成する」。 */
+ * audit doc §推奨 D 案: 「IPC 直叩きでなく 実 UI ボタン click 経路で test seam を構成する」。
+ *
+ * 前 spec の page 状態 (Settings modal 開きっぱなし / 別 webview window へ binding 等) を
+ * clean up するため、 まず library view に強制して reload。 CI run 26450906881 で TS-3 / TS-4
+ * が「page snapshot が palette 画面」 で 120s timeout した実例があり、 page reference 安定化
+ * (= 確実に main window URL `/` に居る状態) が prerequisite。 */
 async function openSettingsAppearance(page: Page): Promise<void> {
+	// localStorage で library view を強制 → reload で TitleBar + LibraryLayout の clean state。
+	await page.evaluate(() => localStorage.setItem('arcagate.app.activeView', 'library'));
+	await page.reload();
+	await page.waitForLoadState('domcontentloaded');
+	await page.locator('main').first().waitFor({ state: 'visible', timeout: 30_000 });
 	// TitleBar の設定 button (NAV_TOP.settings.label = 'Settings' を aria-label に持つ)。
 	await page.getByRole('button', { name: 'Settings', exact: true }).click();
 	// Settings modal の Appearance タブ (SettingsPanel.svelte id="tab-appearance")。
