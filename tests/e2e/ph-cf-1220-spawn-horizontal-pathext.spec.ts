@@ -1,3 +1,8 @@
+// audit-ui-bypass:ok
+// 本 spec は **IPC-layer の spawn 葉 (launcher::resolved_command / try_spawn_cmd) を seam log で
+// verify する** 経路に特化しているため、 UI op (click/fill/press 等) を踏まない。 UI cascade
+// (右クリック「Default app で開く」 等) の verify は `ph-cf-1210-widget-launch-cascade.spec.ts`
+// で実 UI 経路を踏破済 (= PR #570 教訓 / dom-not-fixed rule の主舞台はそちら)。
 /**
  * SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (b/d) を実機検証する e2e。
  *
