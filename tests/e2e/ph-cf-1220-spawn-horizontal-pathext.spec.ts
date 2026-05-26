@@ -34,8 +34,15 @@ import {
 } from '../helpers/ipc.js';
 import { clearSeamLog, pollSeamRecords } from '../helpers/launch-seam.js';
 
+function normalizePath(p: string): string {
+	// Windows `fs::canonicalize` は `\\?\C:\...` 形式 (verbatim long-path prefix) を返すため、
+	// prefix を剥がした上で separator を `/` に揃え、 case を畳んで比較する。
+	const stripped = p.replace(/^\\\\\?\\/, '').replace(/^\/\/\?\//, '');
+	return stripped.replace(/\\/g, '/').toLowerCase();
+}
+
 function pathEq(a: string, b: string): boolean {
-	return a.replace(/\\/g, '/').toLowerCase() === b.replace(/\\/g, '/').toLowerCase();
+	return normalizePath(a) === normalizePath(b);
 }
 
 function shimBareName(): string {
