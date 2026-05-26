@@ -221,16 +221,6 @@ test('TS-4 (F4 + F5): 「現在のテーマを複製」 は実描画で active a
 	// PH-CF-800 F4: ボタンは Plus アイコン + 文言 + tooltip。 PH-CF-800 F3: cloneCurrentTheme は
 	// active の aesthetic を新 custom に伝播 (audit doc §推奨 D 案)。
 
-	// clipboard spy (page mount より前に install するため、 settings open 前に注入)。
-	await page.evaluate(() => {
-		(window as unknown as { __ts4ClipboardCalls: string[] }).__ts4ClipboardCalls = [];
-		const orig = navigator.clipboard.writeText.bind(navigator.clipboard);
-		navigator.clipboard.writeText = async (t: string) => {
-			(window as unknown as { __ts4ClipboardCalls: string[] }).__ts4ClipboardCalls.push(t);
-			return orig(t);
-		};
-	});
-
 	await openSettingsAppearance(page);
 
 	// 1. neumorph を実 UI で active 化 (light base、 dual shadow、 blur 無し、 角丸 24px)。
@@ -240,11 +230,23 @@ test('TS-4 (F4 + F5): 「現在のテーマを複製」 は実描画で active a
 	expect(sourceAesthetic.radiusLg).toBe('24px');
 	expect(sourceAesthetic.blur).toBe('none');
 
-	// 2. 「現在のテーマを複製」 button (settings-clone-current-theme) を実 click。
+	// 2. clipboard spy を install (openSettingsAppearance の reload で window が wiped されるため
+	// reload 後 + clone click 前に install しないと spy が消える。 CI run 26452885232 で
+	// `clipboardCalls = undefined` に化けた reason)。
+	await page.evaluate(() => {
+		(window as unknown as { __ts4ClipboardCalls: string[] }).__ts4ClipboardCalls = [];
+		const orig = navigator.clipboard.writeText.bind(navigator.clipboard);
+		navigator.clipboard.writeText = async (t: string) => {
+			(window as unknown as { __ts4ClipboardCalls: string[] }).__ts4ClipboardCalls.push(t);
+			return orig(t);
+		};
+	});
+
+	// 3. 「現在のテーマを複製」 button (settings-clone-current-theme) を実 click。
 	const customsBefore = (await listThemes(page)).filter((t) => !t.is_builtin).length;
 	await page.getByTestId('settings-clone-current-theme').click();
 
-	// 3. 新 custom が active 化される。
+	// 4. 新 custom が active 化される。
 	const clonedDataTheme = await waitForActiveDataTheme(
 		page,
 		(v) => Boolean(v) && v !== 'neumorph' && v !== 'dark' && v !== 'light',
@@ -256,17 +258,17 @@ test('TS-4 (F4 + F5): 「現在のテーマを複製」 は実描画で active a
 		})
 		.toBe(customsBefore + 1);
 
-	// 4. 実描画 aesthetic が一致 (F3 と同じ verify principle)。
+	// 5. 実描画 aesthetic が一致 (F3 と同じ verify principle)。
 	const clonedAesthetic = await captureAesthetic(page);
 	expect(clonedAesthetic).toEqual(sourceAesthetic);
 
-	// 5. F5: clipboard には書き込まれていない (旧「コピー」 廃止の verify)。
+	// 6. F5: clipboard には書き込まれていない (旧「コピー」 廃止の verify)。
 	const clipboardCalls = await page.evaluate(
 		() => (window as unknown as { __ts4ClipboardCalls: string[] }).__ts4ClipboardCalls,
 	);
 	expect(clipboardCalls).toEqual([]);
 
-	// 6. F4: 「現在のテーマを複製」 button が aria-label + tooltip (title 属性) を持つ。
+	// 7. F4: 「現在のテーマを複製」 button が aria-label + tooltip (title 属性) を持つ。
 	const cloneCurrentBtn = page.getByTestId('settings-clone-current-theme');
 	const title = await cloneCurrentBtn.getAttribute('title');
 	expect(title).toBeTruthy();
