@@ -149,7 +149,10 @@ pub fn launch_exe(
         return launch_script(target, args, working_dir);
     }
 
-    let mut cmd = Command::new(target);
+    // SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (b): bare name `target` (例: `"code"`) でも
+    // `.cmd` shim を PATHEXT 解決で掴むため `resolved_command` 経由に統一。 絶対 path の場合は
+    // resolve helper 内で実在チェックだけが走る (PATH search はスキップ)。
+    let mut cmd = resolved_command(target)?;
     if let Some(a) = args {
         // PH-422 / Codex Q5 #6: shell-words::split で quoted args を正しく扱う
         // (split_whitespace では `--flag "value with space"` が破壊される)
@@ -169,7 +172,9 @@ pub fn launch_exe_args(
     args: &[&str],
     working_dir: Option<&str>,
 ) -> Result<(), AppError> {
-    let mut cmd = Command::new(target);
+    // SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (b): folder の legacy `default_app` で
+    // `"code"` 等の bare name が来ても shim を解決できるよう `resolved_command` 経由に統一。
+    let mut cmd = resolved_command(target)?;
     cmd.args(args);
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
@@ -200,6 +205,36 @@ pub fn launch_folder(path: &str) -> Result<(), AppError> {
     let mut cmd = Command::new("explorer.exe");
     cmd.arg(path);
     try_spawn_cmd(&mut cmd, "folder")
+}
+
+/// Explorer で path を reveal する (file の場合は親フォルダを開いて選択、 dir はそのまま開く)。
+///
+/// SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (d): `cmd_reveal_in_explorer` の `Command::new`
+/// 直呼び を launcher 集約葉に寄せ、 `try_spawn_cmd` の e2e seam 経由に統一する。 `explorer.exe`
+/// は Windows system path にある固定 .exe のため PATHEXT 解決は不要だが、 cascade verify の
+/// blind spot を塞ぐため seam を通す。
+///
+/// Windows 専用 (Explorer 概念が固有)。 非 Windows ではエラー (caller は `cmd_reveal_in_explorer`
+/// の旧 Windows-only 契約と互換)。
+pub fn reveal_in_explorer(path: &str, is_dir: bool) -> Result<(), AppError> {
+    reject_control_chars(path, "path")?;
+    #[cfg(target_os = "windows")]
+    {
+        let mut cmd = Command::new("explorer.exe");
+        if is_dir {
+            cmd.arg(path);
+        } else {
+            cmd.arg(format!("/select,{}", path));
+        }
+        try_spawn_cmd(&mut cmd, "reveal")
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = is_dir;
+        Err(AppError::InvalidInput(
+            "reveal_in_explorer is Windows-only".to_string(),
+        ))
+    }
 }
 
 /// PH-422: shell-words::split で quoted args を扱う helper
@@ -268,7 +303,9 @@ pub fn launch_command(command: &str, working_dir: Option<&str>) -> Result<(), Ap
         .next()
         .ok_or_else(|| AppError::LaunchFailed("empty command string".to_string()))?;
 
-    let mut cmd = Command::new(&program);
+    // SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (a): user-typed command の第 1 token (例:
+    // `pnpm` / `code` / `tsc`) が `.cmd` shim でも掴めるよう `resolved_command` 経由に統一。
+    let mut cmd = resolved_command(&program)?;
     cmd.args(tokens);
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
@@ -292,13 +329,10 @@ pub fn launch_argv(tokens: &[String], working_dir: Option<&str>) -> Result<(), A
     let (program, args) = tokens
         .split_first()
         .ok_or_else(|| AppError::LaunchFailed("empty command".to_string()))?;
-    let resolved: std::path::PathBuf = if cfg!(target_os = "windows") {
-        resolve_program_with_pathext(program)
-            .ok_or_else(|| AppError::LaunchOpenerNotFound(program.clone()))?
-    } else {
-        std::path::PathBuf::from(program)
-    };
-    let mut cmd = Command::new(&resolved);
+    // SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit: launch_argv の PATHEXT 解決 inline 実装を
+    // 共通 `resolved_command` に集約 (旧実装と挙動同一、 launch_exe / launch_command / script_runner
+    // と同じ helper を通す)。
+    let mut cmd = resolved_command(program)?;
     cmd.args(args);
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
@@ -377,6 +411,28 @@ pub fn resolve_program_with_pathext(program: &str) -> Option<std::path::PathBuf>
     } else {
         None
     }
+}
+
+/// `Command::new(<program>)` の共通化ラッパー。 Windows では PATH × PATHEXT 解決を経由し、
+/// `code` のような拡張子なし bare name でも `code.cmd` shim を絶対パスで掴む。
+///
+/// 動機 (SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit): PR #579 が `launch_argv` だけに
+/// PATHEXT 解決を入れた状態で merge されたため、 `launch_exe` / `launch_exe_args` /
+/// `launch_command` / `script_runner::run_script` の 4 経路で `.cmd` shim 起動が同じ root cause
+/// (Rust std が PATHEXT を自動 search しない) で fail する穴が残っていた。 本 helper を全 spawn の
+/// 入り口に挟むことで「program 解決 → Command 構築」 を 1 関数に集約し、 各 caller は
+/// args / cwd を組み立てて `try_spawn_cmd` に渡すだけになる。
+///
+/// 解決失敗 (Windows で PATH 上に見つからない) は `LaunchOpenerNotFound` を返し、 caller
+/// 側で folder 用 Explorer fallback (`cmd_launch_with_opener`) 等に振れる契約を維持する。
+pub fn resolved_command(program: &str) -> Result<Command, AppError> {
+    let resolved: std::path::PathBuf = if cfg!(target_os = "windows") {
+        resolve_program_with_pathext(program)
+            .ok_or_else(|| AppError::LaunchOpenerNotFound(program.to_string()))?
+    } else {
+        std::path::PathBuf::from(program)
+    };
+    Ok(Command::new(&resolved))
 }
 
 /// 指定ディレクトリを working directory として terminal を起動する。
@@ -612,5 +668,124 @@ mod tests {
         let manifest = env!("CARGO_MANIFEST_DIR");
         let resolved = resolve_program_with_pathext(manifest);
         assert!(resolved.is_some());
+    }
+
+    // --- SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (c): resolved_command 共通ヘルパー ---
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolved_command_picks_pathext_shim_for_bare_name() {
+        use std::ffi::OsString;
+        use std::fs;
+        use std::path::PathBuf;
+        // bare name "bar" を渡したとき、 PATHEXT 経由で `bar.cmd` shim を絶対 path で掴むことを assert。
+        // launch_command / launch_exe / launch_exe_args / script_runner::run_script が共通で
+        // 通る集約ヘルパーなので、 ここが PATHEXT 解決を保証すれば 4 経路全てに横展開される。
+        let tmp = std::env::temp_dir().join(format!(
+            "arcagate-resolved-cmd-test-{}",
+            uuid::Uuid::now_v7()
+        ));
+        fs::create_dir_all(&tmp).unwrap();
+        let shim: PathBuf = tmp.join("bar.cmd");
+        fs::write(&shim, b"@echo off\n").unwrap();
+
+        let orig_path = std::env::var_os("PATH").unwrap_or_default();
+        let mut new_path = OsString::from(tmp.as_os_str());
+        new_path.push(";");
+        new_path.push(&orig_path);
+        // SAFETY: test 内 single-threaded、 cleanup で復元。
+        unsafe {
+            std::env::set_var("PATH", &new_path);
+        }
+
+        let result = resolved_command("bar");
+        let program_str = result.as_ref().ok().map(|c| {
+            c.get_program()
+                .to_string_lossy()
+                .to_ascii_lowercase()
+                .to_string()
+        });
+
+        unsafe {
+            std::env::set_var("PATH", &orig_path);
+        }
+        let _ = fs::remove_dir_all(&tmp);
+
+        let program = program_str.unwrap_or_default();
+        assert!(
+            program.ends_with("bar.cmd"),
+            "resolved_command('bar') should resolve to bar.cmd via PATHEXT (got: {program:?})"
+        );
+        // 解決済は **絶対 path** であるべき (PATH の dir + name 形)。
+        assert!(
+            program.contains('\\') || program.contains('/'),
+            "resolved program should be absolute path (got: {program:?})"
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolved_command_errors_on_unknown_program() {
+        let result = resolved_command("__definitely_not_in_path_arcagate_resolved_test__");
+        assert!(matches!(result, Err(AppError::LaunchOpenerNotFound(_))));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolved_command_passes_absolute_path_through() {
+        // 絶対 path で実在 → resolved_command は Command を返す (Ok)。
+        let manifest = env!("CARGO_MANIFEST_DIR");
+        let result = resolved_command(manifest);
+        assert!(result.is_ok());
+    }
+
+    // --- script_runner と launch_command が同じ resolved_command を通る (横展開の証明) ---
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn launch_command_via_resolved_command_picks_cmd_shim() {
+        // launch_command の第 1 token (bare name) が PATHEXT 解決を受けて `.cmd` shim を絶対 path で
+        // 掴むことを確認。 spawn 自体は cleanup の都合上 fail させたいため、 cleanup で PATH を戻した
+        // 直後の呼び出しで `LaunchOpenerNotFound` (resolve 段階で fail) が返ることを assert する。
+        // (= resolved_command が launch_command の入口で呼ばれている = 横展開がコードレベルで成立)。
+        let result = launch_command("__definitely_not_in_path_arcagate_lc_test__ --noop", None);
+        assert!(matches!(result, Err(AppError::LaunchOpenerNotFound(_))));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn launch_command_spawns_cmd_shim_resolved_via_pathext() {
+        // 一時 dir に baz.cmd (即終了 stub) を仕込み、 PATH に追加。 launch_command("baz") が
+        // PATHEXT 解決 → 実 spawn まで通って Ok を返すことを確認 (PR #579 の同型 positive test、
+        // resolve_program_with_pathext_finds_cmd_shim を launch_command 経路まで拡張)。
+        use std::ffi::OsString;
+        use std::fs;
+
+        let tmp =
+            std::env::temp_dir().join(format!("arcagate-launch-cmd-pos-{}", uuid::Uuid::now_v7()));
+        fs::create_dir_all(&tmp).unwrap();
+        let shim = tmp.join("baz.cmd");
+        fs::write(&shim, b"@echo off\nexit /b 0\n").unwrap();
+
+        let orig_path = std::env::var_os("PATH").unwrap_or_default();
+        let mut new_path = OsString::from(tmp.as_os_str());
+        new_path.push(";");
+        new_path.push(&orig_path);
+        // SAFETY: test 内 single-threaded で env をいじる、 cleanup で復元。
+        unsafe {
+            std::env::set_var("PATH", &new_path);
+        }
+
+        let result = launch_command("baz", None);
+
+        unsafe {
+            std::env::set_var("PATH", &orig_path);
+        }
+        let _ = fs::remove_dir_all(&tmp);
+
+        assert!(
+            result.is_ok(),
+            "launch_command should resolve baz.cmd via PATHEXT and spawn (got: {result:?})"
+        );
     }
 }

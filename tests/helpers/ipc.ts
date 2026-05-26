@@ -168,6 +168,7 @@ export interface UpdateItemInput {
 	is_tracked?: boolean | null;
 	aliases?: string[] | null;
 	tag_ids?: string[] | null;
+	default_app?: string | null;
 }
 
 export async function updateItem(page: Page, id: string, input: UpdateItemInput): Promise<Item> {
@@ -398,4 +399,23 @@ export async function saveOpener(
 
 export async function deleteOpener(page: Page, id: string): Promise<void> {
 	return invoke<void>(page, 'cmd_delete_opener', { id });
+}
+
+// SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26: Command item / script_runner / reveal-in-explorer の
+// 4 経路で `launcher::resolved_command` + `launcher::try_spawn_cmd` を通ることを検証する spec 用。
+
+export async function confirmItem(page: Page, itemId: string): Promise<void> {
+	return invoke<void>(page, 'cmd_confirm_item', { itemId });
+}
+
+export async function confirmScript(page: Page, folder: string, scriptPath: string): Promise<void> {
+	return invoke<void>(page, 'cmd_confirm_script', { folder, scriptPath });
+}
+
+export async function runScript(page: Page, folder: string, scriptPath: string): Promise<void> {
+	return invoke<void>(page, 'cmd_run_script', { folder, scriptPath });
+}
+
+export async function revealInExplorer(page: Page, path: string): Promise<void> {
+	return invoke<void>(page, 'cmd_reveal_in_explorer', { path });
 }

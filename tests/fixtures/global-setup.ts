@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import process from 'node:process';
 import { chromium } from '@playwright/test';
@@ -61,6 +61,19 @@ export default async function globalSetup(): Promise<void> {
 	// PH-CF-1210 ⑨: launch seam log path を spec 側に渡す (helpers/launch-seam.ts が読む)。
 	process.env.ARCAGATE_TEST_LAUNCH_SEAM_LOG = LAUNCH_SEAM_LOG;
 
+	// SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit: bare name + PATHEXT 解決を e2e で検証する
+	// 専用 .cmd shim を作って Tauri プロセスの PATH に prepend する。 Playwright 自身の
+	// process.env.PATH は **書き換えない** (node を別の `.cmd` で shadow してテストランナーを
+	// 壊さないため)。 spec は `ARCAGATE_TEST_PATHEXT_SHIM_NAME` を使って bare name で
+	// item.target を設定 → PATHEXT 経由で resolve され、 seam log に絶対 path が記録される。
+	const SHIM_DIR = join(DB_DIR, `pathext-shim-${Date.now()}`);
+	const SHIM_NAME = 'arcagate_e2e_pathext_probe';
+	mkdirSync(SHIM_DIR, { recursive: true });
+	writeFileSync(join(SHIM_DIR, `${SHIM_NAME}.cmd`), '@echo off\r\nexit /b 0\r\n');
+	process.env.ARCAGATE_TEST_PATHEXT_SHIM_NAME = SHIM_NAME;
+	process.env.ARCAGATE_TEST_PATHEXT_SHIM_DIR = SHIM_DIR;
+	const tauriPath = `${SHIM_DIR};${process.env.PATH ?? ''}`;
+
 	// user dev / 既存 webview2 instance と user-data-folder を共有しないよう e2e 専用 path に隔離。
 	// 共有すると既存 instance に被って --remote-debugging-port が新規 instance に伝わらず
 	// CDP が 60s 内に開かない flake になる。
@@ -79,6 +92,9 @@ export default async function globalSetup(): Promise<void> {
 			// `--features test-launch-seam` 付きで build されていれば、 実 spawn を skip して
 			// この path に JSON 行を append する。 build flag 無しなら無視 (普通の spawn)。
 			ARCAGATE_TEST_LAUNCH_SEAM_LOG: LAUNCH_SEAM_LOG,
+			// SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26: Tauri プロセスのみ PATH を上書きして
+			// e2e 用 .cmd shim を bare name 解決対象にする。 Playwright の node は影響を受けない。
+			PATH: tauriPath,
 		},
 	});
 
