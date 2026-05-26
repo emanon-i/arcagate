@@ -6,6 +6,13 @@
 #       src-tauri) から参照していないこと
 #   (b) `tests/e2e/*.spec.ts` 内で **unconditional** な `test.skip(true, ...)` /
 #       `test.fixme(true, ...)` が無いこと (= 「機械検出を空転させない」 原則)
+#   (c) `tests/e2e/**/*.spec.ts` で UI 操作 (click / fill / press / dblclick / hover / dragTo
+#       / selectOption / check / uncheck / tap / setInputFiles / focus / blur) を **1 度も
+#       含まない** spec が無いこと (= IPC 直叩き合成経路だけで test seam を組まない、
+#       audit `docs/l3_phases/audit/THEME_CLONE_AESTHETIC_LOST_2026-05-26.md` §3 で確認した
+#       「TS-3 / TS-4 が UI ボタン click を踏まず tautology assertion で空転していた」 構造的
+#       失敗の再発防止)。 やむを得ず backend 契約 verify のみで完結する spec は file 内に
+#       `audit-ui-bypass:ok` marker + 理由 comment で allowlist できる。
 #
 # 動機: PH-CF-600 LB-2 が `test.skip` 同等の「test 削除 + コメント置換」 状態で merge され
 # 回帰検出が空転していた。 同型の skip 漏れを再発させないため audit script で gate。
@@ -13,6 +20,7 @@
 # 引用元 guideline:
 #   docs/l3_phases/clean-feedback/PH-CF-600_library-bug-fixes.md §C2 受け入れ条件 (機械検出)
 #   docs/l2_foundation/features/screens/library.md §hidden 表示契約 機械検出
+#   docs/l3_phases/audit/THEME_CLONE_AESTHETIC_LOST_2026-05-26.md §推奨 (UI bypass detection)
 
 set -euo pipefail
 
@@ -62,9 +70,36 @@ if [ -n "$UNCONDITIONAL_SKIP" ]; then
   fi
 fi
 
+# (c) tests/e2e/**/*.spec.ts で UI 操作を 1 度も含まない spec を検出。 PR #570 LB-2 /
+# PR #566 TS-3 / TS-4 が「IPC 直叩き合成経路 + tautology assertion」 で空転していた
+# 構造的失敗の再発防止 (audit THEME_CLONE_AESTHETIC_LOST_2026-05-26.md §3)。
+# 検出 pattern: Playwright の代表的 UI op を網羅 (click / fill / press / dblclick / hover /
+# dragTo / selectOption / check / uncheck / tap / setInputFiles / focus / blur)。
+# allowlist marker: file 内に `audit-ui-bypass:ok` が含まれていれば許容 (理由は近傍 comment)。
+UI_OP_PATTERN='\.(click|fill|press|dblclick|hover|dragTo|selectOption|check|uncheck|tap|setInputFiles|focus|blur)\('
+SPEC_FILES=$(find tests/e2e -type f -name '*.spec.ts' 2>/dev/null || true)
+UI_BYPASS_VIOLATIONS=""
+for spec in $SPEC_FILES; do
+  if ! grep -qE "$UI_OP_PATTERN" "$spec" 2>/dev/null; then
+    if ! grep -q 'audit-ui-bypass:ok' "$spec" 2>/dev/null; then
+      UI_BYPASS_VIOLATIONS="${UI_BYPASS_VIOLATIONS}${spec}"$'\n'
+    fi
+  fi
+done
+if [ -n "$UI_BYPASS_VIOLATIONS" ]; then
+  echo "ERROR: tests/e2e/ で UI 操作 (click/fill/press/etc) を 1 度も含まない spec が検出されました:"
+  # 末尾の空行を排除
+  echo "$UI_BYPASS_VIOLATIONS" | sed '/^$/d' | sed 's/^/  /'
+  echo "  → 実 UI 経路で test seam を構成してください (PR #576 LB-2 + PR #581 F3 の哲学)。"
+  echo "  → やむを得ず backend 契約のみ verify する spec は 該当 file 内に"
+  echo "    '// audit-ui-bypass:ok' marker + 理由 comment を追加して allowlist してください。"
+  echo
+  VIOLATIONS=$((VIOLATIONS + 1))
+fi
+
 if [ "$VIOLATIONS" -gt 0 ]; then
   echo "audit-no-test-hook-leak: $VIOLATIONS violation(s)"
   exit 1
 fi
 
-echo "✓ audit-no-test-hook-leak: __arcagateTest__ leak / unconditional skip ともに 0 件"
+echo "✓ audit-no-test-hook-leak: __arcagateTest__ leak / unconditional skip / UI-bypass ともに 0 件"

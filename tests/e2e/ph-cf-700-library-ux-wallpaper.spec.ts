@@ -20,6 +20,11 @@ import { getLibraryWallpaper, setLibraryWallpaper } from '../helpers/ipc.js';
  * - LB-8b (C8): page.reload() 後も `getLibraryWallpaper` が値を維持し、 LibraryLayout が
  *   再描画でも background を出す (= config table 永続)
  * - LB-8c (C8): `setLibraryWallpaper({ path: null })` で wallpaper レイヤーが消える (clear)
+ *
+ * audit-ui-bypass:ok LB-8 は wallpaper IPC (`setLibraryWallpaper`) の永続化契約と reload 後の
+ * 再描画契約を verify する scope。 UI 経路 (file picker + opacity slider 等) は
+ * `LibraryWallpaperSettings.svelte` の component test 領域で、 本 spec は IPC 直接呼出と
+ * DOM layer 出現の対比 verify を担う分業。
  */
 
 // 個人情報を含まない generic placeholder path (audit-personal-data の `C:\Users\<name>\` /
