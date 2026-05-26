@@ -39,10 +39,14 @@
 	--c-secondary: oklch(from var(--c-primary) l c calc(h + 180));
 	/* frosted overlay tint — 両 base で near-white */
 	--c-glass-tint: oklch(0.99 0.004 250);
-	/* 文化的意味を持つため hue 固定、 l/c のみ primary に緩く追従 */
+	/* 文化的意味を持つため hue 固定、 l/c のみ primary に緩く追従。
+	   semantic 4 軸 (warn=H75 / error=H25 / success=H150 / info=H230) は
+	   `derivePalette()` (utils/derive-palette.ts) が aesthetic × base ごとに l/c を calibrate。
+	   :root 既定値は glass-light spec と一致。 */
 	--c-warn: oklch(0.74 0.16 75);
 	--c-error: oklch(0.58 0.20 25);
 	--c-success: oklch(0.66 0.15 150);
+	--c-info: oklch(0.58 0.16 230);
 
 	/* base 別 scrim (clear glass の dim layer / overlay 用) */
 	--scrim: oklch(0 0 0 / 0.45);
@@ -80,15 +84,24 @@
 	   light/dark どちらでも自動的に正しい方向に派生する。
 	   ======================================================== */
 
-	/* --- surface 階層 (bg → fg 方向に持ち上げ = dark で明るく / light で暗く) --- */
+	/* --- surface 階層 (bg → fg 方向に持ち上げ = dark で明るく / light で暗く) ---
+	   PR #588: surface mix に primary hue を微注入できる「色気」 トーン。
+	   `--ag-surface-tint-strength` (0-100%) が「mix 量のうち primary が占める比率」 を制御し、
+	   neutral (fg のみ) ↔ primary-tinted の間で連続調整可能。 glass dark/light は default 30%
+	   (= 全体 mix の 1.2-3.9% に primary hue が乗る、 視覚的には極めて subtle)。 brutalist /
+	   neumorph は 0% で override (= 既存の neutral surface を温存)。
+	   chain は `var(--c-primary)` 経由なので primary 変更で live 反応する。 */
+	--ag-surface-tint-strength: 30%;
+	--ag-surface-tint-mix: color-mix(in oklab, var(--c-fg), var(--c-primary) var(--ag-surface-tint-strength));
+
 	--ag-bg: var(--c-bg);
-	--ag-surface-page: color-mix(in oklab, var(--c-bg), var(--c-fg) 2%);
+	--ag-surface-page: color-mix(in oklab, var(--c-bg), var(--ag-surface-tint-mix) 2%);
 	--ag-surface-0: var(--c-bg);
-	--ag-surface-1: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
-	--ag-surface-2: color-mix(in oklab, var(--c-bg), var(--c-fg) 6%);
-	--ag-surface-3: color-mix(in oklab, var(--c-bg), var(--c-fg) 9%);
-	--ag-surface-4: color-mix(in oklab, var(--c-bg), var(--c-fg) 13%);
-	--ag-surface-opaque: color-mix(in oklab, var(--c-bg), var(--c-fg) 4%);
+	--ag-surface-1: color-mix(in oklab, var(--c-bg), var(--ag-surface-tint-mix) 4%);
+	--ag-surface-2: color-mix(in oklab, var(--c-bg), var(--ag-surface-tint-mix) 6%);
+	--ag-surface-3: color-mix(in oklab, var(--c-bg), var(--ag-surface-tint-mix) 9%);
+	--ag-surface-4: color-mix(in oklab, var(--c-bg), var(--ag-surface-tint-mix) 13%);
+	--ag-surface-opaque: color-mix(in oklab, var(--c-bg), var(--ag-surface-tint-mix) 4%);
 
 	/* --- glass 面 (aesthetic primitive と組み合わせ) --- */
 	--surface-glass-regular: color-mix(in oklab, var(--c-bg), transparent 28%);
@@ -118,6 +131,14 @@
 	--ag-accent-border: color-mix(in oklab, var(--c-primary), transparent 74%);
 	--ag-accent-active-bg: color-mix(in oklab, var(--c-primary), transparent 84%);
 	--ag-accent-active-border: color-mix(in oklab, var(--c-primary), transparent 70%);
+	/* PR #588 accent state chain 拡張:
+	   - hover: primary を fg 方向に 15% 寄せる (dark で明るく / light で暗く 自動切替、 base agnostic)
+	   - hover-bg: primary を 76% 透過 (active-bg 84% より少しベタ寄り)
+	   - focus-ring: primary を半透明化 (40%) — 50% 透過の outline ring 用
+	   いずれも `var(--c-primary)` 経由で chain 生きる (ThemeEditor で primary 変更が live 反映)。 */
+	--ag-accent-hover: color-mix(in oklab, var(--c-primary), var(--c-fg) 15%);
+	--ag-accent-hover-bg: color-mix(in oklab, var(--c-primary), transparent 76%);
+	--ag-accent-focus-ring: color-mix(in oklab, var(--c-primary), transparent 60%);
 
 	/* --- accent secondary (seed で指定 or primary 補色 自動) --- */
 	--ag-accent-secondary: var(--c-secondary);
@@ -148,6 +169,12 @@
 	--ag-error-text: color-mix(in oklab, var(--c-error), var(--c-fg) 48%);
 	--ag-error-bg: color-mix(in oklab, var(--c-error), transparent 90%);
 	--ag-error-border: color-mix(in oklab, var(--c-error), transparent 74%);
+
+	/* --- tone: info (PR #588) --- canonical H230 blue。 link / hint / detail callout 用。
+	   warn / error / success と同じ chain pattern で派生。 component は `--ag-info-text` 等を参照。 */
+	--ag-info-text: color-mix(in oklab, var(--c-info), var(--c-fg) 48%);
+	--ag-info-bg: color-mix(in oklab, var(--c-info), transparent 88%);
+	--ag-info-border: color-mix(in oklab, var(--c-info), transparent 74%);
 
 	/* --- text 階層 --- */
 	--ag-text-primary: var(--c-fg);
@@ -217,9 +244,12 @@
 	   §accent コントラスト契約)。 L0.50 で白文字 (L0.96) との比は ≈ 7.5:1 で AAA 達成。 */
 	--c-primary: oklch(0.50 0.14 215);
 	--c-glass-tint: oklch(0.99 0.004 250);
-	--c-warn: oklch(0.82 0.15 80);
+	/* PR #588: glass dark の semantic 軸を derivePalette() の dark calibration と一致させる。
+	   warn は H80 → H75 へ (canonical hue 統一)、 success は H155 → H150 へ。 */
+	--c-warn: oklch(0.82 0.15 75);
 	--c-error: oklch(0.68 0.17 25);
-	--c-success: oklch(0.78 0.14 155);
+	--c-success: oklch(0.78 0.14 150);
+	--c-info: oklch(0.75 0.14 230);
 
 	--scrim: oklch(0 0 0 / 0.6);
 	--scrim-dim: oklch(0 0 0 / 0.2);
@@ -404,9 +434,13 @@
 	/* PH-CF-800 F2: 旧 L0.66 では白文字との contrast が ≈ 3.0:1 で 4.5:1 未満。 L0.50 へ。 */
 	--c-primary: oklch(0.50 0.10 280);
 	--c-glass-tint: oklch(0.99 0.004 270);
-	--c-warn: oklch(0.78 0.11 75);
-	--c-error: oklch(0.64 0.14 25);
-	--c-success: oklch(0.72 0.10 150);
+	/* PR #588: derivePalette('neumorph','light') と一致する semantic calibration。 旧 success
+	   L0.72 / warn L0.78 は dark base と l 順序が反転していた (audit doc §4 B 同根) ため、
+	   dark.l > light.l を満たすよう neumorph 全体を再 calibrate。 */
+	--c-warn: oklch(0.72 0.11 75);
+	--c-error: oklch(0.60 0.14 25);
+	--c-success: oklch(0.66 0.10 150);
+	--c-info: oklch(0.62 0.10 230);
 
 	--ag-radius-sm: 12px;
 	--ag-radius-md: 18px;
@@ -416,7 +450,10 @@
 	--surface-noise-opacity: 0;
 	--ag-backdrop: none;
 
-	/* neumorph の肝: surface はほぼ bg と同色、 立体感は dual shadow が担う */
+	/* neumorph の肝: surface はほぼ bg と同色、 立体感は dual shadow が担う。
+	   PR #588: tint strength を 0% にして primary hue を surface に注入しない (pastel 紫の
+	   静かな世界観を温存)。 :root の 30% は glass 専用。 */
+	--ag-surface-tint-strength: 0%;
 	--ag-surface-opaque: var(--c-bg);
 	--surface-glass-regular: var(--c-bg);
 	--surface-glass-clear: var(--c-bg);
@@ -447,6 +484,7 @@
 	--c-warn: oklch(0.62 0.18 75);
 	--c-error: oklch(0.52 0.22 25);
 	--c-success: oklch(0.55 0.16 150);
+	--c-info: oklch(0.50 0.20 230);
 
 	--ag-radius-sm: 0px;
 	--ag-radius-md: 0px;
@@ -460,6 +498,9 @@
 	--ag-border-hover: var(--c-fg);
 	--ag-border-dashed: var(--c-fg);
 
+	/* PR #588: brutalist は純白 / 純黒 を世界観の核とするため surface に primary hue を
+	   注入しない (tint strength = 0%)。 :root の 30% を局所 override。 */
+	--ag-surface-tint-strength: 0%;
 	--surface-glass-regular: var(--c-bg);
 	--surface-glass-clear: var(--c-bg);
 	--ag-surface-opaque: var(--c-bg);
@@ -504,9 +545,12 @@
 	/* PH-CF-800 F2: white-on-primary が 4.5:1 を満たす L0.50。 */
 	--c-primary: oklch(0.50 0.10 280);
 	--c-glass-tint: oklch(0.99 0.004 270);
-	--c-warn: oklch(0.78 0.13 75);
-	--c-error: oklch(0.64 0.16 25);
-	--c-success: oklch(0.66 0.13 150);
+	/* PR #588: derivePalette('neumorph','dark') と一致。 dark.l > light.l (visibility) を保つよう
+	   全 semantic 軸を再 calibrate。 */
+	--c-warn: oklch(0.80 0.13 75);
+	--c-error: oklch(0.68 0.16 25);
+	--c-success: oklch(0.74 0.13 150);
+	--c-info: oklch(0.70 0.12 230);
 
 	--ag-radius-sm: 12px;
 	--ag-radius-md: 18px;
@@ -516,7 +560,9 @@
 	--surface-noise-opacity: 0;
 	--ag-backdrop: none;
 
-	/* neumorph の肝: surface はほぼ bg と同色、 立体感は dual shadow が担う */
+	/* neumorph の肝: surface はほぼ bg と同色、 立体感は dual shadow が担う。
+	   PR #588: tint strength = 0% で pastel 紫の muted 世界観を温存。 */
+	--ag-surface-tint-strength: 0%;
 	--ag-surface-opaque: var(--c-bg);
 	--surface-glass-regular: var(--c-bg);
 	--surface-glass-clear: var(--c-bg);
@@ -552,6 +598,7 @@
 	--c-warn: oklch(0.70 0.16 75);
 	--c-error: oklch(0.58 0.20 25);
 	--c-success: oklch(0.62 0.15 150);
+	--c-info: oklch(0.60 0.18 230);
 
 	--ag-radius-sm: 0px;
 	--ag-radius-md: 0px;
@@ -565,6 +612,8 @@
 	--ag-border-hover: var(--c-fg);
 	--ag-border-dashed: var(--c-fg);
 
+	/* PR #588: brutalist-dark も同様に surface tint 0% (純黒 + 純白 fg の世界観を温存)。 */
+	--ag-surface-tint-strength: 0%;
 	--surface-glass-regular: var(--c-bg);
 	--surface-glass-clear: var(--c-bg);
 	--ag-surface-opaque: var(--c-bg);
