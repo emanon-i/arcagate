@@ -44,6 +44,7 @@ const MIGRATION_039: &str = include_str!("../../migrations/039_items_source_back
 const MIGRATION_040: &str = include_str!("../../migrations/040_library_wallpaper_config.sql");
 const MIGRATION_041: &str = include_str!("../../migrations/041_theme_six_builtins.sql");
 const MIGRATION_042: &str = include_str!("../../migrations/042_exe_scan_cache.sql");
+const MIGRATION_043: &str = include_str!("../../migrations/043_builtin_theme_css_vars_seed.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -89,6 +90,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_040),
         M::up(MIGRATION_041),
         M::up(MIGRATION_042),
+        M::up(MIGRATION_043),
     ])
 }
 
@@ -363,6 +365,92 @@ mod tests {
                 "neumorph-dark",
                 "neumorph",
             ],
+        );
+    }
+
+    /// F3 根治 (migration 043): 全 6 builtin の `css_vars` が空 '{}' から実値 JSON に
+    /// 書き換わり、 既存 custom theme (is_builtin=0) は不可逆書き換えされない。
+    /// 真因解説は audit `docs/l3_phases/audit/THEME_CLONE_AESTHETIC_LOST_2026-05-26.md`。
+    #[test]
+    fn test_migration_043_seeds_builtin_css_vars_without_touching_custom() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // migration 042 まで適用 (builtin が `css_vars='{}'` で揃った状態)。
+        m.to_version(&mut conn, 42).unwrap();
+
+        // 過去の壊れた cloneTheme で生成された相当の custom (空 '{}' / is_builtin=0)。
+        conn.execute(
+            "INSERT INTO themes (id, name, base_theme, css_vars, is_builtin) \
+             VALUES ('legacy-custom', 'Legacy Clone', 'dark', '{}', 0)",
+            [],
+        )
+        .unwrap();
+
+        // 全 6 builtin が空 '{}' になっていることを baseline で確認 (migration 041 で seed された
+        // まま)。
+        let empty_builtin_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM themes WHERE is_builtin = 1 AND css_vars = '{}'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            empty_builtin_count, 6,
+            "baseline: 6 builtin must all be empty before migration 043"
+        );
+
+        // migration 043 適用。
+        m.to_version(&mut conn, 43).unwrap();
+
+        // 全 6 builtin の css_vars が空 '{}' ではなくなっている。
+        let still_empty: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM themes WHERE is_builtin = 1 AND css_vars = '{}'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            still_empty, 0,
+            "all builtin must have non-empty css_vars after migration 043"
+        );
+
+        // custom theme は触られていない (空 '{}' のまま)。
+        let custom_vars: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'legacy-custom'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            custom_vars, "{}",
+            "custom theme css_vars must not be touched (user data invariant)"
+        );
+
+        // 主要 token (--c-bg / --c-primary / --surface-blur) が brutalist-dark で実値を持つ
+        // ことを spot-check (audit doc §1 で実測 mismatch していた token)。
+        let brutalist_dark_vars: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'brutalist-dark'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            brutalist_dark_vars.contains("--c-bg"),
+            "brutalist-dark must contain --c-bg"
+        );
+        assert!(
+            brutalist_dark_vars.contains("oklch(0.14 0 0)"),
+            "brutalist-dark must contain pure black bg (audit doc §1)"
+        );
+        assert!(
+            brutalist_dark_vars.contains("\"--surface-blur\":\"none\""),
+            "brutalist-dark must have surface-blur: none"
         );
     }
 

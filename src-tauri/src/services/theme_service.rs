@@ -233,6 +233,135 @@ mod tests {
         assert_eq!(neumorph_dark.base_theme, "dark");
     }
 
+    /// F3 根治 (migration 043): 6 builtin の `css_vars` が空 '{}' ではなく実値 JSON を持ち、
+    /// 主要 token (LAYER 1 seeds + LAYER 2 primitives) を含むこと。 これが満たされていれば
+    /// `cloneTheme(sourceId)` で `source.css_vars` をそのまま copy しても新 custom (`data-theme=<uuid>`)
+    /// に source の aesthetic が伝播する (= F3 clone bug の根治条件)。
+    #[test]
+    fn test_builtin_themes_have_non_empty_css_vars_with_core_tokens() {
+        let db = initialize_in_memory();
+        // 主要 token は LAYER 1 seeds (--c-bg / --c-fg / --c-primary) と LAYER 2 primitives
+        // (--surface-blur / --ag-radius-lg)。 これらが揃っていれば clone した custom theme でも
+        // 同じ aesthetic が再現する (audit doc §1 で実測 mismatch していた 5 token を網羅)。
+        const REQUIRED_TOKENS: &[&str] = &[
+            "--c-bg",
+            "--c-fg",
+            "--c-primary",
+            "--surface-blur",
+            "--ag-radius-lg",
+        ];
+        for id in [
+            "dark",
+            "light",
+            "brutalist",
+            "brutalist-dark",
+            "neumorph",
+            "neumorph-dark",
+        ] {
+            let theme = get_theme(&db, id).unwrap();
+            assert!(theme.is_builtin, "{id} must be builtin");
+            assert_ne!(
+                theme.css_vars, "{}",
+                "{id}: css_vars must not be empty (F3 clone bug — \
+                 empty css_vars が clone で伝播し default Dark/Light に化ける)"
+            );
+            let parsed: serde_json::Value = serde_json::from_str(&theme.css_vars)
+                .unwrap_or_else(|e| panic!("{id}: css_vars must be valid JSON: {e}"));
+            let map = parsed
+                .as_object()
+                .unwrap_or_else(|| panic!("{id}: css_vars must be a JSON object"));
+            for token in REQUIRED_TOKENS {
+                assert!(
+                    map.contains_key(*token),
+                    "{id}: css_vars must contain {token} (clone fidelity required)"
+                );
+                let v = map.get(*token).unwrap();
+                assert!(
+                    v.is_string() && !v.as_str().unwrap().is_empty(),
+                    "{id}: {token} must be a non-empty string"
+                );
+            }
+        }
+    }
+
+    /// F3 根治 (migration 043): 各 builtin の aesthetic-defining token が CSS block と整合する
+    /// ことを spot-check。 brutalist 系は `--ag-radius-lg = 0px` / `--surface-blur = none`、
+    /// neumorph 系は `--ag-radius-lg = 24px` / `--surface-blur = none` 等、 audit doc §1 で実測
+    /// mismatch していた値を逆引きで verify。
+    #[test]
+    fn test_builtin_themes_aesthetic_signatures() {
+        let db = initialize_in_memory();
+
+        fn get_token<'a>(css_vars: &'a str, key: &str) -> String {
+            let parsed: serde_json::Value = serde_json::from_str(css_vars).unwrap();
+            parsed
+                .get(key)
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string()
+        }
+
+        // brutalist-dark: 純黒背景 + red-orange accent + 角丸 0 + blur 無し
+        let brutalist_dark = get_theme(&db, "brutalist-dark").unwrap();
+        assert_eq!(
+            get_token(&brutalist_dark.css_vars, "--c-bg"),
+            "oklch(0.14 0 0)"
+        );
+        assert_eq!(get_token(&brutalist_dark.css_vars, "--ag-radius-lg"), "0px");
+        assert_eq!(
+            get_token(&brutalist_dark.css_vars, "--surface-blur"),
+            "none"
+        );
+
+        // brutalist (light): 純白 + 鮮烈 red + 角丸 0 + blur 無し
+        let brutalist = get_theme(&db, "brutalist").unwrap();
+        assert_eq!(get_token(&brutalist.css_vars, "--ag-radius-lg"), "0px");
+        assert_eq!(get_token(&brutalist.css_vars, "--surface-blur"), "none");
+
+        // neumorph (light): 大きめ角丸 24px + muted purple primary + blur 無し
+        let neumorph = get_theme(&db, "neumorph").unwrap();
+        assert_eq!(get_token(&neumorph.css_vars, "--ag-radius-lg"), "24px");
+        assert_eq!(get_token(&neumorph.css_vars, "--surface-blur"), "none");
+
+        // neumorph-dark: 同様に 24px + blur 無し
+        let neumorph_dark = get_theme(&db, "neumorph-dark").unwrap();
+        assert_eq!(get_token(&neumorph_dark.css_vars, "--ag-radius-lg"), "24px");
+        assert_eq!(get_token(&neumorph_dark.css_vars, "--surface-blur"), "none");
+
+        // dark (glass): blur あり + 角丸 22px (LAYER 2 デフォルト)
+        let dark = get_theme(&db, "dark").unwrap();
+        assert!(get_token(&dark.css_vars, "--surface-blur").contains("blur("));
+        assert_eq!(get_token(&dark.css_vars, "--ag-radius-lg"), "22px");
+
+        // light (glass): blur あり + 角丸 22px
+        let light = get_theme(&db, "light").unwrap();
+        assert!(get_token(&light.css_vars, "--surface-blur").contains("blur("));
+        assert_eq!(get_token(&light.css_vars, "--ag-radius-lg"), "22px");
+    }
+
+    /// F3 根治 (migration 043): user 作成 custom theme (is_builtin=0) は migration 043 に
+    /// 触られず元の css_vars (空 '{}' を含む) のまま残る。 過去の壊れた cloneTheme で空 cssVars
+    /// の custom が作られていた場合、 ユーザーの編集成果物を不可逆に書き換えてしまわないため。
+    #[test]
+    fn test_migration_043_does_not_touch_custom_themes() {
+        let db = initialize_in_memory();
+        // 空 css_vars の custom を 1 本作る (= 過去の壊れた cloneTheme で生成された相当)。
+        let custom = create_theme(
+            &db,
+            CreateThemeInput {
+                name: "Broken Clone (legacy)".to_string(),
+                base_theme: "dark".to_string(),
+                css_vars: "{}".to_string(),
+            },
+        )
+        .unwrap();
+        // migration はすでに適用済 (initialize_in_memory が全 migration 走らせる) なので、
+        // custom theme は空 '{}' のままで残っているはず。
+        let after = get_theme(&db, &custom.id).unwrap();
+        assert_eq!(after.css_vars, "{}", "custom theme must not be touched");
+        assert!(!after.is_builtin);
+    }
+
     #[test]
     fn test_create_theme() {
         let db = initialize_in_memory();
