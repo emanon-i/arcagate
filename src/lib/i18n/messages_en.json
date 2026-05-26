@@ -73,6 +73,7 @@
 			"file_not_found": "\"{target}\" not found — the path may have been moved or deleted. Check the item settings.",
 			"generic": "Failed to launch \"{target}\" — {msg}",
 			"not_executable": "\"{target}\" is not an executable — check the item type (Exe / Script / Folder etc.).",
+			"opener_not_found": "Opener app \"{program}\" was not found in PATH — install the app and ensure it is on PATH, or change the widget's \"Default opener app\" setting.",
 			"permission_denied": "No permission to launch \"{target}\" — try running as administrator or check file permissions."
 		},
 		"op": {
@@ -603,6 +604,7 @@
 		"json_copied_n_other": "{count} items copied to clipboard as JSON",
 		"launch_failed": "Launch failed: {error}",
 		"launched_label": "\"{label}\" launched",
+		"launched_with_explorer_fallback": "Opener app was not available — opened \"{label}\" in Explorer instead",
 		"name_required": "Please enter a name",
 		"opener_deleted": "{name} deleted",
 		"opener_launched": "Launched {item} with {opener}",

@@ -356,6 +356,8 @@ async function launchEntry(entry: ExeFolderEntry) {
 	// 未登録 + widget opener 指定 → launchTargetWithCascade、いずれも無 → cmd_open_path fallback。
 	const item = itemStore.items.find((i) => i.target === exePath);
 	if (item) {
+		// PH-CF-1210 ⑨: launchItemWithCascade は exe item では fallback しない (folder 限定)。
+		// 戻り値 kind は通常 'launched'、 toast は既存のまま success。
 		void launchItemWithCascade(item, { widgetDefaultOpenerId: config.default_opener_id })
 			.then(() => toastStore.add(t('toast.launched_label', { label: entry.folderName }), 'success'))
 			.catch((e: unknown) => toastStore.add(formatLaunchError(entry.folderName, e), 'error'));

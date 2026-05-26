@@ -359,3 +359,178 @@ test('ExeFolderWatchWidget: click と 右クリック「Default app で開く」
 		}
 	}
 });
+
+/**
+ * PH-CF-1210 ⑨ ProjectsWidget 経路 (= user 報告⑨の主舞台):
+ *   フォルダ監視ウィジェットのアイテム (= folder) を click したとき、 設定された opener が
+ *   PATH 上で見つかれば spawn が成功し、 見つからなければ Explorer フォールバックが発火する。
+ *
+ *   user 報告 「VSCode をインストール済なのに『MyProject not found』 が出る」 の root cause は
+ *   Rust `Command::new("code")` が `code.cmd` shim を PATHEXT 自動解決しない点。 本 spec は:
+ *     1. `code "<path>"` template → `launcher::resolve_program_with_pathext` で `.cmd` shim
+ *        を絶対 path 解決 → spawn 成功 (seam record の program は `*\code.cmd` で終わる)
+ *     2. 存在しない program `__arcagate_e2e_nonexistent_xyz__ "<path>"` template → cascade が
+ *        `launch.opener_not_found` を catch → folder item なので Explorer フォールバック →
+ *        seam record の `what="folder"` + program=`explorer.exe` + 1 件目の arg が folder path
+ */
+test('ProjectsWidget: `code` opener (= code.cmd shim) が PATHEXT 経由で解決され spawn 成功する (PH-CF-1210 ⑨)', async ({
+	page,
+}) => {
+	const root = mkdtempSync(join(tmpdir(), 'arcagate-e2e-projects-code-'));
+	const sub = join(root, 'MyProject');
+	mkdirSync(sub, { recursive: true });
+
+	await openWorkspace(page);
+	const ws = await waitForHomeWorkspace(page);
+
+	// VSCode 想定 user opener: template `code "<path>"`。 PATHEXT 解決が効けば
+	// Rust 側で `code.cmd` の絶対 path が選ばれ spawn 成功する。
+	const opener = await saveOpener(page, {
+		id: null,
+		name: 'E2E Projects code opener (PH-CF-1210)',
+		command_template: 'code "<path>"',
+		icon_path: null,
+		sort_order: 60,
+	});
+
+	const widget = await addWidget(page, ws.id, 'projects');
+	await updateWidgetConfig(
+		page,
+		widget.id,
+		JSON.stringify({
+			watched_folder: root,
+			default_opener_id: opener.id,
+			view_mode: 'list',
+			sort_field: 'name',
+			sort_order: 'asc',
+		}),
+	);
+
+	let registered: Item | undefined;
+	try {
+		await openWorkspace(page);
+		const widgetEl = page.locator(`[data-widget-id="${widget.id}"]`);
+		await widgetEl.waitFor({ state: 'visible', timeout: 20_000 });
+
+		const startWait = Date.now();
+		while (Date.now() - startWait < 15_000) {
+			const items = await listItems(page);
+			registered = items.find((i) => i.label === 'MyProject');
+			if (registered) break;
+			await new Promise((r) => setTimeout(r, 250));
+		}
+		expect(registered, 'MyProject folder item registered').toBeTruthy();
+
+		const itemBtn = widgetEl.locator('button').filter({ hasText: 'MyProject' }).first();
+		await itemBtn.waitFor({ state: 'visible', timeout: 10_000 });
+
+		clearSeamLog();
+		await itemBtn.click();
+		const recs = await pollSeamRecords(1);
+		expect(recs, 'click 経路で spawn 要求が出ていない').toHaveLength(1);
+		const program = recs[0].program;
+		// PATHEXT 解決で `.cmd` shim の絶対 path が program に入っている契約 (PH-CF-1210 ⑨ の核)。
+		// Windows test runner で `code.cmd` が PATH に居る場合のみ意味のある assert。 居なければ
+		// e2e は別 spec (LaunchOpenerNotFound 経路) を別途用意してカバーする。
+		expect(program.toLowerCase(), `spawn program が code.cmd shim でない (${program})`).toContain(
+			'code.cmd',
+		);
+		// 引数に folder path が含まれていること
+		expect(
+			recs[0].args.some((a) => pathEq(a, sub)),
+			`spawn args に folder path が含まれていない (${JSON.stringify(recs[0].args)})`,
+		).toBe(true);
+	} finally {
+		await deleteWidget(page, widget.id).catch(() => {});
+		if (registered) await deleteItem(page, registered.id).catch(() => {});
+		await deleteOpener(page, opener.id).catch(() => {});
+		try {
+			rmSync(root, { recursive: true, force: true });
+		} catch {
+			// best-effort
+		}
+	}
+});
+
+test('ProjectsWidget: opener program が PATH に無い folder item → Explorer フォールバック (PH-CF-1210 ⑨ B)', async ({
+	page,
+}) => {
+	const root = mkdtempSync(join(tmpdir(), 'arcagate-e2e-projects-fallback-'));
+	const sub = join(root, 'FBProject');
+	mkdirSync(sub, { recursive: true });
+
+	await openWorkspace(page);
+	const ws = await waitForHomeWorkspace(page);
+
+	const opener = await saveOpener(page, {
+		id: null,
+		name: 'E2E Projects nonexistent opener (PH-CF-1210)',
+		command_template: '__arcagate_e2e_nonexistent_xyz__ "<path>"',
+		icon_path: null,
+		sort_order: 61,
+	});
+
+	const widget = await addWidget(page, ws.id, 'projects');
+	await updateWidgetConfig(
+		page,
+		widget.id,
+		JSON.stringify({
+			watched_folder: root,
+			default_opener_id: opener.id,
+			view_mode: 'list',
+		}),
+	);
+
+	let registered: Item | undefined;
+	try {
+		await openWorkspace(page);
+		const widgetEl = page.locator(`[data-widget-id="${widget.id}"]`);
+		await widgetEl.waitFor({ state: 'visible', timeout: 20_000 });
+
+		const startWait = Date.now();
+		while (Date.now() - startWait < 15_000) {
+			const items = await listItems(page);
+			registered = items.find((i) => i.label === 'FBProject');
+			if (registered) break;
+			await new Promise((r) => setTimeout(r, 250));
+		}
+		expect(registered, 'FBProject folder item registered').toBeTruthy();
+		if (!registered) throw new Error('unreachable');
+
+		const itemBtn = widgetEl.locator('button').filter({ hasText: 'FBProject' }).first();
+		await itemBtn.waitFor({ state: 'visible', timeout: 10_000 });
+
+		clearSeamLog();
+		await itemBtn.click();
+		// cascade: opener spawn は launch_argv の resolve_program_with_pathext で None → AppError::LaunchOpenerNotFound
+		// → frontend cascade が catch + folder なので cmd_open_path に fallback → explorer.exe を spawn 経由で起動。
+		// seam record は `launch_folder` 経路の "folder" 葉のみ (= opener の spawn 試行は seam を呼ばずに resolve 段階で fail)。
+		const recs = await pollSeamRecords(1);
+		expect(recs.length, 'fallback で何かしらの spawn が起きるはず').toBeGreaterThanOrEqual(1);
+		// 最後の record = explorer.exe with folder path (= Explorer フォールバック)
+		const last = recs[recs.length - 1];
+		expect(last.what, 'fallback 葉は launch_folder = "folder"').toBe('folder');
+		expect(last.program.toLowerCase()).toContain('explorer.exe');
+		expect(
+			last.args.some((a) => pathEq(a, sub)),
+			`Explorer フォールバックの args に folder path が含まれていない`,
+		).toBe(true);
+
+		// info toast (success toast 「起動しました」 ではなく fallback 文言)
+		const toastEl = page.locator('[data-testid="toast-container"] [data-testid^="toast-"]').first();
+		await toastEl.waitFor({ state: 'visible', timeout: 3_000 });
+		const toastText = (await toastEl.textContent()) ?? '';
+		expect(toastText, '誤誘導の error toast でなく fallback 専用 info toast が出るべき').toContain(
+			'Explorer',
+		);
+	} finally {
+		await deleteWidget(page, widget.id).catch(() => {});
+		if (registered) await deleteItem(page, registered.id).catch(() => {});
+		await deleteOpener(page, opener.id).catch(() => {});
+		try {
+			rmSync(root, { recursive: true, force: true });
+		} catch {
+			// best-effort
+		}
+	}
+});
