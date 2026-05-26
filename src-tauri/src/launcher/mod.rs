@@ -281,16 +281,102 @@ pub fn launch_command(command: &str, working_dir: Option<&str>) -> Result<(), Ap
 /// audit F2 (2026-05-18): opener template の token 化実行用。 `tokens[0]` を program、
 /// 残りを引数として `Command` に渡す。 各 token は単一 argv 要素になるため、 token 内の
 /// `&` `|` 等はシェル演算子として再解釈されない。
+///
+/// PH-CF-1210 ⑨: Windows の場合は `resolve_program_with_pathext` で PATH + PATHEXT を
+/// 解決して program の絶対 path を取得する。 これにより `code` opener (VSCode の `code.cmd` shim)
+/// が `Command::new("code").spawn()` で NotFound になる問題 (Rust std は PATHEXT を自動 search
+/// せず、 `code` だけでは `code.cmd` を見つけられない) を解決する。 該当しない program (= PATH に
+/// 見つからない) は `LaunchOpenerNotFound` で返し、 caller (`cmd_launch_with_opener`) が
+/// folder アイテムなら Explorer フォールバックに振れるようにする。
 pub fn launch_argv(tokens: &[String], working_dir: Option<&str>) -> Result<(), AppError> {
     let (program, args) = tokens
         .split_first()
         .ok_or_else(|| AppError::LaunchFailed("empty command".to_string()))?;
-    let mut cmd = Command::new(program);
+    let resolved: std::path::PathBuf = if cfg!(target_os = "windows") {
+        resolve_program_with_pathext(program)
+            .ok_or_else(|| AppError::LaunchOpenerNotFound(program.clone()))?
+    } else {
+        std::path::PathBuf::from(program)
+    };
+    let mut cmd = Command::new(&resolved);
     cmd.args(args);
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
     try_spawn_cmd(&mut cmd, "argv")
+}
+
+/// PH-CF-1210 ⑨ (Windows 専用): PATH + PATHEXT を Windows 流に解決して program の絶対 path
+/// を返す。 見つからなければ None。
+///
+/// 動機: Rust の `std::process::Command::new("code")` は PATH search だけで PATHEXT を自動
+/// 適用せず、 `code.cmd` (= VSCode CLI shim) や `pnpm.cmd` (= pnpm shim) を直接 spawn できない
+/// (`Command::new("code.cmd")` のように拡張子を明示すれば動く)。 daily-use ツールでは opener
+/// template に `code "<path>"` のように拡張子なしで書かれるのが普通なので、 ここで OS の検索
+/// ロジック (PATH の各 dir に対し PATHEXT の各拡張子を試す) を Rust 側で代行する。
+///
+/// アルゴリズム:
+///   1. program が絶対 path / 区切り含み → そのまま実在チェック。
+///   2. PATH を split → 各 dir に対し、 PATHEXT (`.COM;.EXE;.BAT;.CMD` default) を順に試す。
+///      program に既に拡張子があれば PATHEXT 試行は skip (= 空文字列のみ)。
+///   3. 最初に file として実在した候補を返す。 順序は CreateProcessW と同じ思想 (PATH 順 ×
+///      PATHEXT 順) で、 例えば `code.exe` と `code.cmd` の両方が存在すれば前者が先に拾われる。
+#[cfg(target_os = "windows")]
+pub fn resolve_program_with_pathext(program: &str) -> Option<std::path::PathBuf> {
+    let p = Path::new(program);
+
+    // 既に絶対 path、 もしくは区切り (/ or \) を含む相対 path → PATH search 不要、 そのまま実在チェック。
+    if p.is_absolute() || program.contains('/') || program.contains('\\') {
+        return if p.exists() {
+            Some(p.to_path_buf())
+        } else {
+            None
+        };
+    }
+
+    let path_var = std::env::var_os("PATH")?;
+    let dirs: Vec<std::path::PathBuf> = std::env::split_paths(&path_var).collect();
+
+    let pathext_var =
+        std::env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string());
+    // 拡張子試行順:
+    //   - program が既に拡張子付き (例 `code.cmd`) → 空文字列のみ (= name そのまま) で検索
+    //   - program が拡張子なし (例 `code`) → PATHEXT の各拡張子のみ (= 空文字列は **入れない**)
+    //
+    // 空文字列を含めない理由: VSCode は `C:\...\bin\code` (= bash shim、 拡張子なし) と `code.cmd`
+    // (= Windows 用 shim) の **両方** を同 dir に install するため、 空文字列を先に試すと
+    // `code` (= bash shim) が拾われて Command::spawn が Windows native executable でないため
+    // 起動不能になる。 PATHEXT のみを試すことで `code.cmd` を確実に拾える。
+    let exts: Vec<String> = if p.extension().is_some() {
+        vec![String::new()]
+    } else {
+        pathext_var
+            .split(';')
+            .map(|e| e.trim().to_string())
+            .filter(|e| e.starts_with('.'))
+            .collect()
+    };
+
+    for dir in &dirs {
+        for ext in &exts {
+            let candidate = dir.join(format!("{program}{ext}"));
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+/// 非 Windows ターゲット向け stub (実機経路は Windows のみ。 PATHEXT 概念は Windows 固有)。
+#[cfg(not(target_os = "windows"))]
+pub fn resolve_program_with_pathext(program: &str) -> Option<std::path::PathBuf> {
+    let p = Path::new(program);
+    if p.exists() {
+        Some(p.to_path_buf())
+    } else {
+        None
+    }
 }
 
 /// 指定ディレクトリを working directory として terminal を起動する。
@@ -464,5 +550,67 @@ mod tests {
     fn launch_argv_empty_returns_error() {
         let result = launch_argv(&[], None);
         assert!(matches!(result, Err(AppError::LaunchFailed(_))));
+    }
+
+    // --- PH-CF-1210 ⑨: resolve_program_with_pathext ---
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolve_program_with_pathext_finds_cmd_shim() {
+        use std::ffi::OsString;
+        use std::fs;
+        use std::path::PathBuf;
+        // 一時 dir に foo.cmd を作って PATH に乗せる。 program 名 "foo" (拡張子なし) で
+        // PATHEXT 経由で .cmd shim が見つかることを assert。 PR #578 では `code` (= `code.cmd`)
+        // が見つからず spawn が NotFound していた root cause を直す helper の核。
+        let tmp =
+            std::env::temp_dir().join(format!("arcagate-pathext-test-{}", uuid::Uuid::now_v7()));
+        fs::create_dir_all(&tmp).unwrap();
+        let shim: PathBuf = tmp.join("foo.cmd");
+        fs::write(&shim, b"@echo off\n").unwrap();
+
+        // 旧 PATH を保存して、 一時 PATH に置換して resolve、 最後に復元。
+        let orig_path = std::env::var_os("PATH").unwrap_or_default();
+        let mut new_path = OsString::from(tmp.as_os_str());
+        new_path.push(";");
+        new_path.push(&orig_path);
+        // SAFETY: test 内 single-threaded で env をいじる、 cleanup で復元。
+        unsafe {
+            std::env::set_var("PATH", &new_path);
+        }
+
+        let resolved = resolve_program_with_pathext("foo");
+        // 戻す前に assert (panic で env 残しても次 test に影響しないが行儀の問題)。
+        let found_ok = resolved
+            .as_ref()
+            .and_then(|p| p.file_name().and_then(|s| s.to_str()))
+            .map(|name| name.to_ascii_lowercase() == "foo.cmd")
+            .unwrap_or(false);
+
+        unsafe {
+            std::env::set_var("PATH", &orig_path);
+        }
+        let _ = fs::remove_dir_all(&tmp);
+
+        assert!(
+            found_ok,
+            "foo.cmd should be resolved via PATHEXT (got: {resolved:?})"
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolve_program_with_pathext_returns_none_for_unknown_program() {
+        let resolved = resolve_program_with_pathext("__definitely_not_in_path_arcagate_test__");
+        assert!(resolved.is_none());
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolve_program_with_pathext_passes_absolute_path_through() {
+        // 既に絶対 path が渡れば PATH search を skip して実在チェックだけ。
+        let manifest = env!("CARGO_MANIFEST_DIR");
+        let resolved = resolve_program_with_pathext(manifest);
+        assert!(resolved.is_some());
     }
 }

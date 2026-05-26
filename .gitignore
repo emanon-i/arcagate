@@ -14,6 +14,8 @@ target/
 # PH-CF-1210 ⑨: ローカルで `cargo build --features test-launch-seam` した時に
 # user dev binary とぶつからないよう CARGO_TARGET_DIR を target-e2e/ に逃すための buffer。
 target-e2e/
+# 同上、 feature 無しで build した検証用 binary (ローカルのみ)。
+target-nofeat/
 **/*.rs.bk
 
 # SQLite
