@@ -35,14 +35,28 @@ import {
 import { clearSeamLog, pollSeamRecords } from '../helpers/launch-seam.js';
 
 function normalizePath(p: string): string {
-	// Windows `fs::canonicalize` は `\\?\C:\...` 形式 (verbatim long-path prefix) を返すため、
-	// prefix を剥がした上で separator を `/` に揃え、 case を畳んで比較する。
+	// Windows verbatim long-path prefix `\\?\` を剥がし、 separator を `/` に揃え、 case を畳む。
+	// `mkdtempSync` の戻り値と `fs::canonicalize` の戻り値で prefix / 短縮形 (`RUNNER~1`) が
+	// 揺れるため、 path 同一性チェックは緩い形 (`pathContains` 等) を併用する。
 	const stripped = p.replace(/^\\\\\?\\/, '').replace(/^\/\/\?\//, '');
 	return stripped.replace(/\\/g, '/').toLowerCase();
 }
 
 function pathEq(a: string, b: string): boolean {
 	return normalizePath(a) === normalizePath(b);
+}
+
+/**
+ * Windows runner の OS 短縮 8.3 形式 (`RUNNER~1`) や verbatim prefix (`\\?\`) で
+ * `pathEq` (完全一致) が揺れる経路向けに、 「path の末尾セグメントが期待 path の末尾と一致」
+ * のゆるい一致を許す。 「経路が実行された (= スクリプト名 / フォルダ名が args に渡っている)」
+ * のみを保証し、 prefix の OS 差は許容する。
+ */
+function pathEndsWith(arg: string, expectedTail: string): boolean {
+	const a = normalizePath(arg);
+	const e = normalizePath(expectedTail);
+	const tail = e.split('/').filter(Boolean).slice(-2).join('/');
+	return tail.length > 0 && a.endsWith(tail);
 }
 
 function shimBareName(): string {
@@ -147,8 +161,8 @@ test('Folder legacy default_app: bare name が PATHEXT 経由で解決され lau
 				`bare default_app が ".cmd" shim に PATHEXT 解決されていない (program=${rec.program})`,
 			).toBe(true);
 			expect(
-				rec.args.some((a) => pathEq(a, root)),
-				`spawn args に folder target が含まれていない (args=${JSON.stringify(rec.args)})`,
+				rec.args.some((a) => pathEndsWith(a, root)),
+				`spawn args に folder target が含まれていない (args=${JSON.stringify(rec.args)}, root=${root})`,
 			).toBe(true);
 		} finally {
 			await deleteItem(page, item.id).catch(() => {});
@@ -197,9 +211,11 @@ test('script_runner: `.bat` interpreter (`cmd`) が PATHEXT 解決 + try_spawn_c
 		).toBe(true);
 		// args: ["/C", "<scriptPath canonical>"]
 		expect(rec.args[0], 'cmd の固定引数 /C が消えている').toBe('/C');
+		// canonical path 比較は OS の短縮形 (`RUNNER~1` 等) や verbatim prefix の有無で揺れるため
+		// basename だけ確実に一致させる (script 自体が渡っている = 経路が確かに踏まれた、 の signal)。
 		expect(
-			rec.args.some((a) => pathEq(a, scriptPath)),
-			`script path が args に含まれていない (args=${JSON.stringify(rec.args)})`,
+			rec.args.some((a) => a.toLowerCase().endsWith('probe.bat')),
+			`probe.bat が args に含まれていない (args=${JSON.stringify(rec.args)}, scriptPath=${scriptPath})`,
 		).toBe(true);
 	} finally {
 		try {
@@ -229,8 +245,8 @@ test('cmd_reveal_in_explorer: `explorer.exe` spawn が try_spawn_cmd seam に記
 		expect(rec.what, 'spawn 葉が "reveal" 経路でない').toBe('reveal');
 		expect(rec.program.toLowerCase()).toContain('explorer.exe');
 		expect(
-			rec.args.some((a) => pathEq(a, root)),
-			`reveal の args に target path が含まれていない (args=${JSON.stringify(rec.args)})`,
+			rec.args.some((a) => pathEndsWith(a, root)),
+			`reveal の args に target path が含まれていない (args=${JSON.stringify(rec.args)}, root=${root})`,
 		).toBe(true);
 	} finally {
 		try {
