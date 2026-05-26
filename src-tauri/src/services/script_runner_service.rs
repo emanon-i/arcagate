@@ -12,10 +12,10 @@
 
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 use serde::Serialize;
 
+use crate::launcher;
 use crate::utils::error::AppError;
 
 /// 実行を許可するスクリプト拡張子 allowlist (小文字・ドットなし)。
@@ -175,11 +175,18 @@ pub fn validate_script(
 }
 
 /// #11: スクリプトを実行する。検証は `validate_script` 参照。
+///
+/// SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (b/d): interpreter (`node` / `python` / `bash`
+/// 等) は Volta / fnm / nvm-windows / rbenv-for-windows / Git Bash 系で `.cmd` shim 化されるのが
+/// 典型のため、 launcher の共通ヘルパー `launcher::resolved_command` (PATHEXT 解決) +
+/// `launcher::try_spawn_cmd` (e2e seam) を経由して実行する。 これにより interpreter shim 起動 fail
+/// (= PR #579 で対応した opener 経路と同型の bug) を構造的に塞ぎ、 後続 cascade verify e2e も
+/// 同 seam log driven で機械検証可能になる。
 pub fn run_script(folder: &str, script_path: &str) -> Result<(), AppError> {
     let (script_canon, ext) = validate_script(folder, script_path)?;
     let interp = interpreter_for(&ext)
         .ok_or_else(|| AppError::Validation("許可されていないスクリプト形式です".into()))?;
-    let mut cmd = Command::new(interp[0]);
+    let mut cmd = launcher::resolved_command(interp[0])?;
     for fixed in &interp[1..] {
         cmd.arg(fixed);
     }
@@ -188,9 +195,7 @@ pub fn run_script(folder: &str, script_path: &str) -> Result<(), AppError> {
     if let Some(parent) = script_canon.parent() {
         cmd.current_dir(parent);
     }
-    cmd.spawn()
-        .map(|_| ())
-        .map_err(|e| AppError::LaunchFailed(format!("{}: {}", interp[0], e)))
+    launcher::try_spawn_cmd(&mut cmd, "script_runner")
 }
 
 #[cfg(test)]
@@ -272,5 +277,96 @@ mod tests {
         );
         assert_eq!(res.unwrap().1, "ps1");
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    // --- SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (b): interpreter PATHEXT 解決 ---
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn run_script_returns_opener_not_found_when_interpreter_missing() {
+        // run_script が interpreter を `launcher::resolved_command` 経由で解決していることを
+        // 確認する負例 test。 .lua interpreter (= `lua`) は CI 上に存在しない前提で、
+        // resolve 段階で `LaunchOpenerNotFound` が返る (旧実装は `Command::new("lua").spawn()` で
+        // 即 spawn し `LaunchFailed` を返していたため、 error 種別の差で routing 横展開を証明)。
+        let dir = std::env::temp_dir().join(format!(
+            "arcagate-rs-neg-{}-{}",
+            std::process::id(),
+            uuid::Uuid::now_v7()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        write_file(&dir.join("noop.lua"), b"-- noop\n");
+
+        let orig_path = std::env::var_os("PATH").unwrap_or_default();
+        let empty_dir = std::env::temp_dir().join(format!(
+            "arcagate-rs-neg-empty-{}-{}",
+            std::process::id(),
+            uuid::Uuid::now_v7()
+        ));
+        fs::create_dir_all(&empty_dir).unwrap();
+        // SAFETY: test 内 single-threaded で env をいじる、 cleanup で復元。
+        unsafe {
+            std::env::set_var("PATH", empty_dir.as_os_str());
+        }
+
+        let res = run_script(
+            dir.to_str().unwrap(),
+            dir.join("noop.lua").to_str().unwrap(),
+        );
+
+        unsafe {
+            std::env::set_var("PATH", &orig_path);
+        }
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::remove_dir_all(&empty_dir);
+
+        assert!(
+            matches!(res, Err(AppError::LaunchOpenerNotFound(_))),
+            "run_script with missing interpreter should return LaunchOpenerNotFound (got: {res:?})"
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn run_script_resolves_interpreter_cmd_shim_via_pathext() {
+        // .js (interpreter = "node") + 一時 PATH に node.cmd shim を仕込み、 run_script が
+        // PATHEXT 解決を通って実 spawn まで成功することを確認。 PR #579 の
+        // resolve_program_with_pathext_finds_cmd_shim を script_runner 経路まで拡張した同型 test。
+        use std::ffi::OsString;
+
+        let id = format!("{}-{}", std::process::id(), uuid::Uuid::now_v7());
+        let folder = std::env::temp_dir().join(format!("arcagate-rs-pos-{}", id));
+        let _ = fs::remove_dir_all(&folder);
+        fs::create_dir_all(&folder).unwrap();
+        let script_path = folder.join("noop.js");
+        write_file(&script_path, b"// noop\n");
+
+        let shim_dir = std::env::temp_dir().join(format!("arcagate-rs-shim-{}", id));
+        let _ = fs::remove_dir_all(&shim_dir);
+        fs::create_dir_all(&shim_dir).unwrap();
+        write_file(&shim_dir.join("node.cmd"), b"@echo off\nexit /b 0\n");
+
+        let orig_path = std::env::var_os("PATH").unwrap_or_default();
+        // shim_dir を先頭に置いて、 system node より優先的に拾わせる。
+        let mut new_path = OsString::from(shim_dir.as_os_str());
+        new_path.push(";");
+        new_path.push(&orig_path);
+        // SAFETY: test 内 single-threaded で env をいじる、 cleanup で復元。
+        unsafe {
+            std::env::set_var("PATH", &new_path);
+        }
+
+        let res = run_script(folder.to_str().unwrap(), script_path.to_str().unwrap());
+
+        unsafe {
+            std::env::set_var("PATH", &orig_path);
+        }
+        let _ = fs::remove_dir_all(&folder);
+        let _ = fs::remove_dir_all(&shim_dir);
+
+        assert!(
+            res.is_ok(),
+            "run_script should resolve node.cmd via PATHEXT and spawn (got: {res:?})"
+        );
     }
 }

@@ -52,6 +52,9 @@ pub fn cmd_list_frequent(
 /// 与えられた path を Explorer で reveal (file の場合は親フォルダを開いて選択、folder は開く)。
 ///
 /// W-2 (2026-05-19): path stat + `explorer.exe` spawn を worker thread に逃がす。
+///
+/// SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26 audit (d): `Command::new` 直呼び + `.spawn()` 直の
+/// blind spot を解消するため `launcher::reveal_in_explorer` (= `try_spawn_cmd` 経由) に統一。
 #[tauri::command]
 pub async fn cmd_reveal_in_explorer(path: String) -> Result<(), AppError> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -65,28 +68,7 @@ pub async fn cmd_reveal_in_explorer(path: String) -> Result<(), AppError> {
             AppError::InvalidInput(format!("path not accessible: {} ({})", path, e))
         })?;
 
-        #[cfg(target_os = "windows")]
-        {
-            use std::process::Command;
-            let result = if metadata.is_dir() {
-                Command::new("explorer.exe").arg(&path).spawn()
-            } else {
-                Command::new("explorer.exe")
-                    .arg(format!("/select,{}", path))
-                    .spawn()
-            };
-            result.map_err(|e| AppError::InvalidInput(format!("explorer spawn failed: {}", e)))?;
-        }
-
-        #[cfg(not(target_os = "windows"))]
-        {
-            let _ = metadata;
-            return Err(AppError::InvalidInput(
-                "reveal_in_explorer is Windows-only".to_string(),
-            ));
-        }
-
-        Ok(())
+        crate::launcher::reveal_in_explorer(&path, metadata.is_dir())
     })
     .await
     .map_err(AppError::from_join_error)?
