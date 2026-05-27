@@ -2,6 +2,7 @@
 pub mod app_services;
 pub mod bookmark_service;
 pub mod config_service;
+pub mod db_recovery_notice;
 pub mod exe_scanner_service;
 pub mod export_service;
 pub mod file_preview_service;

@@ -14,6 +14,9 @@ use commands::config_commands::{
     cmd_is_setup_complete, cmd_mark_onboarding_complete, cmd_mark_setup_complete,
     cmd_reset_first_run, cmd_set_autostart, cmd_set_config, cmd_set_hotkey,
 };
+use commands::db_recovery_notice_commands::{
+    cmd_ack_db_recovery_notice, cmd_get_db_recovery_notice,
+};
 use commands::exe_scanner_commands::{
     cmd_cancel_exe_scan, cmd_get_exe_scan_cached, cmd_invalidate_exe_scan_cache,
     cmd_save_exe_scan_cache, cmd_scan_exe_folders,
@@ -81,7 +84,8 @@ pub fn run() {
 
     // PH-PQ-400 T7: 起動経路の段階計測。 target "perf:startup" の log line を
     // perf spec (tests/perf/startup.spec.ts) が parse し、 cold/warm 予算 (vision.md
-    // D1 <= 1500ms / D2 <= 1000ms) の段階内訳を CI gate へ供給する。
+    // D1 <= 3200ms / D2 <= 2800ms、 2026-05-27 実測 baseline に再設定) の段階内訳を
+    // CI gate へ供給する。
     let startup_timer = std::time::Instant::now();
 
     if let Err(e) = tauri::Builder::default()
@@ -220,24 +224,26 @@ pub fn run() {
             // panic_hook が crash dialog を出せるよう AppHandle を登録 (T2)。
             panic_hook::register_app_handle(app.handle().clone());
 
-            // PH-PQ-100 T3: DB 破損 recovery が発生したら user に dialog で通知。
+            // PH-PQ-100 T3 + 2026-05-27 改修: DB 破損 recovery 発生時は marker file を
+            // app data dir に永続化し、 frontend が banner で `cmd_ack_db_recovery_notice`
+            // まで再表示できるようにする (旧 native dialog は一度閉じると消えてしまい、
+            // user が path を控えそびれた / dialog 自体に気づかなかった事例があったため
+            // 永続化型 UX に置換)。 marker 書き込み失敗時は log のみで起動継続 (best-effort)。
             if let Some(backup) = recovered_backup {
-                let handle = app.handle().clone();
-                std::thread::spawn(move || {
-                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
-                    handle
-                        .dialog()
-                        .message(format!(
-                            "データベースが破損していたため、 破損ファイルをバックアップに\
-                             退避し、 新しいデータベースで起動しました。\n\
-                             一部のデータが失われた可能性があります。\n\n\
-                             バックアップ: {}",
-                            backup.display()
-                        ))
-                        .title("Arcagate — データベースを復旧しました")
-                        .kind(MessageDialogKind::Warning)
-                        .blocking_show();
-                });
+                if let Err(e) =
+                    services::db_recovery_notice::write_marker(&app_data_dir, &backup)
+                {
+                    log::error!(
+                        "failed to write DB recovery marker (backup={:?}): {}",
+                        backup,
+                        e
+                    );
+                } else {
+                    log::warn!(
+                        "DB recovery marker written; banner will surface until user acks (backup={:?})",
+                        backup
+                    );
+                }
             }
 
             // sys:starred など必須システムタグの初期化（べき等）
@@ -479,6 +485,8 @@ pub fn run() {
             cmd_delete_opener,
             cmd_launch_with_opener,
             cmd_take_startup_notices,
+            cmd_get_db_recovery_notice,
+            cmd_ack_db_recovery_notice,
         ])
         .run(tauri::generate_context!())
     {
