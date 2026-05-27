@@ -1,18 +1,66 @@
 /**
- * Design tokens v2 — palette derivation (純関数)。
+ * Design tokens v2 — palette derivation (純関数 / methodology-explicit)。
  *
- * primary / secondary seeds + aesthetic + base theme から、 各 builtin / custom theme で
- * literal seed として `themes.css_vars` に保存される **派生 token 群** を計算する。
+ * # 設計哲学 (PR #588)
  *
- * 設計 (DEV_REVIEW_R4 ⑫後半 + audit BUILTIN_THEME_DIFF_MATRIX_2026-05-27 §5):
- * - CSS chain (`oklch(from)` / `color-mix(in oklab)`) は accent variants / surface mix /
- *   hover/focus 等の **runtime 派生** を担う。 本関数は CSS chain では表現しにくい
- *   **aesthetic × base 別の calibrated literal** (semantic 系 = warn/error/success/info、
- *   accent state の lightness shift 等) を返す。
- * - 出力は migration 044 の seed source + ThemeEditor の「reset / clone 時の初期値」 として使う。
- * - 純関数: `Math.random()` / `getComputedStyle` / DOM access 一切なし。 vitest で確定的に test 可能。
+ * primary + secondary + aesthetic + base から、 派生 token (`--c-secondary` + semantic 4 軸 =
+ * warn / error / success / info) を **transform 式で計算する純関数**。 副作用なし / Math.random /
+ * DOM 不使用なので vitest で確定的に test 可能。
+ *
+ * ## なぜ transform 式か
+ *
+ * 旧 v1 は (aesthetic × base × semantic) のルックアップ表で値を持っていた (3×2×3 = 18 magic numbers)。
+ * 「なぜこの値か」 が表だけ見ても辿れず、 user が「ここを少し変えたい」 と思っても根拠を読めなかった。
+ * v2 (PR #588) は次の 4 つの transform 軸を明示し、 全派生値を **3 つの定数 + 5 つの式** から導く:
+ *
+ * 1. **`AESTHETIC_CHROMA_SCALE`** — aesthetic の知覚的個性を chroma の倍率 1 軸に集約
+ *    - glass: 1.0x (sophisticated baseline)
+ *    - brutalist: 1.5x (+50% — vivid manifesto、 高 chroma は brutalism の主張)
+ *    - neumorph: 0.6x (-40% — pastel restraint、 低 chroma は neumorph の calm tone を支える)
+ *    根拠: ratio 1.5 / 1.0 / 0.6 で brutalist > glass > neumorph の **2.5 倍幅** を作ると、
+ *    OKLCh の知覚的均等性により user が「3 aesthetic の色は確かに違う」 と感じられる帯になる
+ *    (audit BUILTIN_THEME_DIFF_MATRIX_2026-05-27 §4 B の「目立つべきなのに目立たない」 の根治)。
+ *
+ * 2. **`SEMANTIC_BASE_LIGHTNESS`** — base theme ごとの semantic 中心 lightness
+ *    - light base: 0.60 (= 暗い semantic、 白背景で視認)
+ *    - dark base: 0.72 (= 明るい semantic、 黒背景で視認)
+ *    差 0.12 は OKLCh の **1 perceptual step** で「明らかに別の lightness」 と感じる最小幅。
+ *
+ * 3. **`SEMANTIC_DELTA_L`** — semantic 軸ごとの中心 lightness からの ±L 微調整
+ *    - error: 0.00 (red は L 中心、 飽和度で signal を作る)
+ *    - warn: +0.08 (yellow は L 高めで「明るい注意」 を作る)
+ *    - success: +0.06 / info: +0.04 (それぞれ warn より控えめに高 L)
+ *    根拠: 同 L のまま全 semantic を並べると「全部似た明るさ」 で 4 軸が見分けにくい。 hue だけでなく
+ *    L にも幅を持たせて差別化する (OKLCh は L 軸が perceptual に直交)。
+ *
+ * 4. **`SECONDARY_SHIFT_DEG`** — primary から secondary を派生する hue shift
+ *    - 150° (split-complementary 左側、 = 補色 180° の手前 30°)
+ *    - 純補色 (180°) は warm/cool 極端で「ぶつかる」 dyad を作りやすく、 デザイン理論的に避ける慣行が
+ *      強い。 split-complementary は調和を保ちつつ十分な hue 距離があり、 universal な harmonious pair。
+ *    - 反対側 210° ではなく 150° を選んだ理由: hue 周期は時計回りで色相環 (RYGCBM) を進むため、
+ *      150° shift は primary より「少し warm 寄り」 を返す。 builtin (青 H215 → cyan H5 でなく
+ *      blue-violet H5 寄り、 赤 H28 → green-yellow H178 寄り) で warm 寄りバランスが自然。
+ *
+ * ## WCAG コントラスト保証
+ *
+ * `ensureAaAgainstWhite()`: user が picker で「白っぽすぎる primary」 (例: oklch(0.9 0.05 100))
+ * を選んだ場合、 solid primary button に白っぽい text を載せると AA 4.5:1 を切る。
+ * primary の **L を 0.02 step で下げて contrast を確保**する (hue / chroma は保つ、 = 「user の
+ * 意図する色相」 は壊さない)。 既存 builtin の L=0.5 primary は変更不要 (4.5:1 を満たす)。
+ *
+ * ## 出力対象
+ *
+ * 本関数は **literal seed token のみ** を返す (semantic 4 軸 + secondary)。 accent state variants /
+ * surface tint / hover / focus は CSS chain (`oklch(from)` / `color-mix(in oklab)`) が runtime
+ * 派生する (chain 温存 / ThemeEditor の primary 編集が live で派生に伝播する保証、 PR #586 の
+ * dirty トラッキング契約と整合)。
+ *
+ * ## 引用元
+ *
+ * - docs/l3_phases/audit/BUILTIN_THEME_DIFF_MATRIX_2026-05-27.md §5
+ * - docs/l3_phases/audit/DEV_REVIEW_R4_THREE_DEFECTS_2026-05-27.md §4
  */
-import type { Aesthetic } from './color';
+import { type Aesthetic, contrastRatio, oklchToHex } from './color';
 
 export interface Oklch {
 	l: number;
@@ -22,31 +70,27 @@ export interface Oklch {
 
 export interface PaletteInput {
 	primary: Oklch;
-	/** undefined / null の場合は primary の補色 (h+180) を自動計算。 */
+	/** undefined / null の場合は primary の split-complementary (h+150°) を自動計算。 */
 	secondary?: Oklch | null;
 	aesthetic: Aesthetic;
 	baseTheme: 'dark' | 'light';
 }
 
-/**
- * 派生 token の出力 (key = CSS custom property name)。 値は CSS が parse 可能な oklch 文字列。
- *
- * このマップは `themes.css_vars` JSON にそのまま書き込める形 (= migration seed の出元)。
- * CSS chain で表現される token (`--ag-accent` 等) は出力しない (chain を温存)。
- */
 export interface DerivedPalette {
-	/** seed echo (primary は user 入力をそのまま、 secondary は明示指定 or 自動補色)。 */
 	'--c-primary': string;
 	'--c-secondary': string;
-	/** semantic seeds — hue は canonical 固定、 l/c は aesthetic × base で calibrated。 */
 	'--c-warn': string;
 	'--c-error': string;
 	'--c-success': string;
-	/** PR #588 で追加: info 軸 (青-cyan)。 既存 builtin には未定義、 migration で seed。 */
+	/** PR #588 で追加: info 軸 (青-cyan)、 link / hint / detail callout 用。 */
 	'--c-info': string;
 }
 
-/** semantic 軸ごとの canonical hue (文化的信号性を維持するため固定)。 */
+// ═══════════════════════════════════════════════════════════════════════════
+// METHODOLOGY CONSTANTS (root reason は file header の「設計哲学」 を参照)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** semantic 軸の canonical hue (文化的信号性のため不変、 aesthetic / base に依存しない)。 */
 const SEMANTIC_HUES = {
 	warn: 75,
 	error: 25,
@@ -55,68 +99,66 @@ const SEMANTIC_HUES = {
 } as const;
 
 /**
- * aesthetic × base ごとの semantic l / c calibration table。
- *
- * 既存 builtin (migration 043) の semantic 値を baseline とし、 そこから:
- * - glass: 既存値を踏襲 (実機検収済の chroma 帯)
- * - brutalist: chroma を強化 (鮮烈な信号色)
- * - neumorph: chroma を抑制 (muted な信号色)
- *
- * base (dark/light) は visibility 確保のため lightness を反転気味に調整。
- * dark base: l 高め (明色背景の vs 暗色背景での視認確保)、 light base: l 低め。
+ * aesthetic 別 chroma 倍率 (= 知覚的個性を 1 軸に集約)。
+ * brutalist 1.5 / glass 1.0 / neumorph 0.6 の **2.5 倍幅** で 3 aesthetic の
+ * vividness 差を user が判別可能な perceptual step に乗せる。
  */
-const SEMANTIC_RANGES: Record<
-	Aesthetic,
-	Record<'dark' | 'light', Record<keyof typeof SEMANTIC_HUES, { l: number; c: number }>>
-> = {
-	glass: {
-		dark: {
-			warn: { l: 0.82, c: 0.15 },
-			error: { l: 0.68, c: 0.17 },
-			success: { l: 0.78, c: 0.14 },
-			info: { l: 0.75, c: 0.14 },
-		},
-		light: {
-			warn: { l: 0.74, c: 0.16 },
-			error: { l: 0.58, c: 0.2 },
-			success: { l: 0.66, c: 0.15 },
-			info: { l: 0.58, c: 0.16 },
-		},
-	},
-	brutalist: {
-		dark: {
-			warn: { l: 0.7, c: 0.16 },
-			error: { l: 0.58, c: 0.2 },
-			success: { l: 0.62, c: 0.15 },
-			info: { l: 0.6, c: 0.18 },
-		},
-		light: {
-			warn: { l: 0.62, c: 0.18 },
-			error: { l: 0.52, c: 0.22 },
-			success: { l: 0.55, c: 0.16 },
-			info: { l: 0.5, c: 0.2 },
-		},
-	},
-	neumorph: {
-		dark: {
-			warn: { l: 0.8, c: 0.13 },
-			error: { l: 0.68, c: 0.16 },
-			success: { l: 0.74, c: 0.13 },
-			info: { l: 0.7, c: 0.12 },
-		},
-		light: {
-			warn: { l: 0.72, c: 0.11 },
-			error: { l: 0.6, c: 0.14 },
-			success: { l: 0.66, c: 0.1 },
-			info: { l: 0.62, c: 0.1 },
-		},
-	},
+const AESTHETIC_CHROMA_SCALE: Record<Aesthetic, number> = {
+	glass: 1.0,
+	brutalist: 1.5,
+	neumorph: 0.6,
 };
 
+/**
+ * semantic の base chroma (aesthetic scale が掛かる前の anchor)。
+ * 0.14 を選んだ根拠: brutalist (×1.5 = 0.21) で signal-color 帯に届き、 neumorph (×0.6 = 0.084)
+ * で pastel 帯に収まる。 0.21 は sRGB gamut 内に収まる安全範囲 (hue 75 / 25 / 150 / 230 で gamut
+ * clipping を起こさない)。
+ */
+const SEMANTIC_BASE_CHROMA = 0.14;
+
+/**
+ * base theme ごとの semantic 中心 lightness。
+ * dark - light = 0.12 は OKLCh の 1 perceptual step (= 「明らかに別の明るさ」 と感じる最小幅)。
+ */
+const SEMANTIC_BASE_LIGHTNESS: Record<'dark' | 'light', number> = {
+	light: 0.6,
+	dark: 0.72,
+};
+
+/**
+ * semantic 軸ごとの中心 lightness からの Δl (OKLCh perceptual uniformity を活用)。
+ * 同 L のまま全 semantic を並べると 4 軸が見分けにくいため、 hue だけでなく L にも幅を持たせる。
+ * error=0 は red の自然な signal 性、 warn=+0.08 は yellow の「明るい注意」 を担う。
+ */
+const SEMANTIC_DELTA_L: Record<keyof typeof SEMANTIC_HUES, number> = {
+	warn: 0.08,
+	error: 0.0,
+	success: 0.06,
+	info: 0.04,
+};
+
+/**
+ * secondary 自動派生時の hue shift (split-complementary)。
+ * 180° (純補色) ではなく 150° で warm/cool dyad の衝突を避け universal な調和 pair を作る。
+ */
+const SECONDARY_SHIFT_DEG = 150;
+
+/** WCAG AA 4.5:1 を target に primary を auto-adjust する。 */
+const WCAG_AA_RATIO = 4.5;
+const WCAG_AUTOADJUST_STEP = 0.02;
+const WCAG_AUTOADJUST_MAX_STEPS = 30;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PURE HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function clamp01(v: number): number {
+	return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
 function formatNumber(n: number, decimals: number): string {
-	const rounded = Number(n.toFixed(decimals));
-	// "0.5" / "0" は CSS oklch で valid なので素直に文字列化 (trailing zero は除去)。
-	return rounded.toString();
+	return Number(n.toFixed(decimals)).toString();
 }
 
 /** Oklch を CSS の `oklch(L C H)` 形式に整形 (l/c は 3 桁、 h は 1 桁)。 */
@@ -124,39 +166,91 @@ export function formatOklch(o: Oklch): string {
 	return `oklch(${formatNumber(o.l, 3)} ${formatNumber(o.c, 3)} ${formatNumber(o.h, 1)})`;
 }
 
-/** primary の補色 (色相 +180°) を自動計算する。 secondary 未指定時に使用。 */
-export function complementary(primary: Oklch): Oklch {
-	return { l: primary.l, c: primary.c, h: (primary.h + 180) % 360 };
+/**
+ * primary の split-complementary 自動派生 (h+150°、 l / c は維持)。
+ * 補色 180° の左側 30° = 純補色のぶつかりを避ける universal harmonic shift。
+ */
+export function deriveSecondary(primary: Oklch): Oklch {
+	return { l: primary.l, c: primary.c, h: (primary.h + SECONDARY_SHIFT_DEG) % 360 };
 }
 
 /**
- * `derivePalette` — primary + secondary + aesthetic + base theme から派生 token を計算する純関数。
+ * 旧 API 互換 alias (BUILTIN_PALETTE_SPECS の secondary 自動派生想定で使われる)。
+ * v2 では split-complementary (150°) が default。
+ */
+export function complementary(primary: Oklch): Oklch {
+	return deriveSecondary(primary);
+}
+
+/** oklch 2 色の WCAG コントラスト比 (hex 経由で computed)。 */
+export function wcagContrastOklch(a: Oklch, b: Oklch): number {
+	return contrastRatio(oklchToHex(a), oklchToHex(b));
+}
+
+/**
+ * primary が white background に対し WCAG AA (4.5:1) を満たすよう L を自動下げる。
+ * 用途: solid primary button の text=white を想定した最も厳しいケース。 ここで AA を保証すれば、
+ * 通常運用 (color-mix された accent-text vs accent bg) も大幅に余裕を持って AA をクリアする。
  *
- * 出力対象は **CSS chain で表現できない literal seed のみ** (semantic 系)。 accent state variants /
- * surface tinted / hover / focus は CSS chain (`oklch(from)` / `color-mix`) で runtime 派生されるため、
- * 本関数では返さない (理由: chain freeze 回避 / ThemeEditor の primary 編集が live で派生に伝播する保証)。
+ * hue / chroma は保持し L のみ調整する (= 「user の意図する色相」 を壊さない)。
+ * L=0 に至っても満たさない極端な input に対しては best-effort で最低 L を返す (clamp01 の効果)。
+ */
+export function ensureAaAgainstWhite(primary: Oklch, targetRatio = WCAG_AA_RATIO): Oklch {
+	const WHITE: Oklch = { l: 1, c: 0, h: 0 };
+	let candidate = primary;
+	for (let i = 0; i < WCAG_AUTOADJUST_MAX_STEPS; i++) {
+		if (wcagContrastOklch(candidate, WHITE) >= targetRatio) return candidate;
+		// 白 (L=1) との contrast が足りない = primary が明るすぎる。 L を下げる方向で adjust。
+		candidate = { l: clamp01(candidate.l - WCAG_AUTOADJUST_STEP), c: candidate.c, h: candidate.h };
+	}
+	return candidate;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC API
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * 派生 token を transform 式で計算する純関数。
  *
- * 副作用なし。 `vitest` で aesthetic × base の代表組合せに対して snapshot / 帯域 assert 可能。
+ * 入力: primary (Oklch) + 任意の secondary + aesthetic + base
+ * 出力: `--c-primary` / `--c-secondary` / `--c-warn` / `--c-error` / `--c-success` / `--c-info`
+ *
+ * 各 token の transform 式:
+ * - `--c-primary` = ensureAaAgainstWhite(input.primary)
+ * - `--c-secondary` = input.secondary ?? deriveSecondary(adjusted primary)   // h+150°
+ * - `--c-warn` = oklch(semL[base] + 0.08, 0.14 × scale[aesthetic], 75)
+ * - `--c-error` = oklch(semL[base] + 0.00, 0.14 × scale[aesthetic], 25)
+ * - `--c-success` = oklch(semL[base] + 0.06, 0.14 × scale[aesthetic], 150)
+ * - `--c-info` = oklch(semL[base] + 0.04, 0.14 × scale[aesthetic], 230)
  */
 export function derivePalette(input: PaletteInput): DerivedPalette {
-	const { primary, secondary, aesthetic, baseTheme } = input;
-	const sec = secondary ?? complementary(primary);
-	const ranges = SEMANTIC_RANGES[aesthetic][baseTheme];
+	const { primary: rawPrimary, secondary, aesthetic, baseTheme } = input;
+	const primary = ensureAaAgainstWhite(rawPrimary);
+	const sec = secondary ?? deriveSecondary(primary);
+	const semC = SEMANTIC_BASE_CHROMA * AESTHETIC_CHROMA_SCALE[aesthetic];
+	const semBaseL = SEMANTIC_BASE_LIGHTNESS[baseTheme];
+
+	const sem = (h: number, deltaL: number): Oklch => ({
+		l: clamp01(semBaseL + deltaL),
+		c: semC,
+		h,
+	});
+
 	return {
 		'--c-primary': formatOklch(primary),
 		'--c-secondary': formatOklch(sec),
-		'--c-warn': formatOklch({ l: ranges.warn.l, c: ranges.warn.c, h: SEMANTIC_HUES.warn }),
-		'--c-error': formatOklch({ l: ranges.error.l, c: ranges.error.c, h: SEMANTIC_HUES.error }),
-		'--c-success': formatOklch({
-			l: ranges.success.l,
-			c: ranges.success.c,
-			h: SEMANTIC_HUES.success,
-		}),
-		'--c-info': formatOklch({ l: ranges.info.l, c: ranges.info.c, h: SEMANTIC_HUES.info }),
+		'--c-warn': formatOklch(sem(SEMANTIC_HUES.warn, SEMANTIC_DELTA_L.warn)),
+		'--c-error': formatOklch(sem(SEMANTIC_HUES.error, SEMANTIC_DELTA_L.error)),
+		'--c-success': formatOklch(sem(SEMANTIC_HUES.success, SEMANTIC_DELTA_L.success)),
+		'--c-info': formatOklch(sem(SEMANTIC_HUES.info, SEMANTIC_DELTA_L.info)),
 	};
 }
 
-/** 6 builtin theme の primary / secondary / base / aesthetic 表 (migration 044 seed source)。 */
+// ═══════════════════════════════════════════════════════════════════════════
+// BUILTIN PALETTE SPECS (migration 044 seed source)
+// ═══════════════════════════════════════════════════════════════════════════
+
 export interface BuiltinPaletteSpec {
 	id: string;
 	baseTheme: 'dark' | 'light';
@@ -165,19 +259,14 @@ export interface BuiltinPaletteSpec {
 	secondary?: Oklch;
 }
 
+/**
+ * 6 builtin の primary / aesthetic / base 表。 secondary を省略すると
+ * `deriveSecondary(primary)` (= h+150°) で自動派生される。
+ * brutalist 系は user の design intent で secondary = primary に固定 (single-accent)。
+ */
 export const BUILTIN_PALETTE_SPECS: readonly BuiltinPaletteSpec[] = [
-	{
-		id: 'dark',
-		baseTheme: 'dark',
-		aesthetic: 'glass',
-		primary: { l: 0.5, c: 0.14, h: 215 },
-	},
-	{
-		id: 'light',
-		baseTheme: 'light',
-		aesthetic: 'glass',
-		primary: { l: 0.5, c: 0.14, h: 215 },
-	},
+	{ id: 'dark', baseTheme: 'dark', aesthetic: 'glass', primary: { l: 0.5, c: 0.14, h: 215 } },
+	{ id: 'light', baseTheme: 'light', aesthetic: 'glass', primary: { l: 0.5, c: 0.14, h: 215 } },
 	{
 		id: 'brutalist',
 		baseTheme: 'light',
@@ -205,3 +294,17 @@ export const BUILTIN_PALETTE_SPECS: readonly BuiltinPaletteSpec[] = [
 		primary: { l: 0.5, c: 0.1, h: 280 },
 	},
 ] as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS RE-EXPORT (test / generator から参照)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const PALETTE_METHODOLOGY = {
+	SEMANTIC_HUES,
+	AESTHETIC_CHROMA_SCALE,
+	SEMANTIC_BASE_CHROMA,
+	SEMANTIC_BASE_LIGHTNESS,
+	SEMANTIC_DELTA_L,
+	SECONDARY_SHIFT_DEG,
+	WCAG_AA_RATIO,
+} as const;

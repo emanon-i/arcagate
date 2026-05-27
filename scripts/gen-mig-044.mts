@@ -1,7 +1,14 @@
 /**
- * One-shot generator: print the migration 044 JSON for each builtin theme.
- * Run via `pnpm exec tsx scripts/gen-mig-044.mts` and paste output into the SQL file.
- * Not wired into build chain — derive output is hand-pasted to keep migration safety.
+ * One-shot generator: print the migration 044 / 045 builtin theme JSON.
+ *
+ * Run: `pnpm exec tsx scripts/gen-mig-044.mts`、 出力を migration SQL に貼り付ける。
+ * Build chain には組み込まない (派生 output は手動で copy-paste して migration の immutable
+ * 性を確保)。 derive 関数を変更したときに `derive-palette.test.ts` の `migration 044 同期 gate`
+ * (vitest) が SQL との byte-for-byte 一致を検証するため、 手 paste 漏れは test fail で検出。
+ *
+ * 用途:
+ *   - migration 044 (PR #588、 v1 lookup-table)
+ *   - migration 045 (PR #589、 v2 methodology transform 式) ← 現在出力対象
  */
 import {
 	BUILTIN_PALETTE_SPECS,
