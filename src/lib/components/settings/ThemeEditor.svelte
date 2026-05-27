@@ -3,7 +3,14 @@ import { ChevronDown, ChevronRight, Shuffle } from '@lucide/svelte';
 import { t } from '$lib/i18n.svelte';
 import { themeStore } from '$lib/state/theme.svelte';
 import type { Theme } from '$lib/types/theme';
-import { BG_REF_DARK, BG_REF_LIGHT, cssColorToHex, randomSeedPair } from '$lib/utils/color';
+import {
+	BG_REF_DARK,
+	BG_REF_LIGHT,
+	cssColorToHex,
+	randomSeedPair,
+	randomSeedPairN,
+	type SeedPair,
+} from '$lib/utils/color';
 import { detectAesthetic } from '$lib/utils/theme-aesthetic';
 import ThemeEditorHeader from './ThemeEditorHeader.svelte';
 import ThemeEditorTokenEditor from './ThemeEditorTokenEditor.svelte';
@@ -163,10 +170,42 @@ function randomize(): void {
 	// DEV_REVIEW_R4 §3 ⑫(b): aesthetic を編集中 theme から推定 (旧 `'glass'` ハードコード撤廃)。
 	// brutalist → 鮮烈なレンジ、 neumorph → muted なレンジ、 glass → 中庸レンジ で random pair を生成。
 	const pair = randomSeedPair(aesthetic, bgRef, primaryHex, secondaryHex);
+	applyPair(pair);
+}
+
+// PR #591: 6 候補ピッカー。 randomize 1 個 を 6 mix harmony 候補に拡張、 click で適用。
+let candidates = $state<SeedPair[]>([]);
+
+function randomizeSix(): void {
+	// ALL_HARMONIES (complementary / split-complementary / triadic / analogous / tetradic) +
+	// safe baseline で 6 候補生成。 user は「ガチっとした補色」 から「まとまり analogous」 まで
+	// 一覧で見比べて selection 可能。
+	candidates = randomSeedPairN(6, aesthetic, bgRef, primaryHex, secondaryHex);
+}
+
+function applyPair(pair: SeedPair): void {
 	setVar('--c-primary', pair.primary);
 	setVar('--c-secondary', pair.secondary);
 	secondaryEnabled = true;
+	candidates = []; // 適用後はグリッドを閉じる
 }
+
+/**
+ * harmony 名のラベル (UI chip 表示用)。 i18n は別 PR で対応、 現状は表示用の短い英語名で。
+ * 5 modes の意味:
+ *  - complementary: 純補色 (180°、 強い対比)
+ *  - split-complementary: 補色の左 (150°、 調和維持で強対比)
+ *  - triadic: 三角配色 (120°、 視覚的バランス)
+ *  - analogous: 類似色 (30°、 まとまり強)
+ *  - tetradic: 四角配色 (90°、 多色)
+ */
+const HARMONY_LABELS: Record<SeedPair['harmony'], string> = {
+	complementary: '補色',
+	'split-complementary': '分裂補色',
+	triadic: '三角',
+	analogous: '類似',
+	tetradic: '四角',
+};
 
 function toggleSecondary(enabled: boolean): void {
 	secondaryEnabled = enabled;
@@ -367,15 +406,53 @@ const grouped = $derived.by(() => {
 			{/if}
 		</div>
 
-		<button
-			type="button"
-			class="flex items-center gap-1.5 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs font-medium text-[var(--ag-text-primary)] transition-colors hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
-			onclick={randomize}
-			data-testid="theme-editor-random"
-		>
-			<Shuffle class="h-3.5 w-3.5" />
-			{t('settings.appearance.seed_random')}
-		</button>
+		<div class="flex items-center gap-2">
+			<button
+				type="button"
+				class="flex items-center gap-1.5 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs font-medium text-[var(--ag-text-primary)] transition-colors hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				onclick={randomize}
+				data-testid="theme-editor-random"
+			>
+				<Shuffle class="h-3.5 w-3.5" />
+				{t('settings.appearance.seed_random')}
+			</button>
+			<!-- PR #591: 6 候補ピッカー — 5 harmony × 1 example + safe baseline を一覧表示 -->
+			<button
+				type="button"
+				class="flex items-center gap-1.5 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-3 py-1.5 text-xs font-medium text-[var(--ag-text-primary)] transition-colors hover:bg-[var(--ag-surface-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+				onclick={randomizeSix}
+				data-testid="theme-editor-random-six"
+			>
+				<Shuffle class="h-3.5 w-3.5" />
+				6 候補
+			</button>
+		</div>
+
+		<!-- PR #591: 6 候補グリッド (3×2)、 各候補 click で primary + secondary を一括適用 -->
+		{#if candidates.length > 0}
+			<div
+				class="grid grid-cols-3 gap-2 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-1)] p-2"
+				data-testid="theme-editor-candidates"
+			>
+				{#each candidates as candidate, idx (idx)}
+					<button
+						type="button"
+						class="group flex flex-col gap-1 rounded-md border border-[var(--ag-border)] bg-[var(--ag-surface-2)] p-2 transition-colors hover:border-[var(--ag-accent)] hover:bg-[var(--ag-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ag-accent)]"
+						onclick={() => applyPair(candidate)}
+						data-testid="theme-editor-candidate-{idx}"
+						title="{HARMONY_LABELS[candidate.harmony]} (primary: {candidate.primary}, secondary: {candidate.secondary})"
+					>
+						<div class="flex h-8 overflow-hidden rounded">
+							<div class="flex-1" style:background-color={candidate.primary}></div>
+							<div class="flex-1" style:background-color={candidate.secondary}></div>
+						</div>
+						<span class="truncate text-xs text-[var(--ag-text-muted)]">
+							{HARMONY_LABELS[candidate.harmony]}
+						</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<!-- advanced: 全 token の生値編集 -->
