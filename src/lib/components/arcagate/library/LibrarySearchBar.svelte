@@ -49,12 +49,12 @@ function focusInput() {
 />
 
 <div
-	class="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-3"
+	class="flex min-w-[240px] flex-1 items-center gap-3 rounded-[var(--ag-radius-card)] border border-[var(--ag-border)] bg-[var(--ag-surface-3)] px-4 py-3"
 >
-	<Search class="h-5 w-5 text-[var(--ag-text-muted)]" />
+	<Search class="h-5 w-5 shrink-0 text-[var(--ag-text-muted)]" />
 	<input
 		type="text"
-		class="flex-1 bg-transparent text-sm text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
+		class="min-w-0 flex-1 bg-transparent text-sm text-[var(--ag-text-primary)] outline-none placeholder:text-[var(--ag-text-muted)]"
 		placeholder={t('library.search_placeholder')}
 		autocomplete="off"
 		data-testid="library-search-input"
