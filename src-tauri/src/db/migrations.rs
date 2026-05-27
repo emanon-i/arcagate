@@ -45,6 +45,7 @@ const MIGRATION_040: &str = include_str!("../../migrations/040_library_wallpaper
 const MIGRATION_041: &str = include_str!("../../migrations/041_theme_six_builtins.sql");
 const MIGRATION_042: &str = include_str!("../../migrations/042_exe_scan_cache.sql");
 const MIGRATION_043: &str = include_str!("../../migrations/043_builtin_theme_css_vars_seed.sql");
+const MIGRATION_044: &str = include_str!("../../migrations/044_theme_derive_palette_seed.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -91,6 +92,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_041),
         M::up(MIGRATION_042),
         M::up(MIGRATION_043),
+        M::up(MIGRATION_044),
     ])
 }
 
@@ -451,6 +453,117 @@ mod tests {
         assert!(
             brutalist_dark_vars.contains("\"--surface-blur\":\"none\""),
             "brutalist-dark must have surface-blur: none"
+        );
+    }
+
+    /// PR #588 (migration 044): 6 builtin に `--c-info` semantic seed と
+    /// `--ag-surface-tint-strength` (brutalist / neumorph で 0% override) が追加される。
+    /// 既存 custom theme は不可侵 (043 と同方針)。
+    #[test]
+    fn test_migration_044_adds_info_seed_and_surface_tint_strength() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // migration 043 まで適用 (builtin css_vars に実値 JSON が seed された状態)。
+        m.to_version(&mut conn, 43).unwrap();
+
+        // 過去の cloneTheme で生成された相当の custom (043 後も触られていないはず)。
+        conn.execute(
+            "INSERT INTO themes (id, name, base_theme, css_vars, is_builtin) \
+             VALUES ('legacy-custom-588', 'Legacy 588', 'dark', '{\"--c-primary\":\"#abc\"}', 0)",
+            [],
+        )
+        .unwrap();
+
+        // 043 直後は --c-info が builtin に **無い** (= 044 が追加する責務)。
+        let dark_before: String = conn
+            .query_row("SELECT css_vars FROM themes WHERE id = 'dark'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert!(
+            !dark_before.contains("--c-info"),
+            "baseline: --c-info must not be present before migration 044"
+        );
+
+        // migration 044 適用。
+        m.to_version(&mut conn, 44).unwrap();
+
+        // 全 6 builtin に --c-info が追加されている。
+        let info_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM themes WHERE is_builtin = 1 AND css_vars LIKE '%--c-info%'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            info_count, 6,
+            "all 6 builtin must contain --c-info after migration 044"
+        );
+
+        // brutalist / neumorph に --ag-surface-tint-strength: 0% が含まれる (CSS chain で
+        // surface tint を抑制する世界観温存の証拠)。
+        for id in ["brutalist", "brutalist-dark", "neumorph", "neumorph-dark"] {
+            let vars: String = conn
+                .query_row("SELECT css_vars FROM themes WHERE id = ?1", [id], |r| {
+                    r.get(0)
+                })
+                .unwrap();
+            assert!(
+                vars.contains("\"--ag-surface-tint-strength\":\"0%\""),
+                "{id} must override --ag-surface-tint-strength to 0% (aesthetic identity 温存)"
+            );
+        }
+
+        // 既存の structural token (--c-bg / --c-primary) は維持される (replace でなく覆い被せ)。
+        let dark_after: String = conn
+            .query_row("SELECT css_vars FROM themes WHERE id = 'dark'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert!(
+            dark_after.contains("oklch(0.17 0.013 260)"),
+            "dark must still contain --c-bg literal"
+        );
+
+        // semantic canonical hue: warn=75 / error=25 / success=150 / info=230 が全 builtin で一致。
+        // derive-palette.ts の SEMANTIC_HUES と整合 (chain freeze 防止のため hue は固定)。
+        for id in [
+            "dark",
+            "light",
+            "brutalist",
+            "brutalist-dark",
+            "neumorph",
+            "neumorph-dark",
+        ] {
+            let vars: String = conn
+                .query_row("SELECT css_vars FROM themes WHERE id = ?1", [id], |r| {
+                    r.get(0)
+                })
+                .unwrap();
+            // warn=75 / error=25 / success=150 / info=230 の hue が文字列内に出現する。
+            // ※ neumorph dark warn=0.8 0.13 75 / glass dark warn=0.82 0.15 75 等で l/c は異なるが hue は固定。
+            for h in [" 75)", " 25)", " 150)", " 230)"] {
+                assert!(
+                    vars.contains(h),
+                    "{id} css_vars must contain canonical hue {h}"
+                );
+            }
+        }
+
+        // custom theme は触られていない (user data invariant、 043 と同じ契約)。
+        let custom_vars: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'legacy-custom-588'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            custom_vars, "{\"--c-primary\":\"#abc\"}",
+            "custom theme css_vars must be byte-identical (user data invariant)"
         );
     }
 

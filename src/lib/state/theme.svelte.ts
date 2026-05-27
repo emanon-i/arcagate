@@ -74,12 +74,32 @@ function applyTheme(): void {
 
 	const el = document.documentElement;
 
-	// 1. Reset all theme custom properties (design tokens v2: seed --c-* + semantic --ag-*)
+	// 1. Reset all theme custom properties (design tokens v2: seed --c-* + semantic --ag-* +
+	//    aesthetic primitives で異なる prefix を持つ token 群)。
+	//    PR #588 (audit BUILTIN_THEME_DIFF_MATRIX_2026-05-27 §4 C 同根 leak fix): 旧 reset は
+	//    `--ag-*` / `--c-*` だけが対象で、 brutalist の `--bg-pattern*` / `--font-family-display` /
+	//    neumorph の `--shadow-outer-*` `--shadow-inner-*` / glass の `--surface-noise-opacity`
+	//    `--surface-blur` `--surface-glass-*` `--surface-border` `--surface-shadow` 等の異 prefix が
+	//    inline に残骸として持続する leak があった。 active theme と乖離した token 値が混在すると
+	//    後発の派生計算が壊れるため、 theme system が touch する prefix を網羅的に reset する。
+	const RESET_PREFIXES = [
+		'--ag-',
+		'--c-',
+		'--bg-pattern',
+		'--font-family-',
+		'--shadow-outer-',
+		'--shadow-inner-',
+		'--surface-',
+		'--scrim',
+		'--interactive-',
+		'--text-',
+		'--border-',
+	];
 	const style = el.style;
 	const toRemove: string[] = [];
 	for (let i = 0; i < style.length; i++) {
 		const prop = style[i];
-		if (prop.startsWith('--ag-') || prop.startsWith('--c-')) {
+		if (RESET_PREFIXES.some((p) => prop.startsWith(p))) {
 			toRemove.push(prop);
 		}
 	}

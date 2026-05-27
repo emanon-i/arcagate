@@ -27,10 +27,13 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-MIG="src-tauri/migrations/043_builtin_theme_css_vars_seed.sql"
+# PR #588: F3 (migration 043) の上に derivePalette 出力で再 seed する migration 044 が source。
+# 043 は空 '{}' → 旧値で seed する forward-only chain の中継、 044 は派生 token (`--c-info` /
+# `--ag-surface-tint-strength`) 込みで builtin の最新 SSOT。 audit は 044 を gate する。
+MIG="src-tauri/migrations/044_theme_derive_palette_seed.sql"
 if [ ! -f "$MIG" ]; then
-  echo "ERROR: migration 043 (builtin_theme_css_vars_seed.sql) が見つかりません: $MIG"
-  echo "  → F3 根治 (builtin css_vars 実値化) の migration を作成してください"
+  echo "ERROR: migration 044 (theme_derive_palette_seed.sql) が見つかりません: $MIG"
+  echo "  → PR #588 (derivePalette() で 6 builtin の css_vars を再 seed) の migration を作成してください"
   exit 1
 fi
 
@@ -55,6 +58,11 @@ REQUIRED_TOKENS=(
   '--c-primary'
   '--surface-blur'
   '--ag-radius-lg'
+  # PR #588 で追加した新 chain token (derivePalette / surface tint chain):
+  # - --c-info: semantic 4 軸目 (info / hint / link)
+  # - --ag-surface-tint-strength: surface mix に primary hue を注入する比率 (glass=30% / 他=0%)
+  '--c-info'
+  '--ag-surface-tint-strength'
 )
 
 for id in dark light brutalist brutalist-dark neumorph neumorph-dark; do
