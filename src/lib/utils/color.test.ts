@@ -32,7 +32,9 @@ describe('randomSeedPair', () => {
 	// 確率 1 - 1e-9 程度で stable な閾値を選ぶ (chroma 平均がそれぞれ 0.04 / 0.19 / 0.23 で
 	// 80 samples の標準誤差を加味)。
 
-	function sampleSpreads(aesthetic: 'glass' | 'neumorph' | 'brutalist', n = 80): number[] {
+	// PR #591: harmony fixed (旧 5 angles random → 1 baseAngle ±) で fallback rate が増えたため、
+	// 統計的安定性を取り戻すため sample 数を 80 → 200 に増量。 std error が √(80/200) ≈ 0.63x に縮小。
+	function sampleSpreads(aesthetic: 'glass' | 'neumorph' | 'brutalist', n = 200): number[] {
 		const out: number[] = [];
 		for (let i = 0; i < n; i++) {
 			const pair = randomSeedPair(aesthetic, BG_REF_DARK, '#000000', '#000000');
