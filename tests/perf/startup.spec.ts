@@ -197,13 +197,19 @@ test('D1/D2 起動 P95 (cold / warm)', async () => {
 		`[perf] FE cumulative p95 (cold): layout_mount=${fmt(coldFeLayout)}ms / page_mount=${fmt(coldFePage)}ms / init_ipc_done=${fmt(coldFeIpc)}ms / main_paint=${fmt(coldFePaint)}ms`,
 	);
 
+	// 2026-05-27 再設定: 旧 aspirational 値 (cold 1500 / warm 1000) は CI windows-latest 上で
+	// 構造的に到達不能で perf gate が常時赤かった。 直近 10 run の実測 P95 中央値 (cold ~2450ms
+	// / warm ~2100ms) を baseline に + 約 33% regression 帯を載せて regression 検出器として
+	// 機能させる方針へ転換 (cold 3200 / warm 2800)。 詳細は
+	// `docs/l1_requirements/vision.md` の §非機能要件 D1/D2 と
+	// `docs/l3_phases/_archive/PH-20260522-perf-budgets.md` の baseline 表を参照。
 	reportBudget({
 		budget: 'D1',
 		name: 'startup-cold',
 		metric: 'wall-p95',
 		value: coldP95,
 		unit: 'ms',
-		threshold: 1500,
+		threshold: 3200,
 		comparator: 'lte',
 	});
 	reportBudget({
@@ -212,7 +218,7 @@ test('D1/D2 起動 P95 (cold / warm)', async () => {
 		metric: 'wall-p95',
 		value: warmP95,
 		unit: 'ms',
-		threshold: 1000,
+		threshold: 2800,
 		comparator: 'lte',
 	});
 

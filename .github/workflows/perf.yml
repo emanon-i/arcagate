@@ -113,7 +113,7 @@ jobs:
             --label "perf-failure" \
             --body "性能予算 (vision.md D1-D9) のいずれかが閾値を超過しました (PH-PQ-400 T1)。
 
-          - D1 起動 cold P95 <= 1500ms / D2 warm P95 <= 1000ms
+          - D1 起動 cold P95 <= 3200ms / D2 warm P95 <= 2800ms
           - D3 palette 表示 P95 <= 120ms / D4 item 起動 P95 <= 200ms
           - D6 idle CPU <= 1%
           - D7 Library scroll >= 50fps / sort / filter <= 200ms
