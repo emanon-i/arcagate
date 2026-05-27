@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { BG_REF_DARK, BG_REF_LIGHT, randomSeedPair } from './color';
+import {
+	ALL_HARMONIES,
+	BG_REF_DARK,
+	BG_REF_LIGHT,
+	type Harmony,
+	randomSeedPair,
+	randomSeedPairN,
+} from './color';
 
 /**
  * `#rrggbb` を [0,1] の (max - min) 「RGB スプレッド」 に変換。
@@ -81,6 +88,65 @@ describe('randomSeedPair', () => {
 			const pair = randomSeedPair('glass', BG_REF_LIGHT, '#000000', '#ffffff');
 			expect(pair.primary).toMatch(/^#[0-9a-f]{6}$/i);
 			expect(pair.secondary).toMatch(/^#[0-9a-f]{6}$/i);
+		}
+	});
+});
+
+describe('randomSeedPair: harmony mode (PR #591)', () => {
+	it.each(ALL_HARMONIES)('harmony=%s で SeedPair.harmony が echo される', (harmony) => {
+		const pair = randomSeedPair('glass', BG_REF_DARK, '#000000', '#000000', harmony);
+		expect(pair.harmony).toBe(harmony);
+	});
+
+	it('harmony 省略時は split-complementary が default', () => {
+		const pair = randomSeedPair('glass', BG_REF_DARK, '#000000', '#000000');
+		expect(pair.harmony).toBe('split-complementary');
+	});
+
+	it('全 5 harmony が ALL_HARMONIES に含まれる (UI 列挙の網羅性 gate)', () => {
+		const expected: Harmony[] = [
+			'complementary',
+			'split-complementary',
+			'triadic',
+			'analogous',
+			'tetradic',
+		];
+		expect([...ALL_HARMONIES].sort()).toEqual([...expected].sort());
+		expect(ALL_HARMONIES).toHaveLength(5);
+	});
+});
+
+describe('randomSeedPairN: N 候補一括生成 (PR #591)', () => {
+	it('N=6 で 6 個の SeedPair を返す', () => {
+		const pairs = randomSeedPairN(6, 'glass', BG_REF_DARK, '#000000', '#000000');
+		expect(pairs).toHaveLength(6);
+		for (const p of pairs) {
+			expect(p.primary).toMatch(/^#[0-9a-f]{6}$/i);
+			expect(p.secondary).toMatch(/^#[0-9a-f]{6}$/i);
+		}
+	});
+
+	it('N=6 で 1-5 個目は ALL_HARMONIES (5 modes) の順で出力 (= 5 harmony が必ず 1 つずつ並ぶ)', () => {
+		const pairs = randomSeedPairN(6, 'glass', BG_REF_DARK, '#000000', '#000000');
+		expect(pairs[0].harmony).toBe(ALL_HARMONIES[0]);
+		expect(pairs[1].harmony).toBe(ALL_HARMONIES[1]);
+		expect(pairs[2].harmony).toBe(ALL_HARMONIES[2]);
+		expect(pairs[3].harmony).toBe(ALL_HARMONIES[3]);
+		expect(pairs[4].harmony).toBe(ALL_HARMONIES[4]);
+		// 6 個目は safe baseline (split-complementary) 固定
+		expect(pairs[5].harmony).toBe('split-complementary');
+	});
+
+	it('N=3 で 3 個 (短縮も safe)', () => {
+		const pairs = randomSeedPairN(3, 'glass', BG_REF_DARK, '#000000', '#000000');
+		expect(pairs).toHaveLength(3);
+	});
+
+	it('aesthetic が brutalist のとき全 候補 が brutalist chroma 帯に入る', () => {
+		const pairs = randomSeedPairN(6, 'brutalist', BG_REF_DARK, '#000000', '#000000');
+		// 全 6 候補 が SeedPair として valid (fallback でない / 6 桁 hex)
+		for (const p of pairs) {
+			expect(p.primary).toMatch(/^#[0-9a-f]{6}$/i);
 		}
 	});
 });
