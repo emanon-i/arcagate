@@ -46,6 +46,7 @@ const MIGRATION_041: &str = include_str!("../../migrations/041_theme_six_builtin
 const MIGRATION_042: &str = include_str!("../../migrations/042_exe_scan_cache.sql");
 const MIGRATION_043: &str = include_str!("../../migrations/043_builtin_theme_css_vars_seed.sql");
 const MIGRATION_044: &str = include_str!("../../migrations/044_theme_derive_palette_seed.sql");
+const MIGRATION_045: &str = include_str!("../../migrations/045_theme_palette_methodology_v2.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -93,6 +94,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_042),
         M::up(MIGRATION_043),
         M::up(MIGRATION_044),
+        M::up(MIGRATION_045),
     ])
 }
 
@@ -565,6 +567,113 @@ mod tests {
             custom_vars, "{\"--c-primary\":\"#abc\"}",
             "custom theme css_vars must be byte-identical (user data invariant)"
         );
+    }
+
+    /// PR #589 (migration 045): v2 methodology の transform 式出力で 6 builtin を再 seed。
+    /// 044 と同じ guard (`is_builtin = 1`) で custom theme は不可侵。
+    /// v2 で `--c-secondary` が全 builtin (brutalist 含む) に存在し、 semantic 値が
+    /// `derivePalette()` の transform 式 (chroma scale × base lightness + Δl) と一致する。
+    #[test]
+    fn test_migration_045_seeds_v2_methodology_values() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // migration 044 まで適用。
+        m.to_version(&mut conn, 44).unwrap();
+
+        // custom theme baseline (044 適用後の状態を持つ user)。
+        conn.execute(
+            "INSERT INTO themes (id, name, base_theme, css_vars, is_builtin) \
+             VALUES ('legacy-custom-589', 'Legacy 589', 'dark', '{\"--c-primary\":\"#abc\"}', 0)",
+            [],
+        )
+        .unwrap();
+
+        // migration 045 適用。
+        m.to_version(&mut conn, 45).unwrap();
+
+        // 6 builtin 全てに新 v2 値が seed されている (chroma scale で計算された値)。
+        // dark (glass dark): warn=0.8 0.14 75 (= 0.72+0.08, 0.14×1.0, canonical hue)。
+        let dark_vars: String = conn
+            .query_row("SELECT css_vars FROM themes WHERE id = 'dark'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert!(
+            dark_vars.contains("\"--c-warn\":\"oklch(0.8 0.14 75)\""),
+            "dark warn must match v2 transform output (semL=0.72+0.08, scale=1.0×0.14, h=75)"
+        );
+        assert!(
+            dark_vars.contains("\"--c-secondary\":\"oklch(0.5 0.14 5)\""),
+            "dark secondary must be split-complementary (215+150=365→5)"
+        );
+
+        // brutalist (light): chroma 0.14×1.5 = 0.21、 secondary = primary echo (single accent)。
+        let brutalist_vars: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'brutalist'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            brutalist_vars.contains("\"--c-error\":\"oklch(0.6 0.21 25)\""),
+            "brutalist light error must match v2 (semL=0.6, scale=1.5×0.14=0.21, h=25)"
+        );
+        assert!(
+            brutalist_vars.contains("\"--c-secondary\":\"oklch(0.5 0.22 28)\""),
+            "brutalist secondary must equal primary (single-accent design intent)"
+        );
+
+        // neumorph (light): chroma 0.14×0.6 = 0.084、 secondary = auto split-complementary (h+150°=70°)。
+        let neumorph_vars: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'neumorph'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            neumorph_vars.contains("\"--c-info\":\"oklch(0.64 0.084 230)\""),
+            "neumorph light info must match v2 (semL=0.6+0.04, scale=0.6×0.14=0.084, h=230)"
+        );
+        assert!(
+            neumorph_vars.contains("\"--c-secondary\":\"oklch(0.5 0.1 70)\""),
+            "neumorph secondary must be auto split-complementary (280+150=430→70)"
+        );
+
+        // custom theme は触られていない (045 も 044 と同じ contract)。
+        let custom_vars: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'legacy-custom-589'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            custom_vars, "{\"--c-primary\":\"#abc\"}",
+            "custom theme css_vars must be byte-identical (user data invariant)"
+        );
+
+        // canonical hue 4 軸 (75, 25, 150, 230) が全 6 builtin に出現することを再確認。
+        for id in [
+            "dark",
+            "light",
+            "brutalist",
+            "brutalist-dark",
+            "neumorph",
+            "neumorph-dark",
+        ] {
+            let vars: String = conn
+                .query_row("SELECT css_vars FROM themes WHERE id = ?1", [id], |r| {
+                    r.get(0)
+                })
+                .unwrap();
+            for h in [" 75)", " 25)", " 150)", " 230)"] {
+                assert!(vars.contains(h), "{id} must contain canonical hue {h}");
+            }
+        }
     }
 
     #[test]

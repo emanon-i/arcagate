@@ -27,13 +27,12 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-# PR #588: F3 (migration 043) の上に derivePalette 出力で再 seed する migration 044 が source。
-# 043 は空 '{}' → 旧値で seed する forward-only chain の中継、 044 は派生 token (`--c-info` /
-# `--ag-surface-tint-strength`) 込みで builtin の最新 SSOT。 audit は 044 を gate する。
-MIG="src-tauri/migrations/044_theme_derive_palette_seed.sql"
+# PR #589: 043 → 044 → 045 の forward-only chain で、 045 (v2 methodology = transform 式 +
+# WCAG + split-complementary) が現行 active な値の source。 audit は最後段 (045) を gate する。
+MIG="src-tauri/migrations/045_theme_palette_methodology_v2.sql"
 if [ ! -f "$MIG" ]; then
-  echo "ERROR: migration 044 (theme_derive_palette_seed.sql) が見つかりません: $MIG"
-  echo "  → PR #588 (derivePalette() で 6 builtin の css_vars を再 seed) の migration を作成してください"
+  echo "ERROR: migration 045 (theme_palette_methodology_v2.sql) が見つかりません: $MIG"
+  echo "  → PR #589 (derivePalette v2 methodology re-seed) の migration を作成してください"
   exit 1
 fi
 

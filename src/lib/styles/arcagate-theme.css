@@ -41,12 +41,15 @@
 	--c-glass-tint: oklch(0.99 0.004 250);
 	/* 文化的意味を持つため hue 固定、 l/c のみ primary に緩く追従。
 	   semantic 4 軸 (warn=H75 / error=H25 / success=H150 / info=H230) は
-	   `derivePalette()` (utils/derive-palette.ts) が aesthetic × base ごとに l/c を calibrate。
-	   :root 既定値は glass-light spec と一致。 */
-	--c-warn: oklch(0.74 0.16 75);
-	--c-error: oklch(0.58 0.20 25);
-	--c-success: oklch(0.66 0.15 150);
-	--c-info: oklch(0.58 0.16 230);
+	   `derivePalette()` (utils/derive-palette.ts) v2 methodology の transform 式で
+	   aesthetic × base ごとに l/c を calibrate:
+	     l = SEMANTIC_BASE_LIGHTNESS[base] + SEMANTIC_DELTA_L[semantic]
+	     c = SEMANTIC_BASE_CHROMA × AESTHETIC_CHROMA_SCALE[aesthetic]
+	   :root 既定値は glass-light (scale=1.0×0.14=0.14, semL=0.60) と一致。 */
+	--c-warn: oklch(0.68 0.14 75);
+	--c-error: oklch(0.6 0.14 25);
+	--c-success: oklch(0.66 0.14 150);
+	--c-info: oklch(0.64 0.14 230);
 
 	/* base 別 scrim (clear glass の dim layer / overlay 用) */
 	--scrim: oklch(0 0 0 / 0.45);
@@ -244,12 +247,11 @@
 	   §accent コントラスト契約)。 L0.50 で白文字 (L0.96) との比は ≈ 7.5:1 で AAA 達成。 */
 	--c-primary: oklch(0.50 0.14 215);
 	--c-glass-tint: oklch(0.99 0.004 250);
-	/* PR #588: glass dark の semantic 軸を derivePalette() の dark calibration と一致させる。
-	   warn は H80 → H75 へ (canonical hue 統一)、 success は H155 → H150 へ。 */
-	--c-warn: oklch(0.82 0.15 75);
-	--c-error: oklch(0.68 0.17 25);
+	/* PR #589 v2 methodology: glass dark (scale=1.0×0.14=0.14, semL=0.72) calibration。 */
+	--c-warn: oklch(0.8 0.14 75);
+	--c-error: oklch(0.72 0.14 25);
 	--c-success: oklch(0.78 0.14 150);
-	--c-info: oklch(0.75 0.14 230);
+	--c-info: oklch(0.76 0.14 230);
 
 	--scrim: oklch(0 0 0 / 0.6);
 	--scrim-dim: oklch(0 0 0 / 0.2);
@@ -434,13 +436,11 @@
 	/* PH-CF-800 F2: 旧 L0.66 では白文字との contrast が ≈ 3.0:1 で 4.5:1 未満。 L0.50 へ。 */
 	--c-primary: oklch(0.50 0.10 280);
 	--c-glass-tint: oklch(0.99 0.004 270);
-	/* PR #588: derivePalette('neumorph','light') と一致する semantic calibration。 旧 success
-	   L0.72 / warn L0.78 は dark base と l 順序が反転していた (audit doc §4 B 同根) ため、
-	   dark.l > light.l を満たすよう neumorph 全体を再 calibrate。 */
-	--c-warn: oklch(0.72 0.11 75);
-	--c-error: oklch(0.60 0.14 25);
-	--c-success: oklch(0.66 0.10 150);
-	--c-info: oklch(0.62 0.10 230);
+	/* PR #589 v2 methodology: neumorph light (scale=0.6×0.14=0.084, semL=0.6) calibration。 */
+	--c-warn: oklch(0.68 0.084 75);
+	--c-error: oklch(0.6 0.084 25);
+	--c-success: oklch(0.66 0.084 150);
+	--c-info: oklch(0.64 0.084 230);
 
 	--ag-radius-sm: 12px;
 	--ag-radius-md: 18px;
@@ -481,10 +481,11 @@
 	--c-primary: oklch(0.50 0.22 28);
 	--c-secondary: oklch(0.50 0.22 28);
 	--c-glass-tint: oklch(1 0 0);
-	--c-warn: oklch(0.62 0.18 75);
-	--c-error: oklch(0.52 0.22 25);
-	--c-success: oklch(0.55 0.16 150);
-	--c-info: oklch(0.50 0.20 230);
+	/* PR #589 v2 methodology: brutalist light (scale=1.5×0.14=0.21, semL=0.6) calibration。 */
+	--c-warn: oklch(0.68 0.21 75);
+	--c-error: oklch(0.6 0.21 25);
+	--c-success: oklch(0.66 0.21 150);
+	--c-info: oklch(0.64 0.21 230);
 
 	--ag-radius-sm: 0px;
 	--ag-radius-md: 0px;
@@ -545,12 +546,11 @@
 	/* PH-CF-800 F2: white-on-primary が 4.5:1 を満たす L0.50。 */
 	--c-primary: oklch(0.50 0.10 280);
 	--c-glass-tint: oklch(0.99 0.004 270);
-	/* PR #588: derivePalette('neumorph','dark') と一致。 dark.l > light.l (visibility) を保つよう
-	   全 semantic 軸を再 calibrate。 */
-	--c-warn: oklch(0.80 0.13 75);
-	--c-error: oklch(0.68 0.16 25);
-	--c-success: oklch(0.74 0.13 150);
-	--c-info: oklch(0.70 0.12 230);
+	/* PR #589 v2 methodology: neumorph dark (scale=0.6×0.14=0.084, semL=0.72) calibration。 */
+	--c-warn: oklch(0.8 0.084 75);
+	--c-error: oklch(0.72 0.084 25);
+	--c-success: oklch(0.78 0.084 150);
+	--c-info: oklch(0.76 0.084 230);
 
 	--ag-radius-sm: 12px;
 	--ag-radius-md: 18px;
@@ -595,10 +595,11 @@
 	--c-primary: oklch(0.50 0.20 28);
 	--c-secondary: oklch(0.50 0.20 28);
 	--c-glass-tint: oklch(0.16 0 0);
-	--c-warn: oklch(0.70 0.16 75);
-	--c-error: oklch(0.58 0.20 25);
-	--c-success: oklch(0.62 0.15 150);
-	--c-info: oklch(0.60 0.18 230);
+	/* PR #589 v2 methodology: brutalist dark (scale=1.5×0.14=0.21, semL=0.72) calibration。 */
+	--c-warn: oklch(0.8 0.21 75);
+	--c-error: oklch(0.72 0.21 25);
+	--c-success: oklch(0.78 0.21 150);
+	--c-info: oklch(0.76 0.21 230);
 
 	--ag-radius-sm: 0px;
 	--ag-radius-md: 0px;
