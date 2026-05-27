@@ -41,6 +41,15 @@
 		"rename": "名前を変更",
 		"select_all": "すべて選択"
 	},
+	"db_recovery": {
+		"ack": "了解",
+		"backup_path_label": "退避先",
+		"copy_path": "パスをコピー",
+		"copy_path_aria": "退避先パスをクリップボードにコピー",
+		"message": "前回起動時にデータベースの自動復旧が走り、 破損していた旧 DB を下記の場所に退避しました。 一部のデータが失われた可能性があります。 内容を確認したら「{ack}」 で閉じてください。",
+		"path_copied": "退避先パスをクリップボードにコピーしました",
+		"title": "データベースを自動復旧しました"
+	},
 	"dialog": {
 		"confirm_delete": "削除しますか?",
 		"dup_add_new": "別 widget として追加",

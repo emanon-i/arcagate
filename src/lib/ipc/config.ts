@@ -56,3 +56,25 @@ export async function factoryReset(resetLibrary: boolean, resetWorkspace: boolea
 export async function takeStartupNotices(): Promise<string[]> {
 	return invoke<string[]>('cmd_take_startup_notices');
 }
+
+/**
+ * DB 破損 self-recovery が発生したことを示す永続 marker (app data dir
+ * 直下 `db-recovery-notice.json`)。 `cmd_ack_db_recovery_notice` で消されるまで
+ * 起動毎に banner で再表示される。
+ *
+ * 動機 (2026-05-27): 旧実装は recovery 発生時に native dialog を一度出すだけで、
+ * dialog を閉じ忘れた / 控え忘れた user は「気づいたらデータが消えていた」 状態に
+ * なり得た。 永続 marker に置換し、 明示的に「了解」 されるまで surface し続ける。
+ */
+export interface DbRecoveryNotice {
+	backup_path: string;
+	recovered_at_unix: number;
+}
+
+export async function getDbRecoveryNotice(): Promise<DbRecoveryNotice | null> {
+	return invoke<DbRecoveryNotice | null>('cmd_get_db_recovery_notice');
+}
+
+export async function ackDbRecoveryNotice(): Promise<void> {
+	return invoke<void>('cmd_ack_db_recovery_notice');
+}

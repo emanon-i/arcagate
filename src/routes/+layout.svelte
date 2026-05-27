@@ -3,6 +3,7 @@ import '../app.css';
 // a11y トグル (透明度 / コントラスト / 動き) を起動時に <html> へ即時反映する side-effect import。
 import '$lib/state/a11y.svelte';
 import { onDestroy, onMount } from 'svelte';
+import DbRecoveryBanner from '$lib/components/arcagate/common/DbRecoveryBanner.svelte';
 import ScriptLaunchConfirmDialog from '$lib/components/common/ScriptLaunchConfirmDialog.svelte';
 import { detectOsLocale, type Locale, setLocale, t } from '$lib/i18n.svelte';
 import { takeStartupNotices } from '$lib/ipc/config';
@@ -92,6 +93,12 @@ function handleGlobalContextMenu(e: MouseEvent): void {
 </script>
 
 <svelte:window oncontextmenu={handleGlobalContextMenu} />
+
+<!--
+	DB self-recovery 永続 banner (2026-05-27 新設)。 backend marker file が
+	存在する限り再表示される sticky banner。 詳細は DbRecoveryBanner.svelte 参照。
+-->
+<DbRecoveryBanner />
 
 {@render children()}
 

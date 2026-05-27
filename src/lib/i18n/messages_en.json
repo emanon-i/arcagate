@@ -41,6 +41,15 @@
 		"rename": "Rename",
 		"select_all": "Select all"
 	},
+	"db_recovery": {
+		"ack": "OK",
+		"backup_path_label": "Backup path",
+		"copy_path": "Copy path",
+		"copy_path_aria": "Copy backup path to clipboard",
+		"message": "On the previous launch, automatic database recovery moved the corrupted DB to the path below. Some data may have been lost. After reviewing the path, dismiss this notice with \"{ack}\".",
+		"path_copied": "Backup path copied to clipboard",
+		"title": "Database was auto-recovered"
+	},
 	"dialog": {
 		"confirm_delete": "Delete?",
 		"dup_add_new": "Add as new widget",
