@@ -131,32 +131,69 @@ const AESTHETIC_RANGE: Record<Aesthetic, { c: [number, number]; l: [number, numb
 	brutalist: { c: [0.18, 0.28], l: [0.55, 0.65] },
 };
 
-/** harmony angle 候補 (補色 / 三角 / 類似 等)。 */
-const HARMONY_ANGLES = [30, 60, 120, 150, 180];
+/**
+ * PR #591: harmony モード (色相環上の primary/secondary 配置パターン)。
+ *
+ * デザイン理論の標準的な「色のハーモニー」 5 種類を offsets として表現:
+ *  - complementary    180°       — 補色、 強い対比 (純補色 dyad、 warm/cool 衝突可能性)
+ *  - split-complementary ±150°   — 補色の左右 30°、 調和を保ちつつ十分な hue 距離 (universal safe)
+ *  - triadic          ±120°      — 三角配色、 視覚的バランス強 (RGB / RYB の 3 等分)
+ *  - analogous        ±30°       — 類似色、 まとまり強だが contrast 弱
+ *  - tetradic         ±90°/180°  — 四角配色 (rectangle scheme)、 多色構成だが pair 化では 90° 採用
+ *
+ * 各 mode は ±方向 (時計回り / 反時計回り) を持つ。 randomSeedPair で sign を rand する。
+ */
+export type Harmony =
+	| 'complementary'
+	| 'split-complementary'
+	| 'triadic'
+	| 'analogous'
+	| 'tetradic';
+
+const HARMONY_OFFSETS: Record<Harmony, number> = {
+	complementary: 180,
+	'split-complementary': 150,
+	triadic: 120,
+	analogous: 30,
+	tetradic: 90,
+};
+
+/** 全 harmony を順列で返す (= UI の 6 候補グリッドで mix 表示する source)。 */
+export const ALL_HARMONIES: readonly Harmony[] = [
+	'complementary',
+	'split-complementary',
+	'triadic',
+	'analogous',
+	'tetradic',
+];
 
 function rand(min: number, max: number): number {
 	return min + Math.random() * (max - min);
 }
 
-function pick<T>(arr: readonly T[]): T {
-	return arr[Math.floor(Math.random() * arr.length)];
-}
-
 export interface SeedPair {
 	primary: string;
 	secondary: string;
+	/** PR #591: どの harmony で生成された pair か (UI の chip label / accessibility 用)。 */
+	harmony: Harmony;
 }
 
 /**
- * aesthetic に応じた chroma/lightness レンジでハーモニーな primary/secondary
- * pair を生成する。 secondary は背景 (bgHex) と WCAG AA (>=3:1) を満たすまで
- * 最大 10 回 re-roll、 最終的に落ちたら fallbackSecondary を返す。
+ * aesthetic に応じた chroma/lightness レンジでハーモニーな primary/secondary pair を生成する。
+ * harmony 未指定なら split-complementary (universal safe default、 PR #589 と整合)。
+ * secondary は背景 (bgHex) と WCAG AA (>=3:1) を満たすまで最大 10 回 re-roll、 最終的に
+ * 落ちたら fallback を返す。
+ *
+ * PR #591: harmony 引数を追加 (旧シグネチャと互換、 省略時は split-complementary)。
  */
 export function randomSeedPair(
 	aesthetic: Aesthetic,
 	bgHex: string,
-	fallbackPrimary: string,
+	// PR #591 で fallback path から primary 置換を削除した結果 unused に。 旧シグネチャ互換のため
+	// 名前を維持し、 `_` prefix で意図的に未使用化 (biome の noUnusedFunctionParameters 対応)。
+	_fallbackPrimary: string,
 	fallbackSecondary: string,
+	harmony: Harmony = 'split-complementary',
 ): SeedPair {
 	const range = AESTHETIC_RANGE[aesthetic];
 	const baseHue = rand(0, 360);
@@ -166,16 +203,50 @@ export function randomSeedPair(
 		h: baseHue,
 	});
 
-	for (let attempt = 0; attempt < 10; attempt++) {
-		const angle = pick(HARMONY_ANGLES) * (Math.random() < 0.5 ? -1 : 1);
+	const baseAngle = HARMONY_OFFSETS[harmony];
+	// PR #591: 旧実装は 10 attempts × 5 random angle で 50 探索空間、 新実装は 1 harmony 固定で
+	// 同 hue 周辺の選択肢が狭まる。 探索量を等価にするため retry を 20 に倍増する。
+	for (let attempt = 0; attempt < 20; attempt++) {
+		// 同 harmony 内で ± 方向をランダム化 (e.g., split-complementary は +150° / -150° どちらも有効)。
+		const angle = baseAngle * (Math.random() < 0.5 ? -1 : 1);
 		const secondary = oklchToHex({
 			l: rand(range.l[0], range.l[1]),
 			c: rand(range.c[0], range.c[1]),
 			h: (baseHue + angle + 360) % 360,
 		});
 		if (contrastRatio(secondary, bgHex) >= 3 && contrastRatio(primary, secondary) >= 1.25) {
-			return { primary, secondary };
+			return { primary, secondary, harmony };
 		}
 	}
-	return { primary: fallbackPrimary, secondary: fallbackSecondary };
+	// 探索失敗時 fallback。 PR #591: 旧実装は primary も fallback で置換していたが、 primary は
+	// 単独で正常に生成済なので user の意図する色を保ち、 secondary のみ fallback で置換する。
+	// 「random しても色が変わらない」 ⑫(b) 系の症状を fallback path で再発させないため。
+	return { primary, secondary: fallbackSecondary, harmony };
+}
+
+/**
+ * N 個 (default 6) の SeedPair を一度に生成する (PR #591: 6 候補ピッカー UI 用)。
+ *
+ * 設計: N=6 のとき、 ALL_HARMONIES (5 modes) を順に当てて 1 個ずつ、 6 個目は split-complementary
+ * (= universal safe) を redundant に当てる。 → user は「complementary のガチっとした対比」
+ * から 「analogous のまとまり」 「triadic のバランス」 まで 5 harmony × 1 example + safe baseline
+ * を 1 画面で見比べて選択可能。 同 harmony 内の primary hue は rand() で毎回違うので「同じ
+ * harmony が並ぶ」 単調さは出ない。
+ *
+ * @returns SeedPair[]、 各要素に `harmony` フィールドで生成 mode を含む (UI label 用)。
+ */
+export function randomSeedPairN(
+	n: number,
+	aesthetic: Aesthetic,
+	bgHex: string,
+	fallbackPrimary: string,
+	fallbackSecondary: string,
+): SeedPair[] {
+	const results: SeedPair[] = [];
+	for (let i = 0; i < n; i++) {
+		// ALL_HARMONIES (5 modes) を順に当てる。 6 個目は split-complementary (safe baseline)。
+		const harmony = i < ALL_HARMONIES.length ? ALL_HARMONIES[i] : ('split-complementary' as const);
+		results.push(randomSeedPair(aesthetic, bgHex, fallbackPrimary, fallbackSecondary, harmony));
+	}
+	return results;
 }
