@@ -44,12 +44,12 @@
 	   `derivePalette()` (utils/derive-palette.ts) v2 methodology の transform 式で
 	   aesthetic × base ごとに l/c を calibrate:
 	     l = SEMANTIC_BASE_LIGHTNESS[base] + SEMANTIC_DELTA_L[semantic]
-	     c = SEMANTIC_BASE_CHROMA × AESTHETIC_CHROMA_SCALE[aesthetic]
-	   :root 既定値は glass-light (scale=1.0×0.14=0.14, semL=0.60) と一致。 */
+	     c = SEMANTIC_BASE_CHROMA × AESTHETIC_CHROMA_SCALE[aesthetic]  // PR #590 で gamut clamp 後
+	   :root 既定値は glass-light (scale=1.0×0.14=0.14, semL=0.60) の clamped 値と一致。 */
 	--c-warn: oklch(0.68 0.14 75);
 	--c-error: oklch(0.6 0.14 25);
 	--c-success: oklch(0.66 0.14 150);
-	--c-info: oklch(0.64 0.14 230);
+	--c-info: oklch(0.64 0.125 230); /* PR #590: blue hue=230 は L=0.64 で gamut clamp により 0.14 → 0.125 */
 
 	/* base 別 scrim (clear glass の dim layer / overlay 用) */
 	--scrim: oklch(0 0 0 / 0.45);
@@ -481,11 +481,15 @@
 	--c-primary: oklch(0.50 0.22 28);
 	--c-secondary: oklch(0.50 0.22 28);
 	--c-glass-tint: oklch(1 0 0);
-	/* PR #589 v2 methodology: brutalist light (scale=1.5×0.14=0.21, semL=0.6) calibration。 */
-	--c-warn: oklch(0.68 0.21 75);
+	/* PR #590 brutalist light (scale=1.5×0.14=0.21, semL=0.6) calibration、 gamut clamped。
+	   - warn:    0.21 → 0.14  (yellow hue=75 が L=0.68 で gamut 制限大)
+	   - error:   0.21 維持  (red hue=25 は L=0.6 で gamut 内)
+	   - success: 0.21 → 0.18 (green hue=150 が L=0.66 で gamut 制限)
+	   - info:    0.21 → 0.125 (blue hue=230 が L=0.64 で gamut 制限大) */
+	--c-warn: oklch(0.68 0.14 75);
 	--c-error: oklch(0.6 0.21 25);
-	--c-success: oklch(0.66 0.21 150);
-	--c-info: oklch(0.64 0.21 230);
+	--c-success: oklch(0.66 0.18 150);
+	--c-info: oklch(0.64 0.125 230);
 
 	--ag-radius-sm: 0px;
 	--ag-radius-md: 0px;
@@ -595,11 +599,15 @@
 	--c-primary: oklch(0.50 0.20 28);
 	--c-secondary: oklch(0.50 0.20 28);
 	--c-glass-tint: oklch(0.16 0 0);
-	/* PR #589 v2 methodology: brutalist dark (scale=1.5×0.14=0.21, semL=0.72) calibration。 */
-	--c-warn: oklch(0.8 0.21 75);
-	--c-error: oklch(0.72 0.21 25);
+	/* PR #590 brutalist dark (scale=1.5×0.14=0.21, semL=0.72) calibration、 gamut clamped。
+	   - warn:    0.21 → 0.165 (yellow hue=75 が L=0.8 で gamut 制限)
+	   - error:   0.21 → 0.17  (red hue=25 が L=0.72 で gamut 制限)
+	   - success: 0.21 維持   (green hue=150 は L=0.78 で 0.21 が in-gamut)
+	   - info:    0.21 → 0.15  (blue hue=230 が L=0.76 で gamut 制限) */
+	--c-warn: oklch(0.8 0.165 75);
+	--c-error: oklch(0.72 0.17 25);
 	--c-success: oklch(0.78 0.21 150);
-	--c-info: oklch(0.76 0.21 230);
+	--c-info: oklch(0.76 0.15 230);
 
 	--ag-radius-sm: 0px;
 	--ag-radius-md: 0px;

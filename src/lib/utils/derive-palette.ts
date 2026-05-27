@@ -60,7 +60,9 @@
  * - docs/l3_phases/audit/BUILTIN_THEME_DIFF_MATRIX_2026-05-27.md §5
  * - docs/l3_phases/audit/DEV_REVIEW_R4_THREE_DEFECTS_2026-05-27.md §4
  */
+import { APCA_BRONZE_LC_BODY, apcaLcAbsHex } from './apca';
 import { type Aesthetic, contrastRatio, oklchToHex } from './color';
+import { clampToGamut } from './gamut';
 
 export interface Oklch {
 	l: number;
@@ -146,6 +148,8 @@ const SECONDARY_SHIFT_DEG = 150;
 
 /** WCAG AA 4.5:1 を target に primary を auto-adjust する。 */
 const WCAG_AA_RATIO = 4.5;
+/** APCA Bronze body text 相当 (Lc 絶対値) — PR #590 で WCAG と並んで gate される。 */
+const APCA_TARGET_LC = APCA_BRONZE_LC_BODY;
 const WCAG_AUTOADJUST_STEP = 0.02;
 const WCAG_AUTOADJUST_MAX_STEPS = 30;
 
@@ -188,19 +192,36 @@ export function wcagContrastOklch(a: Oklch, b: Oklch): number {
 }
 
 /**
- * primary が white background に対し WCAG AA (4.5:1) を満たすよう L を自動下げる。
- * 用途: solid primary button の text=white を想定した最も厳しいケース。 ここで AA を保証すれば、
- * 通常運用 (color-mix された accent-text vs accent bg) も大幅に余裕を持って AA をクリアする。
+ * primary が white background に対し **WCAG AA (4.5:1) と APCA Lc ≥ 60 の両方を満たす** よう
+ * L を自動下げる (PR #590)。
  *
- * hue / chroma は保持し L のみ調整する (= 「user の意図する色相」 を壊さない)。
- * L=0 に至っても満たさない極端な input に対しては best-effort で最低 L を返す (clamp01 の効果)。
+ * 用途: solid primary button の text=white を想定した最も厳しいケース。 ここで両 metric を
+ * 保証すれば、 通常運用 (color-mix された accent-text vs accent bg) も大幅に余裕を持ってクリアする。
+ *
+ * 2 軸 (WCAG luminance ratio + APCA polarity-aware perceptual) を AND で gate する理由:
+ * APCA は polarity (光寄り/暗寄り) と body text 想定の応答曲線を考慮するため、 WCAG だけだと
+ * 「数値上 AA 通過、 実用上不可読」 (Andrew Somers の APCA paper §3) を起こしうる。 両方を
+ * 同時に通過させることで、 数値上の安心と実用上の可読性を both 担保する。
+ *
+ * hue / chroma は保持し L のみ調整 (user の意図する色相を壊さない)。 L=0 に至っても満たさない
+ * 極端な input は best-effort で最低 L を返す。
+ *
+ * @param targetWcag - WCAG AA threshold (default 4.5、 normal text body)
+ * @param targetApcaLc - APCA Lc threshold (default 60、 body text Bronze)
  */
-export function ensureAaAgainstWhite(primary: Oklch, targetRatio = WCAG_AA_RATIO): Oklch {
+export function ensureAaAgainstWhite(
+	primary: Oklch,
+	targetWcag = WCAG_AA_RATIO,
+	targetApcaLc = APCA_TARGET_LC,
+): Oklch {
 	const WHITE: Oklch = { l: 1, c: 0, h: 0 };
+	const WHITE_HEX = '#ffffff';
 	let candidate = primary;
 	for (let i = 0; i < WCAG_AUTOADJUST_MAX_STEPS; i++) {
-		if (wcagContrastOklch(candidate, WHITE) >= targetRatio) return candidate;
-		// 白 (L=1) との contrast が足りない = primary が明るすぎる。 L を下げる方向で adjust。
+		const wcag = wcagContrastOklch(candidate, WHITE);
+		const lc = apcaLcAbsHex(oklchToHex(candidate), WHITE_HEX);
+		if (wcag >= targetWcag && lc >= targetApcaLc) return candidate;
+		// 白との contrast が足りない (WCAG or APCA) = primary が明るすぎる。 L を下げる方向で adjust。
 		candidate = { l: clamp01(candidate.l - WCAG_AUTOADJUST_STEP), c: candidate.c, h: candidate.h };
 	}
 	return candidate;
@@ -211,18 +232,22 @@ export function ensureAaAgainstWhite(primary: Oklch, targetRatio = WCAG_AA_RATIO
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * 派生 token を transform 式で計算する純関数。
+ * 派生 token を transform 式で計算する純関数 (v2 + PR #590 gamut clamp)。
  *
  * 入力: primary (Oklch) + 任意の secondary + aesthetic + base
  * 出力: `--c-primary` / `--c-secondary` / `--c-warn` / `--c-error` / `--c-success` / `--c-info`
  *
  * 各 token の transform 式:
- * - `--c-primary` = ensureAaAgainstWhite(input.primary)
+ * - `--c-primary` = ensureAaAgainstWhite(input.primary)   // WCAG 4.5:1 + APCA Lc ≥ 60
  * - `--c-secondary` = input.secondary ?? deriveSecondary(adjusted primary)   // h+150°
- * - `--c-warn` = oklch(semL[base] + 0.08, 0.14 × scale[aesthetic], 75)
- * - `--c-error` = oklch(semL[base] + 0.00, 0.14 × scale[aesthetic], 25)
- * - `--c-success` = oklch(semL[base] + 0.06, 0.14 × scale[aesthetic], 150)
- * - `--c-info` = oklch(semL[base] + 0.04, 0.14 × scale[aesthetic], 230)
+ * - `--c-warn` = clampToGamut(oklch(semL[base] + 0.08, 0.14 × scale[aesthetic], 75))
+ * - `--c-error` = clampToGamut(oklch(semL[base] + 0.00, 0.14 × scale[aesthetic], 25))
+ * - `--c-success` = clampToGamut(oklch(semL[base] + 0.06, 0.14 × scale[aesthetic], 150))
+ * - `--c-info` = clampToGamut(oklch(semL[base] + 0.04, 0.14 × scale[aesthetic], 230))
+ *
+ * PR #590: 各 semantic 出力に `clampToGamut()` を適用する (= chroma scale × hue 組合せで
+ * sRGB gamut 外に振れる brutalist (c=0.21) の特定 hue を、 chroma を下げて hue を保ったまま
+ * gamut 内に収める)。 これにより browser の hard-clamp 経由の意図しない hue shift を防ぐ。
  */
 export function derivePalette(input: PaletteInput): DerivedPalette {
 	const { primary: rawPrimary, secondary, aesthetic, baseTheme } = input;
@@ -231,11 +256,12 @@ export function derivePalette(input: PaletteInput): DerivedPalette {
 	const semC = SEMANTIC_BASE_CHROMA * AESTHETIC_CHROMA_SCALE[aesthetic];
 	const semBaseL = SEMANTIC_BASE_LIGHTNESS[baseTheme];
 
-	const sem = (h: number, deltaL: number): Oklch => ({
-		l: clamp01(semBaseL + deltaL),
-		c: semC,
-		h,
-	});
+	const sem = (h: number, deltaL: number): Oklch =>
+		clampToGamut({
+			l: clamp01(semBaseL + deltaL),
+			c: semC,
+			h,
+		});
 
 	return {
 		'--c-primary': formatOklch(primary),
@@ -307,4 +333,5 @@ export const PALETTE_METHODOLOGY = {
 	SEMANTIC_DELTA_L,
 	SECONDARY_SHIFT_DEG,
 	WCAG_AA_RATIO,
+	APCA_TARGET_LC,
 } as const;

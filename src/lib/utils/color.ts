@@ -9,20 +9,25 @@
 // PH-CF-800 F1: HUD は user 判断で builtin から削除。 aesthetic axis は 3 軸に縮約。
 export type Aesthetic = 'glass' | 'neumorph' | 'brutalist';
 
-interface Oklch {
+export interface Oklch {
 	l: number;
 	c: number;
 	h: number;
 }
 
-interface LinearRgb {
+export interface LinearRgb {
 	r: number;
 	g: number;
 	b: number;
 }
 
-/** oklch → linear sRGB (Björn Ottosson の oklab 変換)。 */
-function oklchToLinearRgb({ l: L, c, h }: Oklch): LinearRgb {
+/**
+ * oklch → linear sRGB (Björn Ottosson の oklab 変換)。
+ * PR #590 で gamut / APCA / 色弱シミュレーション用に export 化 (旧 private 化は維持して
+ * 重複実装を避ける)。 戻り値の channel は **gamut 外を示す負値や 1 超過もそのまま返す**
+ * (clamp は呼び出し側の `clamp01` で行う、 = gamut 判定で out-of-range を検出する目的)。
+ */
+export function oklchToLinearRgb({ l: L, c, h }: Oklch): LinearRgb {
 	const hr = (h * Math.PI) / 180;
 	const a = c * Math.cos(hr);
 	const b = c * Math.sin(hr);
@@ -66,8 +71,10 @@ export function oklchToHex(o: Oklch): string {
 	)}`;
 }
 
-/** `#rrggbb` → linear sRGB。 */
-function hexToLinearRgb(hex: string): LinearRgb {
+/**
+ * `#rrggbb` → linear sRGB。 PR #590 で gamut / 色弱シミュレーション用に export 化。
+ */
+export function hexToLinearRgb(hex: string): LinearRgb {
 	const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
 	const n = m ? Number.parseInt(m[1], 16) : 0;
 	const toLinear = (srgb: number) =>
