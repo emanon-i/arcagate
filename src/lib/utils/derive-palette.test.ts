@@ -113,7 +113,11 @@ describe('derivePalette: canonical hue 固定', () => {
 });
 
 describe('derivePalette: aesthetic chroma scale (transform 式の数値検証)', () => {
-	it('全 semantic 軸が `SEMANTIC_BASE_CHROMA × AESTHETIC_CHROMA_SCALE[aesthetic]` を満たす', () => {
+	it('全 semantic 軸の chroma が `SEMANTIC_BASE_CHROMA × AESTHETIC_CHROMA_SCALE[aesthetic]` を上限とする', () => {
+		// PR #590 gamut clamp: brutalist の chroma 0.21 は L / hue 組合せ次第で sRGB gamut 外。
+		// clampToGamut が chroma を下げる → 出力 chroma は **expected 以下** (上限) が contract。
+		// 「等しい」 は brutalist では成立しないが、 glass (1.0×0.14=0.14) / neumorph (0.6×0.14=0.084) は
+		// 大半の hue で gamut 内なので大抵 equality が成立する。
 		const SEMANTIC_KEYS = ['--c-warn', '--c-error', '--c-success', '--c-info'] as const;
 		for (const a of AESTHETICS) {
 			for (const base of BASE_THEMES) {
@@ -126,13 +130,38 @@ describe('derivePalette: aesthetic chroma scale (transform 式の数値検証)',
 				});
 				for (const k of SEMANTIC_KEYS) {
 					const c = parseOklch(p[k]).c;
-					expect(c, `${a} ${base} ${k}: c = ${expectedC}`).toBeCloseTo(expectedC, 6);
+					expect(c, `${a} ${base} ${k}: c ≤ ${expectedC} (gamut clamp 後)`).toBeLessThanOrEqual(
+						expectedC + 1e-6,
+					);
 				}
 			}
 		}
 	});
 
-	it('brutalist > glass > neumorph の chroma 比率 (vivid / sophisticated / pastel)', () => {
+	it('brutalist の平均 chroma > glass > neumorph (gamut clamp 後も順序保持)', () => {
+		// gamut clamp で brutalist の一部 semantic は chroma が削られるが、 「全 semantic の平均」 では
+		// brutalist > glass > neumorph の順序が保たれることを検証 (= vivid / sophisticated / pastel
+		// の aesthetic identity が UI 上で識別可能な水準で残る)。
+		const SEMANTIC_KEYS = ['--c-warn', '--c-error', '--c-success', '--c-info'] as const;
+		const avgChroma = (a: Aesthetic, base: 'dark' | 'light'): number => {
+			const p = derivePalette({
+				primary: { l: 0.5, c: 0.14, h: 215 },
+				aesthetic: a,
+				baseTheme: base,
+			});
+			const cs = SEMANTIC_KEYS.map((k) => parseOklch(p[k]).c);
+			return cs.reduce((s, x) => s + x, 0) / cs.length;
+		};
+		for (const base of BASE_THEMES) {
+			const cBru = avgChroma('brutalist', base);
+			const cGla = avgChroma('glass', base);
+			const cNeu = avgChroma('neumorph', base);
+			expect(cBru, `${base}: brutalist avg c > glass avg c`).toBeGreaterThan(cGla);
+			expect(cGla, `${base}: glass avg c > neumorph avg c`).toBeGreaterThan(cNeu);
+		}
+	});
+
+	it('AESTHETIC_CHROMA_SCALE の数値比率は 1.5 / 1.0 / 0.6 (定数定義 gate)', () => {
 		const glassC =
 			PALETTE_METHODOLOGY.SEMANTIC_BASE_CHROMA * PALETTE_METHODOLOGY.AESTHETIC_CHROMA_SCALE.glass;
 		const brutC =
@@ -143,8 +172,6 @@ describe('derivePalette: aesthetic chroma scale (transform 式の数値検証)',
 			PALETTE_METHODOLOGY.AESTHETIC_CHROMA_SCALE.neumorph;
 		expect(brutC / glassC).toBeCloseTo(1.5, 6);
 		expect(glassC / neuC).toBeCloseTo(1 / 0.6, 6);
-		expect(brutC).toBeGreaterThan(glassC);
-		expect(glassC).toBeGreaterThan(neuC);
 	});
 });
 
@@ -267,6 +294,8 @@ describe('migration 044 同期 gate (derivePalette ↔ SQL byte-for-byte)', () =
 	// 「derive 関数を変更したら SQL を更新し忘れる」 回帰を防ぐ。
 	// 値は formatOklch() 文字列での expect (= SQL に貼り付ける値そのもの)。
 	const MIG_044_LITERALS: Record<string, Record<string, string>> = {
+		// PR #590 gamut clamp 後の値: brutalist の warn / info 等が sRGB gamut 外で削られる。
+		// scripts/gen-mig-044.mts を実行して取得した実値で expect。
 		dark: {
 			'--c-primary': 'oklch(0.5 0.14 215)',
 			'--c-secondary': 'oklch(0.5 0.14 5)',
@@ -281,23 +310,23 @@ describe('migration 044 同期 gate (derivePalette ↔ SQL byte-for-byte)', () =
 			'--c-warn': 'oklch(0.68 0.14 75)',
 			'--c-error': 'oklch(0.6 0.14 25)',
 			'--c-success': 'oklch(0.66 0.14 150)',
-			'--c-info': 'oklch(0.64 0.14 230)',
+			'--c-info': 'oklch(0.64 0.125 230)',
 		},
 		brutalist: {
 			'--c-primary': 'oklch(0.5 0.22 28)',
 			'--c-secondary': 'oklch(0.5 0.22 28)',
-			'--c-warn': 'oklch(0.68 0.21 75)',
+			'--c-warn': 'oklch(0.68 0.14 75)',
 			'--c-error': 'oklch(0.6 0.21 25)',
-			'--c-success': 'oklch(0.66 0.21 150)',
-			'--c-info': 'oklch(0.64 0.21 230)',
+			'--c-success': 'oklch(0.66 0.18 150)',
+			'--c-info': 'oklch(0.64 0.125 230)',
 		},
 		'brutalist-dark': {
 			'--c-primary': 'oklch(0.5 0.2 28)',
 			'--c-secondary': 'oklch(0.5 0.2 28)',
-			'--c-warn': 'oklch(0.8 0.21 75)',
-			'--c-error': 'oklch(0.72 0.21 25)',
+			'--c-warn': 'oklch(0.8 0.165 75)',
+			'--c-error': 'oklch(0.72 0.17 25)',
 			'--c-success': 'oklch(0.78 0.21 150)',
-			'--c-info': 'oklch(0.76 0.21 230)',
+			'--c-info': 'oklch(0.76 0.15 230)',
 		},
 		neumorph: {
 			'--c-primary': 'oklch(0.5 0.1 280)',

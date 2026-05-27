@@ -27,12 +27,12 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-# PR #589: 043 → 044 → 045 の forward-only chain で、 045 (v2 methodology = transform 式 +
-# WCAG + split-complementary) が現行 active な値の source。 audit は最後段 (045) を gate する。
-MIG="src-tauri/migrations/045_theme_palette_methodology_v2.sql"
+# PR #590: 043 → 044 → 045 → 046 の forward-only chain で、 046 (gamut-clamped final values)
+# が現行 active な値の source。 audit は最後段 (046) を gate する。
+MIG="src-tauri/migrations/046_theme_palette_gamut_clamped.sql"
 if [ ! -f "$MIG" ]; then
-  echo "ERROR: migration 045 (theme_palette_methodology_v2.sql) が見つかりません: $MIG"
-  echo "  → PR #589 (derivePalette v2 methodology re-seed) の migration を作成してください"
+  echo "ERROR: migration 046 (theme_palette_gamut_clamped.sql) が見つかりません: $MIG"
+  echo "  → PR #590 (gamut-clamped re-seed) の migration を作成してください"
   exit 1
 fi
 

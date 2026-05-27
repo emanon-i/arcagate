@@ -47,6 +47,7 @@ const MIGRATION_042: &str = include_str!("../../migrations/042_exe_scan_cache.sq
 const MIGRATION_043: &str = include_str!("../../migrations/043_builtin_theme_css_vars_seed.sql");
 const MIGRATION_044: &str = include_str!("../../migrations/044_theme_derive_palette_seed.sql");
 const MIGRATION_045: &str = include_str!("../../migrations/045_theme_palette_methodology_v2.sql");
+const MIGRATION_046: &str = include_str!("../../migrations/046_theme_palette_gamut_clamped.sql");
 
 pub fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
@@ -95,6 +96,7 @@ pub fn migrations() -> Migrations<'static> {
         M::up(MIGRATION_043),
         M::up(MIGRATION_044),
         M::up(MIGRATION_045),
+        M::up(MIGRATION_046),
     ])
 }
 
@@ -673,6 +675,73 @@ mod tests {
             for h in [" 75)", " 25)", " 150)", " 230)"] {
                 assert!(vars.contains(h), "{id} must contain canonical hue {h}");
             }
+        }
+    }
+
+    /// PR #590 (migration 046): gamut clamp 後の値で builtin を再 seed。
+    /// 045 → 046 で brutalist の warn/error/info chroma が下がっていることを確認。
+    #[test]
+    fn test_migration_046_seeds_gamut_clamped_values() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply_pragmas(&conn).unwrap();
+        let m = migrations();
+
+        // 045 まで適用 (brutalist は high chroma 0.21 で seed された状態)。
+        m.to_version(&mut conn, 45).unwrap();
+        let brut_before: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'brutalist'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            brut_before.contains("\"--c-warn\":\"oklch(0.68 0.21 75)\""),
+            "baseline (045): brutalist warn は 0.21 (gamut 外 raw 値) で seed されている"
+        );
+
+        // 046 適用。
+        m.to_version(&mut conn, 46).unwrap();
+        let brut_after: String = conn
+            .query_row(
+                "SELECT css_vars FROM themes WHERE id = 'brutalist'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        // brutalist light warn は 0.21 → 0.14 (gamut clamp で大きく削られる)。
+        assert!(
+            brut_after.contains("\"--c-warn\":\"oklch(0.68 0.14 75)\""),
+            "046: brutalist light warn の chroma が gamut clamp で 0.21 → 0.14 に下がる"
+        );
+        // brutalist light info も 0.21 → 0.125 (青系 gamut 制限)。
+        assert!(
+            brut_after.contains("\"--c-info\":\"oklch(0.64 0.125 230)\""),
+            "046: brutalist light info の chroma が 0.21 → 0.125"
+        );
+        // brutalist light error は 0.21 維持 (red は L=0.6 で gamut 内)。
+        assert!(
+            brut_after.contains("\"--c-error\":\"oklch(0.6 0.21 25)\""),
+            "046: brutalist light error は 0.21 維持 (red gamut 内)"
+        );
+        // 045 で全 builtin に追加された --c-secondary が引き続き存在する (clone fidelity)。
+        for id in [
+            "dark",
+            "light",
+            "brutalist",
+            "brutalist-dark",
+            "neumorph",
+            "neumorph-dark",
+        ] {
+            let vars: String = conn
+                .query_row("SELECT css_vars FROM themes WHERE id = ?1", [id], |r| {
+                    r.get(0)
+                })
+                .unwrap();
+            assert!(
+                vars.contains("--c-secondary"),
+                "{id}: --c-secondary must be preserved in 046 (clone fidelity)"
+            );
         }
     }
 
