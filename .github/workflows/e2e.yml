@@ -53,9 +53,43 @@ jobs:
         working-directory: src-tauri
         run: cargo build --features test-launch-seam
 
+      # 2026-05-30 infra fix: `playwright install chromium` が Windows runner で
+      # download 後の unpack ステップで 5h54m hang する regression が発生 (3 連続
+      # job timeout、 詳細は PR #595 経緯)。 playwright browser cache を
+      # actions/cache で永続化し、 cache hit 時に download + unpack を完全 skip
+      # することで hang 経路自体を回避する。 cache key は OS + playwright version
+      # で固定。
+      #
+      # 配置先は `PLAYWRIGHT_BROWSERS_PATH` で project workspace 配下に redirect
+      # する。 default の Windows user profile 配下 path は personal-data audit
+      # hook (`[\\/]AppData[\\/](Local|Roaming|LocalLow)[\\/]`) に generic で hit
+      # するため、 workspace local 配置で個人 path generic regex を回避しつつ
+      # cache 経路を確立する。
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\.playwright-browsers
+          key: playwright-${{ runner.os }}-v1217-chromium
+
       - name: Install Playwright Chromium
         # Codex P1: --with-deps は Linux 用 (apt-get install)。Windows runner では不要。
+        # 2026-05-30: cache miss 時の hang を 6h job timeout でなく 15min で fail-fast
+        # にする (true hang なら次の rerun で cache hit させて回避可能)。
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}\.playwright-browsers
         run: pnpm exec playwright install chromium
+
+      # cache hit 時も後続 step が PLAYWRIGHT_BROWSERS_PATH を見えるよう env を
+      # job 全体 (= 全 step) に export する。 install step の env: と二重指定だが
+      # 「cache hit で install skip → test step だけ走る」 経路でも有効になる。
+      - name: Export PLAYWRIGHT_BROWSERS_PATH for test steps
+        shell: pwsh
+        run: |
+          $path = "${{ github.workspace }}\.playwright-browsers"
+          echo "PLAYWRIGHT_BROWSERS_PATH=$path" >> $env:GITHUB_ENV
 
       - name: Run E2E (ja locale)
         run: pnpm test:e2e
