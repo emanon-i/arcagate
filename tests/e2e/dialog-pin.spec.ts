@@ -47,6 +47,15 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 	// fail した場合の state 漏れを解消し、retry を自己回復させる)。
 	test.beforeEach(async ({ page }) => {
 		await closeAnyDialog(page);
+		// 2026-05-30 追加: 前 spec の afterEach が Library tab に戻していない可能性
+		// (e.g. a11y.spec.ts の Workspace test 後 が Workspace tab で終わる)。 dialog-pin
+		// の test 1 は `[data-testid="add-item-button"]` を期待するが、 Workspace tab に
+		// いると button 自体が DOM に無い = click({timeout: 30_000}) も意味なく失敗する。
+		// 明示的に Library tab に navigate してから wrapper visible を待つ。
+		const libraryTab = page.getByRole('button', { name: 'Library', exact: true });
+		if (await libraryTab.isVisible().catch(() => false)) {
+			await libraryTab.click({ timeout: 5_000 }).catch(() => {});
+		}
 		// WebView2 cold start で <main> は出ても Library toolbar (add-item-button 等) の
 		// hydration が遅れることがある。Library wrapper の visible を待ち、最初の test の
 		// 1 回目から add-item-button が確実に DOM にある状態にする。
