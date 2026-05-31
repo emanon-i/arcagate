@@ -73,8 +73,12 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 	test('ItemFormDialog: 「アイテムを追加」 button click で開く + Escape で閉じる', async ({
 		page,
 	}) => {
-		// Library tab is default
-		await page.locator('[data-testid="add-item-button"]').first().click({ timeout: 10_000 });
+		// Library tab is default。
+		// 2026-05-30: 直近 GitHub Windows runner で WebView2 cold start から button
+		// actionable まで 10s 超かかるケースが安定再現 (PR #595 経緯)。 click action
+		// timeout を 30s に伸ばして slow runner の cold-hydration race を吸収 (assert
+		// 内容は不変、 単にタイミング許容幅を広げるだけ)。
+		await page.locator('[data-testid="add-item-button"]').first().click({ timeout: 30_000 });
 		const dialog = page.getByRole('dialog').filter({ hasText: 'アイテムを追加' }).first();
 		await expect(dialog).toBeVisible({ timeout: 5_000 });
 
@@ -83,7 +87,8 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 	});
 
 	test('ItemFormDialog: backdrop click で閉じる', async ({ page }) => {
-		await page.locator('[data-testid="add-item-button"]').first().click({ timeout: 10_000 });
+		// 2026-05-30: dialog-pin test 1 と同様に slow runner 対応で 10s → 30s。
+		await page.locator('[data-testid="add-item-button"]').first().click({ timeout: 30_000 });
 		const dialog = page.getByRole('dialog').filter({ hasText: 'アイテムを追加' }).first();
 		await expect(dialog).toBeVisible({ timeout: 5_000 });
 
