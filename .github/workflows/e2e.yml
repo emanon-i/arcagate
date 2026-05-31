@@ -72,12 +72,19 @@ jobs:
           path: ${{ github.workspace }}\.playwright-browsers
           key: playwright-${{ runner.os }}-v1217-chromium
 
-      - name: Install Playwright Chromium
+      - name: Install Playwright Chromium (best-effort)
         # Codex P1: --with-deps は Linux 用 (apt-get install)。Windows runner では不要。
         # 2026-05-30: cache miss 時の hang を 6h job timeout でなく 15min で fail-fast
-        # にする (true hang なら次の rerun で cache hit させて回避可能)。
+        # にする + `continue-on-error: true` で fail を job 全体には伝播させない。
+        #
+        # 本 repo の e2e は `chromium.connectOverCDP(http://localhost:9515)` で
+        # **WebView2 instance に attach** する設計 (tests/fixtures/global-setup.ts:114)
+        # で、 Playwright 同梱の Chrome binary は実行時に使用しない。 install は
+        # 念のため (trace viewer 等の補助機能用) に試行するだけで、 失敗しても
+        # 後続 test step は走る = hang による job kill を完全に切り離す。
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         timeout-minutes: 15
+        continue-on-error: true
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}\.playwright-browsers
         run: pnpm exec playwright install chromium
