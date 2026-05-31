@@ -54,6 +54,16 @@ test.describe('Dialog pin: 共通挙動 (open / Escape close / backdrop close)',
 			.getByTestId('library-main-wrapper')
 			.waitFor({ state: 'visible', timeout: 15_000 })
 			.catch(() => {});
+		// 2026-05-30 追加: wrapper visible 時点では子の add-item-button が未 hydration
+		// な場合があり、 直後の click(timeout: 10s) が間に合わず初回 + retry 両方 fail
+		// するケースを観測 (main 直近の "成功" run も実は同 test が retry に依存して
+		// 救われていた、 PR #595 経緯)。 wrapper だけでなく click target 本体を直接
+		// 待って hydration race を構造的に消す。
+		await page
+			.locator('[data-testid="add-item-button"]')
+			.first()
+			.waitFor({ state: 'visible', timeout: 15_000 })
+			.catch(() => {});
 	});
 
 	test.afterEach(async ({ page }) => {
