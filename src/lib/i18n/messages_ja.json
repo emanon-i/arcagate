@@ -334,6 +334,13 @@
 	},
 	"settings": {
 		"about": {
+			"data_location_appdata_label": "アプリデータ",
+			"data_location_db_label": "データベース",
+			"data_location_heading": "データの保存場所",
+			"data_location_intro": "Arcagate は以下のフォルダにデータを保存しています。 「フォルダを開く」 で Explorer で開けます。 アンインストール時に手動で削除してください。",
+			"data_location_log_label": "ログ",
+			"data_location_open": "フォルダを開く",
+			"data_location_open_aria": "{kind} の保存先を Explorer で開く",
 			"description": "PC上に散在する起動元を集約する個人用コマンドパレット",
 			"heading": "このアプリについて",
 			"source_code": "ソースコード"

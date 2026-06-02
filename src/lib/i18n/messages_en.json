@@ -334,6 +334,13 @@
 	},
 	"settings": {
 		"about": {
+			"data_location_appdata_label": "App data",
+			"data_location_db_label": "Database",
+			"data_location_heading": "Data location",
+			"data_location_intro": "Arcagate stores its data in the folders below. Use \"Open folder\" to reveal them in Explorer. Delete these folders manually when uninstalling.",
+			"data_location_log_label": "Logs",
+			"data_location_open": "Open folder",
+			"data_location_open_aria": "Open {kind} location in Explorer",
 			"description": "A personal launcher that aggregates scattered launch sources in one place",
 			"heading": "About",
 			"source_code": "Source code"

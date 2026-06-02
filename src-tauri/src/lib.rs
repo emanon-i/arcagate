@@ -8,6 +8,7 @@ pub mod services;
 pub mod utils;
 pub mod watcher;
 
+use commands::app_paths_commands::cmd_get_app_paths;
 use commands::bookmark_commands::cmd_parse_bookmark_file;
 use commands::config_commands::{
     cmd_get_autostart, cmd_get_config, cmd_get_hotkey, cmd_is_onboarding_complete,
@@ -479,6 +480,7 @@ pub fn run() {
             cmd_delete_opener,
             cmd_launch_with_opener,
             cmd_take_startup_notices,
+            cmd_get_app_paths,
         ])
         .run(tauri::generate_context!())
     {
