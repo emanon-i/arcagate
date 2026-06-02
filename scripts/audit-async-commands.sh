@@ -32,6 +32,7 @@ SYNC_ALLOWED="
   cmd_is_setup_complete cmd_mark_onboarding_complete cmd_mark_setup_complete
   cmd_reset_first_run cmd_set_autostart cmd_set_config cmd_set_hotkey
   cmd_take_startup_notices
+  cmd_get_app_paths
   cmd_cancel_exe_scan cmd_cancel_file_search
   cmd_get_exe_scan_cached cmd_save_exe_scan_cache cmd_invalidate_exe_scan_cache
   cmd_bulk_add_tag cmd_bulk_delete_items cmd_bulk_remove_tag cmd_check_is_directory

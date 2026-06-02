@@ -56,3 +56,18 @@ export async function factoryReset(resetLibrary: boolean, resetWorkspace: boolea
 export async function takeStartupNotices(): Promise<string[]> {
 	return invoke<string[]>('cmd_take_startup_notices');
 }
+
+/**
+ * PH-CF-1300: データ透明化 — 設定 → About → Data location section が表示する
+ * 絶対 path 群を取得。 個人 PC 上の username が含まれるため、 log / commit / PR
+ * description に転記しないこと。
+ */
+export interface AppPaths {
+	db: string;
+	app_data_dir: string;
+	log_dir: string;
+}
+
+export async function getAppPaths(): Promise<AppPaths> {
+	return invoke<AppPaths>('cmd_get_app_paths');
+}

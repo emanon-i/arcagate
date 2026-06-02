@@ -134,6 +134,11 @@ pre-commit:
       # source aesthetic が伝播する条件を機械検出 (audit doc THEME_CLONE_AESTHETIC_LOST_2026-05-26.md)。
       glob: "{src-tauri/migrations/*.sql,src/lib/styles/arcagate-theme.css}"
       run: bash scripts/audit-builtin-theme-css-vars.sh
+    readme-data-location:
+      # PH-CF-1300: README にデータ保存場所 section + 主要 path 言及 + 旧 identifier
+      # 残骸なし、 の 3 点を fail-closed gate (user 透明性契約)。 README.md 変更時に走る。
+      glob: "README.md"
+      run: bash scripts/audit-readme-data-location.sh
 
 # pre-push: batch-76 で復活（GIT_* env var 漏出が tempdir tests を破壊する症状を究明 + 修正済）。
 # - worktree から push する場合は事前に `bash scripts/setup-worktree.sh` を実行

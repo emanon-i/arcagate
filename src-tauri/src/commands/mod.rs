@@ -1,4 +1,5 @@
 // Tauri command handlers (thin layer over services)
+pub mod app_paths_commands;
 pub mod bookmark_commands;
 pub mod config_commands;
 pub mod exe_scanner_commands;
