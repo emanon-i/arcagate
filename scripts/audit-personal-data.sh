@@ -45,6 +45,12 @@ SELF_EXCLUDE=(
   "scripts/.personal-data-patterns.local.txt"
   "scripts/audit-personal-data.sh"
   "docs/l3_phases/audit/PERSONAL_DATA_LEAK_AUDIT_2026-05-20.md"
+  # 2026-06-02 追加: 2026-05-28〜2026-06-01 の調査 audit 群。 path leak pattern や
+  # `%LOCALAPPDATA%\Microsoft\EdgeWebView\` 等の OS 管理 path を **論じる** 過程で
+  # regex に hit するが、 doc 内表記は全て `<personal>` / `<workspace>` placeholder か
+  # 公開 runner 名 (`runneradmin`) で固定 = 個人情報を含まない。
+  "docs/l3_phases/audit/PERSONAL_PATH_LEAK_AUDIT_2026-05-28.md"
+  "docs/l3_phases/audit/PORTABLE_FEASIBILITY_AUDIT_2026-05-28.md"
   ".github/pull_request_template.md"
 )
 
