@@ -254,11 +254,90 @@ git push origin v0.2.1  # → release.yml 自動発火
 
 # Tauri Updater 公開鍵 / 秘密鍵 手順書 (Tier 1)
 
-**Status**: 2026-05-05 user-action-required (audit B-1 / F3 + F10 root cause)
+**Status**: 2026-06-26 active — auto-update 有効化方針確定 (改名なし / Arcagate 継続)。初回 `v0.1.0` リリースに向け鍵セットアップ着手。手順は §0 (クイック)。旧: 2026-05-05 user-action-required / deferred (audit B-1 / F3 + F10)
 **Scope**: arcagate (Tauri v2 + GH Releases auto-update) の updater 鍵運用 = **Tier 1 (auto-update 経路の完全性)**
 
 **関連**: 配布元 attestation (**Tier 2**) は [cosign-verification.md](./cosign-verification.md) 参照。
 Tier 2 は agent が CI に統合済 (R10-X PR)、user 作業 0 で運用中。本 Tier 1 と独立した信頼レイヤー。
+
+---
+
+## 0. セットアップ & 初回リリース クイック手順 (2026-06 確定: auto-update 有効化)
+
+> 2026-06-26 に **auto-update を有効化する方針が確定** (改名なし / Arcagate 継続)。本節は鍵生成 〜 初回 `v0.1.0` リリースまでの最短手順。**秘密鍵・passphrase は AI (Claude Code 等) に一切渡さない**前提 (理由は §4)。各 step の詳細は §1〜§12 を参照。
+
+### 0.1 確定事実 (実ファイル確認済み)
+
+| 項目               | 値                                                                                   | 出典 / 注意                                    |
+| ------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Tauri              | **v2** (tauri 2.11.1 / `@tauri-apps/cli` 2.11 / `tauri-plugin-updater` 2)            | `src-tauri/Cargo.toml` / `package.json`        |
+| 署名 env 名 (v2)   | `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`                   | v1 の `TAURI_PRIVATE_KEY` 系ではない (§7 注意) |
+| release.yml の参照 | `secrets.TAURI_SIGNING_PRIVATE_KEY` / `..._PASSWORD` を **既に正しい名前で参照済み** | `.github/workflows/release.yml`                |
+| updater plugin     | 登録済み (`tauri_plugin_updater::Builder`) / conf `active: true`                     | `src-tauri/src/lib.rs` / `tauri.conf.json`     |
+
+### 0.2 ⚠ 必須の隠れ設定: `bundle.createUpdaterArtifacts`
+
+`tauri.conf.json` の `bundle` に **`"createUpdaterArtifacts": true` が無いと、`tauri build` が `.sig` (署名 artifact) を生成しない** (v2 の既定は false)。その結果 `release.yml` の `latest.json` の `signature` が空になり、**auto-update の署名検証が成立しない**。pubkey を入れるだけでは不十分で、この設定追加が必須。
+
+```jsonc
+"bundle": {
+  "active": true,
+  "targets": "all",
+  "createUpdaterArtifacts": true,   // ← 追加必須 (これが無いと .sig が出ない)
+  // ...
+}
+```
+
+(この conf 変更は公開情報のみ。pubkey 反映 §6 と合わせて「リリース前 fix PR」で適用)
+
+### 0.3 実行順序の鉄則
+
+**鍵・secret・pubkey が揃う前にタグを打つと、CI の `tauri build` が必ず失敗する** (updater 有効 + 鍵不在 / placeholder pubkey で config 検証エラー)。必ず次の順で:
+
+```
+[本人]  鍵生成 (§5) → GitHub Secrets 登録 (§7 / §0.4) → 公開鍵を conf に反映 (§6)
+            │  (3 つ揃ってから)
+            ▼
+[fix PR] createUpdaterArtifacts: true (§0.2) + pubkey を main へ merge
+            │
+            ▼
+[本人]  git tag v0.1.0 && git push --tags   (または Actions の workflow_dispatch で tag 指定)
+            │
+            ▼
+release.yml が draft Release を生成 → 内容確認 → 手動 Publish
+```
+
+### 0.4 GitHub Secrets 登録 (GUI / gh CLI)
+
+GUI: repo → Settings → Secrets and variables → **Actions** → New repository secret を 2 つ (値は §7 の表)。
+
+gh CLI (値は本人端末で処理され、AI を経由しない):
+
+```bash
+# 秘密鍵ファイルから直接登録 (中身を画面に出さない)
+gh secret set TAURI_SIGNING_PRIVATE_KEY < "<鍵保管 dir>/arcagate-updater.key"
+# passphrase は対話入力 (履歴・画面に残さない)
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+```
+
+### 0.5 役割分担チェックリスト
+
+**🧑 本人 (秘密に触れる部分、agent 代行不可):**
+
+- [ ] `pnpm tauri signer generate -w "$HOME/.tauri/arcagate-updater.key"` で鍵生成 + passphrase 設定 (§5)
+- [ ] 秘密鍵の中身 + passphrase をパスワードマネージャ保管 (リポ / cloud / chat 厳禁、§3)
+- [ ] GitHub Actions Secrets に 2 つ登録 (§0.4 / §7)
+- [ ] 公開鍵 `*.key.pub` の中身を conf の `pubkey` に反映 (自分で貼る or 公開鍵だけ AI に渡す、§6)
+- [ ] 3 つ揃ったら fix PR を merge → `git tag v0.1.0 && git push --tags`
+- [ ] 生成された draft Release を確認 → 手動 Publish (§8 / §9)
+
+**🤖 エージェント (秘密に触れない部分、承認後):**
+
+- [ ] `tauri.conf.json`: `createUpdaterArtifacts: true` 追加 (§0.2) + (公開鍵を受領した場合のみ) `pubkey` 反映
+- [ ] `release.yml` / `CHANGELOG.md` のリリース前 fix (本節とは別 PR)
+- [ ] tag push 後に CI が失敗した場合の build ログ切り分け
+
+> 公開鍵は **公開 OK** (repo commit・配布バイナリに埋込まれる、§2)。秘密鍵 / passphrase は **絶対秘匿**。鍵紛失 / ローテーションは §10 (minisign に revocation 機構なし。鍵を失うと既存 user へ更新を配れず、手動 reinstall 案内しかない)。
 
 ---
 
@@ -393,6 +472,9 @@ GitHub repo settings → Secrets and variables → Actions:
 ## 8. 手順 D: release tag push で auto-sign 動作確認 (agent 代行可能)
 
 `release.yml` 内で `pnpm tauri build` が `TAURI_SIGNING_PRIVATE_KEY` 環境変数を読んで自動署名する。
+
+**前提**: `tauri.conf.json` の `bundle.createUpdaterArtifacts: true` が必須 (§0.2)。これが無いと `.sig` artifact が生成されず、`latest.json` の `signature` が空になる。
+
 release tag push (`v0.1.0` 等) を 1 度行い:
 
 1. CI run で `tauri-build` step が成功
