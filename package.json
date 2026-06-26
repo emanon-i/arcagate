@@ -16,6 +16,7 @@
 		"test:e2e:en": "playwright test --config playwright.en.config.ts",
 		"test:perf": "playwright test --config playwright.perf.config.ts",
 		"tauri": "tauri",
+		"app:dev": "tauri dev --config src-tauri/tauri.dev.conf.json",
 		"verify:smoke": "bash scripts/smoke-test.sh",
 		"audit:hotkey": "bash scripts/audit-hotkey-consistency.sh",
 		"audit:design-tokens": "bash scripts/audit-design-tokens.sh",
