@@ -1,18 +1,25 @@
-# Release workflow (PH-447 batch-100 / Distribution Era)
+# Release workflow (Distribution Era)
 #
-# tag push (v*.*.*) でトリガ:
-# 1. pnpm tauri build (Windows release バイナリ + msi/nsis bundle)
-# 2. (証明書 secret あれば) sign-windows.ps1 で Authenticode 署名
-# 3. tauri signer sign で .sig 生成 (updater 用)
-# 4. R10-X: cosign keyless で MSI / NSIS / SHA256SUMS.txt に Sigstore bundle 添付
-# 5. gh release create + bundle / latest.json / *.sigstore.json 添付
+# tag push (v*.*.*) または workflow_dispatch でトリガ。
+#
+# ■ tier (Assets の厚み) — Generate tier step で決定:
+#   - full: メジャー vX.0.0、または workflow_dispatch tier=full
+#       → NSIS + MSI + cosign sigstore + SBOM を同梱 (節目リリース / 配布・監査向け)
+#   - lean: それ以外 (patch / minor)
+#       → NSIS (setup.exe) + latest.json + SHA256SUMS のみ (日常リリース)
+#   ※ Store 配布に着手する節目では full の bundle list / 添付に MSIX を足す (下記 BUNDLES / 添付の TODO)
+#
+# 共通ステップ:
+#   1. pnpm tauri build (--bundles は tier 連動)
+#   2. (証明書 secret あれば) sign-windows.ps1 で Authenticode 署名
+#   3. createUpdaterArtifacts で .sig 生成 (updater 用) → latest.json
+#   4. SHA256SUMS.txt
+#   5. gh release create (draft)
 #
 # 必要 secret (optional、未設定でも build は通る):
-# - WINDOWS_CERTIFICATE: PFX ファイル (base64)
-# - WINDOWS_CERTIFICATE_PASSWORD: PFX パスワード
-# - TAURI_SIGNING_PRIVATE_KEY: tauri-plugin-updater 署名秘密鍵
-# - TAURI_SIGNING_PRIVATE_KEY_PASSWORD: 秘密鍵パスフレーズ
-# cosign keyless は GitHub Actions OIDC のみ使用、追加 secret は不要。
+# - WINDOWS_CERTIFICATE / WINDOWS_CERTIFICATE_PASSWORD: Authenticode PFX
+# - TAURI_SIGNING_PRIVATE_KEY / TAURI_SIGNING_PRIVATE_KEY_PASSWORD: updater 署名鍵
+# cosign keyless は GitHub Actions OIDC のみ使用、追加 secret 不要。
 
 name: Release
 
@@ -25,6 +32,15 @@ on:
       tag:
         description: "Release tag (e.g. v0.2.0)"
         required: true
+      tier:
+        description: "Assets tier (auto = vX.0.0→full / 他→lean)"
+        type: choice
+        options:
+          - auto
+          - lean
+          - full
+        default: auto
+        required: false
 
 jobs:
   build:
@@ -32,13 +48,48 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
-      # R10-X: cosign keyless signing で OIDC token (job_workflow_ref claim) を Fulcio に提示
+      # cosign keyless signing で OIDC token (job_workflow_ref claim) を Fulcio に提示 (full のみ使用)
       id-token: write
 
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 1
+
+      - name: Determine tag
+        id: tag
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Determine tier
+        id: tier
+        shell: bash
+        run: |
+          # workflow_dispatch の明示指定を最優先。push / auto はタグ形で判定。
+          REQ="${{ github.event.inputs.tier }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+          if [ "$REQ" = "full" ]; then
+            TIER=full
+          elif [ "$REQ" = "lean" ]; then
+            TIER=lean
+          elif echo "$TAG" | grep -qE '^v[0-9]+\.0\.0$'; then
+            # メジャー vX.0.0 は節目 → full
+            TIER=full
+          else
+            TIER=lean
+          fi
+          # bundle list: full は NSIS + MSI。Store 着手時はここに msix を追記 (TODO MSIX)。
+          if [ "$TIER" = "full" ]; then
+            BUNDLES="nsis msi"
+          else
+            BUNDLES="nsis"
+          fi
+          echo "tier=$TIER" >> "$GITHUB_OUTPUT"
+          echo "bundles=$BUNDLES" >> "$GITHUB_OUTPUT"
+          echo "Tier=$TIER / bundles=$BUNDLES (tag=$TAG, requested=$REQ)"
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
@@ -60,7 +111,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm tauri build
+        run: pnpm tauri build --bundles ${{ steps.tier.outputs.bundles }}
 
       - name: Authenticode sign (optional)
         if: env.WINDOWS_CERTIFICATE != ''
@@ -76,25 +127,10 @@ jobs:
           $env:ARCAGATE_CERT_PASSWORD = $env:WINDOWS_CERTIFICATE_PASSWORD
           pwsh scripts/sign-windows.ps1
 
-      - name: Determine tag
-        id: tag
-        shell: bash
-        run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Generate SBOM (CycloneDX, PH-448)
-        shell: powershell
-        run: |
-          cargo install cargo-cyclonedx --quiet --locked
-          pwsh scripts/generate-sbom.ps1 -OutputDir .
-
       - name: Generate latest.json (Updater feed)
         shell: powershell
         run: |
           $version = "${{ steps.tag.outputs.version }}"
-          $msi = Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | Select-Object -First 1
           $nsis = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
           $sig = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.sig" -ErrorAction SilentlyContinue | Select-Object -First 1
           $sigContent = if ($sig) { (Get-Content $sig.FullName -Raw).Trim() } else { "" }
@@ -114,36 +150,42 @@ jobs:
           $latest | Out-File -FilePath "latest.json" -Encoding utf8
           Get-Content latest.json
 
-      - name: Generate SHA256 checksums (R6-5)
+      - name: Generate SHA256 checksums
         shell: bash
         run: |
-          msi=$(ls src-tauri/target/release/bundle/msi/*.msi | head -1)
+          : > SHA256SUMS.txt
           nsis=$(ls src-tauri/target/release/bundle/nsis/*.exe | head -1)
-          # release artifact ごとの SHA256 を 1 ファイルに集約 (audit F9 sha256 同梱)
-          {
-            (cd "$(dirname "$msi")" && sha256sum "$(basename "$msi")")
-            (cd "$(dirname "$nsis")" && sha256sum "$(basename "$nsis")")
-          } > SHA256SUMS.txt
+          (cd "$(dirname "$nsis")" && sha256sum "$(basename "$nsis")") >> SHA256SUMS.txt
+          # MSI は full tier のみ存在
+          msi=$(ls src-tauri/target/release/bundle/msi/*.msi 2>/dev/null | head -1 || true)
+          if [ -n "$msi" ]; then
+            (cd "$(dirname "$msi")" && sha256sum "$(basename "$msi")") >> SHA256SUMS.txt
+          fi
           echo "===== SHA256SUMS.txt ====="
           cat SHA256SUMS.txt
 
-      # R10-X: cosign keyless signing for distribution attestation (Tier 2、配布元 attestation)。
-      # Tier 1 (minisign updater) は user タスク、Tier 2 (cosign) は agent 完全自動。
-      # GH Actions OIDC token (job_workflow_ref claim) を Fulcio に提示 → 短期 cert 発行
-      # → cosign sign-blob で署名 + Rekor transparency log にエントリ追加 → bundle JSON 生成。
-      # ユーザは cosign verify-blob --bundle <file>.sigstore.json で配布元同一性を再現検証可能。
-      - name: Install cosign (R10-X、Sigstore keyless)
+      # ---- full tier 限定: SBOM + cosign keyless 配布元 attestation ----
+      - name: Generate SBOM (CycloneDX, full tier)
+        if: steps.tier.outputs.tier == 'full'
+        shell: powershell
+        run: |
+          cargo install cargo-cyclonedx --quiet --locked
+          pwsh scripts/generate-sbom.ps1 -OutputDir .
+
+      - name: Install cosign (full tier、Sigstore keyless)
+        if: steps.tier.outputs.tier == 'full'
         uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
 
-      - name: Cosign sign-blob (MSI / NSIS / SHA256SUMS.txt)
+      - name: Cosign sign-blob (full tier、NSIS / MSI / SHA256SUMS.txt)
+        if: steps.tier.outputs.tier == 'full'
         shell: bash
         run: |
-          msi=$(ls src-tauri/target/release/bundle/msi/*.msi | head -1)
           nsis=$(ls src-tauri/target/release/bundle/nsis/*.exe | head -1)
-          # Sigstore bundle (JSON) を artifact ごとに生成 (cert + sig + Rekor 含む単一ファイル)。
-          # --yes は Rekor transparency log への upload 同意プロンプトをスキップ (CI 必須)。
-          # COSIGN_EXPERIMENTAL は cosign v2+ で不要。
-          for f in "$msi" "$nsis" SHA256SUMS.txt; do
+          msi=$(ls src-tauri/target/release/bundle/msi/*.msi 2>/dev/null | head -1 || true)
+          # Sigstore bundle (cert + sig + Rekor) を artifact ごとに生成。--yes で Rekor upload 同意を skip。
+          targets="$nsis SHA256SUMS.txt"
+          if [ -n "$msi" ]; then targets="$targets $msi"; fi
+          for f in $targets; do
             base=$(basename "$f")
             out="${base}.sigstore.json"
             cosign sign-blob --yes --bundle "$out" "$f"
@@ -156,57 +198,74 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           TAG: ${{ steps.tag.outputs.tag }}
+          TIER: ${{ steps.tier.outputs.tier }}
         shell: bash
         run: |
-          msi=$(ls src-tauri/target/release/bundle/msi/*.msi | head -1)
           nsis=$(ls src-tauri/target/release/bundle/nsis/*.exe | head -1)
-          sbom_args=""
-          if [ -f sbom-rust.json ]; then sbom_args="$sbom_args sbom-rust.json"; fi
-          if [ -f sbom-npm.json ]; then sbom_args="$sbom_args sbom-npm.json"; fi
-          checksum_args=""
-          if [ -f SHA256SUMS.txt ]; then checksum_args="SHA256SUMS.txt"; fi
-          # R10-X: cosign Sigstore bundle (*.sigstore.json) も同梱
-          cosign_args=""
+          # 添付は存在するものだけ集める (lean では msi / sbom / sigstore は無い)
+          extra=""
+          msi=$(ls src-tauri/target/release/bundle/msi/*.msi 2>/dev/null | head -1 || true)
+          if [ -n "$msi" ]; then extra="$extra $msi"; fi
+          if [ -f SHA256SUMS.txt ]; then extra="$extra SHA256SUMS.txt"; fi
+          if [ -f sbom-rust.json ]; then extra="$extra sbom-rust.json"; fi
+          if [ -f sbom-npm.json ]; then extra="$extra sbom-npm.json"; fi
           for sb in *.sigstore.json; do
-            if [ -f "$sb" ]; then cosign_args="$cosign_args $sb"; fi
+            if [ -f "$sb" ]; then extra="$extra $sb"; fi
           done
-          # release notes は heredoc で file に書き出し → --notes-file で渡す
-          # (multi-line --notes "..." を YAML literal block 内で直書きすると、本文中の
-          # 行頭が YAML 解釈に合わず workflow validation が 0s fail する。fix forward 2026-05-06)
-          # heredoc 区切り 'NOTES' は quoted = 変数展開なし、backtick / backslash を全て literal 保持。
-          # ${TAG} / ${REPO} は heredoc 後に sed で代入。
+
+          # release notes は heredoc で file に書き出し → --notes-file で渡す。
+          # 'NOTES' quoted = 変数展開なし (backtick / backslash を literal 保持)。
+          # 行頭 10 space は YAML run-block indent 由来 → sed で除去。__TAG__/__REPO__ も sed 代入。
+          # <!--FULL-->〜<!--/FULL--> は full tier のみ残す配布元検証ブロック。
           cat > release-notes.md <<'NOTES'
-          **Arcagate __TAG__**
+          # 🎉 Arcagate __TAG__
 
-          PC のあちこちに散らばった起動元 — Steam ゲーム / アプリ / 開発ツール / スクリプト / URL — を、ひとつの工具箱に集約する個人用ランチャーです。
+          PC に散らばった起動元をひとつに。
+          Steam ゲーム・アプリ・開発ツール・スクリプト・よく開く URL を、Arcagate から検索して一発で起動できます。
 
-          ## インストール
+          ## ✨ 主な機能
 
-          1. 下の **Assets** から `Arcagate_..._x64-setup.exe` (推奨) または `.msi` をダウンロード
+          - **集約** — 種類を問わず、あらゆる起動元を 1 か所に登録
+          - **即起動** — 検索して Enter。余計なメニューを挟まない
+          - **Workspace** — シナリオ別に並べたランチャーパッドで、作業の入り口をまとめて開く
+          - **即反映** — 設定を変えたら見た目もその場で変わる
+
+          ## 📦 インストール
+
+          1. 下の **Assets** から **`Arcagate_..._x64-setup.exe`** をダウンロード
           2. 実行してインストール
-          3. 初回起動で Windows SmartScreen が警告する場合があります (現状コード署名なしのための正常な挙動)。**詳細情報 → 実行** で起動できます
+          3. 初回起動で Windows SmartScreen が「WindowsによってPCが保護されました」と警告する場合があります（現状コード署名なしのための正常な挙動）。**詳細情報 → 実行** で起動できます
 
           対応: **Windows 11 / 64-bit**
 
-          ## 自動アップデート
+          ## 🔄 自動アップデート
 
           アプリ内の自動アップデートに対応。新しいリリースは署名検証付きで通知され、その場で更新できます。
 
-          ## データについて
+          ## 💾 データについて
 
-          - DB は **前方向きのみ更新** (forward-only)。新バージョンで自動的にスキーマ更新され、古いバージョンへは戻せません
-          - 大切なデータは **Settings → データ → エクスポート** から定期バックアップを推奨します
+          - 起動元・設定・テーマはすべて単一の `arcagate.db` に保存
+          - DB は **前方向きのみ更新**（forward-only）。新バージョンへ自動移行し、古いバージョンへは戻せません
 
           ---
 
-          <details><summary>上級者向け: 配布物の検証 (任意)</summary>
+          <details><summary>🛠️ 上級者向け（使い込む人へ）</summary>
 
-          チェックサム:
+          - **バックアップ / 復元** — Settings → データ → エクスポートで全データを JSON 出力。再インストールや別 PC でインポートすれば丸ごと復元できます
+          - **グローバルホットキー** — どこからでもパレットを呼び出すキーを Settings で変更可能
+          - **自動起動** — OS 起動時に常駐させるかを Settings で ON/OFF
+          - **テーマの持ち出し** — 作ったテーマを JSON でエクスポート / インポートして共有
+          </details>
+
+          <details><summary>🔐 配布物の検証（任意）</summary>
+
+          ダウンロードの破損チェック:
           ```bash
           sha256sum -c SHA256SUMS.txt
           ```
+          <!--FULL-->
 
-          配布元の検証 (Sigstore keyless attestation):
+          配布元の検証（Sigstore keyless attestation、フルリリースのみ同梱）:
           ```bash
           cosign verify-blob \
             --bundle <ARTIFACT>.sigstore.json \
@@ -214,17 +273,18 @@ jobs:
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             <ARTIFACT>
           ```
-
-          サポート / 運用詳細: [operations.md](https://github.com/__REPO__/blob/main/docs/l1_requirements/operations.md) ・ [CHANGELOG.md](https://github.com/__REPO__/blob/main/CHANGELOG.md)
+          <!--/FULL-->
           </details>
           NOTES
-          # leading 10 space (YAML run-block indent 要件) 除去 + placeholder → 値 代入
           sed -i -e 's/^          //' -e "s|__TAG__|${TAG}|g" -e "s|__REPO__|${REPO}|g" release-notes.md
-          echo "===== release-notes.md ====="
+          if [ "$TIER" = "full" ]; then
+            sed -i -e '/<!--FULL-->/d' -e '/<!--\/FULL-->/d' release-notes.md
+          else
+            sed -i -e '/<!--FULL-->/,/<!--\/FULL-->/d' release-notes.md
+          fi
+          echo "===== release-notes.md ($TIER) ====="
           cat release-notes.md
-          echo "===== release-notes.md ====="
-          cat release-notes.md
-          gh release create "$TAG" "$msi" "$nsis" latest.json $sbom_args $checksum_args $cosign_args \
+          gh release create "$TAG" "$nsis" latest.json $extra \
             --title "Arcagate $TAG" \
             --notes-file release-notes.md \
             --draft
