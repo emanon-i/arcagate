@@ -19,6 +19,9 @@ fn git_cmd() -> Command {
     ] {
         c.env_remove(var);
     }
+    // Windows: 走査ごとに git を多数 spawn するため、 console window のちらつきを抑止
+    // (user 報告 2026-06: プロジェクトモーダルの git 走査で大量の console が出る)。
+    crate::utils::process::hide_console(&mut c);
     c
 }
 
