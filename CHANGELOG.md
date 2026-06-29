@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-06-26
+
+初回 GitHub Release (Library overhaul L1-L3 + Workspace canvas rewrite Phase 1+1.1 完了)。
+
 ### Added
 
 - Library overhaul: keyboard nav (grid 矢印 / Enter / Esc / Space / Home/End / F3 edit / Delete / Ctrl+A / Ctrl+F / type-to-jump) (#286 内包 → #287)
@@ -41,10 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - ClockWidget を完全廃止 (4 回 fix 後 user 体感不改善のため、user 判断、 #274)
-
-## [0.1.0] — 2026-05-04 (target、未 release)
-
-初回 0.1.0 release を予定 (Library overhaul L1-L3 + Workspace canvas rewrite Phase 1+1.1 完了)。
 
 [Unreleased]: https://github.com/emanon-i/arcagate/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/emanon-i/arcagate/releases/tag/v0.1.0
