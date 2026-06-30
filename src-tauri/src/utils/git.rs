@@ -8,7 +8,10 @@ use crate::utils::error::AppError;
 /// 親プロセス（Tauri / lefthook 等）から漏れた GIT_* 環境変数を除去した Command を作る。
 /// これらが設定されていると、`current_dir` を指定しても git は親 repo を操作してしまう。
 fn git_cmd() -> Command {
-    let mut c = Command::new("git");
+    // 背景の git 走査。 走査ごとに git を多数 spawn するため、 background_command 経由で
+    // Windows の console window ちらつきを抑止する (user 報告 2026-06: プロジェクトモーダルの
+    // git 走査で大量の console が出る)。
+    let mut c = crate::utils::process::background_command("git");
     for var in [
         "GIT_DIR",
         "GIT_WORK_TREE",
@@ -19,9 +22,6 @@ fn git_cmd() -> Command {
     ] {
         c.env_remove(var);
     }
-    // Windows: 走査ごとに git を多数 spawn するため、 console window のちらつきを抑止
-    // (user 報告 2026-06: プロジェクトモーダルの git 走査で大量の console が出る)。
-    crate::utils::process::hide_console(&mut c);
     c
 }
 

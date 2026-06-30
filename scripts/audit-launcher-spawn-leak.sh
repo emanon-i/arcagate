@@ -16,6 +16,13 @@
 # Windows System32 (`cmd.exe` / `powershell.exe`) や Git install dir (`git.exe`) に native
 # `.exe` で実在し、 PATHEXT 漏れ問題は発生しない。 変数を渡す場合は allowlist を抜ける。
 #
+# file 除外:
+#   - launcher/mod.rs  : 本 audit が集約先として認める唯一の spawn module。
+#   - utils/process.rs : 背景 spawn factory `background_command`。 固定 system command (git /
+#                        powershell) 専用で PATHEXT 解決は不要だが、 内部で `Command::new(program)`
+#                        を変数で呼ぶため (a) check の対象から外す。 console 非表示観点の不変条件は
+#                        姉妹 audit scripts/audit-background-spawn-console.sh が別途 gate する。
+#
 # 引用元 guideline:
 #   docs/l3_phases/audit/SPAWN_HORIZONTAL_PATHEXT_SEAM_2026-05-26.md §6
 #   memory/feedback_horizontal_application.md (2026-05-13 横展開 sweep 原則)
@@ -37,6 +44,7 @@ CMD_LEAKS=$(
   grep -rnE 'Command::new\(' src-tauri/src \
     --include='*.rs' 2>/dev/null \
     | grep -v '^src-tauri/src/launcher/mod\.rs:' \
+    | grep -v '^src-tauri/src/utils/process\.rs:' \
     | grep -vE ':[[:space:]]*//' \
     | grep -vE "$ALLOWED_RE" \
     || true

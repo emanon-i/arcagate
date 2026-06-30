@@ -94,6 +94,14 @@ jobs:
         shell: bash
         run: bash scripts/audit-widget-shell.sh
 
+      - name: Background spawn console audit (2026-06 console window 漏れ防止)
+        shell: bash
+        run: bash scripts/audit-background-spawn-console.sh
+
+      - name: Background spawn console audit self-test
+        shell: bash
+        run: bash scripts/test-audit-background-spawn-console.sh
+
       - name: A11y icon-only button aria-label audit (R7-2)
         shell: bash
         run: bash scripts/audit-aria-icon-only-buttons.sh

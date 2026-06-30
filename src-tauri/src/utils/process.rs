@@ -28,3 +28,21 @@ pub fn hide_console(cmd: &mut Command) -> &mut Command {
     }
     cmd
 }
+
+/// **背景 (app 内部) で叩く console プロセス** 用の `Command` を生成する単一 factory。
+///
+/// 返ってきた `Command` は Windows で `CREATE_NO_WINDOW` 済みなので、 `.output()` /
+/// `.status()` / `.spawn()` のいずれで実行しても console window がちらつかない。
+///
+/// 不変条件 (audit `audit-background-spawn-console.sh` で fail-closed gate):
+/// **`launcher/mod.rs` 以外で背景プロセスを spawn する時は、 生 `Command::new(...)` を
+/// 直接使わず必ず本 factory を経由する**。 launcher module は user が明示起動する CLI /
+/// script / terminal を扱う唯一の例外で、 そこは console 可視が正のため対象外。
+///
+/// 用途は git / powershell 等の **固定 system command** に限る (PATHEXT 解決は不要)。
+/// PATH × PATHEXT 解決が要る user-facing な bare name は `launcher::resolved_command` を使う。
+pub fn background_command<S: AsRef<std::ffi::OsStr>>(program: S) -> Command {
+    let mut cmd = Command::new(program);
+    hide_console(&mut cmd);
+    cmd
+}

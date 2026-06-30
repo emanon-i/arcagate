@@ -35,10 +35,9 @@ $bmp.Save('{1}', [System.Drawing.Imaging.ImageFormat]::Png);
         ps_single_quote_escape(exe_path),
         ps_single_quote_escape(output_path)
     );
-    // background の icon 抽出。 Windows で console window がちらつかないよう抑止する。
-    let mut cmd = std::process::Command::new("powershell");
+    // background の icon 抽出。 background_command 経由で Windows の console window ちらつきを抑止。
+    let mut cmd = crate::utils::process::background_command("powershell");
     cmd.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
-    crate::utils::process::hide_console(&mut cmd);
     let output = cmd.output()?;
     if !output.status.success() {
         return Err(AppError::LaunchFailed(

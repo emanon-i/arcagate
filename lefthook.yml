@@ -127,6 +127,12 @@ pre-commit:
       # / .spawn() 直呼びを禁止 (PATHEXT 解決 + e2e seam を全 spawn 経路に集約)。
       glob: "src-tauri/src/**/*.rs"
       run: bash scripts/audit-launcher-spawn-leak.sh
+    background-spawn-console:
+      # user 報告 2026-06: 背景 git 走査で console window が大量に出る。 launcher/mod.rs 以外の
+      # 背景 spawn は utils::process::background_command 経由 (Windows CREATE_NO_WINDOW) を強制し、
+      # console 非表示フラグ漏れの再発を fail-closed gate する。
+      glob: "src-tauri/src/**/*.rs"
+      run: bash scripts/audit-background-spawn-console.sh
     builtin-theme-css-vars:
       # F3 根治 (migration 043): 6 builtin の css_vars が空 '{}' から実値 JSON へ seed 済で、
       # 主要 token (--c-bg / --c-fg / --c-primary / --surface-blur / --ag-radius-lg) が揃って
