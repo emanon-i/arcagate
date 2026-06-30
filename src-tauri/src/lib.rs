@@ -86,6 +86,17 @@ pub fn run() {
     let startup_timer = std::time::Instant::now();
 
     if let Err(e) = tauri::Builder::default()
+        // #10 dev⇔packaged 検査: single-instance は最初に登録する (Tauri 推奨)。
+        // autostart + 手動起動等で 2 個目が立ち上がると、同一 arcagate.db (SQLite WAL) を
+        // 複数 instance が開いて lock 競合 / WAL 不整合を起こす。 2 個目の起動は既存 main
+        // window を前面化して即終了させ、 常に単一 instance を保証する。
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {

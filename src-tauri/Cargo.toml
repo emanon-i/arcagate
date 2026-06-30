@@ -41,6 +41,9 @@ tauri-plugin-autostart = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-shell = "2"
+# #10 dev⇔packaged 検査: autostart 併用時の二重起動で同一 SQLite(WAL) を複数 instance が
+# 開く競合を防ぐ。 2 個目の起動は既存 window を前面化して終了する (lib.rs で登録)。
+tauri-plugin-single-instance = "2"
 rusqlite = { version = "0.34", features = ["bundled", "backup"] }
 zip = "2"
 rusqlite_migration = "2"
