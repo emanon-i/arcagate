@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-07-01
+
+dev⇔packaged 検査で判明した packaged 固有の不具合を修正。
+
+### Added
+
+- single-instance: 2 個目の起動で既存ウィンドウを前面化し、複数インスタンスが同一 DB を開く競合を防止 (#10)
+
+### Fixed
+
+- 自動アップデータが capability 欠落 (`updater:default` 未付与) で動作しなかったのを修正 — auto-update が有効に (#9)
+- Windows で git / アイコン抽出の背景プロセス実行時にコンソールウィンドウが点滅する問題を抑止 (CREATE_NO_WINDOW、背景 spawn を共通 factory に集約 + 再発防止 audit)
+
+### Changed
+
+- release ビルドから devtools (inspector) を除外 (debug ビルドでは従来どおり自動有効) (#6)
+
 ## [0.1.0] — 2026-06-26
 
 初回 GitHub Release (Library overhaul L1-L3 + Workspace canvas rewrite Phase 1+1.1 完了)。
@@ -46,5 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - ClockWidget を完全廃止 (4 回 fix 後 user 体感不改善のため、user 判断、 #274)
 
-[Unreleased]: https://github.com/emanon-i/arcagate/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/emanon-i/arcagate/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/emanon-i/arcagate/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/emanon-i/arcagate/releases/tag/v0.1.0

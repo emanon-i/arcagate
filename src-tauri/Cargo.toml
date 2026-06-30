@@ -1,6 +1,6 @@
 [package]
 name = "arcagate"
-version = "0.1.0"
+version = "0.1.1"
 description = "A personal control panel for launching apps, URLs, scripts, and more"
 authors = ["you"]
 license = ""
