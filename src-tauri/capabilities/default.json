@@ -27,6 +27,7 @@
     "fs:allow-write",
     "fs:allow-read",
     "shell:allow-open",
+    "updater:default",
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text"
   ]
