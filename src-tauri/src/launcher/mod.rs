@@ -27,6 +27,20 @@ pub fn try_spawn_cmd(cmd: &mut Command, what: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// **GUI アプリ / exe 起動カテゴリ専用** の spawn。 `code` → `code.cmd` のような shim を
+/// 介して起動する場合でも cmd.exe の console window が出て残らないよう、 Windows で
+/// `CREATE_NO_WINDOW` を付けてから共通 seam (`try_spawn_cmd`) を通す。
+///
+/// 種別分岐の原則 (user 報告 2026-07: VSCode 起動で console が残る):
+/// - **GUI アプリ / exe 起動** (`launch_exe` / `launch_exe_args` / `launch_argv`) → 本関数 (console 抑止)
+/// - **明示的ターミナル起動** (`launch_terminal_in_dir`、 cmd / powershell opener) → `try_spawn_cmd` (console 可視が正)
+/// - **スクリプト起動** (.ps1 / .bat / .cmd = `launch_script`) / **任意コマンド** (`launch_command`)
+///   → `try_spawn_cmd` (ユーザーが出力 console を見たい場合があるため現状維持)
+fn try_spawn_app(cmd: &mut Command, what: &str) -> Result<(), AppError> {
+    crate::utils::process::hide_console(cmd);
+    try_spawn_cmd(cmd, what)
+}
+
 #[cfg(feature = "test-launch-seam")]
 fn record_seam(log_path: &str, cmd: &Command, what: &str) -> Result<(), AppError> {
     use std::io::Write;
@@ -163,7 +177,7 @@ pub fn launch_exe(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    try_spawn_cmd(&mut cmd, "exe")
+    try_spawn_app(&mut cmd, "exe")
 }
 
 /// 引数を構造化 Vec で渡す EXE 起動（スペース入りパス対応）
@@ -179,7 +193,7 @@ pub fn launch_exe_args(
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    try_spawn_cmd(&mut cmd, "exe_args")
+    try_spawn_app(&mut cmd, "exe_args")
 }
 
 /// URL をデフォルトブラウザ / 関連付けハンドラで開く。
@@ -337,7 +351,7 @@ pub fn launch_argv(tokens: &[String], working_dir: Option<&str>) -> Result<(), A
     if let Some(wd) = working_dir {
         cmd.current_dir(wd);
     }
-    try_spawn_cmd(&mut cmd, "argv")
+    try_spawn_app(&mut cmd, "argv")
 }
 
 /// PH-CF-1210 ⑨ (Windows 専用): PATH + PATHEXT を Windows 流に解決して program の絶対 path
