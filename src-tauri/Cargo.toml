@@ -34,7 +34,12 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 # audit F4 (2026-05-18): CVE-2026-42184 (origin confusion, Windows) は tauri 2.0–2.11.0
 # が該当、patched 2.11.1。floor を 2.11.1 に引き上げ。
-tauri = { version = "2.11.1", features = ["protocol-asset", "tray-icon", "devtools"] }
+# #6 dev⇔packaged 検査: "devtools" feature は付けない。 debug build では devtools が
+# 自動有効 (Tauri v2 仕様) なので開発時は inspector を使え、 release build には inspector を
+# 同梱しない (製品で end-user に内部を露出させない)。 e2e/CDP は WebView2 の
+# --remote-debugging-port で別経路 (devtools feature 非依存、 tests に devtools 参照 0 件)。
+# 未捕捉フロントエラーは error-monitor.svelte.ts が toast 表示するため release でも握り潰されない。
+tauri = { version = "2.11.1", features = ["protocol-asset", "tray-icon"] }
 tauri-plugin-log = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"
