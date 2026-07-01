@@ -92,14 +92,8 @@ Microsoft Store 配布 + 海外展開を計画に含み、 i18n architecture (= 
 
 ### 性能 (numeric pass criteria)
 
-| 指標             | 目標      |
-| ---------------- | --------- |
-| 起動 P95         | ≤ 2,500ms |
-| Palette 表示 P95 | ≤ 120ms   |
-| アイテム起動 P95 | ≤ 200ms   |
-| Idle メモリ      | ≤ 120MB   |
-| Idle CPU         | ≤ 1%      |
-| exe 単体サイズ   | ≤ 20MB    |
+起動 / Palette 表示 / アイテム起動 / Idle メモリ・CPU / exe サイズの数値予算を全て pass すること。
+数値の正本は [`l1 vision.md` §UX 標準「パフォーマンス目標値」](../l1_requirements/vision.md#パフォーマンス目標値) (ここでは複製しない)。
 
 ### 機能完成度
 

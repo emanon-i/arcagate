@@ -564,7 +564,7 @@ arcagate/
 
 1. `std` / 既存依存で足りないか (3 分で書けるなら書く)
 2. 最終更新 < 12 ヶ月、 weekly downloads > 10k、 license OK
-3. exe 20MB / idle 120MB / 起動 2.5 秒の 3 目標を維持できるか
+3. perf 予算 (exe / idle メモリ / 起動、正本は [vision UX 標準](../l1_requirements/vision.md#パフォーマンス目標値)) を維持できるか
 
 ### 9.4 リファクタ発動閾値
 
@@ -594,15 +594,18 @@ arcagate/
 
 ## 10. 非機能要求
 
-| 要求         | 目標                      | 技術 approach                                                     |
-| ------------ | ------------------------- | ----------------------------------------------------------------- |
-| 常駐メモリ   | Idle Working Set ≤ 120MB  | Tauri v2 + rusqlite bundled                                       |
-| 起動 latency | P95 ≤ 2,500ms             | Tauri IPC custom protocol + SQLite WAL + index 最適化             |
-| Palette 表示 | P95 ≤ 120ms               | preload + Tauri webview 隠し表示                                  |
-| アイテム起動 | P95 ≤ 200ms               | launch IPC 直接 + log 記録は非同期                                |
-| バイナリ     | exe ≤ 20MB                | Tauri v2 + bundled SQLite                                         |
-| データ保存   | ローカル完結              | SQLite (cloud 同期なし)                                           |
-| CSP          | Tauri v2 default CSP 準拠 | `ipc:` / `asset:` のみ許可、 `unsafe-inline` / `unsafe-eval` 禁止 |
+> 性能の数値予算 (起動 / Palette / メモリ / CPU / exe) の正本は [`l1 vision.md` §UX 標準](../l1_requirements/vision.md#パフォーマンス目標値)。
+> 本節は数値を複製せず、各要求の**達成手段 (技術 approach)** を対応づける。
+
+| 要求         | 技術 approach                                                                           |
+| ------------ | --------------------------------------------------------------------------------------- |
+| 常駐メモリ   | Tauri v2 + rusqlite bundled                                                             |
+| 起動 latency | Tauri IPC custom protocol + SQLite WAL + index 最適化                                   |
+| Palette 表示 | preload + Tauri webview 隠し表示                                                        |
+| アイテム起動 | launch IPC 直接 + log 記録は非同期                                                      |
+| バイナリ     | Tauri v2 + bundled SQLite                                                               |
+| データ保存   | ローカル完結 = SQLite (cloud 同期なし)                                                  |
+| CSP          | Tauri v2 default CSP 準拠: `ipc:` / `asset:` のみ、`unsafe-inline` / `unsafe-eval` 禁止 |
 
 ---
 
