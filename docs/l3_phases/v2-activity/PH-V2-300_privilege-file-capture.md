@@ -16,10 +16,13 @@ V2 差別化の芯 = ファイル操作ログ (作成/編集/削除/リネーム
 (launcher) と **プロセスを分離**する。特権と任意実行が同居すると攻撃者が特権で任意コードを走らせる
 踏み台になる — これを構造で断つ (REQ-20260702-004)。admin が無い user も RDCW 縮退 fallback で使える。
 
-## 権限モデル (README P0 の具体化)
+## 権限モデル (README P0 の具体化 — 方式は 050 確定表に従う)
 
-- **主経路**: 特権 collector が USN Change Journal を全ボリューム read。admin 必須は実機で確定
-  (非 admin = `Error 5 Access denied`)
+本フェーズは **PH-V2-050 の確定表がファイル操作の採用方式を USN (admin) と確定したことを前提に**実装する。
+050 が ETW 等の代替を採用した場合は確定表を正として方式を差し替える (下記は現行 L2 既定):
+
+- **主経路 (050 で追認)**: 特権 collector が USN Change Journal を全ボリューム read。admin 必須は実機で
+  一次確定 (非 admin = `Error 5 Access denied`)、050 で最終確定
 - **fallback**: admin 拒否 / 非昇格時は ReadDirectoryChangesW + **監視フォルダ集合に縮退**へ自動で落ちる
 
 > **要 user 確認 (1 点)**: collector の昇格方式は (a) セッション単位 UAC 同意の helper を既定に進める。
@@ -73,7 +76,8 @@ V2 差別化の芯 = ファイル操作ログ (作成/編集/削除/リネーム
 
 ## 依存
 
-- 先行: PH-V2-100 (file_event の書き込み先) / PH-V2-200 (recorder host・opt-in gate)
+- 先行: PH-V2-050 (USN/RDCW/ETW 等の採用方式と admin 要否を確定表から受ける) /
+  PH-V2-100 (file_event の書き込み先) / PH-V2-200 (recorder host・opt-in gate)
 - 関連: [`security-model.md`](../../l2_foundation/features/cross-cutting/security-model.md) (任意実行が最大攻撃面)
 - 後続: 600 (ファイル活動パネル表示) / 700 (昇格 UX・security 検証を集約)
 

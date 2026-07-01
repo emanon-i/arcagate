@@ -65,7 +65,8 @@ parent: README.md
 
 ## 依存
 
-- 先行: PH-V2-100 (`activity_category_rule` / 集計 API) / PH-V2-200 (窓イベント + 実行イメージパス)
+- 先行: PH-V2-050 (照合元となる窓/URL 等の取得可否・粒度を確定表から受ける) /
+  PH-V2-100 (`activity_category_rule` / 集計 API) / PH-V2-200 (窓イベント + 実行イメージパス)
 - 関連: `item-service` / `tag-service` (item + tag の既存モデル) / `src-tauri/src/models/item.rs` (`ItemType`)
 - 後続: 500 (`activity tag` がこの engine の apply を叩く) / 600 (推薦カード・低信頼修正の UI)
 - 300 とは独立 (窓イベント基盤の上で 300 と並行に進められる)

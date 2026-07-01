@@ -51,7 +51,8 @@ parent: README.md
 
 ## 依存
 
-- 先行: PH-V2-100 (読み出し元 store) / PH-V2-400 (`activity tag apply` が叩く分類 engine)
+- 先行: PH-V2-050 (取得方式確定・ゲート) / PH-V2-100 (読み出し元 store) /
+  PH-V2-400 (`activity tag apply` が叩く分類 engine)
 - 関連: 既存 `arcagate_cli.rs` / `export-import.md` (既存 export と整合)
 - 後続: 600 (画面の export は CLI と同じ経路・format を共有)
 

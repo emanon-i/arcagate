@@ -58,7 +58,7 @@ parent: README.md
 
 ## 依存
 
-- 先行: PH-V2-100〜500 (サマリ / タイムライン / ファイル活動 / 推薦 / export のデータ経路)
+- 先行: PH-V2-050 (取得方式確定・ゲート) / PH-V2-100〜500 (サマリ / タイムライン / ファイル活動 / 推薦 / export のデータ経路)
 - 関連 IPC (正本 screens/activity.md): `get_activity_summary` / `get_activity_timeline` / `get_file_activity` /
   `get_activity_recommendations` / `export_activity` / `set_activity_optin` / event `activity://updated`
 - 後続: 700 (opt-in / 品質メーターの検証を集約) / 800 (原因候補ビューを画面に追加)

@@ -60,7 +60,7 @@ parent: README.md
 
 ## 依存
 
-- 先行: PH-V2-200 (recorder gate) / PH-V2-300 (昇格・no-exec) / PH-V2-600 (設定 UI の載る画面)
+- 先行: PH-V2-050 (取得方式確定・ゲート) / PH-V2-200 (recorder gate) / PH-V2-300 (昇格・no-exec) / PH-V2-600 (設定 UI の載る画面)
 - 関連: `config-service` (opt-in / 除外 / マスク設定) / `security-model.md` / 既存 Settings 画面
 - 後続: なし (V2 core の配布ゲート)
 
