@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 dev⇔packaged 検査で判明した packaged 固有の不具合を修正。
 
+> **注意**: v0.1.0 は updater の不具合（updater capability 欠落で auto-update 不可）のため削除しました。v0.1.0 利用者は本 v0.1.1 を手動で再インストールしてください。
+
 ### Added
 
 - single-instance: 2 個目の起動で既存ウィンドウを前面化し、複数インスタンスが同一 DB を開く競合を防止 (#10)
