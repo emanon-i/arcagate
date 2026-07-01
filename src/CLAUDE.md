@@ -1,6 +1,4 @@
-# src (SvelteKit frontend) — 局所地図
-
-frontend を触る前の道しるべ。中身はコピーせず正本 doc へ導く (SSOT)。
+# src (SvelteKit frontend)
 
 - **禁止事項** (color hardcode 禁止 = `var(--ag-*)` / `var(--c-*)` token 経由必須、`lib/components/ui/` 手動編集禁止):
   [`../.claude/rules/frontend.md`](../.claude/rules/frontend.md)

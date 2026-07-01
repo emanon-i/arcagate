@@ -5,7 +5,7 @@ paths:
 
 # Backend (Rust) rules
 
-`src-tauri/` のファイルを触る時にロードされる。全体構造は [foundation.md](../../docs/l2_foundation/foundation.md) を読む。
+全体構造は [foundation.md](../../docs/l2_foundation/foundation.md) を参照。
 
 ## アーキテクチャ (変えない固定枠)
 

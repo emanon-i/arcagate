@@ -5,7 +5,7 @@ paths:
 
 # Frontend (SvelteKit) rules
 
-`src/` のファイルを触る時にロードされる。state / IPC wrapper / component 構成は [foundation.md](../../docs/l2_foundation/foundation.md) を読む。
+state / IPC wrapper / component 構成は [foundation.md](../../docs/l2_foundation/foundation.md) を参照。
 
 ## 禁止
 

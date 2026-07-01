@@ -1,6 +1,4 @@
-# src-tauri (Rust backend) — 局所地図
-
-Rust backend を触る前の道しるべ。中身はコピーせず正本 doc へ導く (SSOT)。
+# src-tauri (Rust backend)
 
 - **設計の固定枠・禁止事項** (レイヤー `commands → services → repositories → DB` / DB は `Mutex<Connection>`+WAL /
   UUID v7 / `include_str!` migration / `AppError {code,message}` / ORM 不使用): [`../.claude/rules/backend.md`](../.claude/rules/backend.md)

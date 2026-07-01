@@ -5,8 +5,7 @@ paths:
 
 # Docs authoring rules
 
-`docs/` の doc を編集する時にロードされる。doc システムの層構造・SSOT 原則・正本の割り当ては
-[AGENTS.md](../../AGENTS.md) と [docs/CLAUDE.md](../../docs/CLAUDE.md) を正本とする (ここでは再掲しない)。
+doc システムの層構造・SSOT 原則・正本の割り当ては [docs/CLAUDE.md](../../docs/CLAUDE.md) を参照。
 
 ## 禁止
 
