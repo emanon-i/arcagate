@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Docs
 
+- doc 整備・再編 (夜間バッチ): agent 主 doc を関心分離。**AGENTS.md を「方向性・全体像・導線」に
+  lean 化** (177→71 行)、コーディングルール・詳細規約 (設計の固定枠 / 禁止事項 / 開発ルーチン /
+  agent 運用) を **`.claude/rules/engineering.md` + `.claude/rules/workflow.md` へ移設** (AGENTS.md から
+  `@import`)。**CLAUDE.md は `@AGENTS.md` へのルーティングのみ**に (二重管理を解消)。
+  併せて stale・数値矛盾・感情表現を実態へ修正: 常駐メモリ 100→120MB / 起動 P95 2→2.5秒 の統一、
+  widget 数の hardcode (12/14/15) を `src/lib/widgets/` 参照へ (実数 16)、foundation §8 の古い docs
+  ツリー、support の log path (`com.arcagate.desktop`)、operations の壊れた自己リンク・guideline 参照、
+  INSTALL の 24h 自動チェックを実装済へ、lessons 見出しの感情語除去。screens ↔ features/screens の
+  役割分担を双方向バナーで明示 (削除・単一化は履歴保全のため見送り)
 - V2 (パーソナル活動トラッカー) の spec-first 文書化: L0 動機 + L1 要件 (REQ-20260702-001〜006) + L2 仕様 (Activity Recorder / Activity Store / Activity Privilege Separation / Activity CLI / Activity 画面) を追加。芯 = 「ファイル/パス単位の操作ログを蓄積・集約し、後から path 経由で調査できる」低負荷パーソナル活動トラッカー。各信号の取得可否は user 実機で検証済み (2026-07-02: GetLastInputInfo / SMTC / USN queryjournal は非 admin 可、USN readjournal は admin 必須 = Error 5、ReadDirectoryChangesW fallback は非 admin 可)
 - 改名候補 (Outpost / Runboard / Actarium) は全て NO-GO、Arcagate 継続で確定済 (operations.md)
 - living doc (L0/L1/L2) の lean 化: 「現状のあるべき姿だけを簡潔に」を原則とし、本文中の経緯ナレーション (「除去済み」「廃止」「撤回済」「migration 0NN で廃止」「過去合意」等) を除去して現在形の規範・状態へ言い直した (前回の「履歴ごと本文に保持」方針を撤回)。効いているガードレール (token 経由必須 / 命名禁止等) は現在形で残置。除去した廃止事実は以下に集約しトレース可能に:
