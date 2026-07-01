@@ -1,6 +1,6 @@
 # Activity (活動インサイト)
 
-活動ログを一目で読み、 後から path 経由で振り返る画面。 Library / Workspace と並ぶ **第 3 の主要画面** (V2)。 「今日どこに時間が行ったか / どのファイルを触ったか」 を 3 秒で答え、 データを Obsidian へ抜き出す。
+活動ログを一目で読み、 後から path 経由で振り返る画面。 Library / Workspace と並ぶ **第 3 の主要画面** (V2)。 「今日どこに時間が行ったか / どのファイルを触ったか」 を 3 秒で答え、 データを CSV / JSON / 期間サマリ Markdown で外部へ抜き出す。
 
 route: `src/routes/+page.svelte` の `activeView === 'activity'` 分岐 (新設)
 画面本体: `src/lib/components/arcagate/activity/` (新設)
@@ -29,7 +29,7 @@ route: `src/routes/+page.svelte` の `activeView === 'activity'` 分岐 (新設)
 | (4) **ファイル活動パネル**       | 探索 | V2 差別化。 よく触った path / フォルダ別件数 / 拡張子分布 / 直近の作成・編集・削除・リネーム   |
 | (5) 週次レビューカード           | 行動 | 未登録アプリの推薦「今週の候補 3 件」 (利用時間 / 想定 tag / ワンクリック登録)                 |
 | (6) リソース原因候補ビュー       | 探索 | 「重かった時間帯」 の逆引き (第 2 段 / optional)                                               |
-| (7) データ品質メーター + export  | 行動 | 右上に品質 (High / Partial) 常設。 export ボタン (Obsidian MD 第一)                            |
+| (7) データ品質メーター + export  | 行動 | 右上に品質 (High / Partial) 常設。 export ボタン (Markdown サマリ / CSV / JSON)                |
 
 実装場所 (新設):
 
@@ -56,6 +56,7 @@ route: `src/routes/+page.svelte` の `activeView === 'activity'` 分岐 (新設)
 
 - カテゴリ別 (tag 由来) チャート、 アプリ別ランキング
 - 各グラフ脇に **短文インサイトを常設** (user がグラフ解釈を自力でしなくて済む)。 比較基準は「昨日」 と「先週同曜日」 に標準化。 例: 「開発カテゴリが先週同曜日比 +1h20m」
+- カテゴリ (tag) の分類ルールは [Activity CLI](../features/backend/activity-cli.md) の `activity tag` コマンドで管理する。 画面はその結果を可視化するだけで、 分類 UI や AI をアプリ内に持たない (分類はコマンドベース・冪等・外部 AI 駆動)
 
 ### (4) ファイル活動パネル (V2 の差別化)
 
@@ -73,10 +74,11 @@ route: `src/routes/+page.svelte` の `activeView === 'activity'` 分岐 (新設)
 - 右上に `データ品質: High / Partial` を常設。 UIA/SMTC 取得失敗で「不明」 が増えた時、 理由 + 修正アクション (再権限確認 / 除外設定) を開示 (静かな劣化をさせない)
 - item 照合の `confidence: low` の活動は「未分類 / 低信頼」 として可視化し、 その場で正しい item / tag に直す導線
 
-### (7) export (Obsidian への抜き出し)
+### (7) export
 
-- 画面から期間 + filter を選び、 Obsidian-friendly Markdown を第一に CSV / JSON / 生で書き出す ([Activity CLI](../features/backend/activity-cli.md) と同じ経路・format)
-- 月次振り返りに貼れる形 (activity-summary skill 互換)
+- 画面から期間 + filter を選び、 **CSV / JSON / 期間サマリ Markdown / 生** で書き出す ([Activity CLI](../features/backend/activity-cli.md) と同じ経路・format)
+- Markdown サマリは **デフォルトテンプレート**で出し、 カスタムテンプレートを選んでいればそれで出す。 出力先は user の任意 (Obsidian vault はその一例)
+- 期間サマリ Markdown は月次振り返りにそのまま貼れる形にする
 
 ---
 
@@ -95,27 +97,25 @@ route: `src/routes/+page.svelte` の `activeView === 'activity'` 分岐 (新設)
 
 ### 変更仕様
 
-中央を **Library / Workspace / Activity の 3 択トグル**にする。 V2 の Activity 画面が Library・Workspace と同格の主要画面になるため、 画面切替の 1 級市民に昇格する:
+中央を **Library / Workspace / Activity の 3 択**にする。 V2 の Activity 画面が Library・Workspace と同格の主要画面になるため、 画面切替の 1 級市民に昇格する:
 
-| 3 択         | icon (候補)                       | activeView 値 | 内容                      |
-| ------------ | --------------------------------- | ------------- | ------------------------- |
-| Library      | `Archive` (現行)                  | `'library'`   | アイテム管理 (現行)       |
-| Workspace    | `LayoutDashboard` (現行)          | `'workspace'` | widget canvas (現行)      |
-| **Activity** | `Activity` or `ChartNoAxesColumn` | `'activity'`  | **活動インサイト (新規)** |
+| セグメント   | icon (lucide)     | activeView 値 | 内容                      |
+| ------------ | ----------------- | ------------- | ------------------------- |
+| Library      | `Archive`         | `'library'`   | アイテム管理 (現行)       |
+| WorkSpace    | `LayoutDashboard` | `'workspace'` | widget canvas (現行)      |
+| **Activity** | `Activity`        | `'activity'`  | **活動インサイト (新規)** |
 
-実装の当たり:
-
-- `ActiveView` type を `'library' | 'workspace' | 'activity'` に拡張、 `centerSlot` に 3 つ目の TitleTab を追加、 `ActivityLayout` を条件 render に足す
+- `ActiveView` type を `'library' | 'workspace' | 'activity'` に拡張し、 `ActivityLayout` を条件 render に足す
 - localStorage 既定は `'library'` 維持 (起動時に活動画面を主役にしない)
 
-### 実装形の選択肢 (確定は user 判断、 推奨を明示)
+### 連結セグメントコントロールで実装する
 
-「3 択スイッチ (トグル切替)」 の見た目を、 現行の独立 TitleTab 3 個で表すか、 連結セグメント (segmented control) に変えるかは 2 案ある:
+中央 3 択は **1 つの枠に連結したセグメントコントロール `[Library | WorkSpace | Activity]`** で表す。 現行の独立 TitleTab 2 個 (`+page.svelte` の `centerSlot`) はこのセグメントに置き換える。 今開いている画面が active セグメントとしてハイライトされる、 一般的な排他トグルの見た目にする。
 
-- **案 A (推奨): 現行 TitleTab を 3 個に増やすだけ** — 既存の見た目・実装 (`TitleTab.svelte`) をそのまま流用、 変更が最小。 「トグル」 の意味 (排他選択・現在地が分かる) は active 強調で既に満たす。 リスク最小で 3 択化できる
-- **案 B: 連結セグメント (segmented control) に作り替え** — 3 つを 1 つの枠に連結し、 より「トグル」 らしい見た目。 新規 component が要り、 hotkey/data-tour/a11y の作り直しコストがある
-
-→ **推奨は案 A** (既存資産流用・最小変更)。 「連結セグメントにしたい」 という視覚要望が明確なら案 B。 ここは user 確認事項。
+- 新規 component `src/lib/components/arcagate/common/ViewSegmentedControl.svelte` を追加する。 3 セグメントを 1 枠に連結し、 セグメント間に境界線・余白の隙間を作らない (独立ボタンの並びに見せない)
+- `active` セグメントは `--ag-accent` 系の塗り + `--ag-accent-text`、 非 active は `--ag-text-secondary`。 枠は `--ag-surface-1` + `--ag-border`、 角丸は `--ag-radius-button`。 色は token 経由 (hardcode 禁止)
+- 各セグメントは `role="tab"` 相当の a11y を持ち、 keyboard (Tab 到達 + 左右矢印で移動 + Enter/Space で選択) で操作できる。 現行 TitleTab が持っていた `data-tour` (`library` / `workspace` / `activity`) を各セグメントへ引き継ぐ
+- クリックで `activeView` を直接更新し、 対応 Layout を条件 render する (状態の持ち方は現行踏襲、 見た目のみ連結セグメント化)
 
 ### スペーシング / 質感
 
@@ -141,7 +141,7 @@ route: `src/routes/+page.svelte` の `activeView === 'activity'` 分岐 (新設)
 | `get_activity_timeline`        | セッション帯 (`sessionized_activity`) を取得                                         |
 | `get_file_activity`            | ファイル活動パネル (path / フォルダ別 / 拡張子分布)                                  |
 | `get_activity_recommendations` | 週次レビューカードの未登録候補                                                       |
-| `export_activity`              | Obsidian MD / CSV / JSON / raw で書き出し                                            |
+| `export_activity`              | Markdown サマリ / CSV / JSON / raw で書き出し (テンプレート指定可)                   |
 | `set_activity_optin`           | opt-in ON/OFF、 収集開始/停止 ([Recorder](../features/backend/activity-recorder.md)) |
 | event `activity://updated`     | 新規データ到着で画面をライブ更新 (二次)                                              |
 

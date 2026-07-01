@@ -42,11 +42,21 @@ CREATE TABLE file_event (
 );
 CREATE INDEX idx_file_event_ts ON file_event(ts);
 CREATE INDEX idx_file_event_path ON file_event(path);
+
+CREATE TABLE activity_category_rule (
+  id         INTEGER PRIMARY KEY,
+  match_kind TEXT NOT NULL,                -- 'app' | 'exe_path' | 'path_glob' | 'title_regex' | 'domain'
+  pattern    TEXT NOT NULL,                -- マッチ値 (match_kind に応じた文字列)
+  category   TEXT NOT NULL,                -- 付与するカテゴリ tag
+  priority   INTEGER NOT NULL DEFAULT 0,   -- 競合時は priority 降順で先勝ち
+  UNIQUE (match_kind, pattern)             -- 冪等 upsert のキー
+);
 ```
 
 - **セッション集約 `sessionized_activity`**: 生イベントを畳んで表示用の帯 (連続する同種イベント) にする。 1 行 = 1 セッション (`started_at` / `ended_at` / `primary_app` / `primary_category` / `active_seconds`)。 タイムラインを点列でなく連続帯で描くため。 セッション境界は「前面アプリ/カテゴリ切替」 と「AFK 区間」 で切る。 生イベントから常に再生成可能に保つ
 - **retention / downsampling ジョブ** (recorder とは別の定期タスク): 生 1 日 → 1 分平均 1 週 → 1 時間平均 1 年。 古い生データを prune。 縮約は指標ごとに `sum` (合計時間) / `max` (ピーク) / `p95` (負荷分布) を使い分ける
 - item 照合 (真の利用頻度 / 未登録レコメンド / tag 自動カテゴリ) の集計経路を提供 (PH-PQ-800 §item model 連携)
+- **カテゴリ分類はルールベース**: `activity_category_rule` にマッチ規則 (matcher → category) を保存する。 イベントへのカテゴリ付与はこのルール集合から **決定論的に再計算**する (`apply` を何度流しても同じ結果 = 冪等)。 カテゴリを生イベント列に固定書き込みせず、 集計時にルールで解決する (ルール変更で過去分も即座に反映)。 ルールの投入・再適用は [Activity CLI](./activity-cli.md) の `activity tag` 系コマンドが行う
 
 ## やらないこと (禁止 / scope 外)
 
@@ -78,3 +88,4 @@ CREATE INDEX idx_file_event_path ON file_event(path);
 - **source-agnostic schema** を採り、 `activity-summary` skill / 将来 ActivityWatch と同型にする (乗り換え・併存を初期から想定)
 - **file_event を 1 級テーブルに独立**させる (V2 差別化の芯。 path/kind/ext を明示列に持ち、 「フォルダ別件数」「拡張子分布」 を後から引ける)
 - item 照合は `confidence` + `match_reason` を保存し、 低信頼は UI で修正可能にする (誤マッチを黙って集計に混ぜない)
+- **カテゴリ分類はルール集合を単一の真実**にし、 生イベントから再計算可能に保つ (冪等・再実行可能)。 分類ロジックを AI や隠れ状態に依存させず、 ルールは CLI で取得・設定・再適用できる (外部 AI がルールを生成して流し込める導線)

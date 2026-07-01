@@ -154,12 +154,19 @@ Claude Code / エージェントからは `arcagate_cli` を Agent tool / Skill 
 
 watcher 縦割り・信号サイロを否定し、時間軸で全信号を 1 つに合流させた統合データモデルの上に、Library / Workspace と並ぶ第 3 の画面「Activity」を新設する。「今日どこに時間が行ったか」を一目で（3 秒到達）。glass 質感・毎日眺めたくなる glanceable UI。ウィンドウバー中央の画面切替を 2 択（Library / Workspace）から 3 択トグルに拡張する。
 
-### 活動データの抽出・Obsidian export
+### 活動データの抽出・export
 
 - **ID**: REQ-20260702-006
 - **優先度**: 高（V2 core・両輪の一方）
 
-自分の活動データを UI と CLI（`arcagate_cli`）から自由に抜き出せる。第一形式は Obsidian-friendly Markdown（月次振り返りに貼れる、YAML frontmatter 付き、activity-summary skill format 互換）。加えて CSV / JSON / 生イベント。期間指定＋filter（app / path / type）で部分抽出、「1 押しで数秒」の手軽さ。CLI にクエリ/抽出サブコマンドを追加する（[Activity CLI](../l2_foundation/features/backend/activity-cli.md)）。
+自分の活動データを UI と CLI（`arcagate_cli`）から自由に抜き出す。出力形式は CSV / JSON / 生イベント、加えて **期間指定の期間サマリ Markdown** を提供する。Markdown サマリは **デフォルト＋カスタムの 2 本立てのテンプレート機構**で組み立て、`{{変数}}` を差し込んでプレビューで確認できる（Obsidian Web Clipper 型）。テンプレートはコマンドで取得・設定・編集し、使える変数の一覧と意味もコマンドで引ける。期間指定＋filter（app / path / type）で部分抽出、「1 押しで数秒」の手軽さ。出力の貼り先は user の任意で、特定ツールを前提にしない（Obsidian vault はその一例）。CLI にクエリ/抽出/テンプレートサブコマンドを追加する（[Activity CLI](../l2_foundation/features/backend/activity-cli.md)）。
+
+### 活動のカテゴリ分類（コマンドベース・外部 AI 駆動）
+
+- **ID**: REQ-20260702-007
+- **優先度**: 中（V2・両輪を活かす）
+
+活動へのカテゴリ（タグ）分類を **コマンドベースで、何度でもやり直せる（冪等・再実行可能）** 形で提供する。分類はルールベース（matcher → category）で決定論的に再計算し、AI をアプリ内に組み込まない。代わりにデータとコマンドを外に開き、**未分類データを CLI で吐き、user 自身の AI（Claude / Codex 等）が分類してタグ付けコマンドを冪等に流し込める**導線を用意する（AI 非依存・外部 AI 駆動）。CLI に分類ルールの list / set / rm / apply / untagged サブコマンドを追加する（[Activity CLI](../l2_foundation/features/backend/activity-cli.md)）。
 
 ## 4. 非機能要求
 
