@@ -14,8 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (タスク種別→正本) + 最低限のコマンド + 進め方要点だけに絞る。詳細規約は正本へ参照で導く
   - **各フォルダの `CLAUDE.md`** を新設 (`src-tauri/` `src/` `docs/`)。その領域の局所地図として
     作業時に遅延ロードされ、正本へリンクする (常時全ロードを回避)
-  - コーディングルール・詳細規約を **`.claude/rules/engineering.md` + `workflow.md`** へ移設 (正本)。
-    **CLAUDE.md は `@AGENTS.md` 委譲のみ**
+  - コーディングルール・詳細規約を **`.claude/rules/`** へ移設 (正本)。**CLAUDE.md は `@AGENTS.md` 委譲のみ**。
+    Claude Code の rules 仕様 (1 file=1 topic / 検証可能な箇条書き / `paths:` frontmatter で条件ロード) に準拠させ、
+    旧 `engineering.md` を scope 別 3 file に分割: `backend.md` (`paths: src-tauri/**`) / `frontend.md` (`paths: src/**`) /
+    `docs.md` (`paths: docs/**/*.md`)。`workflow.md` は全体規律として無条件ロード (paths 無し)
   - **SSOT 化**: perf 予算 (起動/Palette/item/メモリ/CPU/exe) の重複を `vision.md §UX 標準` に一本化し、
     l0 / vision §2.1・§4 / foundation §10 は数値を複製せず参照 (100↔120MB / 2↔2.5秒 の drift 解消)
   - stale・矛盾・感情表現の修正: widget 数 hardcode (12/14/15) → `src/lib/widgets/` 参照 (実数 16)、

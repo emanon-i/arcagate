@@ -70,7 +70,7 @@ doc citation の無い plan は **不完全とみなす**。
 
 1. `pnpm verify` 2 回連続失敗 + 原因不明
 2. 同箇所を 3 回修正しても受け入れ条件を満たせない
-3. 禁止事項 (`.claude/rules/engineering.md`) に触れる修正を検討し始めた
+3. 禁止事項 (`.claude/rules/` の backend / frontend / docs) に触れる修正を検討し始めた
 4. Plan 外のファイルを変更する必要が出てきた
 5. git の index 破損 / push 失敗 / 認証エラー等で自力復旧不可
 6. CI が 2 回連続失敗

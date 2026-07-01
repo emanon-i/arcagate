@@ -3,7 +3,7 @@
 frontend を触る前の道しるべ。中身はコピーせず正本 doc へ導く (SSOT)。
 
 - **禁止事項** (color hardcode 禁止 = `var(--ag-*)` / `var(--c-*)` token 経由必須、`lib/components/ui/` 手動編集禁止):
-  [`../.claude/rules/engineering.md`](../.claude/rules/engineering.md)
+  [`../.claude/rules/frontend.md`](../.claude/rules/frontend.md)
 - **state (runes singleton `.svelte.ts`) / IPC wrapper / component 構成 / dirs**: [`../docs/l2_foundation/foundation.md`](../docs/l2_foundation/foundation.md)
 - **design token の正本** (色 / radius / shadow / surface): [`../docs/l2_foundation/design-tokens.md`](../docs/l2_foundation/design-tokens.md)
 - **UX 標準の正本** (motion / duration / 状態別色 / widget grid / perf 予算): [`../docs/l1_requirements/vision.md`](../docs/l1_requirements/vision.md)
