@@ -1,5 +1,7 @@
 # Library (ライブラリ)
 
+> UX / IA カタログ (画面構成・UI 要素・典型シナリオ)。機能契約 (やる / やらない / 性能予算) は [`../features/screens/library.md`](../features/screens/library.md)。
+
 全登録 item の一覧画面。 アイテムを登録 / タグ付け / 起動する。 default 画面 (アプリ起動時に最初に見えるタブ)。
 
 route: `src/routes/+page.svelte` の `activeView === 'library'` 分岐

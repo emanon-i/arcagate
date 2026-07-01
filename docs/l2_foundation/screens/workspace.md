@@ -1,5 +1,7 @@
 # Workspace (ワークスペース)
 
+> UX / IA カタログ (画面構成・UI 要素・典型シナリオ)。機能契約 (やる / やらない / 性能予算) は [`../features/screens/workspace.md`](../features/screens/workspace.md)。
+
 widget を自由配置できる canvas 画面。 複数 page (タブ) でシナリオ別 launcher pad を作る (Gaming page、 Dev page、 Daily page など)。
 
 route: `src/routes/+page.svelte` の `activeView === 'workspace'` 分岐

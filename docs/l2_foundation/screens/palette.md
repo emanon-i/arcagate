@@ -1,5 +1,7 @@
 # Palette (コマンドパレット)
 
+> UX / IA カタログ (画面構成・UI 要素・典型シナリオ)。機能契約 (やる / やらない / 性能予算) は [`../features/screens/palette.md`](../features/screens/palette.md)。
+
 最速起動経路。 どの画面にいても **Ctrl+Shift+Space** で呼び出し、 名前を打って Enter で実行する floating window。 system tray 常駐なので desktop のどこからでも起動可能。
 
 route: `src/routes/palette/+page.svelte` (別 webview window)

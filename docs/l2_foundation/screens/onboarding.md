@@ -1,5 +1,7 @@
 # Onboarding (セットアップウィザード)
 
+> UX / IA カタログ (画面構成・UI 要素・典型シナリオ)。機能契約 (やる / やらない / 性能予算) は [`../features/screens/onboarding.md`](../features/screens/onboarding.md)。
+
 初回起動時のみ表示する 3 step ウィザード。 即座に使える状態に到達させる。
 
 route: `+page.svelte` 内で SetupWizard overlay (z-50 fixed)

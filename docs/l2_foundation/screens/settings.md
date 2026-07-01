@@ -1,5 +1,7 @@
 # Settings (設定)
 
+> UX / IA カタログ (画面構成・UI 要素・典型シナリオ)。機能契約 (やる / やらない / 性能予算) は [`../features/screens/settings.md`](../features/screens/settings.md)。
+
 アプリ全体の設定。 2 ペイン構成 (左 category / 右 内容)、 modal dialog として表示。
 
 route: main `+page.svelte` で `showSettings = true` → SettingsPanel modal overlay

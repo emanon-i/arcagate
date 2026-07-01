@@ -1,5 +1,7 @@
 # Activity (活動インサイト)
 
+> UX / IA カタログ (画面構成・UI 要素・典型シナリオ)。機能契約は [Activity Recorder](../features/backend/activity-recorder.md) / [Activity Store](../features/backend/activity-store.md) / [Activity CLI](../features/backend/activity-cli.md) / [権限分離](../features/cross-cutting/activity-privilege-separation.md)。
+
 活動ログを一目で読み、 後から path 経由で振り返る画面。 Library / Workspace と並ぶ **第 3 の主要画面** (V2)。 「今日どこに時間が行ったか / どのファイルを触ったか」 を 3 秒で答え、 データを CSV / JSON / 期間サマリ Markdown で外部へ抜き出す。
 
 route: `src/routes/+page.svelte` の `activeView === 'activity'` 分岐 (新設)
