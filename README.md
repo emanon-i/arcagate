@@ -55,10 +55,13 @@ Arcagate は以下のフォルダにデータを保存します。 すべて Win
 # 依存インストール
 pnpm install
 
-# 開発起動
+# 開発起動（推奨：隔離版。本番データ %APPDATA%\com.arcagate.desktop\ と物理分離）
+pnpm app:dev
+
+# 非隔離版（本番 identity = 本番データを使う。daily-use 中は非推奨）
 pnpm tauri dev
 
-# 全検証
+# 全検証（biome / dprint / clippy / rustfmt / svelte-check / cargo test）
 pnpm verify
 
 # E2E テスト（Playwright + WebView2 CDP）
