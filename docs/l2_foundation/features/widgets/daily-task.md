@@ -35,4 +35,4 @@
 
 ## 既知の判断
 
-- 旧 config が `max_items` 前提で不整合だったため専用 Settings (title + hideCompleted) に置換 (PH-issue-027)
+- 専用 Settings (title + hideCompleted) を持つ (`max_items` は持たない)

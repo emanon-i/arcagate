@@ -36,4 +36,4 @@ label + body の定型文 (snippet) を widget 内で作成・編集し、ワン
 
 ## 既知の判断
 
-- 旧 config が `max_items` 前提で不整合だったため専用 Settings (title のみ) に置換 (PH-issue-027)
+- 専用 Settings (title のみ) を持つ (`max_items` は持たない)

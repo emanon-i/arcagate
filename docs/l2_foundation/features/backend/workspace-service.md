@@ -56,7 +56,6 @@ refresh して stale cache を残さない (E4/E5 ghost item 経路の解消)。
 
 ## 既知の判断
 
-- workspace 削除時の item cascade は 2026-05-17 の bugfix (孤児 item 残留の修正)
-- PH-CF-100 (2026-05-23) で cascade を 2 経路 (tag + widget config item_ids) の和集合に拡張、
-  1 transaction 化、 frontend itemStore refresh を契約化。 旧実装の tag 経路のみ cascade は
-  LibraryItemPicker 追加 item を孤立させていた (E5 真因 #1)。
+- workspace 削除時の item cascade は 2 経路 (tag + widget config item_ids) の和集合で、
+  1 transaction 化 + frontend itemStore refresh を契約化する (片方だけだと LibraryItemPicker
+  追加 item が孤立するため)。

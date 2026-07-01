@@ -66,7 +66,7 @@ builtin theme は **3 系統 (glass / brutalist / neumorph) × Dark/Light の 6 
 - 系統 2 (brutalist): `brutalist-dark` / `brutalist` — `[data-theme=brutalist-dark/brutalist]` block
 - 系統 3 (neumorph): `neumorph-dark` / `neumorph` — `[data-theme=neumorph-dark/neumorph]` block
 
-builtin の削除・追加は migration で行い、 削除する builtin を選択中だった config は `theme_mode` を `dark` へフォールバックさせる (migration 036 の `system→dark` 先例、 PH-CF-800 F1 の `hud→dark` でも同 pattern)。 削除した builtin の id を残骸として再導入してはならない (clean state を維持)。
+builtin の削除・追加は migration で行い、 削除する builtin を選択中だった config は `theme_mode` を `dark` へフォールバックさせる。 削除した builtin の id を残骸として再導入してはならない (clean state を維持)。
 
 ## テーマ並び順契約 (PH-CF-800 F1)
 
@@ -85,6 +85,6 @@ custom theme は `sort_order = NULL` で builtin の後ろ、 `name` 順 (SQLite
 - **custom**: 「編集」 (textual、 状態切替で「閉じる」)、 「複製」 (CopyPlus icon)、 「JSON ダウンロード」 (Download icon)
 - **builtin**: 「複製」 + 「JSON ダウンロード」 (2 つのみ)
 
-「複製」 系のアクションは **1 つに統一** する。 旧「コピーして編集」 (DB 複製 + editor 起動) と「コピー」 (clipboard へ JSON 書込) の 2 つの「コピー」 表記は user 意図混乱を生んだため、 「複製」 を `cloneTheme()` 一本に集約し、 clipboard 書込は廃止。 「ダウンロード」 は JSON エクスポート (`exportTheme` + Blob download) として残す。
+「複製」 系のアクションは **1 つに統一** する。 「複製」 は `cloneTheme()` 一本 (DB 複製) で、 clipboard への JSON 書込は持たない (「コピー」 表記の二重化は user 意図混乱を生むため避ける)。 「ダウンロード」 は JSON エクスポート (`exportTheme` + Blob download)。
 
 機械検出: e2e で「コピー」 ボタン押下 → DB に新 custom theme が追加され、 clipboard には書き込まれないことを verify (`tests/e2e/ph-cf-800-theme-settings.spec.ts`)。

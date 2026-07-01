@@ -13,13 +13,13 @@ UI theme (builtin + user custom) の CRUD と active theme の管理を担う ba
 - active theme mode の取得 / 設定
 - active theme を削除した場合は default へ reset
 - カスタムテーマ件数の上限管理 (PH-CF-800 F6、 `MAX_CUSTOM_THEMES` = 50)
-- `themes.sort_order` に基づく明示順 (PH-CF-800 F1、 migration 041)
+- `themes.sort_order` に基づく明示順
 
 ## やらないこと (禁止 / scope 外)
 
 - CSS のコンパイル / 派生計算をしない (派生は frontend の CSS native 計算 — [Design Tokens](../cross-cutting/design-tokens.md))
 - theme の画像アセット管理をしない
-- 英名 ABC 順での並び替えをしない (PH-CF-800 F1 で `sort_order` 経由に統一)
+- 英名 ABC 順での並び替えをしない (`sort_order` 経由に統一)
 
 ## 性能予算
 
@@ -63,6 +63,6 @@ UI theme (builtin + user custom) の CRUD と active theme の管理を担う ba
 
 ## 既知の判断
 
-- builtin theme 6 本は seed + aesthetic primitive の組合せ。 旧 builtin は migration 032 / 041 で廃止 (HUD は PH-CF-800 F1 で user 判断により削除)
-- 並び順は `themes.sort_order` 列で明示し、 builtin は migration 041 で seed (custom は NULL、 name 順 fallback)
+- builtin theme 6 本は seed + aesthetic primitive の組合せ
+- 並び順は `themes.sort_order` 列で明示し、 builtin は seed 済 (custom は NULL、 name 順 fallback)
 - `MAX_CUSTOM_THEMES = 50` は daily-use launcher の典型範囲 (< 10) を大きく上回り、 import loop の stop-loss として機能する緩い上限

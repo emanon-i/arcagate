@@ -45,9 +45,8 @@ const を **唯一の出所** とする。 widget 本体は `parseWidgetConfig(w
 SYSTEM_MONITOR_DEFAULTS)` で defaults を merge、 settings dialog は
 `?? SYSTEM_MONITOR_DEFAULTS.<field>` で同 const を参照する (リテラル fallback 禁止)。
 
-旧実装で widget が `disk_chart_type ?? 'bar'`、 settings が `?? 'gauge'` と乖離していた
-ことが D7 真因 (クリーン config では widget が bar 表示、 設定を開くと gauge 表示で初回保存
-で gauge に切り替わるという 「設定を開く前後で見た目が変わる」 instant-feedback rule 違反)。
+widget body と settings dialog が別々のリテラル fallback (`?? 'bar'` と `?? 'gauge'` 等) を
+持つと「設定を開く前後で見た目が変わる」 instant-feedback rule 違反になるため、 単一 const 参照を徹底する。
 
 機械検出: `scripts/audit-widget-default-config.sh` が widget body と settings dialog の
 `?? <リテラル>` 不一致を fail-closed gate ([`_chrome-consistency.md`](./_chrome-consistency.md) §A7)。

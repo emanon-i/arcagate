@@ -10,7 +10,7 @@
 
 ## 0. 核 mechanical 3 基準 (= 「2 人が同じ答え」 を満たす objective 判定)
 
-旧 「認知負荷」 「読解が要るか」 表現は subjective、 本 doc では **「配置場所」 「文法構造」 「文字数」 の 3 基準で objective 化**。 適用順は §1 decision tree 参照。
+**「配置場所」 「文法構造」 「文字数」 の 3 基準で objective に判定する** (「認知負荷」 等の subjective 表現に依存しない)。 適用順は §1 decision tree 参照。
 
 ### 基準 1: 配置場所 (location-based) — 最も mechanical
 

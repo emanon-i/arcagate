@@ -53,7 +53,7 @@ Arcagate の全 feature / module の **機能契約 (Functional Spec)**。各 fe
 | [File Search](./widgets/file-search.md)             | tool     | フォルダ内ファイル検索                 |
 | [System Monitor](./widgets/system-monitor.md)       | info     | CPU / メモリ / ディスク / ネットワーク |
 
-> Clock widget は 4 回改修しても体感品質が改善せず廃止済 (lessons.md / migration 021)。spec なし。
+> Clock widget は無し (廃止済、 経緯は lessons.md)。 spec なし。
 
 ### Backend service (backend/) — 20
 

@@ -21,10 +21,10 @@ PC 上に散在する起動元を集約する個人用ランチャー。 Tauri v
 
 ## L1 内訳
 
-| file                                                               | 内容                                                                                                                                                                                                                                                 |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`l1_requirements/vision.md`](./l1_requirements/vision.md)         | 機能要求 (REQ-NNNN) + 非機能要件 + 制約 + Release 判定基準 + UX 標準 (パフォーマンス値 / モーション token / Widget 仕様) + Design System tokens — 旧 vision / release-criteria / ux-standards / design-system 4 file の統合                          |
-| [`l1_requirements/operations.md`](./l1_requirements/operations.md) | Dispatch rules (user-redo depth-first / 暴走ブレーキ / 安全 rule) + Release process (rollback / pubkey / cosign) + User-facing support (FAQ / log / SmartScreen) + Widget addition checklist — 旧 distribution/ 6 file + widget-add-checklist の統合 |
+| file                                                               | 内容                                                                                                                                                                                         |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`l1_requirements/vision.md`](./l1_requirements/vision.md)         | 機能要求 (REQ-NNNN) + 非機能要件 + 制約 + Release 判定基準 + UX 標準 (パフォーマンス値 / モーション token / Widget 仕様) + Design System tokens                                              |
+| [`l1_requirements/operations.md`](./l1_requirements/operations.md) | Dispatch rules (user-redo depth-first / 暴走ブレーキ / 安全 rule) + Release process (rollback / pubkey / cosign) + User-facing support (FAQ / log / SmartScreen) + Widget addition checklist |
 
 ## L2 内訳
 
@@ -38,4 +38,4 @@ PC 上に散在する起動元を集約する個人用ランチャー。 Tauri v
 
 ## navigation
 
-- session 開始 / 作業前必読 は repo root [`/CLAUDE.md`](../CLAUDE.md) 参照 (LLM agent 用 navigation も統合済、 別 file の `llms.txt` は廃止)
+- session 開始 / 作業前必読 は repo root [`/CLAUDE.md`](../CLAUDE.md) 参照 (LLM agent 用 navigation も統合済)

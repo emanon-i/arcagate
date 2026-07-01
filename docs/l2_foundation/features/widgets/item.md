@@ -39,5 +39,4 @@ Library から選んだ item を pin して 1 widget に集めるコレクショ
 
 ## 既知の判断
 
-- legacy の単一 `item_id` は migration 023 で `item_ids[]` に統合済
-- `sort_field: 'recent'` は WASTEFUL_PROCESSING W-4 の判断で撤去済 (placeholder で manual と同等の no-op だった、 PH-PQ-500 で型・UI から完全除去)
+- item 参照は `item_ids[]` (複数対応) で保持する

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **MCP 連携廃止** → Agent-first CLI (`arcagate_cli` を Agent tool / Skill 経由で直呼び、PH-003-H)
   - **Workspace 編集モード toggle 廃止** → 常時編集可能 (モードレス、pointer-up / config 変更で即 IPC+DB)
   - **branch 起点 develop 廃止** → main 起点
+  - **L2 feature docs の per-doc 経緯除去**: 各 spec の「旧実装は…だった (bug 説明)」型ナレーション・bugfix 日付・撤去済フィールド記録 (ClockWidget 廃止 / sort_field 'recent' / sticky-bar token / content-visibility 仮想化 / item_id→item_ids 統合 / widget max_items config 等)・doc merge provenance (旧 distribution/ 6 file 統合 / 旧 4 file 統合 / llms.txt 廃止) を本文から除去し現在形へ。schema の migration provenance と現行ガードレール (audit gate / 再導入禁止) は残置。個別事実は git log で追跡可能
 
 ## [0.1.1] — 2026-07-01
 
