@@ -202,7 +202,7 @@ watcher 縦割り・信号サイロを否定し、時間軸で全信号を 1 つ
 ## 0. 弱い根拠 NG リスト（再発防止）
 
 - 「Codex が PASS と言った」→ ソースの review であって動作保証ではない
-- 「DOM 上は問題ない」→ DOM 存在 ≠ 治った（CLAUDE.md `<critical-rule id="dom-not-fixed">`）
+- 「DOM 上は問題ない」→ DOM 存在 ≠ 治った（`dom-not-fixed`、`.claude/rules/workflow.md`）
 - 「pnpm verify pass」→ 体感品質の保証ではない（lessons.md C-1）
 - 「動くはず」「多分大丈夫」→ 主観禁止
 - 「悪くない」「大体良い」→ 数値 or 状態 or 視覚証拠を出す

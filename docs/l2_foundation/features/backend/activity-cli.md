@@ -28,7 +28,7 @@
   - **md (既定)**: 期間サマリ Markdown。 YAML frontmatter (period / generated / totals) + 段落サマリ + カテゴリ rollup + Top Applications / Top File paths / 拡張子分布。 テンプレート機構で組み立てる (下記)。 貼り先は user の任意 (Obsidian vault はその一例)
   - **csv**: 表計算 / 評価面談用
   - **json**: プログラム連携 / 他ツール import
-  - **raw**: 生イベント (デバッグ / 完全 backup)
+  - **raw**: retention 窓内の生イベント (デバッグ用)。古い生データは [Activity Store](./activity-store.md) の downsampling で prune 済のため、期間全域の完全 backup ではない (集約後は 1 分 / 1 時間平均)
 - 「1 押しで数秒で結果ファイル」 の手軽さを保つ (重いクエリでも stream 出力)
 
 ### Markdown テンプレート機構 (default + custom)

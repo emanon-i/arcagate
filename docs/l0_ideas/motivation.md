@@ -116,9 +116,9 @@ Microsoft Store 配布 + 海外展開を計画に含み、 i18n architecture (= 
 
 ### 主観
 
-- 「**毎日開きたい**」 と思える出来 (CLAUDE.md `daily-use-test` rule)
-- 操作後 100ms 以内に視覚反応がある (CLAUDE.md `instant-feedback` rule)
-- 「治った」 判定は **user dev 検収** で確定 (CLAUDE.md `dom-not-fixed` rule)
+- 「**毎日開きたい**」 と思える出来 (`daily-use-test`、 `.claude/rules/workflow.md`)
+- 操作後 100ms 以内に視覚反応がある (`instant-feedback`、 `.claude/rules/workflow.md`)
+- 「治った」 判定は **user dev 検収** で確定 (`dom-not-fixed`、 `.claude/rules/workflow.md`)
 
 ---
 
@@ -193,7 +193,7 @@ Main Window ─→ Workspace (widget click) ─┼─→ アイテム起動
 
 ### 実装失敗
 
-- 「**DOM 存在 = 治った**」 判定 (CLAUDE.md `dom-not-fixed` 違反)
+- 「**DOM 存在 = 治った**」 判定 (`dom-not-fixed` 違反、 `.claude/rules/workflow.md`)
 - 「**pnpm verify pass = 治った**」 判定 (lessons.md 系)
 - **1 file 直して終わり** で横展開漏れ (CLAUDE.md `lateral-sweep` 違反、 2026-05-13 EXE folder cascade 事例)
 - **user に dev 起動 / dump / screenshot 依頼** (CLAUDE.md `agent-self-complete` 違反)
@@ -212,11 +212,11 @@ Main Window ─→ Workspace (widget click) ─┼─→ アイテム起動
 
 ## 関連 doc
 
-- 全体アーキテクチャ / 技術設計 → [`l2_foundation/foundation.md`](l2_foundation/foundation.md)
-- 画面別機能カタログ → [`l2_foundation/screens/`](l2_foundation/screens/)
-- テストシナリオ ⇄ 実装 mapping → [`l2_foundation/test_scenarios.md`](l2_foundation/test_scenarios.md)
-- 失敗駆動メモリ → [`lessons.md`](lessons.md)
-- 過去の実装 plan (アーカイブ済) → [`l3_phases/_archive/`](l3_phases/_archive/)
+- 全体アーキテクチャ / 技術設計 → [`l2_foundation/foundation.md`](../l2_foundation/foundation.md)
+- 画面別機能カタログ → [`l2_foundation/screens/`](../l2_foundation/screens/)
+- テストシナリオ ⇄ 実装 mapping → [`l2_foundation/test_scenarios.md`](../l2_foundation/test_scenarios.md)
+- 失敗駆動メモリ → [`lessons.md`](../l2_foundation/lessons.md)
+- 過去の実装 plan (アーカイブ済) → [`l3_phases/_archive/`](../l3_phases/_archive/)
 
 ---
 
