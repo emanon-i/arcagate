@@ -1,18 +1,15 @@
 # Design Tokens v2
 
-> **目的**: 「色 1〜2 色を決めるだけで色全体は色彩学で自動生成、 aesthetic (glass / neumorph / brutalist) は直交軸として token で表現」 という design system の構造定義。 PH-CF-800 F1 で HUD は builtin から削除。
+> **目的**: 「色 1〜2 色を決めるだけで色全体は色彩学で自動生成、 aesthetic (glass / neumorph / brutalist) は直交軸として token で表現」 という design system の構造定義。
 > **対象**: 全 frontend developer / agent。 component の見た目を書くときの token 選択基準。
 > **永続性**: L2 design doc 中核。 `i18n-policy.md` / `button-usage.md` と並ぶ。
-> **status**: 2026-05-18 制定 (v2、 旧 `--ag-*` 直書きカラーパレット方式を seed + 派生方式へ刷新)。
 > **実装**: `src/lib/styles/arcagate-theme.css` / `src/lib/utils/color.ts` / `src/lib/state/a11y.svelte.ts`
 
 ---
 
-## 0. 背景 / なぜ v2
+## 0. 設計原則
 
-旧方式は theme ごとに `--ag-surface-1` 〜 `--ag-error-text` 等の **全カラーを手で列挙** していた (migration 011〜024)。 theme を 1 本足すたびに 20+ 色を手調整する必要があり、 整合性も保ちにくかった。
-
-v2 は **「seed (種) を最小限決め、 派生は CSS native の色計算に任せる」**。 theme 定義は seed 8 値 + aesthetic primitive の差し替えだけになる。
+**「seed (種) を最小限決め、 派生は CSS native の色計算に任せる」**。 theme 定義は seed 8 値 + aesthetic primitive の差し替えだけで済む。 theme ごとに全カラーを手で列挙しないため、 theme 追加時の手調整と不整合を避けられる。
 
 WebView2 (Windows 11 / Chromium 系) は relative color `oklch(from …)` と `color-mix()` を完全サポートするため、 派生は **runtime の CSS 計算**で行い JS fallback は持たない。
 
@@ -123,9 +120,9 @@ noise opacity / blur 強度は LAYER 2 primitive (`--surface-noise-opacity` / `-
 | **Neumorph Dark**  | dark  | 深 surface + dark-shifted dual shadow、 blur 無し                            |
 | **Neumorph**       | light | pastel solid + inner/outer dual shadow、 blur 無し                           |
 
-PH-CF-800 F1 (migration 041): builtin は **3 系統 × Dark/Light の 6 本構成**。 並び順は migration 041 の `themes.sort_order` で固定 (dark / light / brutalist-dark / brutalist / neumorph-dark / neumorph)。 Dark / Light は `.dark` class 切替 (flat、 `[data-theme]` を使わない)。 Brutalist / Neumorph は `[data-theme="<id>"]` block。 旧 builtin (Cyan Steel / Coral Wine / Liquid Glass / HUD 等) は migration 032 / 041 で廃止。
+builtin は **3 系統 × Dark/Light の 6 本構成**。 並び順は `themes.sort_order` で固定 (dark / light / brutalist-dark / brutalist / neumorph-dark / neumorph)。 Dark / Light は `.dark` class 切替 (flat、 `[data-theme]` を使わない)。 Brutalist / Neumorph は `[data-theme="<id>"]` block。
 
-「Liquid Glass」 表記は user 向け表示にも内部実装にも使わない (過去合意)。
+「Liquid Glass」 表記は user 向け表示にも内部実装にも使わない (naming ban)。
 
 ---
 

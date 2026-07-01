@@ -10,7 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Docs
 
 - V2 (パーソナル活動トラッカー) の spec-first 文書化: L0 動機 + L1 要件 (REQ-20260702-001〜006) + L2 仕様 (Activity Recorder / Activity Store / Activity Privilege Separation / Activity CLI / Activity 画面) を追加。芯 = 「ファイル/パス単位の操作ログを蓄積・集約し、後から path 経由で調査できる」低負荷パーソナル活動トラッカー。各信号の取得可否は user 実機で検証済み (2026-07-02: GetLastInputInfo / SMTC / USN queryjournal は非 admin 可、USN readjournal は admin 必須 = Error 5、ReadDirectoryChangesW fallback は非 admin 可)
-- 要求の廃止 (retirement) 記録: L0/L1 の廃止要求 sweep を実施した結果、**削除対象の「生きた廃止要求」は無し**。Industrial Yellow / HUD builtin / Liquid Glass は既に anti-goal 化 or 廃止履歴として適切に保持されており、履歴ごと消さない方針で保持を継続。改名候補 (Outpost / Runboard / Actarium) は全て NO-GO、Arcagate 継続で確定済 (operations.md)
+- 改名候補 (Outpost / Runboard / Actarium) は全て NO-GO、Arcagate 継続で確定済 (operations.md)
+- living doc (L0/L1/L2) の lean 化: 「現状のあるべき姿だけを簡潔に」を原則とし、本文中の経緯ナレーション (「除去済み」「廃止」「撤回済」「migration 0NN で廃止」「過去合意」等) を除去して現在形の規範・状態へ言い直した (前回の「履歴ごと本文に保持」方針を撤回)。効いているガードレール (token 経由必須 / 命名禁止等) は現在形で残置。除去した廃止事実は以下に集約しトレース可能に:
+  - **Industrial Yellow / 蛍光イエロー direction**: 2026-05-07 撤回 (配布水準にそぐわず daily-use で疲れる)。anti-goal として motivation.md に現在形で残置
+  - **builtin theme の変遷**: Cyan Steel / Coral Wine / Liquid Glass / HUD を廃止 (migration 032 / 041 相当、HUD は PH-CF-800 F1 で user 判断)。現行は glass / neumorph / brutalist × Dark/Light の 6 本。「Liquid Glass」表記は user 表示・内部実装とも不使用 (naming ban として継続)
+  - **design token 方式の刷新** (2026-05-18): 旧「theme ごとに全 `--ag-*` 色を手列挙」方式 (migration 011〜024) を廃し、seed 8 値 + 色彩学的自動派生 + aesthetic 直交軸へ
+  - **accent コントラスト**: 全 6 builtin の `--c-primary` を L≈0.50 帯へ調整し white-on-primary ≥ 4.5:1 を達成 (旧値は 1.3–4.0:1 で WCAG 違反、PH-CF-800 F2)。契約は cross-cutting/design-tokens.md に現在形で残置
+  - **OS 追従 (system) テーマモード撤廃**: builtin は明示選択のみ
+  - **MCP 連携廃止** → Agent-first CLI (`arcagate_cli` を Agent tool / Skill 経由で直呼び、PH-003-H)
+  - **Workspace 編集モード toggle 廃止** → 常時編集可能 (モードレス、pointer-up / config 変更で即 IPC+DB)
+  - **branch 起点 develop 廃止** → main 起点
 
 ## [0.1.1] — 2026-07-01
 

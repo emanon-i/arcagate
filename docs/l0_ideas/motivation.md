@@ -61,7 +61,7 @@ launcher は「**起動の瞬間**」 しか見ていない。 1 日のうち実
 
 将来的に配布・販売の選択肢は開いておく (GitHub public)、 daily-use を磨き続ける事が最優先。
 
-**2026-05-14 update**: Microsoft Store 配布 + 海外展開 計画あり、 i18n architecture (= `t('key')` wrapper + locale store + `messages_<locale>.json`) 整備対象。 default locale = `ja`、 future en / 他言語 expansion ready。
+Microsoft Store 配布 + 海外展開を計画に含み、 i18n architecture (= `t('key')` wrapper + locale store + `messages_<locale>.json`) を整備する。 default locale = `ja`、 en / 他言語 expansion ready。
 
 ---
 
@@ -203,7 +203,7 @@ Main Window ─→ Workspace (widget click) ─┼─→ アイテム起動
 
 ### Product Direction 失敗
 
-- **Industrial Yellow direction** (撤回済 2026-05-07): 配布水準にそぐわず、 daily-use で疲れる
+- **単色ブランドに寄せた派手 direction (旧 Industrial Yellow 路線)**: 配布水準にそぐわず、 daily-use で疲れる。 色は theme accent に追従させる
 - **「念のため」 機能の積上げ**: 「微妙なら削る」 哲学に反する
 - **「将来対応」 marker UI**: 動かない select option を残すと user 混乱
 - **scope creep**: 1 PR が肥大化、 「規模超え → 別 PR」 判断を怠ると merge 困難
