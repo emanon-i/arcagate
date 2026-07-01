@@ -140,21 +140,10 @@ button 配置する → click したら何が起きる?
 
 ---
 
-## 5. 既存 60 file の分類 status
+## 5. 既存コードへの適用状況
 
-audit (2026-05-14) で grep 結果 60 file の raw `<button>` を本 rubric 6 分類で **mass migration** 予定:
-
-| 分類               | 想定 file 数 | migration target                                                       |
-| ------------------ | ------------ | ---------------------------------------------------------------------- |
-| (a) primary        | ~10          | form footer の submit / 確定 button                                    |
-| (b) secondary      | ~15          | cancel / 戻る / dismiss                                                |
-| (c) destructive    | ~5           | delete / remove / trash                                                |
-| (d) toolbar        | ~5           | sort / filter / 表示切替                                               |
-| (e) icon-only      | ~20          | × close / 歯車 settings / 「...」 more                                 |
-| (f) chrome / dense | ~5           | **keep raw** (TitleBar / WidgetHandles / LibraryCard / ColorPicker 等) |
-| **計**             | **60**       |                                                                        |
-
-→ 後続 migration PR で 5 phase serial に実施 (= (e) icon-only から、 各 phase 10 file 単位)。
+raw `<button>` の本 rubric への mass migration は完了済 (完走宣言・集計は末尾の変更履歴を参照)。
+現存する raw `<button>` は §6 (f) の keep raw 例外で覆われる。新規 button は本 rubric で分類する。
 
 ---
 
