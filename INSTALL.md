@@ -44,7 +44,7 @@ Get-AuthenticodeSignature "Arcagate_<version>_x64-setup.exe"
 - 「アップデート確認」ボタン → GitHub Releases から最新版チェック
 - 利用可能なら「適用」ボタン → ダウンロード + 自動再起動
 
-将来的に 24h 間隔の自動チェックに対応予定 (batch-101)。
+起動時および 24h 間隔で自動チェックし、利用可能なら toast で通知する (1 日 1 回、dismiss 後は 24h 抑制)。
 
 ## 6. アンインストール
 

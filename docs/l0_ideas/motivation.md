@@ -103,7 +103,7 @@ Microsoft Store 配布 + 海外展開を計画に含み、 i18n architecture (= 
 
 ### 機能完成度
 
-- 全 widget (現在 14 種) が daily-use に耐える
+- 全 widget が daily-use に耐える (現行の集合は `src/lib/widgets/` が単一情報源)
 - D&D 経由のアイテム登録が全 type (exe / url / folder / script / image / text) でスムーズ
 - Library / Workspace / Palette / Settings の 4 画面が UI 一貫性を持つ
 - セットアップウィザード完走で「即使える」 状態に到達

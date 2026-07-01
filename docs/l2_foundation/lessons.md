@@ -6,7 +6,7 @@
 
 ---
 
-## <severity>critical</severity> 「verify pass = 治った」 と書くな (2026-04-29 user 激怒で確定)
+## <severity>critical</severity> 「verify pass = 治った」 と書くな (2026-04-29 user 指摘で確定)
 
 ### 観測
 

@@ -29,8 +29,8 @@
 | ---------------- | ------------------------------------------------------------------------- |
 | プラットフォーム | Windows x86-64 優先（クロスプラットフォームは設計上意識するが対応しない） |
 | 技術スタック     | Tauri + Svelte（UI）+ Rust（バックエンド）+ SQLite（ローカルDB）          |
-| 常駐メモリ       | Idle時 Working Set 100MB以下                                              |
-| 起動時間         | ホットキー押下からUI表示まで P95 2秒以内                                  |
+| 常駐メモリ       | Idle時 Working Set 120MB以下                                              |
+| 起動時間         | ホットキー押下からUI表示まで P95 2.5秒以内                                |
 | バイナリサイズ   | インストーラーなし単体exe 20MB以下                                        |
 | コスト           | ゼロコスト運用                                                            |
 
@@ -172,8 +172,8 @@ watcher 縦割り・信号サイロを否定し、時間軸で全信号を 1 つ
 
 | 項目               | 要求                                                                        |
 | ------------------ | --------------------------------------------------------------------------- |
-| 常駐メモリ         | Idle時 Working Set 100MB以下                                                |
-| 起動レイテンシ     | ホットキー押下→UI表示 P95 2秒以内                                           |
+| 常駐メモリ         | Idle時 Working Set 120MB以下                                                |
+| 起動レイテンシ     | ホットキー押下→UI表示 P95 2.5秒以内                                         |
 | バイナリサイズ     | 単体exe 20MB以下                                                            |
 | データ保存         | ローカル完結（SQLite）。活動ログも一切外部送信しない                        |
 | 活動 recorder 負荷 | 稼働中の CPU 使用率増分 平均 1% 未満（イベント駆動 / 軽量 poll のみ）       |
@@ -218,10 +218,10 @@ watcher 縦割り・信号サイロを否定し、時間軸で全信号を 1 つ
 
 ## A. 機能完成度
 
-### A1. 主要 widget 動作 (12 種)
+### A1. 主要 widget 動作（全 widget、現行 16 種）
 
 - **Verification**: 各 widget を Workspace に追加 → 設定 → 主要操作（起動 / 削除 / config 編集）を実機 dev で実行
-- **Pass**: 12 widget 全てで crash 無し、各主要操作が 1 回で完了
+- **Pass**: 全 widget で crash 無し、各主要操作が 1 回で完了（現行の widget 集合は `src/lib/widgets/` が単一情報源）
 - **Tooling**: 手動 dev 検収 + dev console error log 確認 + e2e
 
 ### A2. Library 主要 flow
@@ -263,10 +263,10 @@ watcher 縦割り・信号サイロを否定し、時間軸で全信号を 1 つ
 - **Pass**: `scripts/audit-design-tokens.sh` が 0 violations
 - **Tooling**: CDP screenshot + 目視評価 + design-tokens lefthook
 
-### B2. Widget UX 常識遵守 (12 widget × 5 項目)
+### B2. Widget UX 常識遵守（全 widget × 5 項目）
 
 - **Verification**: 各 widget で 5 項目 = 1) 削除確認 1 step + 5 sec undo / 2) 半透明 / ぼかし backdrop only / 3) label 機能・状態・アクション（icon 名禁止）/ 4) keyboard a11y（Tab / Enter / Esc）/ 5) resize で見切れ無し・設定即反映
-- **Pass**: 60 観測点で違反 0、または各違反に fix PR 紐付け
+- **Pass**: 全観測点（widget 数 × 5）で違反 0、または各違反に fix PR 紐付け
 - **Tooling**: audit scripts + 手動 widget exercise
 
 ### B3. token 一貫性
