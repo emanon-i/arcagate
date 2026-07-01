@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+
+- V2 (パーソナル活動トラッカー) の spec-first 文書化: L0 動機 + L1 要件 (REQ-20260702-001〜006) + L2 仕様 (Activity Recorder / Activity Store / Activity Privilege Separation / Activity CLI / Activity 画面) を追加。芯 = 「ファイル/パス単位の操作ログを蓄積・集約し、後から path 経由で調査できる」低負荷パーソナル活動トラッカー。各信号の取得可否は user 実機で検証済み (2026-07-02: GetLastInputInfo / SMTC / USN queryjournal は非 admin 可、USN readjournal は admin 必須 = Error 5、ReadDirectoryChangesW fallback は非 admin 可)
+- 要求の廃止 (retirement) 記録: L0/L1 の廃止要求 sweep を実施した結果、**削除対象の「生きた廃止要求」は無し**。Industrial Yellow / HUD builtin / Liquid Glass は既に anti-goal 化 or 廃止履歴として適切に保持されており、履歴ごと消さない方針で保持を継続。改名候補 (Outpost / Runboard / Actarium) は全て NO-GO、Arcagate 継続で確定済 (operations.md)
+
 ## [0.1.1] — 2026-07-01
 
 dev⇔packaged 検査で判明した packaged 固有の不具合を修正。

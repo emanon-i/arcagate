@@ -24,13 +24,14 @@ Arcagate の全 feature / module の **機能契約 (Functional Spec)**。各 fe
 
 ## 構成
 
-### 画面 (screens/) — 5
+### 画面 (screens/) — 6
 
 - [Workspace](./screens/workspace.md) — widget を配置する無限 canvas
 - [Library](./screens/library.md) — 全 item 一覧 / 登録 / 起動 (default 画面)
 - [Palette](./screens/palette.md) — グローバル launcher (Ctrl+Shift+Space)
 - [Settings](./screens/settings.md) — アプリ全体設定 (6 ペイン)
 - [Setup Wizard / Onboarding](./screens/onboarding.md) — 初回起動ウィザード
+- [Activity](../screens/activity.md) — 活動インサイト (V2、 Library/Workspace と並ぶ第 3 画面)
 
 ### Widget (widgets/) — 15
 
@@ -54,7 +55,7 @@ Arcagate の全 feature / module の **機能契約 (Functional Spec)**。各 fe
 
 > Clock widget は 4 回改修しても体感品質が改善せず廃止済 (lessons.md / migration 021)。spec なし。
 
-### Backend service (backend/) — 17
+### Backend service (backend/) — 20
 
 - [Item Service](./backend/item-service.md) — item CRUD / 検索
 - [Tag Service](./backend/tag-service.md) — tag / starred
@@ -73,8 +74,11 @@ Arcagate の全 feature / module の **機能契約 (Functional Spec)**。各 fe
 - [Workspace Service](./backend/workspace-service.md) — workspace / widget CRUD
 - [Wallpaper Service](./backend/wallpaper-service.md) — 壁紙保存
 - [Export / Import Service](./backend/export-import.md) — JSON backup / reset
+- [Activity Recorder](./backend/activity-recorder.md) — 活動ログ収集 (V2、 窓/実操作/メディア/ファイル操作)
+- [Activity Store](./backend/activity-store.md) — 統合時系列ストア (V2、 retention/downsampling)
+- [Activity CLI](./backend/activity-cli.md) — `arcagate_cli` の活動クエリ/抽出 (V2、 Obsidian export)
 
-### Cross-cutting (cross-cutting/) — 9
+### Cross-cutting (cross-cutting/) — 10
 
 - [Design Tokens](./cross-cutting/design-tokens.md) — token system (規範本体は `../design-tokens.md`)
 - [i18n](./cross-cutting/i18n.md) — 文言判定 (規範本体は `../i18n-policy.md`)
@@ -85,6 +89,7 @@ Arcagate の全 feature / module の **機能契約 (Functional Spec)**。各 fe
 - [Startup Perf](./cross-cutting/startup-perf.md) — cold start 体感目標
 - [Window Drag](./cross-cutting/window-drag.md) — frameless window drag region
 - [Item Lifecycle](./cross-cutting/item-lifecycle.md) — item の生成 / 削除 / 保持 / 孤立 contract matrix (table 主体、 7-section 規範形式の例外)
+- [Activity Privilege Separation](./cross-cutting/activity-privilege-separation.md) — 特権収集 (読取専用・no-exec) と非特権 UI/launcher の分離・信頼境界 (V2)
 
 ## 使い方
 

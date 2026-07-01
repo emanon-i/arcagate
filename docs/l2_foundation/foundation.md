@@ -430,6 +430,15 @@ PRAGMA synchronous = NORMAL;
 PRAGMA cache_size = -8000;        -- 8MB page cache
 ```
 
+### V2: 活動トラッカーの追加設計 (パーソナル observability)
+
+V2 でパーソナル活動トラッカーを足す。 既存アーキに新パラダイムを持ち込まず、 そのまま乗せる:
+
+- **時系列テーブルを分離追加**: `activity_event` / `file_event` / `system_metric` / `sessionized_activity` を migration で追加 (既存 item/workspace 系とは別)。 timestamp index 専用。 retention + downsampling (生1日→1分平均1週→1時間平均1年) を最初から組み込み DB 肥大を防ぐ。 DDL と方針は [Activity Store](./features/backend/activity-store.md)
+- **収集は recorder スレッド**: notify 駆動の [Folder Watch](./features/backend/folder-watch.md) の兄弟として、 イベント購読 + 軽量 poll の [Activity Recorder](./features/backend/activity-recorder.md) を足す。 レイヤーは既存どおり `recorder → services → repositories → DB`
+- **特権プロセス分離 (security)**: ファイル操作のフル捕捉に要る管理者権限 (USN Change Journal read は実機で admin 必須と確定) を、 「読むだけ・コード実行能力ゼロ」 の**別プロセス collector** に閉じ込め、 本体 (UI/launcher) は非特権のまま。 IPC は file_event の一方向・型付き転送に絞り、 特権側を任意実行の踏み台にしない。 詳細は [Activity Privilege Separation](./features/cross-cutting/activity-privilege-separation.md)
+- **画面追加**: Library / Workspace と並ぶ第 3 画面 [Activity](./screens/activity.md) を route に足す (ウィンドウバー中央を 2 択 → 3 択トグルに拡張)
+
 ---
 
 ## 8. ディレクトリ構成
