@@ -1,0 +1,13 @@
+$ logman create trace PH050EtwTest -p "Windows Kernel Trace" "(process,thread)" -o "E:\Cella\Projects\arcagate\scratch\ph050-spikes\etwtest.etl"
+Error:
+Access is denied.
+Try running this command as an administrator.
+exit=-2147024891
+
+Note: this test used the "Windows Kernel Trace" provider with (process,thread) keywords,
+NOT the (fileiodiskio) keyword group specifically. It demonstrates that ETW *kernel trace session
+creation* is admin-gated for non-admin callers in general (StartTrace requires SeSystemProfilePrivilege
+or admin), which is the load-bearing fact for the USN-vs-ETW comparison. It does NOT measure the
+runtime overhead of an active file-IO kernel trace stream, nor does it isolate the FileIo keyword
+specifically. Overhead comparison between USN (read-on-demand) and ETW (continuous event stream) in
+this doc is architectural/design reasoning, not a measured benchmark.

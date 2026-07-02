@@ -1,0 +1,20 @@
+﻿[
+    {
+        "label":  "initial",
+        "ts":  "2026-07-02T12:47:49.1512653+09:00",
+        "hwnd":  "66298",
+        "pid":  14952,
+        "procName":  "explorer",
+        "procPath":  "C:\\Windows\\explorer.exe",
+        "title":  "Program Manager"
+    },
+    {
+        "label":  "after-setforegroundwindow-chrome(ok=True)",
+        "ts":  "2026-07-02T12:47:49.7097333+09:00",
+        "hwnd":  "68420",
+        "pid":  2332,
+        "procName":  "chrome",
+        "procPath":  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "title":  "小林さんちのメイドラゴン　第5話　｢トールの社会勉強！(本人は出来てるつもりです)｣ - ニコニコ動画 - Google Chrome"
+    }
+]

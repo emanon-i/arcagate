@@ -1,0 +1,50 @@
+﻿[
+    {
+        "method":  "Get-Counter(PDH multi)",
+        "scope":  "system-wide",
+        "ms":  1751,
+        "sample":  "\\\\buddha-239\\processor(_total)\\% processor time=13.9419978686938 | \\\\buddha-239\\memory\\available mbytes=10188 | \\\\buddha-239\\physicaldisk(_total)\\disk bytes/sec=72640.1412447191 | \\\\buddha-239\\network interface(intel[r] ethernet connection [11] i219-v)\\bytes total/sec=148624.203922063 | \\\\buddha-239\\network interface(realtek usb gbe family controller)\\bytes total/sec=0"
+    },
+    {
+        "method":  "WMI Win32_PerfFormattedData_PerfOS_Processor",
+        "scope":  "system-wide",
+        "ms":  421,
+        "sample":  "PercentProcessorTime=12"
+    },
+    {
+        "method":  "WMI Win32_OperatingSystem",
+        "scope":  "system-wide",
+        "ms":  135,
+        "sample":  "FreeMB=10178.9 / TotalMB=32678.1"
+    },
+    {
+        "method":  "GetSystemTimes (raw Win32)",
+        "scope":  "system-wide",
+        "ms":  9,
+        "sample":  "cpuPct(1000ms delta)=14.5"
+    },
+    {
+        "method":  "WMI Win32_PerfFormattedData_PerfProc_Process (all procs)",
+        "scope":  "per-process",
+        "ms":  438,
+        "sample":  "AggregatorHost:cpu=0, AppActions:cpu=0, AppVShNotify:cpu=0, AppleMobileDeviceService:cpu=0, ApplicationFrameHost:cpu=0"
+    },
+    {
+        "method":  "Get-Process (GetProcessTimes-based, all procs)",
+        "scope":  "per-process",
+        "ms":  52,
+        "sample":  "adb:cpu=, AggregatorHost:cpu=, AppActions:cpu=4.796875, AppleMobileDeviceService:cpu=, ApplicationFrameHost:cpu=0.984375"
+    },
+    {
+        "method":  "WMI Win32_PerfFormattedData_PerfDisk_PhysicalDisk",
+        "scope":  "system-wide disk",
+        "ms":  265,
+        "sample":  "DiskBytesPerSec=0"
+    },
+    {
+        "method":  "WMI Win32_PerfFormattedData_Tcpip_NetworkInterface",
+        "scope":  "system-wide net",
+        "ms":  277,
+        "sample":  "Intel[R] Ethernet Connection [11] I219-V=644Bps"
+    }
+]

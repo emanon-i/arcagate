@@ -1,0 +1,29 @@
+﻿[
+    {
+        "label":  "before-any-media-currentSession",
+        "ts":  "2026-07-02T12:46:25.7160336+09:00",
+        "appId":  "null",
+        "title":  null,
+        "artist":  null,
+        "albumTitle":  null,
+        "playbackStatus":  null
+    },
+    {
+        "label":  "before-any-media",
+        "ts":  "2026-07-02T12:46:34.3851812+09:00",
+        "appId":  "Chrome",
+        "title":  "[REDACTED: 実際は視聴中コンテンツ名(30文字程度)+サイト名。個人視聴データのため伏字。非空文字列で取得できたことのみ確定]",
+        "artist":  "",
+        "albumTitle":  "",
+        "playbackStatus":  "Paused"
+    },
+    {
+        "label":  "before-any-media-currentSession",
+        "ts":  "2026-07-02T12:46:34.4045403+09:00",
+        "appId":  "Chrome",
+        "title":  null,
+        "artist":  null,
+        "albumTitle":  null,
+        "playbackStatus":  null
+    }
+]

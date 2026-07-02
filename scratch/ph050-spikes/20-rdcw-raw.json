@@ -1,0 +1,32 @@
+﻿[
+    {
+        "ts":  "2026-07-02T12:45:42.8594720+09:00",
+        "changeType":  "Created",
+        "name":  "a.txt",
+        "fullPath":  "E:\\Cella\\Projects\\arcagate\\scratch\\ph050-spikes\\rdcw-testdir\\a.txt"
+    },
+    {
+        "ts":  "2026-07-02T12:45:42.8811469+09:00",
+        "changeType":  "Changed",
+        "name":  "a.txt",
+        "fullPath":  "E:\\Cella\\Projects\\arcagate\\scratch\\ph050-spikes\\rdcw-testdir\\a.txt"
+    },
+    {
+        "ts":  "2026-07-02T12:45:43.5078320+09:00",
+        "changeType":  "Changed",
+        "name":  "a.txt",
+        "fullPath":  "E:\\Cella\\Projects\\arcagate\\scratch\\ph050-spikes\\rdcw-testdir\\a.txt"
+    },
+    {
+        "ts":  "2026-07-02T12:45:43.8162900+09:00",
+        "changeType":  "Renamed",
+        "name":  "b.txt",
+        "fullPath":  "E:\\Cella\\Projects\\arcagate\\scratch\\ph050-spikes\\rdcw-testdir\\b.txt"
+    },
+    {
+        "ts":  "2026-07-02T12:45:44.3324538+09:00",
+        "changeType":  "Deleted",
+        "name":  "b.txt",
+        "fullPath":  "E:\\Cella\\Projects\\arcagate\\scratch\\ph050-spikes\\rdcw-testdir\\b.txt"
+    }
+]

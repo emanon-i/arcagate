@@ -1,0 +1,38 @@
+﻿[
+    {
+        "label":  "before-notepad",
+        "ts":  "2026-07-02T12:10:27.2609359+09:00",
+        "hwnd":  "133380",
+        "pid":  22948,
+        "procName":  "YourCoworker",
+        "procPath":  "D:\\Game\\steamapps\\common\\Your Coworker\\YourCoworker.exe",
+        "title":  "YourCoworker"
+    },
+    {
+        "label":  "notepad-foreground",
+        "ts":  "2026-07-02T12:10:28.9126974+09:00",
+        "hwnd":  "133380",
+        "pid":  22948,
+        "procName":  "YourCoworker",
+        "procPath":  "D:\\Game\\steamapps\\common\\Your Coworker\\YourCoworker.exe",
+        "title":  "YourCoworker"
+    },
+    {
+        "label":  "notepad-after-typing",
+        "ts":  "2026-07-02T12:10:29.9781337+09:00",
+        "hwnd":  "133380",
+        "pid":  22948,
+        "procName":  "YourCoworker",
+        "procPath":  "D:\\Game\\steamapps\\common\\Your Coworker\\YourCoworker.exe",
+        "title":  "YourCoworker"
+    },
+    {
+        "label":  "after-notepad-closed",
+        "ts":  "2026-07-02T12:10:30.5033779+09:00",
+        "hwnd":  "133380",
+        "pid":  22948,
+        "procName":  "YourCoworker",
+        "procPath":  "D:\\Game\\steamapps\\common\\Your Coworker\\YourCoworker.exe",
+        "title":  "YourCoworker"
+    }
+]

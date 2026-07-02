@@ -1,0 +1,2 @@
+﻿2026-07-02T12:54:46.6708054+09:00 hwnd=7800432 title=メモ帳
+2026-07-02T12:54:47.7128326+09:00 hwnd=68386 title=arcagate/docs/l2_foundation/features/backend/activity-cli.md at feat/v2-personal-activity-2026-07-02 · emanon-i/arcagate - Google Chrome

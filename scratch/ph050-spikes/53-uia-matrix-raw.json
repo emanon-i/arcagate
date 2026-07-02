@@ -1,0 +1,20 @@
+﻿[
+    {
+        "label":  "chrome-incognito",
+        "ts":  "2026-07-02T12:59:09.9463405+09:00",
+        "procName":  "chrome",
+        "found":  true,
+        "urlLen":  11,
+        "findMs":  17,
+        "error":  null
+    },
+    {
+        "label":  "edge-inprivate",
+        "ts":  "2026-07-02T12:59:10.4045752+09:00",
+        "procName":  "msedge",
+        "found":  true,
+        "urlLen":  19,
+        "findMs":  17,
+        "error":  null
+    }
+]
